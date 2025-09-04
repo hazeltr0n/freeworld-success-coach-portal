@@ -1,0 +1,16 @@
+[theme]
+base = "dark"
+primaryColor = "#CDF95C"  # FreeWorld freedom green
+backgroundColor = "#191931"  # fw-midnight
+secondaryBackgroundColor = "#353548"  # fw-card-bg
+textColor = "#E5E5E5"  # light text
+
+[server]
+maxUploadSize = 200
+enableCORS = false
+enableXsrfProtection = true
+fileWatcherType = "none"
+# Cache refresh marker - 2025-08-28-14-35
+
+[browser]
+gatherUsageStats = false
