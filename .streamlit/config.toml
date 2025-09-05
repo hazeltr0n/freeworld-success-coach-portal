@@ -14,7 +14,3 @@ fileWatcherType = "none"
 
 [browser]
 gatherUsageStats = false
-
-[ui]
-hideTopBar = false
-favicon = "fw_logo.png"
