@@ -520,8 +520,25 @@ def main():
     # Simulate loading delay for better UX
     time.sleep(1.5)
     
-    # Execute memory-only pipeline same as main search (ensures tracked links)
-    # Agent portal active - memory search mode
+    # Use the SAME clean agent portal implementation as HTML preview (works perfectly)
+    try:
+        from agent_portal_clean import generate_agent_portal
+        
+        print(f"🔍 AGENT PORTAL: Using generate_agent_portal() - same as working HTML preview")
+        
+        # Generate the portal HTML using the same implementation as HTML preview
+        portal_html = generate_agent_portal(agent_params)
+        
+        # Clear loading screen and display the portal
+        loading_placeholder.empty()
+        st.markdown(portal_html, unsafe_allow_html=True)
+        return
+        
+    except Exception as clean_error:
+        print(f"❌ Clean portal failed, falling back to old implementation: {clean_error}")
+        # Fall back to old implementation if clean portal fails
+        
+    # OLD IMPLEMENTATION (fallback only)
     try:
         from pipeline_wrapper import StreamlitPipelineWrapper
         pipeline = StreamlitPipelineWrapper()
