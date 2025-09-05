@@ -3784,9 +3784,9 @@ def main():
                             
                             encoded_config = encode_agent_params(agent_params)
 
-                            # Create portal URL
-                            base_url = "https://fwcareercoach.streamlit.app"
-                            portal_url = f"{base_url}/?agent_config={encoded_config}"
+                            # Create portal URL - use QA environment and correct format
+                            base_url = "https://fwcareertest.streamlit.app"  # QA portal URL  
+                            portal_url = f"{base_url}/agent_job_feed?config={encoded_config}"  # Use same format as free_agent_system.py
                             
                             # Add candidate_id parameter if available
                             if candidate_id_tab:
