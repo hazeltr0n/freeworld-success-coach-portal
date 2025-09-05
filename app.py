@@ -2189,9 +2189,23 @@ def show_free_agent_management_page(coach):
                             'route_filter': edited_row['Route'],  # Use route_filter (expected by portal generation)
                             'fair_chance_only': bool(edited_row['Fair Chance']),
                             'max_jobs': int(edited_row['Max Jobs']),
-                            'match_level': edited_row['Match Level']
+                            'match_level': edited_row['Match Level'],
+                            'coach_username': coach.username  # Ensure coach username is included
                         })
                         try:
+                            # DEBUG: Show exactly what we're passing to portal link generation
+                            debug_params = {
+                                'agent_uuid': updated_agent.get('agent_uuid', 'MISSING'),
+                                'agent_name': updated_agent.get('agent_name', 'MISSING'),
+                                'location': updated_agent.get('location', 'MISSING'),
+                                'route_filter': updated_agent.get('route_filter', 'MISSING'),
+                                'fair_chance_only': updated_agent.get('fair_chance_only', 'MISSING'),
+                                'max_jobs': updated_agent.get('max_jobs', 'MISSING'),
+                                'match_level': updated_agent.get('match_level', 'MISSING'),
+                                'coach_username': updated_agent.get('coach_username', 'MISSING')
+                            }
+                            print(f"🔍 DEBUG: Agent parameters being passed: {debug_params}")
+                            
                             # Generate secure portal URL with current table filter values
                             print(f"🔗 Regenerating link for {agent_name} with filters: Market={updated_agent['location']}, Route={updated_agent['route_filter']}, Fair Chance={updated_agent['fair_chance_only']}")
                             full_portal_url = generate_dynamic_portal_link(updated_agent)
