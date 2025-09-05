@@ -2193,14 +2193,19 @@ def show_free_agent_management_page(coach):
                             'created_at': edited_row.get('_created_at', ''),
                             'coach_username': coach.username
                         }
+                        # Normalize route filter value to ensure consistency
+                        route_value = str(edited_row['Route']).lower()  # Ensure lowercase
+                        
                         updated_agent.update({
                             'location': edited_row['Market'],
-                            'route_filter': edited_row['Route'],  # Use route_filter (expected by portal generation)
+                            'route_filter': route_value,  # Use normalized lowercase value
                             'fair_chance_only': bool(edited_row['Fair Chance']),
                             'max_jobs': int(edited_row['Max Jobs']),
                             'match_level': edited_row['Match Level'],
                             'coach_username': coach.username  # Ensure coach username is included
                         })
+                        
+                        print(f"🔍 ROUTE DEBUG: Table shows '{edited_row['Route']}', normalized to '{route_value}'")
                         try:
                             # DEBUG: Show exactly what we're passing to portal link generation
                             debug_params = {
