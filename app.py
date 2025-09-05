@@ -2737,11 +2737,13 @@ def main():
     
     pipeline = get_pipeline(BUILD_HASH)  # Use build hash for stronger cache busting
     
-    # FreeWorld Logo at top left of main page
+    # FreeWorld Logo at top left of main page - prefer round logo for QA
     logo_paths = [
+        "assets/fw_logo.png",           # Round logo (preferred for QA)
+        "assets/FW-Logo-Roots@2x.png",  # Round logo alternate
         "data/fw_logo.png",
         "data/FW-Logo-Roots@2x.png", 
-        "assets/FW-Wordmark-Roots@3x.png"
+        "assets/FW-Wordmark-Roots@3x.png"  # Wordmark (fallback)
     ]
     
     # Remove dead space at top of page
@@ -4306,12 +4308,14 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
         
         st.markdown("---")
     
-    # Sidebar controls with FreeWorld logo
+    # Sidebar controls with FreeWorld logo - prefer round logo for QA
     # Add FreeWorld logo to sidebar with light green border
     logo_paths = [
+        "assets/fw_logo.png",           # Round logo (preferred for QA)
+        "assets/FW-Logo-Roots@2x.png",  # Round logo alternate
         "data/fw_logo.png",
         "data/FW-Logo-Roots@2x.png", 
-        "assets/FW-Wordmark-Roots@3x.png"
+        "assets/FW-Wordmark-Roots@3x.png"  # Wordmark (fallback)
     ]
     
     for logo_path in logo_paths:
