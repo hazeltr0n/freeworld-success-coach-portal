@@ -495,9 +495,10 @@ def create_secure_portal_link(base_url: str, agent_uuid: str, agent_data: dict =
         if agent_data.get('location'):
             url += f"&location={agent_data['location']}"
         
-        # Add route preference  
-        if agent_data.get('route_filter'):
-            url += f"&route={agent_data['route_filter']}"
+        # Add route preference (handle both parameter names)
+        route_filter = agent_data.get('route_filter') or agent_data.get('route_type_filter')
+        if route_filter:
+            url += f"&route={route_filter}"
             
         # Add experience level
         if agent_data.get('experience_level'):
@@ -3754,8 +3755,9 @@ def main():
                             from link_tracker import LinkTracker
                             link_tracker = LinkTracker()
                             
-                            # Prepare tags for tracking
-                            portal_tags = f"coach:{get_current_coach_name()},market:{final_location_tab},route:{portal_config['route_filter']}"
+                            # Prepare tags for tracking (handle both parameter names)
+                            route_for_tags = portal_config.get('route_filter') or portal_config.get('route_type_filter', 'both')
+                            portal_tags = f"coach:{get_current_coach_name()},market:{final_location_tab},route:{route_for_tags}"
                             if pdf_fair_chance_only_tab:
                                 portal_tags += ",fair_chance:true"
                             
