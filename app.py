@@ -3313,13 +3313,13 @@ def main():
                         'location': final_location_tab
                     })
                 
-                # Add PDF parameters (always generate PDF)
+                # Add PDF parameters (always generate PDF) - use correct parameter names for pipeline
                 params.update({
                     'generate_pdf': True,  # Enable PDF generation
                     'max_jobs_pdf': max_jobs_pdf_tab,
-                    'pdf_route_type_filter': pdf_route_type_filter_tab,
-                    'pdf_match_quality_filter': pdf_match_quality_filter_tab,
-                    'pdf_fair_chance_only': pdf_fair_chance_only_tab
+                    'route_type_filter': pdf_route_type_filter_tab,  # Pipeline expects 'route_type_filter'
+                    'match_quality_filter': pdf_match_quality_filter_tab,  # Pipeline expects 'match_quality_filter' 
+                    'fair_chance_only': pdf_fair_chance_only_tab  # Pipeline expects 'fair_chance_only'
                 })
                 
                 # Run pipeline with appropriate spinner message (non-Google searches only)
