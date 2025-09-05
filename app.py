@@ -1,11 +1,21 @@
 
 """
-FreeWorld Success Coach Portal - v2.3 - CACHE KILL-SWITCH
+FreeWorld Success Coach Portal - QA/STAGING ENVIRONMENT  
 Complete fresh start to bypass Streamlit Cloud import caching
 DEPLOYMENT VERSION: August 28, 2025 - New file to force reload
 """
 
 # === IMPORTS ===
+import streamlit as st
+
+# Add QA environment banner at the very top
+st.markdown("""
+<div style="background-color: #FF6B6B; color: white; padding: 10px; text-align: center; font-weight: bold; margin-bottom: 20px;">
+    🧪 QA/STAGING ENVIRONMENT - This is a test version for safely testing changes before production
+</div>
+""", unsafe_allow_html=True)
+
+# === IMPORTS CONTINUED ===
 from app_utils import (
     filter_quality_jobs, 
     calculate_search_metrics, 
