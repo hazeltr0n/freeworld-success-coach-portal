@@ -94,6 +94,9 @@ class FreeWorldPipelineV3:
         # Generate unique run ID for this pipeline execution
         self.run_id = f"pipeline_v3_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
         
+        # Initialize custom location flag (defaults to False)
+        self._is_custom_location = False
+        
         # Initialize all existing modules (preserve functionality)
         self.scraper = FreeWorldJobScraper()
         self.classifier = JobClassifier()

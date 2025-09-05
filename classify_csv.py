@@ -88,6 +88,7 @@ def main(argv: List[str]) -> int:
     ap.add_argument("--store", action="store_true", help="Store to Supabase memory (default is dry-run)")
     ap.add_argument("--limit", type=int, default=0, help="Optional limit on rows to process for quick tests")
     ap.add_argument("--test-refresh", action="store_true", help="Test smart classification refresh logic (shows memory detection without storing)")
+    ap.add_argument("--inspect-pipeline", action="store_true", help="Inspect final DataFrame and pipeline outputs (comprehensive test mode)")
     args = ap.parse_args(argv)
 
     csv_path = Path(args.csv).expanduser()
@@ -126,7 +127,6 @@ def main(argv: List[str]) -> int:
     from shared_search import MARKET_TO_LOCATION
 
     pipe = FreeWorldPipelineV3()
-    pipe._is_custom_location = False  # CSV classifier doesn't use custom locations
 
     print("📥 Ingesting…")
     df_ing = transform_ingest_outscraper(raw_rows, pipe.run_id) if raw_rows else ensure_schema(pd.DataFrame())
@@ -246,6 +246,141 @@ def main(argv: List[str]) -> int:
             print(f"❌ Test refresh failed: {e}")
         
         print("\n🧪 Test complete - no data was modified")
+        print("(Use --store to actually save data)")
+        return 0
+
+    # Inspect complete pipeline outputs
+    if args.inspect_pipeline:
+        print("\n🔍 COMPREHENSIVE PIPELINE INSPECTION")
+        print("=" * 70)
+        
+        # DataFrame structure analysis
+        print(f"📊 FINAL DATAFRAME ANALYSIS:")
+        print(f"   Shape: {df_final.shape[0]} rows × {df_final.shape[1]} columns")
+        print(f"   Memory usage: {df_final.memory_usage(deep=True).sum() / 1024:.1f} KB")
+        
+        # Column analysis by category
+        column_categories = {
+            'source': [col for col in df_final.columns if col.startswith('source.')],
+            'norm': [col for col in df_final.columns if col.startswith('norm.')],
+            'rules': [col for col in df_final.columns if col.startswith('rules.')],
+            'ai': [col for col in df_final.columns if col.startswith('ai.')],
+            'route': [col for col in df_final.columns if col.startswith('route.')],
+            'meta': [col for col in df_final.columns if col.startswith('meta.')],
+            'sys': [col for col in df_final.columns if col.startswith('sys.')],
+            'id': [col for col in df_final.columns if col.startswith('id.')],
+            'other': [col for col in df_final.columns if not any(col.startswith(prefix + '.') for prefix in ['source', 'norm', 'rules', 'ai', 'route', 'meta', 'sys', 'id'])]
+        }
+        
+        print(f"\n📋 COLUMN BREAKDOWN:")
+        for category, cols in column_categories.items():
+            if cols:
+                print(f"   {category.upper()}: {len(cols)} columns")
+                for col in cols[:3]:  # Show first 3
+                    sample_val = str(df_final[col].iloc[0])[:50] if len(df_final) > 0 else 'N/A'
+                    print(f"      {col}: '{sample_val}{'...' if len(sample_val) >= 50 else ''}'")
+                if len(cols) > 3:
+                    print(f"      ... and {len(cols) - 3} more columns")
+        
+        # Critical fields inspection
+        critical_fields = [
+            'id.job', 'source.title', 'source.company', 'source.url', 
+            'ai.match', 'ai.summary', 'ai.route_type', 'ai.fair_chance',
+            'meta.tracked_url', 'meta.market', 'route.final_status',
+            'sys.is_fresh_job', 'sys.classification_source'
+        ]
+        
+        print(f"\n🎯 CRITICAL FIELDS INSPECTION:")
+        missing_critical = []
+        for field in critical_fields:
+            if field in df_final.columns:
+                non_null_count = df_final[field].notna().sum()
+                unique_count = df_final[field].nunique()
+                sample_values = df_final[field].dropna().head(2).tolist()
+                print(f"   ✅ {field}:")
+                print(f"      Non-null: {non_null_count}/{len(df_final)} ({non_null_count/len(df_final)*100:.1f}%)")
+                print(f"      Unique values: {unique_count}")
+                print(f"      Sample: {sample_values}")
+            else:
+                missing_critical.append(field)
+                print(f"   ❌ {field}: MISSING")
+        
+        if missing_critical:
+            print(f"\n⚠️  MISSING CRITICAL FIELDS: {len(missing_critical)}")
+            for field in missing_critical:
+                print(f"      {field}")
+        
+        # Data quality analysis
+        print(f"\n📈 DATA QUALITY ANALYSIS:")
+        if len(df_final) > 0:
+            # Job ID uniqueness
+            job_ids = df_final.get('id.job', pd.Series())
+            if not job_ids.empty:
+                unique_jobs = job_ids.nunique()
+                total_jobs = len(job_ids)
+                print(f"   Job ID uniqueness: {unique_jobs}/{total_jobs} ({unique_jobs/total_jobs*100:.1f}%)")
+            
+            # URL analysis
+            urls = df_final.get('source.url', pd.Series())
+            tracked_urls = df_final.get('meta.tracked_url', pd.Series())
+            if not urls.empty:
+                valid_urls = urls.notna() & urls.str.startswith('http')
+                print(f"   Valid source URLs: {valid_urls.sum()}/{len(urls)} ({valid_urls.sum()/len(urls)*100:.1f}%)")
+            
+            if not tracked_urls.empty:
+                has_tracking = tracked_urls.notna() & (tracked_urls != '')
+                print(f"   Tracking URLs present: {has_tracking.sum()}/{len(tracked_urls)} ({has_tracking.sum()/len(tracked_urls)*100:.1f}%)")
+                
+                # Check if tracking URLs are different from original (indicating short links)
+                if not urls.empty:
+                    different_tracking = (tracked_urls != urls) & tracked_urls.notna() & urls.notna()
+                    print(f"   Short links generated: {different_tracking.sum()}/{len(urls)} ({different_tracking.sum()/len(urls)*100:.1f}%)")
+            
+            # AI classification analysis
+            ai_match = df_final.get('ai.match', pd.Series())
+            if not ai_match.empty:
+                match_counts = ai_match.value_counts()
+                print(f"   AI Classifications: {match_counts.to_dict()}")
+        
+        # Business rules analysis
+        print(f"\n🔧 BUSINESS RULES ANALYSIS:")
+        rules_cols = [col for col in df_final.columns if col.startswith('rules.')]
+        if rules_cols:
+            for rule_col in rules_cols:
+                if df_final[rule_col].dtype == 'bool':
+                    true_count = df_final[rule_col].sum()
+                    print(f"   {rule_col}: {true_count}/{len(df_final)} jobs flagged ({true_count/len(df_final)*100:.1f}%)")
+        
+        # Routing analysis
+        print(f"\n🧭 ROUTING ANALYSIS:")
+        final_status = df_final.get('route.final_status', pd.Series())
+        if not final_status.empty:
+            status_counts = final_status.value_counts()
+            print(f"   Final status distribution: {status_counts.to_dict()}")
+        
+        filtered = df_final.get('route.filtered', pd.Series())
+        if not filtered.empty:
+            filtered_count = filtered.sum() if filtered.dtype == 'bool' else 0
+            print(f"   Filtered jobs: {filtered_count}/{len(df_final)} ({filtered_count/len(df_final)*100:.1f}%)")
+        
+        # Sample job inspection
+        if len(df_final) > 0:
+            print(f"\n🔍 SAMPLE JOB INSPECTION:")
+            sample_job = df_final.iloc[0]
+            print(f"   Job ID: {sample_job.get('id.job', 'N/A')}")
+            print(f"   Title: {sample_job.get('source.title', 'N/A')}")
+            print(f"   Company: {sample_job.get('source.company', 'N/A')}")
+            print(f"   Location: {sample_job.get('source.location', 'N/A')}")
+            print(f"   Original URL: {sample_job.get('source.url', 'N/A')[:80]}...")
+            print(f"   Tracking URL: {sample_job.get('meta.tracked_url', 'N/A')[:80]}...")
+            print(f"   AI Match: {sample_job.get('ai.match', 'N/A')}")
+            print(f"   AI Summary: {sample_job.get('ai.summary', 'N/A')[:100]}...")
+            print(f"   Route Type: {sample_job.get('ai.route_type', 'N/A')}")
+            print(f"   Fair Chance: {sample_job.get('ai.fair_chance', 'N/A')}")
+            print(f"   Market: {sample_job.get('meta.market', 'N/A')}")
+            print(f"   Final Status: {sample_job.get('route.final_status', 'N/A')}")
+        
+        print(f"\n🔍 Pipeline inspection complete - comprehensive analysis shown above")
         print("(Use --store to actually save data)")
         return 0
 
