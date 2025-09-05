@@ -2,8 +2,8 @@
 """
 FreeWorld Success Coach Portal - QA/STAGING ENVIRONMENT  
 Complete fresh start to bypass Streamlit Cloud import caching
-DEPLOYMENT VERSION: September 5, 2025 - Portal parameter encoding FIXED - CACHE BUST
-CACHE_BUSTER_ID: csv_description_fix_f82b2c4
+DEPLOYMENT VERSION: September 5, 2025 - CSV routing debug and fix - CACHE BUST
+CACHE_BUSTER_ID: csv_routing_fix_a3d7f91
 """
 
 # === IMPORTS ===
@@ -6767,8 +6767,21 @@ def show_combined_batches_and_scheduling_page(coach):
                     except Exception:
                         pass
                     st.info("🧭 Deriving route types and routing…")
+                    
+                    # Debug: Check AI classification before routing
+                    print(f"🔍 DEBUG: Before routing - AI match counts: {df_ai['ai.match'].value_counts().to_dict() if 'ai.match' in df_ai.columns else 'No ai.match column'}")
+                    
                     df_route = pipe._stage5_5_route_rules(df_ai)
                     df_final = pipe._stage6_routing(df_route, 'both')
+                    
+                    # Debug: Check final status after routing
+                    if 'route.final_status' in df_final.columns:
+                        final_status_counts = df_final['route.final_status'].value_counts().to_dict()
+                        print(f"🔍 DEBUG: After routing - Final status counts: {final_status_counts}")
+                        included_count = sum(1 for status in final_status_counts.keys() if status.startswith('included'))
+                        print(f"🔍 DEBUG: Jobs with 'included' status: {included_count}")
+                    else:
+                        print(f"🔍 DEBUG: No route.final_status column found after routing!")
 
                     # Classification summary
                     try:
