@@ -222,6 +222,18 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
         if agent_params:
             print(f"🎯 Applying filters: fair_chance_only={agent_params.get('fair_chance_only', False)}, route_types={agent_params.get('route_type_filter', [])}, match_quality={agent_params.get('match_quality_filter', ['good', 'so-so'])}")
         
+        # DEBUG: Let's also check what's actually in the database
+        try:
+            debug_query = supabase_client.table('jobs').select('route_type', count='exact').eq('market', market_name).gte('created_at', cutoff_date)
+            debug_result = debug_query.execute()
+            print(f"🔍 DEBUG: Total jobs in {market_name} since {cutoff_date}: {debug_result.count}")
+            
+            # Check specifically for local jobs
+            local_debug = supabase_client.table('jobs').select('route_type', count='exact').eq('market', market_name).ilike('route_type', '%local%').gte('created_at', cutoff_date).execute()
+            print(f"🔍 DEBUG: Local jobs in {market_name}: {local_debug.count}")
+        except Exception as e:
+            print(f"🔍 DEBUG query failed: {e}")
+        
         # Simplified priority SQL to avoid parsing issues
         # Priority: good=1, so-so=2, others=3
         priority_sql = "CASE WHEN match_level = 'good' THEN 1 WHEN match_level = 'so-so' THEN 2 ELSE 3 END as priority"
