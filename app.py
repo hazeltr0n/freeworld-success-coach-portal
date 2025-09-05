@@ -2171,17 +2171,30 @@ def show_free_agent_management_page(coach):
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            if st.button("🔗 Regenerate All Portal Links", help="Regenerate Short.io portal links for all agents"):
+            if st.button("🔗 Regenerate All Portal Links", help="Regenerate Short.io portal links for all agents using current table settings"):
                 with st.spinner("Regenerating portal links for all agents..."):
                     regenerated_count = 0
                     failed_count = 0
                     
-                    for agent in agents:
-                        agent_name = agent.get('agent_name', 'Unknown')
+                    # Use current edited table data instead of original stored data
+                    for idx, edited_row in edited_df.iterrows():
+                        # Get the original agent data for UUID and other non-editable fields
+                        original_agent = edited_row['_original_data']
+                        agent_name = edited_row['Free Agent Name']
+                        
+                        # Create updated agent object with current table filter values
+                        updated_agent = original_agent.copy()
+                        updated_agent.update({
+                            'location': edited_row['Market'],
+                            'route_filter': edited_row['Route'],  # Use route_filter (expected by portal generation)
+                            'fair_chance_only': bool(edited_row['Fair Chance']),
+                            'max_jobs': int(edited_row['Max Jobs']),
+                            'match_level': edited_row['Match Level']
+                        })
                         try:
-                            # Generate secure portal URL with token validation and search parameters
-                            print(f"🔗 Regenerating link for {agent_name}")
-                            full_portal_url = generate_dynamic_portal_link(agent)
+                            # Generate secure portal URL with current table filter values
+                            print(f"🔗 Regenerating link for {agent_name} with filters: Market={updated_agent['location']}, Route={updated_agent['route_filter']}, Fair Chance={updated_agent['fair_chance_only']}")
+                            full_portal_url = generate_dynamic_portal_link(updated_agent)
                             print(f"🔗 Generated full URL: {full_portal_url[:100]}...")
                             
                             # Create new Short.io link
@@ -2194,20 +2207,20 @@ def show_free_agent_management_page(coach):
                             
                             portal_tags = [
                                 f"coach:{coach.username}",
-                                f"candidate:{agent['agent_uuid']}",
-                                f"market:{agent['location'].lower().replace(' ', '_')}",
+                                f"candidate:{updated_agent['agent_uuid']}",
+                                f"market:{updated_agent['location'].lower().replace(' ', '_')}",
+                                f"route:{updated_agent['route_filter'].lower().replace(' ', '_')}",
                                 "type:portal_access"
                             ]
                             print(f"🔗 Creating Short.io link with tags: {portal_tags}")
                             
-                            shortened_url = link_tracker.create_short_link(full_portal_url, title=f"Portal - {agent_name}", tags=portal_tags, candidate_id=agent['agent_uuid'])
+                            shortened_url = link_tracker.create_short_link(full_portal_url, title=f"Portal - {agent_name}", tags=portal_tags, candidate_id=updated_agent['agent_uuid'])
                             print(f"🔗 Got shortened URL: {shortened_url}")
                             
                             if not shortened_url or shortened_url == full_portal_url:
                                 raise Exception("Short.io returned empty or same URL - possible API limit reached")
                             
-                            # Update agent with new URL
-                            updated_agent = agent.copy()
+                            # Update agent with new URL (updated_agent already has current table filter values)
                             updated_agent['portal_url'] = shortened_url
                             
                             success, message = save_agent_profile(coach.username, updated_agent)
