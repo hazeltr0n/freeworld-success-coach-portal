@@ -62,8 +62,20 @@ def generate_agent_url(agent_uuid: str, params: Dict[str, Any]) -> str:
     # Determine base URL depending on environment
     try:
         import streamlit as st
-        # Default production URL
-        base_url = "https://fwcareercoach.streamlit.app"
+        import os
+        
+        # Detect environment and set appropriate base URL
+        current_dir = os.getcwd()
+        is_qa_portal = 'freeworld-qa-portal' in current_dir
+        
+        if is_qa_portal:
+            # QA Portal URL
+            base_url = "https://fwcareertest.streamlit.app"  # QA environment
+        else:
+            # Production URL  
+            base_url = "https://fwcareercoach.streamlit.app"  # Production environment
+            
+        # Override for local development
         is_local = False
         try:
             is_local = not (hasattr(st, 'get_option') and st.get_option('server.headless'))
@@ -71,8 +83,9 @@ def generate_agent_url(agent_uuid: str, params: Dict[str, Any]) -> str:
             is_local = False
         if is_local:
             base_url = "http://localhost:8501"
+            
     except Exception:
-        base_url = "https://fwcareercoach.streamlit.app"
+        base_url = "https://fwcareercoach.streamlit.app"  # Fallback to production
 
     # Generate URL pointing to agent_job_feed with encoded config
     return f"{base_url}/agent_job_feed?config={encoded_config}"
