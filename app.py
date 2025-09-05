@@ -7,6 +7,9 @@ CACHE_BUSTER_ID: supabase_filter_fix_v2_262d9f9
 """
 
 # === IMPORTS ===
+# AGGRESSIVE CACHE BUST - Import cache buster to force rebuild
+from CACHE_BUSTER import CACHE_BUST_VERSION
+
 import streamlit as st
 
 # === CACHE BUSTER ===

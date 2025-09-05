@@ -10,7 +10,7 @@ maxUploadSize = 200
 enableCORS = false
 enableXsrfProtection = true
 fileWatcherType = "none"
-# Cache refresh marker - 2025-08-28-14-35
+# AGGRESSIVE CACHE BUST - 2025-09-05-14-40-PORTAL-FIX
 
 [browser]
 gatherUsageStats = false

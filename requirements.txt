@@ -1,5 +1,5 @@
 # QA Portal Dependencies - Supabase Filter Fix Deployment
-# CACHE_BUSTER: supabase_filter_fix_v2_262d9f9_sept5_2025
+# CACHE_BUSTER: AGGRESSIVE_CACHE_BUST_sept5_2025_v3_portal_fix
 streamlit>=1.28.1
 pandas>=2.0.0
 pyarrow>=14.0.0
