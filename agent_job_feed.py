@@ -529,6 +529,14 @@ def main():
         market_label = agent_params.get('location', 'Houston')
         coach_username = agent_params.get('coach_username', '')
 
+        # Debug: Log the received agent parameters
+        print(f"🔍 AGENT PORTAL DEBUG: Received agent_params keys: {list(agent_params.keys())}")
+        print(f"🔍 AGENT PORTAL DEBUG: route_type_filter = {agent_params.get('route_type_filter')}")
+        print(f"🔍 AGENT PORTAL DEBUG: route_filter = {agent_params.get('route_filter')}")
+        print(f"🔍 AGENT PORTAL DEBUG: match_quality_filter = {agent_params.get('match_quality_filter')}")
+        print(f"🔍 AGENT PORTAL DEBUG: fair_chance_only = {agent_params.get('fair_chance_only')}")
+        print(f"🔍 AGENT PORTAL DEBUG: max_jobs = {agent_params.get('max_jobs')}")
+        
         pipeline_params = {
             'memory_only': False,  # Use Indeed + Memory search (will hit bypass threshold)
             'generate_pdf': False,
@@ -540,8 +548,8 @@ def main():
             'coach_username': coach_username,
             'memory_hours': 72,
             'job_limit': agent_params.get('max_jobs', 25),
-            'route_type_filter': [agent_params.get('route_filter', 'both')],  # Pipeline expects list
-            'match_quality_filter': agent_params.get('match_level', 'good and so-so').split(' and '),  # Convert to list
+            'route_type_filter': agent_params.get('route_type_filter') or [agent_params.get('route_filter', 'both')],  # Use route_type_filter if available, fallback to route_filter
+            'match_quality_filter': agent_params.get('match_quality_filter') or (agent_params.get('match_level', 'good and so-so').split(' and ') if isinstance(agent_params.get('match_level'), str) else ['good', 'so-so']),  # Use match_quality_filter if available
             'fair_chance_only': agent_params.get('fair_chance_only', False),
             'candidate_name': agent_params.get('agent_name', ''),
             'candidate_id': agent_params.get('agent_uuid', ''),
