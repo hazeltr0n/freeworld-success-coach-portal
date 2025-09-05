@@ -6556,7 +6556,7 @@ def show_combined_batches_and_scheduling_page(coach):
                                              help="Used when 'Choose one market' is selected, and as fallback for unmapped values.")
                 route_filter = st.selectbox("Route Filter", ["both", "local", "otr"], index=0)
             with colR:
-                st.caption("This path does not generate PDFs or tracking links. It stores classified jobs to memory only.")
+                st.caption("This path classifies CSV jobs and stores them to Supabase memory database with tracking URLs. No PDFs generated.")
                 if uploaded is not None and market_source == "Map from CSV column":
                     # Let the user pick the market column before running
                     default_idx = 0
@@ -6861,12 +6861,46 @@ def show_combined_batches_and_scheduling_page(coach):
                         missing_urls = df_final.get('meta.tracked_url', pd.Series(dtype=str)).fillna('') == ''
                         df_final.loc[missing_urls, 'meta.tracked_url'] = df_final.loc[missing_urls, 'source.url']
 
-                    # Store to memory (Supabase) WITH tracking URLs
+                    # Store to memory (Supabase) WITH tracking URLs - using same logic as classify_csv.py
+                    st.info("🔍 Running Data Quality Control before Supabase upload...")
                     try:
-                        pipe._stage8_storage(df_final, push_to_airtable=False)
-                        st.success(f"✅ Stored {included or len(df_final)} classified jobs to memory with tracking URLs")
+                        # Quality Control: Validate data before upload (same as classify_csv.py)
+                        from data_quality_control import validate_jobs_for_upload
+                        
+                        # Mark all jobs as fresh for storage (CSV jobs are always considered fresh)
+                        df_final = df_final.copy()
+                        df_final['sys.is_fresh_job'] = True
+                        
+                        # Run QC validation (non-strict mode for CSV - we want to store data but show warnings)
+                        df_validated, qc_report = validate_jobs_for_upload(df_final, strict_mode=False)
+                        
+                        st.text(qc_report)
+                        
+                        if len(df_validated) == 0:
+                            st.error("❌ No jobs passed quality control validation")
+                        else:
+                            # Store validated jobs to Supabase directly (same as classify_csv.py)
+                            st.info(f"💾 Storing {len(df_validated)} QC-validated jobs to Supabase...")
+                            from job_memory_db import JobMemoryDB
+                            memory_db = JobMemoryDB()
+                            
+                            success = memory_db.store_classifications(df_validated)
+                            error_count = (df_validated.get('ai.match', '') == 'error').sum() if 'ai.match' in df_validated.columns else 0
+                            
+                            if success:
+                                if error_count > 0:
+                                    st.success(f"✅ Stored {len(df_validated)} QC-validated jobs to Supabase ({error_count} had classification errors)")
+                                else:
+                                    st.success(f"✅ Stored {len(df_validated)} QC-validated jobs to Supabase with tracking URLs")
+                                    
+                                # Show data quality summary
+                                rejected_count = len(df_final) - len(df_validated)
+                                if rejected_count > 0:
+                                    st.info(f"📊 QC Summary: {rejected_count} jobs had quality issues but were stored with warnings")
+                            else:
+                                st.warning("⚠️ Failed to store some jobs to Supabase")
                     except Exception as store_e:
-                        st.warning(f"⚠️ Classification complete, but storing to memory encountered an issue: {store_e}")
+                        st.warning(f"⚠️ Classification complete, but Supabase storage failed: {store_e}")
 
                     # Show results table
                     st.dataframe(df_final, use_container_width=True, height=420)
