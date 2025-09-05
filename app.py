@@ -8,7 +8,7 @@ CACHE_BUSTER_ID: tab_complete_fix_force_rebuild_c9f3d06
 
 # === IMPORTS ===
 # AGGRESSIVE CACHE BUST - Import cache buster to force rebuild
-from CACHE_BUSTER import CACHE_BUST_VERSION
+from CACHE_BUSTER import CACHE_BUST_VERSION, FORCE_REBUILD_TOKEN
 print(f"🔥 FORCE REBUILD ACTIVE: {CACHE_BUST_VERSION}")
 
 import streamlit as st
