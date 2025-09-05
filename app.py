@@ -2,11 +2,29 @@
 """
 FreeWorld Success Coach Portal - QA/STAGING ENVIRONMENT  
 Complete fresh start to bypass Streamlit Cloud import caching
-DEPLOYMENT VERSION: August 28, 2025 - New file to force reload
+DEPLOYMENT VERSION: September 5, 2025 - Supabase filtering fixes deployed
+CACHE_BUSTER_ID: supabase_filter_fix_v2_262d9f9
 """
 
 # === IMPORTS ===
 import streamlit as st
+
+# === CACHE BUSTER ===
+# Clear all Streamlit caches on app startup to ensure fresh deployment
+CACHE_VERSION = "supabase_filter_fix_v2_262d9f9_sept5"
+
+@st.cache_data
+def get_cache_version():
+    """Returns cache version to force cache invalidation on deployment"""
+    return CACHE_VERSION
+
+# Force cache clearing on version change
+current_version = get_cache_version()
+if 'cache_version' not in st.session_state or st.session_state.cache_version != current_version:
+    st.cache_data.clear()
+    st.cache_resource.clear() 
+    st.session_state.cache_version = current_version
+    print(f"🔄 Cache cleared for version: {current_version}")
 
 # Add QA environment banner at the very top
 st.markdown("""

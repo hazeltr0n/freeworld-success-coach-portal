@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
-Supabase to Canonical DataFrame Converter
+Supabase to Canonical DataFrame Converter - FILTERING FIX v2.0
 Converts Supabase job_postings data back to full canonical DataFrame format
+MAJOR FIX: Route type filtering now works correctly at database query level
+CACHE_BUSTER: supabase_filter_fix_262d9f9_sept5
 """
 
 import pandas as pd

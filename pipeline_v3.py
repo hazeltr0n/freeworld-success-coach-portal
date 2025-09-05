@@ -1,6 +1,7 @@
 """
-Pipeline v3: Single Canonical Table Architecture - CACHE REFRESH 2025-08-28
+Pipeline v3: Single Canonical Table Architecture - SUPABASE FILTER FIX 2025-09-05
 Bulletproof data handling with namespaced fields and full audit trails
+MAJOR FIX: Supabase route type filtering now works correctly at database level
 """
 
 import pandas as pd
@@ -10,8 +11,8 @@ from datetime import datetime
 from typing import Dict, List, Optional, Tuple, Any
 import uuid
 
-# Cache refresh marker - August 28, 2025
-PIPELINE_CACHE_VERSION = "v3.0-refresh-20250828"
+# Cache refresh marker - September 5, 2025 - Supabase filtering fix
+PIPELINE_CACHE_VERSION = "v3.1-supabase-filter-fix-20250905"
 import asyncio
 
 # Link tracker for URL shortening
