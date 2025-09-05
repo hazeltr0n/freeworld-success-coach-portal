@@ -277,6 +277,7 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
                     elif route_type == 'unknown':
                         query = query.or_('route_type.is.null,route_type.eq.')
                     print(f"🎯 Applied single route type filter: {route_type}")
+                    print(f"🔍 Exact query: ilike('route_type', '%{route_type}%')")
                 else:
                     # Multiple route types - build OR condition
                     route_conditions = []
@@ -304,20 +305,26 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
         
         print(f"📦 Found {len(response.data)} memory jobs in Supabase")
         
-        # Debug: Show priority breakdown of retrieved jobs
+        # Debug: Show breakdown of retrieved jobs including route types
         if response.data:
             priority_counts = {}
             fair_chance_count = 0
+            route_type_counts = {}
+            
             for job in response.data[:10]:  # Check first 10 jobs
                 match_level = job.get('match_level', '')
                 fair_chance = job.get('fair_chance', '')
                 priority = job.get('priority', 5)
+                route_type = job.get('route_type', 'Unknown')
                 
                 priority_counts[priority] = priority_counts.get(priority, 0) + 1
+                route_type_counts[route_type] = route_type_counts.get(route_type, 0) + 1
+                
                 if 'fair_chance_employer' in str(fair_chance).lower() or str(fair_chance).lower() == 'true':
                     fair_chance_count += 1
             
             print(f"🎯 Job priority breakdown (first 10): {priority_counts}")
+            print(f"🚛 Route type breakdown (first 10): {route_type_counts}")
             print(f"🤝 Fair chance jobs in top 10: {fair_chance_count}")
         
         # Convert to canonical DataFrame with full context
