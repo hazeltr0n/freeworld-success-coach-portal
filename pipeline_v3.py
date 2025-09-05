@@ -1786,24 +1786,50 @@ class FreeWorldPipelineV3:
         
         print("💾 STAGE 8: DATA STORAGE")
         
-        # Store fresh quality jobs in Supabase (paid data only)
+        # Separate truly fresh jobs from memory-reused jobs
         fresh_classified = view_fresh_quality(df)
         
+        # Split jobs: truly fresh (new classifications) vs reused from memory 
         if len(fresh_classified) > 0:
-            try:
-                supabase_df = prepare_for_supabase(fresh_classified)
-                print(f"🔍 Supabase DF shape: {supabase_df.shape}, columns: {len(supabase_df.columns)}")
-                print(f"🔍 First few columns: {list(supabase_df.columns[:5])}")
-                
-                success = self.memory_db.store_classifications(supabase_df)
-                if success:
-                    print(f"✅ Stored {len(supabase_df)} fresh jobs in Supabase")
-                else:
-                    print("⚠️ Supabase storage failed - check store_classifications method")
-            except Exception as e:
-                print(f"❌ Supabase storage error: {e}")
-                import traceback
-                traceback.print_exc()
+            # Check which jobs were actually reused from memory (have classification_source = supabase_memory)
+            memory_reused_mask = fresh_classified.get('sys.classification_source', '') == 'supabase_memory'
+            memory_reused_jobs = fresh_classified[memory_reused_mask] if memory_reused_mask.any() else pd.DataFrame()
+            truly_fresh_jobs = fresh_classified[~memory_reused_mask] if memory_reused_mask.any() else fresh_classified
+            
+            print(f"📊 Job classification breakdown:")
+            print(f"   🆕 Truly fresh jobs (new classifications): {len(truly_fresh_jobs)}")
+            print(f"   🔄 Memory-reused jobs (existing classifications): {len(memory_reused_jobs)}")
+            
+            # Store truly fresh jobs with full data
+            if len(truly_fresh_jobs) > 0:
+                try:
+                    supabase_df = prepare_for_supabase(truly_fresh_jobs)
+                    print(f"🔍 Fresh jobs Supabase DF shape: {supabase_df.shape}, columns: {len(supabase_df.columns)}")
+                    
+                    success = self.memory_db.store_classifications(supabase_df)
+                    if success:
+                        print(f"✅ Stored {len(supabase_df)} truly fresh jobs in Supabase")
+                    else:
+                        print("⚠️ Fresh job storage failed - check store_classifications method")
+                except Exception as e:
+                    print(f"❌ Fresh job storage error: {e}")
+                    import traceback
+                    traceback.print_exc()
+            
+            # Refresh timestamps for memory-reused jobs (keep existing data intact)
+            if len(memory_reused_jobs) > 0:
+                try:
+                    job_ids_to_refresh = memory_reused_jobs['id.job'].dropna().astype(str).tolist()
+                    if job_ids_to_refresh:
+                        success = self.memory_db.refresh_existing_jobs(job_ids_to_refresh)
+                        if success:
+                            print(f"✅ Refreshed timestamps for {len(job_ids_to_refresh)} memory-reused jobs")
+                        else:
+                            print("⚠️ Failed to refresh memory-reused job timestamps")
+                except Exception as e:
+                    print(f"❌ Memory job refresh error: {e}")
+        else:
+            print("ℹ️ No quality jobs to store")
         
         # Airtable upload removed: use Supabase memory store only
         

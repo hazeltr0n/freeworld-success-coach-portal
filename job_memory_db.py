@@ -208,6 +208,61 @@ class JobMemoryDB:
             logger.error(f"Error storing job classifications: {e}")
             return False
     
+    def refresh_existing_jobs(self, job_ids: List[str]) -> bool:
+        """
+        Refresh timestamp for existing jobs to keep them current without changing data
+        
+        Args:
+            job_ids: List of job IDs to refresh
+            
+        Returns:
+            bool: Success status
+        """
+        if not self.supabase or not job_ids:
+            return False
+            
+        try:
+            logger.info(f"🔄 Refreshing timestamps for {len(job_ids)} existing jobs in Supabase")
+            
+            # Update jobs in batches to avoid request limits
+            batch_size = 100
+            updated_count = 0
+            
+            for i in range(0, len(job_ids), batch_size):
+                batch = job_ids[i:i + batch_size]
+                
+                # Prepare minimal update records - only update timestamps
+                update_records = []
+                for job_id in batch:
+                    update_records.append({
+                        'id': job_id,
+                        'classified_at': datetime.now().isoformat(),
+                        'updated_at': datetime.now().isoformat()
+                    })
+                
+                # Execute batch update
+                try:
+                    result = self.supabase.table('jobs').upsert(update_records).execute()
+                    if result.data:
+                        batch_count = len(result.data)
+                        updated_count += batch_count
+                        logger.info(f"✅ Refreshed {batch_count} job timestamps (batch {i//batch_size + 1})")
+                    else:
+                        logger.warning(f"⚠️ No results returned for refresh batch {i//batch_size + 1}")
+                except Exception as batch_error:
+                    logger.error(f"❌ Failed to refresh batch {i//batch_size + 1}: {batch_error}")
+                    
+            if updated_count > 0:
+                logger.info(f"✅ Successfully refreshed timestamps for {updated_count} existing jobs")
+                return True
+            else:
+                logger.warning("⚠️ No job timestamps were refreshed")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Error refreshing job timestamps: {e}")
+            return False
+
     def update_tracking_urls(self, job_tracking_map: Dict[str, str]) -> bool:
         """
         Update tracking URLs for existing jobs in Supabase
