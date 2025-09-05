@@ -1,0 +1,11 @@
+FORCE DEPLOYMENT - September 5, 2025
+This file exists to force Streamlit Cloud to rebuild the application.
+
+Changes that need to be deployed:
+1. encode_agent_params function using modern parameter names
+2. agent_portal_clean.py handling modern parameter names
+3. Portal URL generation fixes
+
+Current issue: Streamlit Cloud not deploying changes (no app flicker on push)
+
+DEPLOYMENT_ID: force_rebuild_067f2b2
