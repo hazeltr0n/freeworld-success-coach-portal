@@ -3,7 +3,7 @@
 FreeWorld Success Coach Portal - QA/STAGING ENVIRONMENT  
 Complete fresh start to bypass Streamlit Cloud import caching
 DEPLOYMENT VERSION: September 5, 2025 - CSV routing debug and fix - CACHE BUST
-CACHE_BUSTER_ID: csv_routing_fix_a3d7f91
+CACHE_BUSTER_ID: tab_navigation_syntax_fix_b8e2c95
 """
 
 # === IMPORTS ===
@@ -4097,15 +4097,13 @@ def main():
                 else:
                     st.info("No previous results available.")
     
-    # Analytics tab removed per request
-    
-    with tab3:
+    elif selected_tab == "🗓️ Batches & Scheduling":
         show_combined_batches_and_scheduling_page(coach)
     
-    with tab5:
+    elif selected_tab == "👥 Free Agents":
         show_free_agent_management_page(coach)
     
-    with tab6:
+    elif selected_tab == "📊 Coach Analytics":
         st.header("📊 Coach Performance Analytics")
         st.markdown("Track your performance and compare with other coaches.")
         
@@ -4167,9 +4165,7 @@ def main():
             st.error(f"Coach analytics not available: {e}")
             st.info("Coach analytics require the analytics modules to be properly set up.")
     
-    # System Testing tab removed per request
-    
-    with tab7:
+    elif selected_tab.startswith("👑 Admin Panel") or selected_tab == "🔒 Restricted":
         if coach.role == 'admin':
             st.header("👑 Admin Panel")
             
