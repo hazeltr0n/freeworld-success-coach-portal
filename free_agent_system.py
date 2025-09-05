@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 import streamlit as st
 
 def encode_agent_params(params: Dict[str, Any]) -> str:
-    """Encode agent parameters into a URL-safe string"""
+    """Encode agent parameters into a URL-safe string - FORCE UPDATE"""
     
     # Handle route_type_filter (modern) vs route_filter (legacy)  
     route_value = params.get('route_type_filter', params.get('route_filter', 'both'))
