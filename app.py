@@ -2,7 +2,7 @@
 """
 FreeWorld Success Coach Portal - QA/STAGING ENVIRONMENT  
 Complete fresh start to bypass Streamlit Cloud import caching
-DEPLOYMENT VERSION: September 5, 2025 - Supabase filtering fixes deployed
+DEPLOYMENT VERSION: September 5, 2025 - Portal parameter encoding FIXED - CACHE BUST
 CACHE_BUSTER_ID: supabase_filter_fix_v2_262d9f9
 """
 
