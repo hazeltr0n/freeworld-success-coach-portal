@@ -111,11 +111,13 @@ def main(argv: List[str]) -> int:
         company = _first(row, cols_map, ["company", "company_name", "employer"], "")
         location_raw = _first(row, cols_map, ["formattedLocation", "location", "city", "job_location"], "")
         apply_url = _first(row, cols_map, ["viewJobLink", "apply_url", "applyUrl", "url", "link"], "")
+        description = _first(row, cols_map, ["snippet", "description", "job_description", "jobDescription", "details"], "")
         raw_rows.append({
             "title": title,
             "company": company,
             "formattedLocation": location_raw,
             "viewJobLink": apply_url,
+            "snippet": description,  # Use 'snippet' key to match canonical transform expectations
         })
     print(f"✅ Mapped rows: {len(raw_rows)}")
 
@@ -433,10 +435,35 @@ def main(argv: List[str]) -> int:
             missing_urls = df_final.get('meta.tracked_url', pd.Series(dtype=str)).fillna('') == ''
             df_final.loc[missing_urls, 'meta.tracked_url'] = df_final.loc[missing_urls, 'source.url']
         
-        print("\n💾 Storing to memory (Supabase) with tracking URLs…")
+        print("\n💾 Storing ALL classified jobs to memory (Supabase) with tracking URLs…")
         try:
-            pipe._stage8_storage(df_final, push_to_airtable=False)
-            print(f"✅ Stored {included or total} classified jobs to memory with tracking URLs")
+            # For CSV classification, we want to store ALL classified jobs to Supabase
+            # regardless of routing filters, so we bypass the view_fresh_quality filter
+            # and store the complete DataFrame
+            
+            # Mark all jobs as fresh for storage (CSV jobs are always considered fresh)
+            df_final = df_final.copy()
+            df_final['sys.is_fresh_job'] = True
+            
+            # Directly store to Supabase without filtering by route.final_status
+            from job_memory_db import JobMemoryDB
+            memory_db = JobMemoryDB()
+            
+            # Store ALL jobs from CSV - including those with classification errors
+            # CSV jobs should be stored regardless of AI classification status
+            if len(df_final) > 0:
+                success = memory_db.store_classifications(df_final)
+                error_count = (df_final.get('ai.match', '') == 'error').sum() if 'ai.match' in df_final.columns else 0
+                if success:
+                    if error_count > 0:
+                        print(f"✅ Stored {len(df_final)} jobs to Supabase ({error_count} had classification errors)")
+                    else:
+                        print(f"✅ Stored {len(df_final)} classified jobs to Supabase")
+                else:
+                    print(f"⚠️ Failed to store some jobs to Supabase")
+            else:
+                print("⚠️ No jobs to store")
+                
         except Exception as e:
             print(f"⚠️ Storage failed: {e}")
             return 4
