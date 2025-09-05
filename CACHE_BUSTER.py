@@ -7,7 +7,7 @@ This file forces Streamlit to completely rebuild the environment
 by changing import-level code and dependencies.
 """
 
-CACHE_BUST_VERSION = "v2025.09.05.1440.PORTAL_FIX"
+CACHE_BUST_VERSION = "v2025.09.05.1445.FLICKER_TEST"
 
 def force_cache_invalidation():
     """Force complete cache invalidation"""
