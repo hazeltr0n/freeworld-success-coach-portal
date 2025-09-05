@@ -94,7 +94,7 @@ try:
         pass
     
     st.set_page_config(
-        page_title="FreeWorld Job Scraper - Career Coach Portal", 
+        page_title="FreeWorld QA Portal - Test Environment", 
         page_icon=page_icon, 
         layout="wide", 
         initial_sidebar_state="expanded"
@@ -2329,7 +2329,7 @@ def show_free_agent_portal(agent_config_encoded):
                     except Exception:
                         continue
             st.set_page_config(
-                page_title="FreeWorld Career Portal",
+                page_title="FreeWorld QA Portal - Test Environment",
                 page_icon=page_icon_img if page_icon_img is not None else "🚛",
                 layout="wide",
             )
