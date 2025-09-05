@@ -6937,165 +6937,165 @@ def show_combined_batches_and_scheduling_page(coach):
                                     st.warning("⚠️ Failed to store some jobs to Supabase")
                     except Exception as store_e:
                         st.warning(f"⚠️ Classification complete, but Supabase storage failed: {store_e}")
-
-                # CSV Download Section - Always show after processing
-                st.markdown("---")
-                st.markdown("### 📄 **Export Options**")
-                col_download, col_stats = st.columns([1, 1])
-                
-                with col_download:
-                    # Generate CSV for download
-                    try:
-                        # Check if df_final exists and has data
-                        if 'df_final' in locals() and len(df_final) > 0:
-                            # Use the final DataFrame with all markets and statuses
-                            csv_buffer = df_final.to_csv(index=False)
-                            
-                            # Create filename with timestamp
-                            from datetime import datetime
-                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                            filename = f"classified_jobs_multi_market_{timestamp}.csv"
-                            
-                            st.download_button(
-                                label="📥 Download Full Classified Data (All Markets)",
-                                data=csv_buffer,
-                                file_name=filename,
-                                mime="text/csv",
-                                help="Download complete classified DataFrame with all jobs from all markets (includes filtered jobs for analysis)"
-                            )
-                            
-                            # Show CSV stats
-                            total_csv_jobs = len(df_final)
-                            included_csv_jobs = int((df_final['route.final_status'].str.startswith('included')).sum()) if 'route.final_status' in df_final.columns else 0
-                            filtered_csv_jobs = total_csv_jobs - included_csv_jobs
-                            
-                            st.caption(f"CSV contains: {total_csv_jobs} jobs total • {included_csv_jobs} included • {filtered_csv_jobs} filtered/bad")
-                        else:
-                            st.info("📤 CSV download will be available after successful classification")
-                            st.caption("Upload a CSV file and run classification to enable download")
-                    except Exception as csv_e:
-                        st.error(f"❌ CSV generation failed: {csv_e}")
-                        import traceback
-                        st.code(traceback.format_exc())
                     
-                with col_stats:
-                    # Enhanced classification summary
-                    try:
-                        if 'df_final' in locals() and len(df_final) > 0:
-                            # Calculate comprehensive stats
-                            total_jobs = len(df_final)
-                            
-                            # AI match breakdown
-                            ai_good = int((df_final.get('ai.match', '') == 'good').sum())
-                            ai_soso = int((df_final.get('ai.match', '') == 'so-so').sum()) 
-                            ai_bad = int((df_final.get('ai.match', '') == 'bad').sum())
-                            ai_error = int((df_final.get('ai.match', '') == 'error').sum())
-                            
-                            # Route type breakdown
-                            local_routes = int((df_final.get('ai.route_type', '') == 'Local').sum())
-                            otr_routes = int((df_final.get('ai.route_type', '') == 'OTR').sum())
-                            regional_routes = int((df_final.get('ai.route_type', '') == 'Regional').sum())
-                            
-                            # Final status breakdown
-                            if 'route.final_status' in df_final.columns:
-                                included_jobs = int(df_final['route.final_status'].str.startswith('included').sum())
-                                filtered_jobs = int(df_final['route.final_status'].str.startswith('filtered').sum())
-                                passed_filters = int((df_final['route.final_status'] == 'passed_all_filters').sum())
+                    # CSV Download Section - Always show after processing
+                    st.markdown("---")
+                    st.markdown("### 📄 **Export Options**")
+                    col_download, col_stats = st.columns([1, 1])
+                    
+                    with col_download:
+                        # Generate CSV for download
+                        try:
+                            # Check if df_final exists and has data
+                            if 'df_final' in locals() and len(df_final) > 0:
+                                # Use the final DataFrame with all markets and statuses
+                                csv_buffer = df_final.to_csv(index=False)
+                                
+                                # Create filename with timestamp
+                                from datetime import datetime
+                                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                                filename = f"classified_jobs_multi_market_{timestamp}.csv"
+                                
+                                st.download_button(
+                                    label="📥 Download Full Classified Data (All Markets)",
+                                    data=csv_buffer,
+                                    file_name=filename,
+                                    mime="text/csv",
+                                    help="Download complete classified DataFrame with all jobs from all markets (includes filtered jobs for analysis)"
+                                )
+                                
+                                # Show CSV stats
+                                total_csv_jobs = len(df_final)
+                                included_csv_jobs = int((df_final['route.final_status'].str.startswith('included')).sum()) if 'route.final_status' in df_final.columns else 0
+                                filtered_csv_jobs = total_csv_jobs - included_csv_jobs
+                                
+                                st.caption(f"CSV contains: {total_csv_jobs} jobs total • {included_csv_jobs} included • {filtered_csv_jobs} filtered/bad")
                             else:
-                                included_jobs = ai_good + ai_soso
-                                filtered_jobs = ai_bad
-                                passed_filters = 0
-                            
-                            st.markdown("**📊 Classification Summary**")
-                            st.write(f"**Total Jobs Processed:** {total_jobs}")
-                            st.write(f"**✅ Included for Export:** {included_jobs}")
-                            st.write(f"**🎯 Excellent Matches:** {ai_good}")  
-                            st.write(f"**👍 Good Fits:** {ai_soso}")
-                            st.write(f"**❌ Filtered Out:** {filtered_jobs}")
-                            if ai_error > 0:
-                                st.write(f"**⚠️ Classification Errors:** {ai_error}")
-                            
-                            st.markdown("**🚛 Route Types**")
-                            st.write(f"**🏠 Local:** {local_routes}")
-                            st.write(f"**🛣️ OTR:** {otr_routes}")
-                            if regional_routes > 0:
-                                st.write(f"**🗺️ Regional:** {regional_routes}")
-                        else:
-                            st.info("📊 Classification stats will appear after successful processing")
-                    except Exception:
-                        st.write("📊 Classification stats unavailable")
+                                st.info("📤 CSV download will be available after successful classification")
+                                st.caption("Upload a CSV file and run classification to enable download")
+                        except Exception as csv_e:
+                            st.error(f"❌ CSV generation failed: {csv_e}")
+                            import traceback
+                            st.code(traceback.format_exc())
+                    
+                    with col_stats:
+                        # Enhanced classification summary
+                        try:
+                            if 'df_final' in locals() and len(df_final) > 0:
+                                # Calculate comprehensive stats
+                                total_jobs = len(df_final)
+                                
+                                # AI match breakdown
+                                ai_good = int((df_final.get('ai.match', '') == 'good').sum())
+                                ai_soso = int((df_final.get('ai.match', '') == 'so-so').sum()) 
+                                ai_bad = int((df_final.get('ai.match', '') == 'bad').sum())
+                                ai_error = int((df_final.get('ai.match', '') == 'error').sum())
+                                
+                                # Route type breakdown
+                                local_routes = int((df_final.get('ai.route_type', '') == 'Local').sum())
+                                otr_routes = int((df_final.get('ai.route_type', '') == 'OTR').sum())
+                                regional_routes = int((df_final.get('ai.route_type', '') == 'Regional').sum())
+                                
+                                # Final status breakdown
+                                if 'route.final_status' in df_final.columns:
+                                    included_jobs = int(df_final['route.final_status'].str.startswith('included').sum())
+                                    filtered_jobs = int(df_final['route.final_status'].str.startswith('filtered').sum())
+                                    passed_filters = int((df_final['route.final_status'] == 'passed_all_filters').sum())
+                                else:
+                                    included_jobs = ai_good + ai_soso
+                                    filtered_jobs = ai_bad
+                                    passed_filters = 0
+                                
+                                st.markdown("**📊 Classification Summary**")
+                                st.write(f"**Total Jobs Processed:** {total_jobs}")
+                                st.write(f"**✅ Included for Export:** {included_jobs}")
+                                st.write(f"**🎯 Excellent Matches:** {ai_good}")  
+                                st.write(f"**👍 Good Fits:** {ai_soso}")
+                                st.write(f"**❌ Filtered Out:** {filtered_jobs}")
+                                if ai_error > 0:
+                                    st.write(f"**⚠️ Classification Errors:** {ai_error}")
+                                
+                                st.markdown("**🚛 Route Types**")
+                                st.write(f"**🏠 Local:** {local_routes}")
+                                st.write(f"**🛣️ OTR:** {otr_routes}")
+                                if regional_routes > 0:
+                                    st.write(f"**🗺️ Regional:** {regional_routes}")
+                            else:
+                                st.info("📊 Classification stats will appear after successful processing")
+                        except Exception:
+                            st.write("📊 Classification stats unavailable")
 
-                # Show results table (outside column structure)
-                if 'df_final' in locals() and len(df_final) > 0:
-                    st.markdown("### 📋 **Classified Jobs Data**")
-                    st.dataframe(df_final, use_container_width=True, height=420)
+                    # Show results table (outside column structure)
+                    if 'df_final' in locals() and len(df_final) > 0:
+                        st.markdown("### 📋 **Classified Jobs Data**")
+                        st.dataframe(df_final, use_container_width=True, height=420)
 
-                    # Multi-market display (similar to job search page)
-                    try:
-                        if 'meta.market' in df_final.columns:
-                            unique_mkts = [m for m in df_final['meta.market'].dropna().unique().tolist() if str(m).strip()]
-                            if unique_mkts:
-                                st.info(f"📊 Markets detected: {', '.join(sorted(unique_mkts))}")
-                                ordered = sorted(unique_mkts, key=lambda s: s.lower())
-                                for mk in ordered:
-                                    try:
-                                        st.markdown("---")
-                                        col_h, _ = st.columns([8, 2])
-                                        with col_h:
-                                            st.markdown(f"## 📍 **{mk}**")
-                                            st.caption(f"Jobs classified for {mk}")
-
-                                        mdf = df_final[df_final['meta.market'] == mk]
-
-                                        # Included subset for this market
+                        # Multi-market display (similar to job search page)
+                        try:
+                            if 'meta.market' in df_final.columns:
+                                unique_mkts = [m for m in df_final['meta.market'].dropna().unique().tolist() if str(m).strip()]
+                                if unique_mkts:
+                                    st.info(f"📊 Markets detected: {', '.join(sorted(unique_mkts))}")
+                                    ordered = sorted(unique_mkts, key=lambda s: s.lower())
+                                    for mk in ordered:
                                         try:
-                                            if 'route.final_status' in mdf.columns:
-                                                mask_m = mdf['route.final_status'].astype(str).str.startswith('included')
-                                                mdf_inc = mdf[mask_m] if mask_m.any() else mdf
-                                            elif 'ai.match' in mdf.columns:
-                                                mdf_inc = mdf[mdf['ai.match'].isin(['good', 'so-so'])]
-                                            else:
+                                            st.markdown("---")
+                                            col_h, _ = st.columns([8, 2])
+                                            with col_h:
+                                                st.markdown(f"## 📍 **{mk}**")
+                                                st.caption(f"Jobs classified for {mk}")
+
+                                            mdf = df_final[df_final['meta.market'] == mk]
+
+                                            # Included subset for this market
+                                            try:
+                                                if 'route.final_status' in mdf.columns:
+                                                    mask_m = mdf['route.final_status'].astype(str).str.startswith('included')
+                                                    mdf_inc = mdf[mask_m] if mask_m.any() else mdf
+                                                elif 'ai.match' in mdf.columns:
+                                                    mdf_inc = mdf[mdf['ai.match'].isin(['good', 'so-so'])]
+                                                else:
+                                                    mdf_inc = mdf
+                                            except Exception:
                                                 mdf_inc = mdf
-                                        except Exception:
-                                            mdf_inc = mdf
 
-                                        # Preferred columns similar to job search
-                                        cols_pref = ['source.title', 'source.company', 'ai.summary', 'ai.match', 'ai.route_type', 'ai.fair_chance', 'source.indeed_url']
-                                        cols_show = [c for c in cols_pref if c in mdf_inc.columns]
-                                        st.dataframe(mdf_inc[cols_show] if cols_show else mdf_inc, use_container_width=True, height=360)
+                                            # Preferred columns similar to job search
+                                            cols_pref = ['source.title', 'source.company', 'ai.summary', 'ai.match', 'ai.route_type', 'ai.fair_chance', 'source.indeed_url']
+                                            cols_show = [c for c in cols_pref if c in mdf_inc.columns]
+                                            st.dataframe(mdf_inc[cols_show] if cols_show else mdf_inc, use_container_width=True, height=360)
 
-                                        # Per-market metrics
-                                        try:
-                                            inc_count = len(mdf_inc)
-                                            total_count = len(mdf)
-                                            ai_good_m = int((mdf['ai.match'] == 'good').sum()) if 'ai.match' in mdf.columns else 0
-                                            ai_soso_m = int((mdf['ai.match'] == 'so-so').sum()) if 'ai.match' in mdf.columns else 0
-                                            local_routes_m = int((mdf['ai.route_type'] == 'Local').sum()) if 'ai.route_type' in mdf.columns else 0
-                                            otr_routes_m = int((mdf['ai.route_type'] == 'OTR').sum()) if 'ai.route_type' in mdf.columns else 0
-                                            colA, colB, colC, colD = st.columns(4)
-                                            with colA:
-                                                st.metric("Quality Jobs Found", inc_count)
-                                            with colB:
-                                                st.metric("Total Jobs Analyzed", total_count)
-                                            with colC:
-                                                st.metric("Excellent Matches", ai_good_m)
-                                            with colD:
-                                                st.metric("Possible Fits", ai_soso_m)
-                                            colE, colF = st.columns(2)
-                                            with colE:
-                                                st.metric("Local Routes", local_routes_m)
-                                            with colF:
-                                                st.metric("OTR Routes", otr_routes_m)
-                                        except Exception:
-                                            pass
+                                            # Per-market metrics
+                                            try:
+                                                inc_count = len(mdf_inc)
+                                                total_count = len(mdf)
+                                                ai_good_m = int((mdf['ai.match'] == 'good').sum()) if 'ai.match' in mdf.columns else 0
+                                                ai_soso_m = int((mdf['ai.match'] == 'so-so').sum()) if 'ai.match' in mdf.columns else 0
+                                                local_routes_m = int((mdf['ai.route_type'] == 'Local').sum()) if 'ai.route_type' in mdf.columns else 0
+                                                otr_routes_m = int((mdf['ai.route_type'] == 'OTR').sum()) if 'ai.route_type' in mdf.columns else 0
+                                                colA, colB, colC, colD = st.columns(4)
+                                                with colA:
+                                                    st.metric("Quality Jobs Found", inc_count)
+                                                with colB:
+                                                    st.metric("Total Jobs Analyzed", total_count)
+                                                with colC:
+                                                    st.metric("Excellent Matches", ai_good_m)
+                                                with colD:
+                                                    st.metric("Possible Fits", ai_soso_m)
+                                                colE, colF = st.columns(2)
+                                                with colE:
+                                                    st.metric("Local Routes", local_routes_m)
+                                                with colF:
+                                                    st.metric("OTR Routes", otr_routes_m)
+                                            except Exception:
+                                                pass
 
-                                        # Full results for this market
-                                        with st.expander(f"🔎 Full Results — {mk}", expanded=False):
-                                            st.dataframe(mdf, use_container_width=True, height=480)
-                                    except Exception as e:
-                                        st.warning(f"⚠️ Display error for {mk}: {e}")
-                    except Exception:
-                        pass
+                                            # Full results for this market
+                                            with st.expander(f"🔎 Full Results — {mk}", expanded=False):
+                                                st.dataframe(mdf, use_container_width=True, height=480)
+                                        except Exception as e:
+                                            st.warning(f"⚠️ Display error for {mk}: {e}")
+                        except Exception:
+                            pass
 
                 except Exception as e:
                     st.error(f"❌ CSV classification failed: {e}")
