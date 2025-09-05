@@ -1489,12 +1489,32 @@ class FreeWorldPipelineV3:
         
         print(f"🔍 URL Debug: has_tracked_url_col={has_tracked_url_col}, quality_urls_empty={quality_urls_empty}, quality_jobs={len(quality_jobs_df)}")
         
-        # Always generate fresh tracked URLs for current run context
+        # Smart link generation: Skip if most jobs already have tracking URLs (speed optimization)
         if len(quality_jobs_df) > 0:
-            if force_memory_only and not force_link_generation:
-                # Skip link generation for memory searches unless forced - jobs should already have tracked URLs
-                # This prevents schema validation issues (99 columns from CSV vs 133 from Pipeline V3)
-                print("✅ Using existing URLs from memory (skipping link generation to avoid schema conflicts)")
+            # Check how many jobs already have tracking URLs
+            jobs_with_urls = quality_jobs_df['meta.tracked_url'].notna() & (quality_jobs_df['meta.tracked_url'] != '') & (quality_jobs_df['meta.tracked_url'] != quality_jobs_df.get('source.url', ''))
+            existing_url_count = jobs_with_urls.sum() if has_tracked_url_col else 0
+            total_jobs = len(quality_jobs_df)
+            url_coverage = existing_url_count / total_jobs if total_jobs > 0 else 0
+            
+            # Skip link generation if >80% of jobs already have tracking URLs (smart memory optimization)
+            should_skip_generation = (
+                (force_memory_only and not force_link_generation) or  # Original memory-only logic
+                (url_coverage >= 0.8)  # New smart optimization: >80% coverage
+            )
+            
+            if should_skip_generation:
+                print(f"⚡ SMART LINK OPTIMIZATION: Skipping link generation ({existing_url_count}/{total_jobs} jobs have tracking URLs, {url_coverage:.1%} coverage)")
+                print("✅ Using existing tracking URLs from memory (massive speed boost!)")
+                
+                # Fallback: Fill any missing tracking URLs with original URLs (safety net)
+                missing_urls = quality_jobs_df['meta.tracked_url'].isna() | (quality_jobs_df['meta.tracked_url'] == '')
+                if missing_urls.any():
+                    jobs_need_fallback = missing_urls.sum()
+                    print(f"🔄 Filling {jobs_need_fallback} missing tracking URLs with original URLs as fallback")
+                    quality_jobs_df.loc[missing_urls, 'meta.tracked_url'] = quality_jobs_df.loc[missing_urls, 'source.url']
+                    df.loc[missing_urls, 'meta.tracked_url'] = df.loc[missing_urls, 'source.url']
+                    
             else:
                 print("🔗 Generating tracked URLs...")
                 # Initialize link tracker
