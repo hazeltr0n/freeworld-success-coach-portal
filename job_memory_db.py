@@ -78,12 +78,13 @@ class JobMemoryDB:
         else:
             return value
 
-    def store_classifications(self, jobs_df: pd.DataFrame) -> bool:
+    def store_classifications(self, jobs_df: pd.DataFrame, enable_qc: bool = True) -> bool:
         """
-        Store job classifications in memory database
+        Store job classifications in memory database with optional quality control
         
         Args:
             jobs_df: DataFrame with classified jobs
+            enable_qc: Whether to run quality control validation before upload
             
         Returns:
             bool: Success status
@@ -91,6 +92,23 @@ class JobMemoryDB:
         if not self.supabase:
             return False
             
+        # Optional Quality Control validation
+        if enable_qc and len(jobs_df) > 0:
+            try:
+                from data_quality_control import validate_jobs_for_upload
+                validated_df, qc_report = validate_jobs_for_upload(jobs_df, strict_mode=False)
+                
+                if len(validated_df) < len(jobs_df):
+                    rejected_count = len(jobs_df) - len(validated_df)
+                    logger.warning(f"QC filtered out {rejected_count} jobs with data quality issues")
+                    
+                # Use validated data for storage
+                jobs_df = validated_df
+                logger.info(f"QC validation complete: {len(jobs_df)} jobs ready for upload")
+                
+            except Exception as qc_error:
+                logger.warning(f"QC validation failed, proceeding without validation: {qc_error}")
+                
         try:
             # Convert DataFrame to records for Supabase
             records = []

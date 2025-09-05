@@ -462,34 +462,45 @@ def main(argv: List[str]) -> int:
             missing_urls = df_final.get('meta.tracked_url', pd.Series(dtype=str)).fillna('') == ''
             df_final.loc[missing_urls, 'meta.tracked_url'] = df_final.loc[missing_urls, 'source.url']
         
-        print("\n💾 Storing ALL classified jobs to memory (Supabase) with tracking URLs…")
+        print("\n🔍 Running Data Quality Control before Supabase upload...")
         try:
-            # For CSV classification, we want to store ALL classified jobs to Supabase
-            # regardless of routing filters, so we bypass the view_fresh_quality filter
-            # and store the complete DataFrame
+            # Quality Control: Validate data before upload
+            from data_quality_control import validate_jobs_for_upload
             
             # Mark all jobs as fresh for storage (CSV jobs are always considered fresh)
             df_final = df_final.copy()
             df_final['sys.is_fresh_job'] = True
             
-            # Directly store to Supabase without filtering by route.final_status
+            # Run QC validation (non-strict mode for CSV - we want to store data but show warnings)
+            df_validated, qc_report = validate_jobs_for_upload(df_final, strict_mode=False)
+            
+            print("\n" + qc_report)
+            
+            if len(df_validated) == 0:
+                print("❌ No jobs passed quality control validation")
+                return 3
+                
+            # Store validated jobs to Supabase 
+            print(f"\n💾 Storing {len(df_validated)} QC-validated jobs to Supabase...")
             from job_memory_db import JobMemoryDB
             memory_db = JobMemoryDB()
             
-            # Store ALL jobs from CSV - including those with classification errors
-            # CSV jobs should be stored regardless of AI classification status
-            if len(df_final) > 0:
-                success = memory_db.store_classifications(df_final)
-                error_count = (df_final.get('ai.match', '') == 'error').sum() if 'ai.match' in df_final.columns else 0
-                if success:
-                    if error_count > 0:
-                        print(f"✅ Stored {len(df_final)} jobs to Supabase ({error_count} had classification errors)")
-                    else:
-                        print(f"✅ Stored {len(df_final)} classified jobs to Supabase")
+            success = memory_db.store_classifications(df_validated)
+            error_count = (df_validated.get('ai.match', '') == 'error').sum() if 'ai.match' in df_validated.columns else 0
+            
+            if success:
+                if error_count > 0:
+                    print(f"✅ Stored {len(df_validated)} QC-validated jobs to Supabase ({error_count} had classification errors)")
                 else:
-                    print(f"⚠️ Failed to store some jobs to Supabase")
+                    print(f"✅ Stored {len(df_validated)} QC-validated jobs to Supabase")
+                    
+                # Show data quality summary
+                rejected_count = len(df_final) - len(df_validated)
+                if rejected_count > 0:
+                    print(f"📊 QC Summary: {rejected_count} jobs had quality issues but were stored with warnings")
             else:
-                print("⚠️ No jobs to store")
+                print(f"⚠️ Failed to store some jobs to Supabase")
+                return 4
                 
         except Exception as e:
             print(f"⚠️ Storage failed: {e}")
