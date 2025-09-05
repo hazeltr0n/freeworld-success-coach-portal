@@ -3699,8 +3699,8 @@ def main():
                                 
                                 # PDF/Filter parameters (use the form values directly)
                                 'max_jobs': max_jobs_pdf_tab if max_jobs_pdf_tab != "All" else 50,
-                                'route_filter': pdf_route_type_filter_tab,  # Fixed: use route_filter not route_type_filter
-                                'ai_match_filter': pdf_match_quality_filter_tab,
+                                'route_type_filter': pdf_route_type_filter_tab,  # Pipeline expects route_type_filter
+                                'match_quality_filter': pdf_match_quality_filter_tab,
                                 'include_memory_jobs': pdf_include_memory_jobs_tab,
                                 'fair_chance_only': pdf_fair_chance_only_tab,
                                 'no_experience': no_experience_tab,

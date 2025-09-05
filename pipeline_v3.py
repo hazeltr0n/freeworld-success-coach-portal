@@ -249,6 +249,13 @@ class FreeWorldPipelineV3:
                     'match_quality_filter': match_quality_filter
                 }
                 
+                # DEBUG: Log filter parameters being sent to Supabase
+                print(f"🔍 PIPELINE DEBUG: Sending filters to Supabase:")
+                print(f"   route_type_filter: {route_type_filter}")
+                print(f"   match_quality_filter: {match_quality_filter}")
+                print(f"   fair_chance_only: {fair_chance_only}")
+                print(f"   max_jobs limit: {max_jobs}")
+                
                 # Speed optimization: Pull only what we need instead of 3x over-fetch
                 # Prioritizes most recent jobs that match filters for PDF
                 canonical_df = sb_search(query_location, limit=max_jobs, days_back=days_back, 
