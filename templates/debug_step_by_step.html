@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head><title>Debug Step by Step</title></head>
+<body>
+    <!-- Step 1: Basic rendering -->
+    <h1>Step 1: Basic values</h1>
+    <p>Total jobs: {{ total_jobs }}</p>
+    <p>Agent name: {{ agent_params.agent_name or 'None' }}</p>
+    
+    <!-- Step 2: Stats bar logic -->
+    <h1>Step 2: Stats bar</h1>
+    <section>
+        <strong>{{ total_jobs | int }}</strong> quality job{% if total_jobs|int != 1 %}s{% endif %} found
+        {% if agent_params.route_filter and agent_params.route_filter != 'both' %}
+        • {{ agent_params.route_filter | title }} routes
+        {% endif %}
+        {% if agent_params.experience_level and agent_params.experience_level != 'both' %}
+        • {{ agent_params.experience_level | title }} level
+        {% endif %}
+        {% if agent_params.fair_chance_only %}
+        • Fair chance employers only
+        {% endif %}
+    </section>
+    
+    <!-- Step 3: Simple job loop -->
+    <h1>Step 3: Job loop</h1>
+    {% for job in jobs %}
+    <div>
+        <h3>{{ job.title }}</h3>
+        <p>Company: {{ job.company }}</p>
+        <p>Match: {{ job.match }}</p>
+    </div>
+    {% else %}
+    <p>No jobs found</p>
+    {% endfor %}
+</body>
+</html>

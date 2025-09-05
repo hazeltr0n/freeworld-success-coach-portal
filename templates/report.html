@@ -1,0 +1,375 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{{ location }} Jobs Report</title>
+  <style>
+    /* FreeWorld Brand Colors & Fonts */
+    :root {
+      --fw-roots: #004751;
+      --fw-midnight: #191931;
+      --fw-freedom-green: #CDF95C;
+      --fw-visionary-violet: #593CBC;
+      --fw-horizon-grey: #F4F4F4;
+      --fw-card-border: #CCCCCC;
+      --fw-card-bg: #FAFAFA;
+      --font-primary: 'Outfit', sans-serif;
+    }
+
+    /* Load Outfit font from embedded Base64 */
+    @font-face {
+      font-family: 'Outfit';
+      src: url({{ assets.font_regular }}) format('truetype');
+      font-weight: normal;
+    }
+    @font-face {
+      font-family: 'Outfit';
+      src: url({{ assets.font_bold }}) format('truetype');
+      font-weight: bold;
+    }
+
+    @page {
+      size: 375pt 750pt; /* Mobile dimensions like FPDF */
+      margin: 0;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-primary);
+      background-color: #EAEAEA;
+      -webkit-print-color-adjust: exact; /* Important for printing colors */
+      overflow-x: hidden; /* Prevent horizontal scrolling */
+    }
+
+    .page-container {
+      width: 100%; /* Use percentage to fit container */
+      height: 750pt;
+      position: relative;
+      overflow: hidden;
+      page-break-after: always;
+      background-color: white;
+    }
+
+    /* --- Title Page Styles --- */
+    .title-page {
+      background-image: url({{ assets.bg_image }});
+      background-size: cover;
+      background-position: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      text-align: center;
+    }
+
+    .title-page .logo-container {
+      padding-top: 100pt;
+      margin-bottom: 12pt; /* add breathing room before title block */
+    }
+
+    .title-page .logo-container img {
+      width: 250pt;
+      height: auto;
+    }
+
+    .title-page .title-block {
+      background-color: var(--fw-roots);
+      color: white;
+      padding: 20pt;
+      /* Keep a comfortable max width, but be responsive to viewport */
+      width: 90%;
+      max-width: 335pt;
+      /* Add top margin for spacing from logo; keep bottom margin for visual balance */
+      margin: 24pt auto 200pt; /* top | sides | bottom */
+      box-sizing: border-box;
+      overflow-wrap: anywhere;
+    }
+
+    .title-page h1 {
+      font-size: 28pt;
+      font-weight: bold;
+      margin: 0 0 10pt 0;
+    }
+
+    .title-page .meta {
+      font-size: 14pt;
+      color: var(--fw-freedom-green);
+    }
+    .title-page .meta p {
+      margin: 5pt 0;
+    }
+
+    /* --- Job Card Styles --- */
+    .job-card {
+      padding: 12pt;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      box-sizing: border-box;
+    }
+    .card-header h1 {
+      font-size: 18pt;
+      font-weight: bold;
+      color: var(--fw-roots);
+      margin: 0 0 10pt 0;
+      line-height: 1.2;
+    }
+    .badge-row {
+      padding-bottom: 10pt;
+    }
+    .badge-row .badge {
+      display: inline-block;
+      padding: 6pt 12pt;
+      border-radius: 4px;
+      font-size: 12pt;
+      font-weight: bold;
+      margin-right: 8pt;
+    }
+    .badge.excellent-match {
+      background-color: var(--fw-freedom-green);
+      color: var(--fw-midnight);
+    }
+    .badge.possible-fit {
+      background-color: var(--fw-horizon-grey);
+      color: var(--fw-midnight);
+    }
+    .badge.fair-chance {
+      background-color: var(--fw-roots);
+      color: white;
+    }
+    .metadata-row {
+      padding-bottom: 10pt;
+      border-bottom: 1px solid var(--fw-card-border);
+    }
+    .metadata-row p {
+      margin: 2pt 0;
+      font-size: 10pt;
+      color: var(--fw-midnight);
+    }
+    .metadata-row .company {
+      font-weight: bold;
+    }
+    .summary-content {
+      flex-grow: 1;
+      padding: 10pt 0;
+      font-size: 14pt;
+      line-height: 1.5;
+      color: var(--fw-midnight);
+      position: relative;
+    }
+    .summary-content .desc-full { margin: 0; }
+    /* Show full description on both mobile and desktop */
+    .desc-full { 
+      display: block; 
+      overflow: visible; 
+      -webkit-line-clamp: initial; 
+    }
+    /* Screen override: allow page containers to grow naturally in portal view */
+    @media screen {
+      /* Let containers grow vertically without clipping */
+      .page-container { height: auto !important; min-height: 0; overflow-x: hidden; overflow-y: visible; page-break-after: auto; }
+      .job-card { overflow-x: hidden; max-width: 100%; height: auto !important; }
+      .metadata-row, .summary-content { max-width: 100%; }
+      /* Remove negative side margins that can cause horizontal scroll */
+      .apply-footer { margin: 0; }
+      /* Ensure buttons don't exceed container width on small screens */
+      .apply-button { width: 100%; box-sizing: border-box; }
+      /* Full descriptions always visible */
+      .desc-full { -webkit-line-clamp: initial; overflow: visible; display: block; }
+    }
+    .apply-footer {
+      text-align: center;
+      background-color: var(--fw-horizon-grey);
+      padding: 10pt;
+      margin: 0 -12pt -12pt -12pt; /* Extend to edges */
+    }
+    .apply-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8pt 20pt;
+      background-color: var(--fw-freedom-green);
+      color: var(--fw-midnight);
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+      font-size: 16pt;
+      border: 1.5pt solid var(--fw-midnight);
+      width: 80%;
+      margin-bottom: 8pt;
+    }
+    .apply-button img {
+      width: 18pt;
+      height: 18pt;
+      margin-right: 8pt;
+      border-radius: 50%; /* ensure round appearance */
+      object-fit: cover;
+      background: #fff;
+    }
+    .short-url a {
+      font-size: 10pt;
+      color: var(--fw-midnight);
+      text-decoration: none;
+    }
+    .page-counter {
+      font-size: 9pt;
+      color: var(--fw-midnight);
+      margin-top: 8pt;
+    }
+
+    /* Enhanced mobile-first responsive design for Free Agent portal */
+    @media screen {
+      /* Better mobile spacing and typography */
+      .job-card {
+        padding: 16px;
+        margin-bottom: 16px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border: 1px solid var(--fw-card-border);
+      }
+      
+      .card-header h1 {
+        font-size: 20px;
+        line-height: 1.3;
+        margin-bottom: 12px;
+      }
+      
+      .badge-row {
+        margin-bottom: 12px;
+      }
+      
+      .badge {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        margin-right: 8px;
+        margin-bottom: 4px;
+        display: inline-block;
+      }
+      
+      .metadata-row {
+        padding-bottom: 12px;
+        margin-bottom: 12px;
+      }
+      
+      .metadata-row p {
+        font-size: 14px;
+        line-height: 1.4;
+        margin: 2px 0;
+      }
+      
+      .summary-content {
+        font-size: 15px;
+        line-height: 1.5;
+        margin-bottom: 16px;
+      }
+      
+      .apply-button {
+        padding: 12px 24px;
+        font-size: 16px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        min-height: 44px; /* Better touch target */
+      }
+      
+      .short-url a {
+        font-size: 12px;
+        word-break: break-all;
+      }
+    }
+
+    /* Mobile-specific adjustments */
+    @media screen and (max-width: 600px) {
+      .title-page .logo-container { padding-top: 60pt; margin-bottom: 8pt; }
+      .title-page .logo-container img { width: 60vw; max-width: 200pt; height: auto; }
+      .title-page .title-block { width: calc(100% - 32px); max-width: 96vw; margin: 16pt auto 140pt; padding: 16pt; }
+      .title-page h1 { font-size: 22pt; }
+      .title-page .meta { font-size: 12pt; }
+      
+      /* Better mobile job card spacing */
+      body { padding: 8px; }
+      .job-card { margin-bottom: 12px; }
+      .card-header h1 { font-size: 18px; }
+      .summary-content { font-size: 14px; }
+    }
+
+    /* Desktop improvements */
+    @media screen and (min-width: 601px) {
+      .title-page .logo-container img { width: 220pt; height: auto; }
+      .title-page .title-block { margin-top: 28pt; margin-bottom: 200pt; }
+      
+      .job-card {
+        max-width: 600px;
+        margin: 20px auto;
+      }
+    }
+
+</style>
+</head>
+<body>
+  <!-- Title Page -->
+  <div class="page-container title-page">
+    <div class="logo-container">
+      <img src="{{ assets.wordmark_logo }}" alt="FreeWorld">
+    </div>
+    <div class="title-block">
+      <h1>{{ location }} CDL Jobs</h1>
+      <div class="meta">
+        {% if agent_params.show_prepared_for %}
+          {% if agent_name and coach_name %}
+          <p>Prepared for <b>{{ agent_name }}</b> by Coach <b>{{ coach_name }}</b></p>
+          {% elif agent_name %}
+          <p>Prepared for <b>{{ agent_name }}</b></p>
+          {% endif %}
+        {% endif %}
+        {# RULE: Only show "Prepared" statement if free agent is specified. No agent_name = no statement. #}
+        <p>{{ total_jobs }} quality jobs</p>
+        <p>{{ generated_on }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Job Cards -->
+  {% for job in jobs %}
+    {% set idx = loop.index %}
+    {% set ofn = total_jobs %}
+    {% include "_job_card.html" %}
+  {% endfor %}
+  <script>
+    (function(){
+      function initDescToggles(){
+        try {
+          var isDesktop = window.matchMedia('(min-width: 601px)').matches;
+          if (!isDesktop) return;
+          var cards = document.querySelectorAll('.job-card');
+          Array.prototype.forEach.call(cards, function(card){
+            var full = card.querySelector('.desc-full');
+            var moreBtn = card.querySelector('.read-more');
+            var lessBtn = card.querySelector('.read-less');
+            if (full && moreBtn && lessBtn) {
+              // Always offer expansion on desktop
+              moreBtn.style.display = 'inline-block';
+              moreBtn.addEventListener('click', function(){
+                full.classList.remove('desktop-clamp');
+                moreBtn.style.display = 'none';
+                lessBtn.style.display = 'inline-block';
+              });
+              lessBtn.addEventListener('click', function(){
+                full.classList.add('desktop-clamp');
+                lessBtn.style.display = 'none';
+                moreBtn.style.display = 'inline-block';
+              });
+            }
+          });
+        } catch (e) {}
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initDescToggles);
+      } else {
+        initDescToggles();
+      }
+    })();
+  </script>
+</body>
+</html>

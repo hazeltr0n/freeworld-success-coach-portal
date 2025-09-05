@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}{{ job.title | default('Job Opportunity') }} - {{ job.company | default('Company') }}{% endblock %}
+
+{% block content %}
+<div class="page">
+    <article class="job-card">
+        <!-- Job Header with title, company, and quality badge -->
+        <header class="job-header">
+            <span class="match-badge match-{{ job.match | default('good') }}">
+                {% if job.match == 'good' %}EXCELLENT
+                {% elif job.match == 'so-so' %}GOOD FIT
+                {% elif job.match == 'bad' %}ENTRY LEVEL
+                {% else %}QUALITY JOB
+                {% endif %}
+            </span>
+            
+            <h1 class="job-title">{{ job.title | default('CDL Driver Position') }}</h1>
+            <p class="company">{{ job.company | default('Transportation Company') }}</p>
+        </header>
+
+        <!-- Job Details (location, salary, route type, etc.) -->
+        <section class="job-details">
+            {% if job.location %}
+            <span class="job-detail">
+                <span class="emoji">📍</span>
+                {{ job.location }}
+            </span>
+            {% endif %}
+
+            {# Salary removed per request #}
+
+            {% if job.route_type %}
+            <span class="job-detail">
+                <span class="emoji">🚛</span>
+                {{ job.route_type | title }}
+            </span>
+            {% endif %}
+
+            {% if job.experience %}
+            <span class="job-detail">
+                <span class="emoji">⭐</span>
+                {{ job.experience }}
+            </span>
+            {% endif %}
+
+            {% if job.posted_date %}
+            <span class="job-detail">
+                <span class="emoji">📅</span>
+                {{ job.posted_date }}
+            </span>
+            {% endif %}
+
+            {% if job.endorsements %}
+            <span class="job-detail">
+                <span class="emoji">🏅</span>
+                {{ job.endorsements }}
+            </span>
+            {% endif %}
+        </section>
+
+        <!-- Job Description -->
+        {% if job.description %}
+        <section class="job-description">
+            {{ job.description | truncate(300, True) }}
+        </section>
+        {% endif %}
+
+        <!-- Apply Button -->
+        <footer class="job-footer">
+            <a href="{{ job.apply_url | default('#') }}" 
+               class="apply-button" 
+               target="_blank" 
+               rel="noopener noreferrer"
+               {% if job.job_id %}data-job-id="{{ job.job_id }}"{% endif %}
+               {% if job.candidate_id %}data-candidate-id="{{ job.candidate_id }}"{% endif %}>
+                Apply Now - {{ job.company | default('View Details') }}
+            </a>
+        </footer>
+    </article>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Include brand colors for detection */
+    :root {
+        --fw-roots: rgb(0, 71, 81);
+        --fw-freedom-green: rgb(205, 249, 92);
+        --fw-midnight: rgb(25, 25, 49);
+        --fw-visionary-violet: rgb(89, 60, 188);
+        --fw-horizon-grey: rgb(244, 244, 244);
+        --fw-card-border: rgb(204, 204, 204);
+        --fw-card-bg: rgb(250, 250, 250);
+        --shadow-lg: 0 8px 16px rgba(0,0,0,0.15);
+    }
+    
+    /* Page-specific overrides for single job card view */
+    .page {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+    }
+    
+    .job-card {
+        width: 100%;
+        max-width: 400px;
+        margin: 0;
+        box-shadow: var(--shadow-lg);
+    }
+    
+    /* Print-specific adjustments */
+    @media print {
+        .page {
+            min-height: auto;
+            display: block;
+            align-items: unset;
+            justify-content: unset;
+        }
+        
+        .job-card {
+            max-width: none;
+            width: 100%;
+            margin: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+    // Job-specific analytics
+    document.addEventListener('DOMContentLoaded', function() {
+        const applyButton = document.querySelector('.apply-button');
+        const jobId = applyButton ? applyButton.dataset.jobId : null;
+        const candidateId = applyButton ? applyButton.dataset.candidateId : null;
+        
+        if (applyButton) {
+            applyButton.addEventListener('click', function(e) {
+                console.log('Job application click:', {
+                    jobId: jobId,
+                    candidateId: candidateId,
+                    company: '{{ job.company | default("Unknown") }}',
+                    title: '{{ job.title | default("Unknown") }}',
+                    timestamp: new Date().toISOString()
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

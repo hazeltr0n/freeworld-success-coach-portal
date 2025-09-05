@@ -1,0 +1,59 @@
+<div class="page-container">
+  <div class="job-card">
+    <!-- Job Title -->
+    <div class="card-header">
+      <h1>{{ job.title }}</h1>
+    </div>
+
+    <!-- Badges -->
+    <div class="badge-row">
+      {% if job.match_badge == 'Excellent Match' %}
+        <span class="badge excellent-match">{{ job.match_badge }}</span>
+      {% elif job.match_badge == 'Possible Fit' %}
+        <span class="badge possible-fit">{{ job.match_badge }}</span>
+      {% endif %}
+      {% if job.fair_chance %}
+        <span class="badge fair-chance">Fair Chance Employer</span>
+      {% endif %}
+    </div>
+
+    <!-- Metadata -->
+    <div class="metadata-row">
+      <p class="company">{{ job.company }}</p>
+      {% if job.city or job.state %}
+        <p class="meta-item">{{ job.city }}{% if job.city and job.state %}, {% endif %}{{ job.state }}</p>
+      {% elif job.location %}
+        <p class="meta-item">{{ job.location }}</p>
+      {% endif %}
+      {# Salary removed per latest design #}
+      {% if job.route_type and job.route_type != 'Unknown' %}
+      <p class="meta-item">{{ job.route_type }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Summary -->
+    <div class="summary-content">
+      <!-- AI summary for both mobile and desktop -->
+      {% if job.description_summary %}
+      <div class="desc-full">{{ job.description_summary | safe }}</div>
+      {% elif job.description_full %}
+      <div class="desc-full">{{ job.description_full | safe }}</div>
+      {% endif %}
+    </div>
+
+    <!-- Footer -->
+    <div class="apply-footer">
+      {% if job.apply_url %}
+        <a href="{{ job.apply_url }}" class="apply-button" target="_blank" rel="noopener">
+          <img src="{{ assets.icon_logo }}" alt="Logo"> APPLY NOW
+        </a>
+        <p class="short-url">
+          <a href="{{ job.apply_url }}" target="_blank" rel="noopener">{{ job.display_link }}</a>
+        </p>
+      {% else %}
+        <p class="short-url">Apply link unavailable</p>
+      {% endif %}
+      <p class="page-counter">Job {{ idx }} of {{ ofn }}</p>
+    </div>
+  </div>
+</div>

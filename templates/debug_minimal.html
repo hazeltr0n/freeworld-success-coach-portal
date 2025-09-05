@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Test</title>
+</head>
+<body>
+    <h1>Debug Template</h1>
+    <p>Total jobs: {{ total_jobs }}</p>
+    <p>Agent name: {{ agent_params.agent_name }}</p>
+    <p>Fair chance: {{ agent_params.fair_chance_only }}</p>
+    
+    {% if agent_params.fair_chance_only %}
+    <p>Fair chance filter active</p>
+    {% endif %}
+    
+    {% for job in jobs %}
+    <div>Job: {{ job.title }}</div>
+    {% endfor %}
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FreeWorld Job Feed{% endblock %}</title>
+    
+    <!-- Load unified CSS -->
+    <link rel="stylesheet" href="{{ base_url }}/static/styles.css">
+    
+    <!-- Additional page-specific styles -->
+    {% block extra_css %}{% endblock %}
+    
+    <!-- Favicon and meta tags -->
+    <meta name="description" content="FreeWorld Success Coach Portal - Quality CDL job opportunities">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- iOS PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="FreeWorld Jobs">
+    
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Google Fonts for better typography (optional fallback) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    {% block body_class %}{% endblock %}
+    
+    <!-- Main content area -->
+    <main class="main-container">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Footer (for web view, hidden in print) -->
+    {% block footer %}
+    <footer style="text-align: center; padding: 20px; color: #999; font-size: 12px; margin-top: 40px;">
+        <p>© 2025 FreeWorld Success Coach Portal</p>
+        <p>Connecting drivers with quality opportunities</p>
+    </footer>
+    {% endblock %}
+    
+    <!-- JavaScript for interactivity -->
+    {% block extra_js %}
+    <script>
+        // Basic click tracking for analytics
+        document.addEventListener('click', function(e) {
+            if (e.target.matches('.apply-button')) {
+                // Track apply button clicks
+                console.log('Apply button clicked:', e.target.href);
+                
+                // Optional: Send analytics event
+                try {
+                    if (typeof gtag !== 'undefined') {
+                        gtag('event', 'click', {
+                            'event_category': 'job_application',
+                            'event_label': e.target.href
+                        });
+                    }
+                } catch (err) {
+                    // Silently handle analytics errors
+                }
+            }
+        });
+        
+        // Add touch feedback for mobile
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.matches('.job-card, .apply-button')) {
+                e.target.style.transform = 'scale(0.98)';
+            }
+        });
+        
+        document.addEventListener('touchend', function(e) {
+            if (e.target.matches('.job-card, .apply-button')) {
+                setTimeout(() => {
+                    e.target.style.transform = '';
+                }, 150);
+            }
+        });
+    </script>
+    {% endblock %}
+</body>
+</html>

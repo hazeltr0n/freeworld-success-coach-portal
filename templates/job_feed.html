@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if agent_params.agent_name %}{{ agent_params.agent_name }} - Job Feed
+{% else %}Quality CDL Jobs
+{% endif %} - FreeWorld Success Coach
+{% endblock %}
+
+{% block content %}
+<!-- Agent Header -->
+{% if agent_params.agent_name %}
+<header class="agent-header">
+    <h1 class="agent-name">{{ agent_params.agent_name }}</h1>
+    <p class="agent-subtitle">
+        FreeWorld Career Coach Jobs
+        {% if agent_params.location %} - {{ agent_params.location }}{% endif %}
+    </p>
+</header>
+{% endif %}
+
+<!-- Stats Bar -->
+<section class="stats-bar">
+    <strong>{{ total_jobs | int }}</strong> quality job{% if total_jobs|int != 1 %}s{% endif %} found
+    {% if agent_params.route_filter and agent_params.route_filter != 'both' %}
+    • {{ agent_params.route_filter | title }} routes
+    {% endif %}
+    {% if agent_params.experience_level and agent_params.experience_level != 'both' %}
+    • {{ agent_params.experience_level | title }} level
+    {% endif %}
+    {% if agent_params.fair_chance_only %}
+    • Fair chance employers only
+    {% endif %}
+</section>
+
+<!-- Job Cards Grid -->
+<main class="jobs-container">
+    {% for job in jobs %}
+    <article class="job-card" data-job-id="{{ job.job_id }}" data-match="{{ job.match }}">
+        <!-- Job Header with title, company, and quality badge -->
+        <header class="job-header">
+            <span class="match-badge match-{{ job.match }}">
+                {% if job.match == 'good' %}EXCELLENT
+                {% elif job.match == 'so-so' %}GOOD FIT
+                {% elif job.match == 'bad' %}ENTRY LEVEL
+                {% else %}QUALITY JOB
+                {% endif %}
+            </span>
+            
+            <h2 class="job-title">{{ job.title }}</h2>
+            <p class="company">{{ job.company }}</p>
+        </header>
+
+        <!-- Job Details (location, salary, route type, etc.) -->
+        <section class="job-details">
+            {% if job.location %}
+            <span class="job-detail">
+                <span class="emoji">📍</span>
+                {{ job.location }}
+            </span>
+            {% endif %}
+
+            {# Salary removed per request #}
+
+            {% if job.route_type %}
+            <span class="job-detail">
+                <span class="emoji">🚛</span>
+                {{ job.route_type | title }}
+            </span>
+            {% endif %}
+
+            {% if job.experience %}
+            <span class="job-detail">
+                <span class="emoji">⭐</span>
+                {{ job.experience }}
+            </span>
+            {% endif %}
+
+            {% if job.posted_date %}
+            <span class="job-detail">
+                <span class="emoji">📅</span>
+                {{ job.posted_date }}
+            </span>
+            {% endif %}
+
+            {% if job.endorsements %}
+            <span class="job-detail">
+                <span class="emoji">🏅</span>
+                {{ job.endorsements }}
+            </span>
+            {% endif %}
+        </section>
+
+        <!-- Job Description -->
+        {% if job.description %}
+        <section class="job-description">
+            {{ job.description | truncate(200, True) }}
+        </section>
+        {% endif %}
+
+        <!-- Apply Button -->
+        <footer class="job-footer">
+            <a href="{{ job.apply_url }}" 
+               class="apply-button" 
+               target="_blank" 
+               rel="noopener noreferrer"
+               data-job-id="{{ job.job_id }}"
+               data-candidate-id="{{ agent_params.agent_uuid or '' }}">
+                Apply Now - {{ job.company }}
+            </a>
+        </footer>
+    </article>
+    {% else %}
+    <!-- No jobs found state -->
+    <section class="no-jobs-container">
+        <div class="no-jobs-message">
+            <h2>No jobs found matching your criteria</h2>
+            <p>Try adjusting your search filters or check back later for new opportunities.</p>
+        </div>
+    </section>
+    {% endfor %}
+</main>
+
+<!-- Load More / Pagination (for future use) -->
+{% if total_jobs >= 25 %}
+<section class="pagination-container" style="text-align: center; padding: 20px; display: none;">
+    <button class="load-more-button" style="padding: 12px 24px; background: var(--fw-roots); color: white; border: none; border-radius: 8px; cursor: pointer;">
+        Load More Jobs
+    </button>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Feed-specific styles */
+    .jobs-container {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-lg);
+        margin-bottom: var(--space-xxl);
+    }
+    
+    /* Job card hover effects for feed view */
+    .job-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .job-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    /* No jobs state */
+    .no-jobs-container {
+        text-align: center;
+        padding: 60px 20px;
+        background: var(--fw-card-bg);
+        border-radius: var(--radius-md);
+        border: 2px dashed var(--fw-card-border);
+    }
+    
+    .no-jobs-message h2 {
+        color: var(--fw-midnight);
+        margin-bottom: var(--space-md);
+        font-size: 20px;
+    }
+    
+    .no-jobs-message p {
+        color: #666;
+        font-size: 14px;
+    }
+    
+    /* Print optimizations for multi-page */
+    @media print {
+        .agent-header {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        
+        .stats-bar {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        
+        .job-card {
+            page-break-inside: avoid;
+            margin-bottom: 15pt;
+        }
+        
+        .jobs-container {
+            gap: 15pt;
+        }
+        
+        /* Ensure first job on new page if needed */
+        .job-card:nth-child(5n) {
+            page-break-after: always;
+        }
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 480px) {
+        .jobs-container {
+            gap: var(--space-md);
+        }
+        
+        .agent-header {
+            padding: var(--space-lg) var(--space-md);
+            margin-bottom: var(--space-lg);
+        }
+        
+        .agent-name {
+            font-size: 20px;
+        }
+        
+        .stats-bar {
+            font-size: 12px;
+            padding: var(--space-sm);
+        }
+        
+        .no-jobs-container {
+            padding: 40px 16px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+    // Enhanced analytics for job feed
+    document.addEventListener('DOMContentLoaded', function() {
+        // Track page view
+        console.log('Job feed loaded:', {
+            agentName: '{{ agent_params.agent_name | default("Unknown") }}',
+            totalJobs: {{ total_jobs }},
+            location: '{{ agent_params.location | default("Unknown") }}',
+            routeFilter: '{{ agent_params.route_filter | default("both") }}',
+            timestamp: new Date().toISOString()
+        });
+        
+        // Track job card interactions
+        const jobCards = document.querySelectorAll('.job-card');
+        jobCards.forEach(card => {
+            const jobId = card.dataset.jobId;
+            const match = card.dataset.match;
+            
+            // Track card clicks (not apply button)
+            card.addEventListener('click', function(e) {
+                if (!e.target.matches('.apply-button')) {
+                    console.log('Job card viewed:', {
+                        jobId: jobId,
+                        match: match,
+                        candidateId: '{{ agent_params.agent_uuid | default("") }}',
+                        timestamp: new Date().toISOString()
+                    });
+                }
+            });
+        });
+        
+        // Track apply button clicks with enhanced data
+        const applyButtons = document.querySelectorAll('.apply-button');
+        applyButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                const jobData = {
+                    jobId: this.dataset.jobId,
+                    candidateId: this.dataset.candidateId,
+                    url: this.href,
+                    timestamp: new Date().toISOString(),
+                    agentParams: {
+                        name: '{{ agent_params.agent_name | default("") }}',
+                        location: '{{ agent_params.location | default("") }}',
+                        routeFilter: '{{ agent_params.route_filter | default("") }}',
+                        experienceLevel: '{{ agent_params.experience_level | default("") }}',
+                        fairChanceOnly: {% if agent_params.fair_chance_only %}true{% else %}false{% endif %}
+                    }
+                };
+                
+                console.log('Apply button clicked:', jobData);
+                
+                // Optional: Send to analytics service
+                try {
+                    if (typeof gtag !== 'undefined') {
+                        gtag('event', 'job_application_click', {
+                            'job_id': jobData.jobId,
+                            'candidate_id': jobData.candidateId,
+                            'event_category': 'engagement',
+                            'event_label': jobData.url
+                        });
+                    }
+                } catch (err) {
+                    // Silently handle analytics errors
+                }
+            });
+        });
+        
+        // Lazy loading for performance (if many jobs)
+        if ({{ total_jobs }} > 20) {
+            // Add intersection observer for lazy loading
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('loaded');
+                    }
+                });
+            });
+            
+            jobCards.forEach(card => observer.observe(card));
+        }
+    });
+</script>
+{% endblock %}
