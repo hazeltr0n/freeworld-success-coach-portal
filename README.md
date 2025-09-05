@@ -1,158 +1,136 @@
-# FreeWorld QA Portal
+# 🧪 FreeWorld QA/Staging Portal
 
-Standalone quality assurance and testing portal for the FreeWorld job processing system.
+**This is your STAGING environment** - an exact copy of the main app where you can safely test changes before they go live.
 
-## 🧪 Features
+## 🎯 Purpose
 
-- **QC Test Suite**: Comprehensive automated testing of job classification and filtering
-- **Debug Tools**: Collection of debugging utilities for troubleshooting issues
-- **Manual Testing**: Interactive tools for testing individual components
-- **Test Analytics**: Historical test results and performance metrics
-- **Job Inspector**: Detailed analysis of individual job postings
-- **Performance Tests**: System speed and latency testing
+- **Test new features** before deploying to production
+- **Debug issues** in a safe environment
+- **Train new staff** without affecting live system
+- **Experiment with configurations** without risk
 
-## 🚀 Quick Start
+## 🚀 How It Works
 
-1. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. Set up environment variables:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your API keys and configuration
-   ```
-
-3. Run the QA portal:
-   ```bash
-   streamlit run app.py
-   ```
-
-## 🧪 QC Test Suite
-
-The QC Test Suite includes:
-
-- **LLM Determinism Test**: Ensures consistent AI classifications
-- **Filter Accuracy Test**: Validates business rule filtering
-- **Classification Accuracy Test**: Measures job quality assessment accuracy
-- **End-to-End Quality Test**: Full pipeline testing with real data
-- **Route Classification Test**: Validates route type detection
-- **Memory Database Test**: Tests caching and retrieval performance
-
-### Running Tests Programmatically
-
-```python
-from qc_test_suite import QCTestSuite
-
-# Initialize test suite
-qc = QCTestSuite()
-
-# Run comprehensive testing
-qc.run_comprehensive_qc('data/test_jobs.csv')
+### Production vs Staging
+```
+Production Portal  →  Live coaches use daily  →  STABLE VERSION
+QA/Staging Portal  →  Test changes here first  →  TESTING VERSION
 ```
 
-## 🐛 Debug Tools
+### Workflow
+1. **Make changes** in this QA portal
+2. **Test thoroughly** - everything works the same as production
+3. **Once satisfied**, copy the working changes to main production portal
+4. **Deploy to production** knowing it's been tested
 
-Available debugging utilities:
+## 📋 Setup Instructions
 
-- `debug_agent_tracking.py` - Agent tracking and portal issues
-- `debug_coach_mismatch.py` - Coach assignment problems  
-- `debug_job_urls.py` - Job URL and link issues
-- `debug_link_flow.py` - Click tracking and analytics
-- `debug_supabase_jobs.py` - Database connectivity issues
-- `debug_real_agent.py` - Real agent data validation
+### 1. Deploy QA Portal to Streamlit Cloud
 
-## 📊 Test Data
+1. **Create GitHub repo** for this QA portal:
+   - Repository name: `freeworld-qa-portal`  
+   - Public repository
+   - Push this code to GitHub
 
-Place test CSV files in the `data/` directory with the following columns:
+2. **Deploy to Streamlit Cloud**:
+   - New app → Select your QA repo
+   - Branch: `main`
+   - Main file: `app.py`
+   - **Use SAME environment variables as production**
+   - App name: `freeworld-qa-portal`
 
-- `title` - Job title
-- `company` - Company name
-- `location` - Job location
-- `description` - Full job description
-- `url` - Original job URL
-- `expected_match` - Expected classification (good/so-so/bad)
-- `expected_route` - Expected route type (Local/Regional/OTR)
-
-## 🔧 Configuration
-
-### Environment Variables
+### 2. Environment Variables
+Use the **exact same** environment variables as your production portal:
 
 ```bash
-# AI Services
-OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4o-mini
-
-# Database
-SUPABASE_URL=https://...
-SUPABASE_ANON_KEY=...
-
-# Testing Configuration
-QA_MODE=development
-TEST_DATA_PATH=data/
-RESULTS_PATH=results/
+OPENAI_API_KEY=sk-your-key
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-key
+AIRTABLE_API_KEY=your-key
+AIRTABLE_BASE_ID=your-base
+AIRTABLE_TABLE_ID=your-table
+SHORTIO_API_KEY=your-key
+SHORTIO_DOMAIN=your-domain
 ```
 
-### Streamlit Configuration
+## 🧪 Testing Features
 
-The portal includes optimized Streamlit settings:
-- File watcher disabled for cloud deployment stability
-- Wide layout for better data visualization
-- Custom theme matching FreeWorld branding
+### QA Banner
+- Red banner at top clearly identifies this as TEST environment
+- Prevents confusion with production portal
+- Always visible to remind users this is staging
 
-## 📁 Directory Structure
+### Full Functionality
+- **Exact same features** as production
+- **Same database** (uses your real data for realistic testing)
+- **Same user accounts** (coaches can log in normally)
+- **Same integrations** (Airtable, Supabase, OpenAI, etc.)
 
+### Safe Testing
+- Changes here **don't affect production**
+- Test job searches, agent management, analytics, etc.
+- Experiment with new settings safely
+
+## 🔄 Updating Process
+
+### When You Want to Test Changes:
+1. **Edit files** in this QA portal repository
+2. **Git commit and push** changes
+3. **QA Streamlit auto-deploys** the changes
+4. **Test thoroughly** in the QA environment
+5. **If working well**, copy changes to main production repo
+
+### Example Workflow:
+```bash
+# Test a new feature in QA
+cd freeworld-qa-portal
+# Make your changes to files
+git add .
+git commit -m "Test: new job filtering feature"
+git push
+
+# QA portal auto-updates, test the feature
+# If it works well, copy to production:
+
+cd ../freeworld-job-scraper  
+# Copy the working changes here
+git add .
+git commit -m "Add new job filtering feature (tested in QA)"
+git push
+# Production portal updates with tested feature
 ```
-freeworld-qa-portal/
-├── app.py                 # Main QA portal interface
-├── qc_test_suite.py      # Comprehensive test suite
-├── test_*.py             # Individual test scripts
-├── debug_*.py            # Debugging utilities
-├── tests/                # Automated test cases
-├── data/                 # Test data files
-├── results/              # Test results and reports
-└── .streamlit/           # Streamlit configuration
-```
 
-## 🎯 Use Cases
+## ⚠️ Important Notes
 
-### For QA Engineers
-- Run automated test suites before releases
-- Validate AI model performance
-- Debug classification issues
-- Generate test reports
+### Same Database
+- QA uses your **real production database**
+- Changes to data (like adding agents) **will appear in production**
+- This is intentional - gives you realistic testing with real data
+- Be careful when testing data modifications
 
-### For Developers
-- Test individual components during development
-- Debug integration issues
-- Performance profiling
-- Data validation
+### Safe Testing
+- **Code changes** are isolated (QA vs Production)
+- **Data changes** are shared (same Supabase database)
+- Test features like job searches, classifications, analytics
+- Avoid testing bulk data operations that might affect production
 
-### For Product Managers  
-- View test analytics and trends
-- Validate business rule accuracy
-- Monitor system quality metrics
-- Generate compliance reports
+### User Access
+- Coaches can log into **both** portals with same credentials
+- QA portal has red banner so they know it's testing
+- Use QA for training new coaches safely
 
-## 🔒 Security
+## 📈 Benefits
 
-- All API keys should be stored in environment variables
-- Test data should not contain real PII
-- Results can be exported for external analysis
-- Access can be restricted through authentication
+- ✅ **Risk-free testing** of new features
+- ✅ **Realistic environment** with real data  
+- ✅ **Easy comparison** between staging and production
+- ✅ **Safe training environment** for new users
+- ✅ **Debug complex issues** without affecting live system
 
-## 🤝 Contributing
+## 🔗 Deployment URLs
 
-1. Add new tests to the appropriate test files
-2. Follow existing naming conventions
-3. Include documentation for new debug tools
-4. Update this README for new features
+Once deployed, you'll have:
+- **Production**: `your-main-app.streamlit.app` (stable, coaches use daily)
+- **QA/Staging**: `your-qa-app.streamlit.app` (testing, red banner)
 
-## 📈 Performance
-
-The QA portal is optimized for:
-- Fast test execution with parallel processing
-- Efficient memory usage for large datasets
-- Responsive UI even with complex test suites
-- Reliable operation in cloud environments
+**Perfect for testing changes before they go live! 🧪✨**
