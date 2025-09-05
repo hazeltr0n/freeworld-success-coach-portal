@@ -101,7 +101,7 @@ def generate_agent_url(agent_uuid: str, params: Dict[str, Any]) -> str:
             base_url = "http://localhost:8501"
             
     except Exception:
-        base_url = "https://fwcareercoach.streamlit.app"  # Fallback to production
+        base_url = "https://fwcareertest.streamlit.app"  # Fallback to QA for this repo
 
     # Generate URL pointing to agent_job_feed with encoded config
     return f"{base_url}/agent_job_feed?config={encoded_config}"
