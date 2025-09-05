@@ -2942,17 +2942,36 @@ def main():
     # Clean spacer between header and tabs
     st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
     
-    # Tab Navigation - Replace sidebar selectbox with tabs
-    tab1, tab3, tab5, tab6, tab7 = st.tabs([
+    # Tab Navigation - Use radio buttons for persistent state
+    tab_options = [
         "🔍 Job Search",
-        "🗓️ Batches & Scheduling",
-        "👥 Free Agents", 
+        "🗓️ Batches & Scheduling", 
+        "👥 Free Agents",
         "📊 Coach Analytics",
         "👑 Admin Panel" if coach.role == 'admin' else "🔒 Restricted"
-    ])
+    ]
     
-    # Handle different tabs
-    with tab1:
+    # Initialize current tab if not set
+    if 'current_tab_index' not in st.session_state:
+        st.session_state.current_tab_index = 0
+    
+    # Navigation bar using radio buttons (persists across reruns)
+    selected_tab = st.radio(
+        "Navigation",
+        options=tab_options,
+        index=st.session_state.current_tab_index,
+        key="main_tab_radio",
+        horizontal=True
+    )
+    
+    # Update session state with current selection index
+    if selected_tab in tab_options:
+        st.session_state.current_tab_index = tab_options.index(selected_tab)
+    
+    st.markdown("---")  # Separator line
+    
+    # Show selected tab content based on selection
+    if selected_tab == "🔍 Job Search":
         # Job Search tab - cloned sidebar content (original sidebar still exists for now)
         st.header("🔍 Job Search")
         
