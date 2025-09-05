@@ -65,15 +65,15 @@ class JobDataQC:
         
         Args:
             df: DataFrame with job data
-            strict_mode: If True, reject jobs with any validation failures
+            strict_mode: DEPRECATED - QC is now report-only and never blocks jobs
             
         Returns:
-            Tuple of (validated_dataframe, quality_report)
+            Tuple of (original_dataframe, quality_report)
         """
         if df.empty:
             return df, {'total_jobs': 0, 'valid_jobs': 0, 'rejected_jobs': 0, 'warnings': []}
         
-        print(f"🔍 QC: Starting validation of {len(df)} jobs...")
+        print(f"🔍 QC: Starting validation of {len(df)} jobs (REPORT-ONLY mode)...")
         
         validation_results = []
         quality_report = {
@@ -89,7 +89,7 @@ class JobDataQC:
             job_validation = self._validate_single_job(job, idx)
             validation_results.append(job_validation)
             
-            if job_validation['is_valid'] or not strict_mode:
+            if job_validation['is_valid']:
                 quality_report['valid_jobs'] += 1
             else:
                 quality_report['rejected_jobs'] += 1
@@ -106,12 +106,8 @@ class JobDataQC:
                         'description': description
                     }
         
-        # Filter out invalid jobs if in strict mode
-        if strict_mode:
-            valid_indices = [i for i, result in enumerate(validation_results) if result['is_valid']]
-            df_clean = df.iloc[valid_indices].copy()
-        else:
-            df_clean = df.copy()
+        # QC IS NOW REPORT-ONLY - Always return the original DataFrame unchanged
+        df_clean = df.copy()
             
         # Add validation warnings to report
         all_warnings = []
@@ -127,9 +123,10 @@ class JobDataQC:
             f"{warning} (affects {count} jobs)" for warning, count in warning_counts.items()
         ]
         
-        print(f"✅ QC: Validation complete - {quality_report['valid_jobs']}/{quality_report['total_jobs']} jobs passed")
+        print(f"✅ QC: Validation complete - {quality_report['valid_jobs']}/{quality_report['total_jobs']} jobs would pass strict validation")
         if quality_report['warnings']:
             print(f"⚠️  QC: {len(quality_report['warnings'])} types of validation warnings found")
+        print(f"📝 QC: REPORT-ONLY mode - All {len(df)} jobs will be uploaded regardless of validation status")
             
         return df_clean, quality_report
         
@@ -260,13 +257,13 @@ def validate_jobs_for_upload(df: pd.DataFrame, strict_mode: bool = False) -> Tup
     
     Args:
         df: DataFrame with job data
-        strict_mode: Reject jobs with validation failures
+        strict_mode: DEPRECATED - QC is now report-only and never blocks jobs
         
     Returns:
-        Tuple of (validated_dataframe, quality_report_text)
+        Tuple of (original_dataframe, quality_report_text)
     """
     qc = JobDataQC()
-    validated_df, quality_data = qc.validate_job_batch(df, strict_mode=strict_mode)
+    validated_df, quality_data = qc.validate_job_batch(df, strict_mode=False)  # Force non-strict mode
     report_text = qc.generate_quality_report(quality_data)
     
     return validated_df, report_text
