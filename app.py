@@ -1,8 +1,8 @@
 
 """
-🧪 FreeWorld QA/Staging Portal - v2.3
-TEST ENVIRONMENT - Changes made here can be tested before production
-STAGING VERSION: September 4, 2025 - For testing new features safely
+FreeWorld Success Coach Portal - v2.3 - CACHE KILL-SWITCH
+Complete fresh start to bypass Streamlit Cloud import caching
+DEPLOYMENT VERSION: August 28, 2025 - New file to force reload
 """
 
 # === IMPORTS ===
@@ -66,8 +66,8 @@ try:
         pass
     
     st.set_page_config(
-        page_title="🧪 FreeWorld QA Portal - STAGING/TESTING", 
-        page_icon="🧪", 
+        page_title="FreeWorld Job Scraper - Career Coach Portal", 
+        page_icon=page_icon, 
         layout="wide", 
         initial_sidebar_state="expanded"
     )
@@ -2631,14 +2631,7 @@ def show_system_testing_page(coach):
     st.markdown("• Debug tools")
 
 def main():
-    """Main Streamlit application - QA/Staging Version"""
-    
-    # QA/Staging Environment Banner
-    st.markdown("""
-    <div style="background-color: #FF6B6B; color: white; padding: 10px; text-align: center; font-weight: bold; margin-bottom: 20px;">
-        🧪 QA/STAGING ENVIRONMENT - This is a test version for safely testing changes before production
-    </div>
-    """, unsafe_allow_html=True)
+    """Main Streamlit application"""
     
     # Check for public-facing agent portal link FIRST
     try:
