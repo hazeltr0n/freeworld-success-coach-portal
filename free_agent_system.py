@@ -18,7 +18,7 @@ def encode_agent_params(params: Dict[str, Any]) -> str:
         'agent_uuid': params.get('agent_uuid', ''),
         'agent_name': params.get('agent_name', ''),
         'location': params.get('location', 'Houston'),  # Just city name
-        'route_filter': params.get('route_filter', 'both'),  # local/otr/both
+        'route_filter': params.get('route_filter', params.get('route_type_filter', 'both')),  # Accept both parameter names
         'fair_chance_only': params.get('fair_chance_only', False),
         'max_jobs': params.get('max_jobs', 25),  # 15/25/50/100
         'match_level': params.get('match_level', 'good and so-so'),  # good/so-so/good and so-so/all

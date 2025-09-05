@@ -3909,7 +3909,6 @@ def main():
                                                                             'timestamp': pd.Timestamp.now()
                                                                         }
                                                                         st.success(f"✅ {market} PDF generated!")
-                                                                        st.rerun()  # Rerun to show download button
                                                                     else:
                                                                         st.error("PDF generation returned no data")
                                                                 except Exception as e:
