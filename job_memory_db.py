@@ -123,26 +123,21 @@ class JobMemoryDB:
                 reason = job.get('ai.reason', job.get('match_reason', job.get('reason', '')))
                 summary = job.get('ai.summary', job.get('summary', ''))
                 
-                # For jobs with "passed_all_filters" status, provide default AI values if missing
-                if final_status == 'passed_all_filters':
-                    # These jobs passed business rules but may not have AI classification yet
-                    if not match or match in ['', 'nan', None]:
-                        match = 'pending'
-                    if not reason or reason in ['', 'nan', None]:
-                        reason = 'Passed business filters, awaiting AI classification'
-                    if not summary or summary in ['', 'nan', None]:
-                        summary = 'Job passed initial filters and is ready for AI review'
-                elif final_status.startswith('included'):
-                    # These jobs are included (good/so-so), ensure AI fields are populated
+                # If route.final_status is included or passed_all_filters, ALWAYS store to Supabase
+                if final_status == 'passed_all_filters' or final_status.startswith('included'):
+                    # Provide default AI values if missing (required by Supabase schema)
                     if not match or str(match) in ['', 'nan', 'None', 'null']:
-                        match = 'good' if 'good' in final_status.lower() else 'so-so'
+                        if final_status.startswith('included'):
+                            match = 'good' if 'good' in final_status.lower() else 'so-so'
+                        else:
+                            match = 'pending'
                     if not reason or str(reason) in ['', 'nan', 'None', 'null']:
-                        reason = f'AI classified as {match} match'
+                        reason = final_status  # Use the routing status as reason
                     if not summary or str(summary) in ['', 'nan', 'None', 'null']:
-                        summary = f'Quality {match} match identified by AI classification'
-                elif not all([match, reason, summary]) or any(str(x) in ['', 'nan', 'None', 'null'] for x in [match, reason, summary]):
-                    # For other statuses, skip if missing required AI data to avoid constraint violations
-                    skipped_jobs.append({'job_id': job_id, 'final_status': final_status, 'match': str(match), 'reason': str(reason)[:50], 'summary': str(summary)[:50]})
+                        summary = f'Job with status: {final_status}'
+                else:
+                    # For other statuses (filtered, error, etc.), skip uploading to Supabase
+                    skipped_jobs.append({'job_id': job_id, 'final_status': final_status, 'match': str(match), 'reason': 'Status not included/passed_all_filters'})
                     continue
                     
                 # Market sanitization: ensure no state abbreviations and map representative cities
