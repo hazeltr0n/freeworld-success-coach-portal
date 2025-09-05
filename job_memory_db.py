@@ -113,14 +113,25 @@ class JobMemoryDB:
             # Convert DataFrame to records for Supabase
             records = []
             for _, job in jobs_df.iterrows():
-                # Skip jobs without complete classification data to avoid constraint violations
+                # Handle jobs with different routing statuses
+                final_status = job.get('route.final_status', '')
+                
                 # Try canonical fields first (ai.match, ai.reason, ai.summary), then fallback to legacy field names
                 match = job.get('ai.match', job.get('match_level', job.get('match', '')))
                 reason = job.get('ai.reason', job.get('match_reason', job.get('reason', '')))
                 summary = job.get('ai.summary', job.get('summary', ''))
                 
-                if not all([match, reason, summary]) or any(x in ['', 'nan', None] for x in [match, reason, summary]):
-                    # Skip incomplete classifications to avoid database constraint violations
+                # For jobs with "passed_all_filters" status, provide default AI values if missing
+                if final_status == 'passed_all_filters':
+                    # These jobs passed business rules but may not have AI classification yet
+                    if not match or match in ['', 'nan', None]:
+                        match = 'pending'
+                    if not reason or reason in ['', 'nan', None]:
+                        reason = 'Passed business filters, awaiting AI classification'
+                    if not summary or summary in ['', 'nan', None]:
+                        summary = 'Job passed initial filters and is ready for AI review'
+                elif not all([match, reason, summary]) or any(x in ['', 'nan', None] for x in [match, reason, summary]):
+                    # For other statuses, skip if missing required AI data to avoid constraint violations
                     continue
                     
                 # Market sanitization: ensure no state abbreviations and map representative cities
