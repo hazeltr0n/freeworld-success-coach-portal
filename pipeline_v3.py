@@ -1454,7 +1454,7 @@ class FreeWorldPipelineV3:
         # Generate statistics
         status_counts = df['route.final_status'].value_counts()
         included_count = sum(count for status, count in status_counts.items() 
-                           if status.startswith('included') or status == 'passed_all_filters')
+                           if status.startswith('included'))
         filtered_count = sum(count for status, count in status_counts.items() 
                            if status.startswith('filtered'))
         
@@ -1502,13 +1502,16 @@ class FreeWorldPipelineV3:
         except Exception:
             pass
         
-        # Now mark these jobs as "included" since they're actually being exported
+        # Update status for any remaining jobs that still have "passed_all_filters" status
+        # (Quality jobs now get proper "included:" status during routing stage)
         included_indices = exportable_df.index
         for idx in included_indices:
-            if df.loc[idx, 'sys.is_fresh_job']:
-                df.loc[idx, 'route.final_status'] = 'included'
-            else:
-                df.loc[idx, 'route.final_status'] = 'included_from_memory'
+            current_status = df.loc[idx, 'route.final_status']
+            if current_status == 'passed_all_filters':
+                if df.loc[idx, 'sys.is_fresh_job']:
+                    df.loc[idx, 'route.final_status'] = 'included'
+                else:
+                    df.loc[idx, 'route.final_status'] = 'included_from_memory'
         
         results['included_jobs'] = len(exportable_df)
         

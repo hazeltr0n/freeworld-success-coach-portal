@@ -932,9 +932,16 @@ def transform_routing(df: pd.DataFrame, route_filter: str = 'both') -> pd.DataFr
         if not has_valid_url:
             return 'filtered: No valid application URL'
         
-        # If we get here, job passes all filters but we don't mark as "included" yet
-        # That happens right before export to ensure only exported jobs are marked included
-        return 'passed_all_filters'
+        # If we get here, job passes all filters - now check AI classification to determine final status
+        ai_match = row.get('ai.match', '').lower()
+        if ai_match in ['good', 'so-so']:
+            return f'included: {ai_match} match'
+        elif ai_match == 'bad':
+            # This should have been caught above, but handle it here as fallback
+            return f"AI classified as bad: {row.get('ai.reason', 'Bad match')}"
+        else:
+            # No AI classification yet or unknown status - keep as passed filters
+            return 'passed_all_filters'
     
     # Apply routing logic
     routing_fields = {}
@@ -952,12 +959,12 @@ def transform_routing(df: pd.DataFrame, route_filter: str = 'both') -> pd.DataFr
     # Ready for export: ALL jobs that have been fully processed and classified
     # Quality filtering happens at export time, not routing time
     routing_fields['route.ready_for_export'] = (
-        # Jobs that passed all filters AND have AI classification
-        ((routing_fields['route.final_status'] == 'passed_all_filters') &
-         (df['ai.match'].isin(['good', 'so-so']))) |
+        # Jobs with 'included' status (good/so-so matches)
+        routing_fields['route.final_status'].str.startswith('included:') |
+        # OR jobs that passed all filters but no AI classification yet
+        (routing_fields['route.final_status'] == 'passed_all_filters') |
         # OR jobs classified as bad but still fully processed (for complete DataFrame)
-        ((routing_fields['route.final_status'].str.startswith('AI classified as bad')) &
-         (df['ai.match'] == 'bad'))
+        (routing_fields['route.final_status'].str.startswith('AI classified as bad'))
     )
     
     # Update stage and timestamp
