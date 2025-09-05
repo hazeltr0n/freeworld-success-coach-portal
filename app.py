@@ -6871,36 +6871,131 @@ def show_combined_batches_and_scheduling_page(coach):
                         df_final = df_final.copy()
                         df_final['sys.is_fresh_job'] = True
                         
-                        # Run QC validation (non-strict mode for CSV - we want to store data but show warnings)
-                        df_validated, qc_report = validate_jobs_for_upload(df_final, strict_mode=False)
-                        
-                        st.text(qc_report)
-                        
-                        if len(df_validated) == 0:
-                            st.error("❌ No jobs passed quality control validation")
+                        # Filter jobs that should go to Supabase: passed_all_filters or included*
+                        final_status_col = 'route.final_status'
+                        if final_status_col in df_final.columns:
+                            supabase_jobs = df_final[
+                                (df_final[final_status_col] == 'passed_all_filters') |
+                                (df_final[final_status_col].str.startswith('included', na=False))
+                            ].copy()
                         else:
-                            # Store validated jobs to Supabase directly (same as classify_csv.py)
-                            st.info(f"💾 Storing {len(df_validated)} QC-validated jobs to Supabase...")
-                            from job_memory_db import JobMemoryDB
-                            memory_db = JobMemoryDB()
+                            # Fallback if no routing status column
+                            supabase_jobs = df_final.copy()
+                        
+                        if len(supabase_jobs) == 0:
+                            st.info("ℹ️ No jobs qualified for Supabase storage (must have status 'passed_all_filters' or 'included')")
+                        else:
+                            # Run QC validation (non-strict mode for CSV - we want to store data but show warnings)
+                            df_validated, qc_report = validate_jobs_for_upload(supabase_jobs, strict_mode=False)
                             
-                            success = memory_db.store_classifications(df_validated)
-                            error_count = (df_validated.get('ai.match', '') == 'error').sum() if 'ai.match' in df_validated.columns else 0
+                            st.text(qc_report)
                             
-                            if success:
-                                if error_count > 0:
-                                    st.success(f"✅ Stored {len(df_validated)} QC-validated jobs to Supabase ({error_count} had classification errors)")
-                                else:
-                                    st.success(f"✅ Stored {len(df_validated)} QC-validated jobs to Supabase with tracking URLs")
-                                    
-                                # Show data quality summary
-                                rejected_count = len(df_final) - len(df_validated)
-                                if rejected_count > 0:
-                                    st.info(f"📊 QC Summary: {rejected_count} jobs had quality issues but were stored with warnings")
+                            if len(df_validated) == 0:
+                                st.error("❌ No jobs passed quality control validation")
                             else:
-                                st.warning("⚠️ Failed to store some jobs to Supabase")
+                                # Store validated jobs to Supabase directly (same as classify_csv.py)
+                                st.info(f"💾 Storing {len(df_validated)} QC-validated jobs to Supabase...")
+                                from job_memory_db import JobMemoryDB
+                                memory_db = JobMemoryDB()
+                                
+                                success = memory_db.store_classifications(df_validated)
+                                error_count = (df_validated.get('ai.match', '') == 'error').sum() if 'ai.match' in df_validated.columns else 0
+                                
+                                if success:
+                                    if error_count > 0:
+                                        st.success(f"✅ Stored {len(df_validated)} QC-validated jobs to Supabase ({error_count} had classification errors)")
+                                    else:
+                                        st.success(f"✅ Stored {len(df_validated)} QC-validated jobs to Supabase with tracking URLs")
+                                        
+                                    # Show data quality summary
+                                    rejected_count = len(supabase_jobs) - len(df_validated)
+                                    filtered_count = len(df_final) - len(supabase_jobs)
+                                    if rejected_count > 0:
+                                        st.info(f"📊 QC Summary: {rejected_count} jobs had quality issues but were stored with warnings")
+                                    if filtered_count > 0:
+                                        st.info(f"📊 Routing Summary: {filtered_count} jobs filtered out (not 'passed_all_filters' or 'included')")
+                                else:
+                                    st.warning("⚠️ Failed to store some jobs to Supabase")
                     except Exception as store_e:
                         st.warning(f"⚠️ Classification complete, but Supabase storage failed: {store_e}")
+
+                    # CSV Download Section
+                    st.markdown("---")
+                    st.markdown("### 📄 **Export Options**")
+                    col_download, col_stats = st.columns([1, 1])
+                    
+                    with col_download:
+                        # Generate CSV for download
+                        try:
+                            # Use the final DataFrame with all markets and statuses
+                            csv_buffer = df_final.to_csv(index=False)
+                            
+                            # Create filename with timestamp
+                            from datetime import datetime
+                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                            filename = f"classified_jobs_multi_market_{timestamp}.csv"
+                            
+                            st.download_button(
+                                label="📥 Download Full Classified Data (All Markets)",
+                                data=csv_buffer,
+                                file_name=filename,
+                                mime="text/csv",
+                                help="Download complete classified DataFrame with all jobs from all markets (includes filtered jobs for analysis)"
+                            )
+                            
+                            # Show CSV stats
+                            total_csv_jobs = len(df_final)
+                            included_csv_jobs = int((df_final['route.final_status'].str.startswith('included')).sum()) if 'route.final_status' in df_final.columns else 0
+                            filtered_csv_jobs = total_csv_jobs - included_csv_jobs
+                            
+                            st.caption(f"CSV contains: {total_csv_jobs} jobs total • {included_csv_jobs} included • {filtered_csv_jobs} filtered/bad")
+                        except Exception as csv_e:
+                            st.error(f"❌ CSV generation failed: {csv_e}")
+                    
+                    with col_stats:
+                        # Enhanced classification summary
+                        try:
+                            if len(df_final) > 0:
+                                # Calculate comprehensive stats
+                                total_jobs = len(df_final)
+                                
+                                # AI match breakdown
+                                ai_good = int((df_final.get('ai.match', '') == 'good').sum())
+                                ai_soso = int((df_final.get('ai.match', '') == 'so-so').sum()) 
+                                ai_bad = int((df_final.get('ai.match', '') == 'bad').sum())
+                                ai_error = int((df_final.get('ai.match', '') == 'error').sum())
+                                
+                                # Route type breakdown
+                                local_routes = int((df_final.get('ai.route_type', '') == 'Local').sum())
+                                otr_routes = int((df_final.get('ai.route_type', '') == 'OTR').sum())
+                                regional_routes = int((df_final.get('ai.route_type', '') == 'Regional').sum())
+                                
+                                # Final status breakdown
+                                if 'route.final_status' in df_final.columns:
+                                    included_jobs = int(df_final['route.final_status'].str.startswith('included').sum())
+                                    filtered_jobs = int(df_final['route.final_status'].str.startswith('filtered').sum())
+                                    passed_filters = int((df_final['route.final_status'] == 'passed_all_filters').sum())
+                                else:
+                                    included_jobs = ai_good + ai_soso
+                                    filtered_jobs = ai_bad
+                                    passed_filters = 0
+                                
+                                st.markdown("**📊 Classification Summary**")
+                                st.write(f"**Total Jobs Processed:** {total_jobs}")
+                                st.write(f"**✅ Included for Export:** {included_jobs}")
+                                st.write(f"**🎯 Excellent Matches:** {ai_good}")  
+                                st.write(f"**👍 Good Fits:** {ai_soso}")
+                                st.write(f"**❌ Filtered Out:** {filtered_jobs}")
+                                if ai_error > 0:
+                                    st.write(f"**⚠️ Classification Errors:** {ai_error}")
+                                
+                                st.markdown("**🚛 Route Types**")
+                                st.write(f"**🏠 Local:** {local_routes}")
+                                st.write(f"**🛣️ OTR:** {otr_routes}")
+                                if regional_routes > 0:
+                                    st.write(f"**🗺️ Regional:** {regional_routes}")
+                        except Exception:
+                            st.write("📊 Classification stats unavailable")
 
                     # Show results table
                     st.dataframe(df_final, use_container_width=True, height=420)
