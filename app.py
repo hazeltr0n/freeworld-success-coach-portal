@@ -6633,12 +6633,15 @@ def show_combined_batches_and_scheduling_page(coach):
                         location_raw = first(row, ["formattedLocation", "location", "city", "job_location"], "")
                         # Prefer concrete apply URL
                         apply_url = first(row, ["viewJobLink", "apply_url", "applyUrl", "url", "link"], "")
+                        # Extract description/snippet - CRITICAL for AI classification
+                        description = first(row, ["snippet", "description", "job_description", "jobDescription", "details"], "")
                         # Build minimal Outscraper-like object
                         raw = {
                             "title": title,
                             "company": company,
                             "formattedLocation": location_raw,
                             "viewJobLink": apply_url,
+                            "snippet": description,  # Use 'snippet' key to match canonical transform expectations
                         }
                         raw_rows.append(raw)
 
