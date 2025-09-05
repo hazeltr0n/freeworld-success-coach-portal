@@ -271,13 +271,15 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
                     route_type = route_type_filter[0].lower()
                     if route_type == 'local':
                         query = query.ilike('route_type', '%local%')
+                        print(f"🎯 Applied LOCAL filter: ilike('route_type', '%local%')")
                     elif route_type == 'otr':
-                        # Use OR for OTR variations
+                        # Use OR for OTR variations (over, otr, over-the-road, etc.)
                         query = query.or_('route_type.ilike.%otr%,route_type.ilike.%over%')
+                        print(f"🎯 Applied OTR filter: or('route_type.ilike.%otr%,route_type.ilike.%over%')")
                     elif route_type == 'unknown':
                         query = query.or_('route_type.is.null,route_type.eq.')
-                    print(f"🎯 Applied single route type filter: {route_type}")
-                    print(f"🔍 Exact query: ilike('route_type', '%{route_type}%')")
+                        print(f"🎯 Applied UNKNOWN filter: or('route_type.is.null,route_type.eq.')")
+                    print(f"🔍 Single route filter applied for: {route_type}")
                 else:
                     # Multiple route types - build OR condition
                     route_conditions = []
@@ -304,6 +306,15 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
         )
         
         print(f"📦 Found {len(response.data)} memory jobs in Supabase")
+        
+        # CRITICAL TEST: If we filtered for Local only, there should be ZERO OTR jobs
+        if agent_params and agent_params.get('route_type_filter') == ['Local']:
+            otr_jobs = [job for job in response.data if 'otr' in str(job.get('route_type', '')).lower()]
+            if otr_jobs:
+                print(f"🚨 FILTER FAILED: Found {len(otr_jobs)} OTR jobs when filtering for Local only!")
+                print(f"🚨 OTR route types found: {[job.get('route_type') for job in otr_jobs[:3]]}")
+            else:
+                print(f"✅ FILTER SUCCESS: No OTR jobs found when filtering for Local only")
         
         # Debug: Show breakdown of retrieved jobs including route types
         if response.data:
