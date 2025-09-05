@@ -283,8 +283,8 @@ def ensure_schema(df: pd.DataFrame) -> pd.DataFrame:
             else:
                 df[col] = ''
     
-    # Ensure column order matches registry
-    df = df.reindex(columns=list(COLUMN_REGISTRY.keys()), fill_value=None)
+    # Ensure column order matches registry (preserve existing data)
+    df = df.reindex(columns=list(COLUMN_REGISTRY.keys()))
     
     # Apply correct dtypes
     for col, dtype in COLUMN_REGISTRY.items():
