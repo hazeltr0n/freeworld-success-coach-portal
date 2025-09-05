@@ -112,9 +112,11 @@ class JobMemoryDB:
         try:
             # Convert DataFrame to records for Supabase
             records = []
-            for _, job in jobs_df.iterrows():
+            skipped_jobs = []
+            for idx, job in jobs_df.iterrows():
                 # Handle jobs with different routing statuses
                 final_status = job.get('route.final_status', '')
+                job_id = job.get('id.job', job.get('job_id', f'job_{idx}'))
                 
                 # Try canonical fields first (ai.match, ai.reason, ai.summary), then fallback to legacy field names
                 match = job.get('ai.match', job.get('match_level', job.get('match', '')))
@@ -130,8 +132,17 @@ class JobMemoryDB:
                         reason = 'Passed business filters, awaiting AI classification'
                     if not summary or summary in ['', 'nan', None]:
                         summary = 'Job passed initial filters and is ready for AI review'
-                elif not all([match, reason, summary]) or any(x in ['', 'nan', None] for x in [match, reason, summary]):
+                elif final_status.startswith('included'):
+                    # These jobs are included (good/so-so), ensure AI fields are populated
+                    if not match or str(match) in ['', 'nan', 'None', 'null']:
+                        match = 'good' if 'good' in final_status.lower() else 'so-so'
+                    if not reason or str(reason) in ['', 'nan', 'None', 'null']:
+                        reason = f'AI classified as {match} match'
+                    if not summary or str(summary) in ['', 'nan', 'None', 'null']:
+                        summary = f'Quality {match} match identified by AI classification'
+                elif not all([match, reason, summary]) or any(str(x) in ['', 'nan', 'None', 'null'] for x in [match, reason, summary]):
                     # For other statuses, skip if missing required AI data to avoid constraint violations
+                    skipped_jobs.append({'job_id': job_id, 'final_status': final_status, 'match': str(match), 'reason': str(reason)[:50], 'summary': str(summary)[:50]})
                     continue
                     
                 # Market sanitization: ensure no state abbreviations and map representative cities
@@ -204,8 +215,20 @@ class JobMemoryDB:
                 if record['job_id']:  # Only store if we have a job_id
                     records.append(record)
             
+            # Log debug information about processing
+            logger.info(f"🔍 SUPABASE UPLOAD DEBUG: Processed {len(jobs_df)} jobs")
+            logger.info(f"   - Records created: {len(records)}")
+            logger.info(f"   - Jobs skipped: {len(skipped_jobs)}")
+            
+            if skipped_jobs:
+                logger.warning(f"⚠️ Skipped jobs details:")
+                for skip in skipped_jobs[:5]:  # Show first 5
+                    logger.warning(f"   - {skip['job_id']}: status='{skip['final_status']}', match='{skip['match']}', reason='{skip['reason']}', summary='{skip['summary']}'")
+                if len(skipped_jobs) > 5:
+                    logger.warning(f"   ... and {len(skipped_jobs)-5} more")
+            
             if not records:
-                logger.warning("No valid records to store in memory database")
+                logger.warning("❌ No valid records to store in memory database - all jobs were skipped")
                 return False
             
             # Use batch insert with automatic deduplication
