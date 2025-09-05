@@ -3637,16 +3637,8 @@ def main():
                                 'show_prepared_for': show_prepared_for_tab
                             }
                             
-                            # Apply the same filters that PDF uses
-                            filtered_df = df[df['ai.match'].isin(['good', 'so-so'])] if 'ai.match' in df.columns else df
-                            
-                            # Filter by route type
-                            if pdf_route_type_filter_tab and 'ai.route_type' in filtered_df.columns:
-                                filtered_df = filtered_df[filtered_df['ai.route_type'].isin(pdf_route_type_filter_tab)]
-                            
-                            # Filter by quality level
-                            if pdf_match_quality_filter_tab and 'ai.match' in filtered_df.columns:
-                                filtered_df = filtered_df[filtered_df['ai.match'].isin(pdf_match_quality_filter_tab)]
+                            # Supabase has already filtered by route type and quality - no need for post-processing
+                            filtered_df = df
                             
                             # Filter by fair chance only
                             if pdf_fair_chance_only_tab and 'ai.fair_chance_employer' in filtered_df.columns:
@@ -3785,21 +3777,8 @@ def main():
                                 
                                 for market in markets_clean:
                                     market_df = df[df['meta.market'] == market].copy()
-                                    market_quality = market_df[market_df['ai.match'].isin(['good', 'so-so'])] if 'ai.match' in market_df.columns else market_df
-                                    
-                                    # Apply PDF export filters
-                                    
-                                    # Filter by route type
-                                    if pdf_route_type_filter_tab and 'ai.route_type' in market_quality.columns:
-                                        market_quality = market_quality[market_quality['ai.route_type'].isin(pdf_route_type_filter_tab)]
-                                    
-                                    # Filter by quality level
-                                    if pdf_match_quality_filter_tab and 'ai.match' in market_quality.columns:
-                                        market_quality = market_quality[market_quality['ai.match'].isin(pdf_match_quality_filter_tab)]
-                                    
-                                    # Filter by fair chance only
-                                    if pdf_fair_chance_only_tab and 'ai.fair_chance_employer' in market_quality.columns:
-                                        market_quality = market_quality[market_quality['ai.fair_chance_employer'] == True]
+                                    # Supabase has already filtered by route type, quality, and fair chance - no post-processing needed
+                                    market_quality = market_df
                                     
                                     # Apply max jobs limit for PDF generation
                                     if 'max_jobs_pdf_tab' in locals() and max_jobs_pdf_tab != "All":
@@ -5438,22 +5417,10 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                             'show_prepared_for': show_prepared_for_tab
                         }
                         
-                        # Apply the same filters that PDF uses
-                        filtered_df = df[df['ai.match'].isin(['good', 'so-so'])] if 'ai.match' in df.columns else df
+                        # Supabase has already filtered by route type, quality, and fair chance - no post-processing needed
+                        filtered_df = df
                         
-                        # Filter by route type
-                        if pdf_route_type_filter_tab and 'ai.route_type' in filtered_df.columns:
-                            filtered_df = filtered_df[filtered_df['ai.route_type'].isin(pdf_route_type_filter_tab)]
-                        
-                        # Filter by quality level
-                        if pdf_match_quality_filter_tab and 'ai.match' in filtered_df.columns:
-                            filtered_df = filtered_df[filtered_df['ai.match'].isin(pdf_match_quality_filter_tab)]
-                        
-                        # Filter by fair chance only
-                        if pdf_fair_chance_only_tab and 'ai.fair_chance_employer' in filtered_df.columns:
-                            filtered_df = filtered_df[filtered_df['ai.fair_chance_employer'] == True]
-                        
-                        # Apply max jobs limit
+                        # Apply max jobs limit only (Supabase already handled filtering)
                         if max_jobs_pdf_tab != "All":
                             filtered_df = filtered_df.head(max_jobs_pdf_tab)
                         
@@ -5693,22 +5660,10 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                             'show_prepared_for': show_prepared_for_tab
                         }
                         
-                        # Apply the same filters that PDF uses
-                        filtered_df = df[df['ai.match'].isin(['good', 'so-so'])] if 'ai.match' in df.columns else df
+                        # Supabase has already filtered by route type, quality, and fair chance - no post-processing needed
+                        filtered_df = df
                         
-                        # Filter by route type
-                        if pdf_route_type_filter_tab and 'ai.route_type' in filtered_df.columns:
-                            filtered_df = filtered_df[filtered_df['ai.route_type'].isin(pdf_route_type_filter_tab)]
-                        
-                        # Filter by quality level
-                        if pdf_match_quality_filter_tab and 'ai.match' in filtered_df.columns:
-                            filtered_df = filtered_df[filtered_df['ai.match'].isin(pdf_match_quality_filter_tab)]
-                        
-                        # Filter by fair chance only
-                        if pdf_fair_chance_only_tab and 'ai.fair_chance_employer' in filtered_df.columns:
-                            filtered_df = filtered_df[filtered_df['ai.fair_chance_employer'] == True]
-                        
-                        # Apply max jobs limit
+                        # Apply max jobs limit only (Supabase already handled filtering)
                         if max_jobs_pdf_tab != "All":
                             filtered_df = filtered_df.head(max_jobs_pdf_tab)
                         

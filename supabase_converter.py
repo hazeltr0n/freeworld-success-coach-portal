@@ -263,20 +263,34 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
             # Route type filter - handle multiple route types
             route_type_filter = agent_params.get('route_type_filter', [])
             if route_type_filter and len(route_type_filter) < 3:  # If not all route types selected
-                route_conditions = []
-                for route_type in route_type_filter:
-                    if route_type.lower() == 'local':
-                        route_conditions.append('route_type.ilike.%local%')
-                    elif route_type.lower() == 'otr':
-                        route_conditions.append('route_type.ilike.%otr%')
-                        route_conditions.append('route_type.ilike.%over%')  # Also match "over the road"
-                    elif route_type.lower() == 'unknown':
-                        route_conditions.append('route_type.is.null')
-                        route_conditions.append('route_type.eq.')  # Empty string
-                
-                if route_conditions:
-                    query = query.or_(','.join(route_conditions))
-                    print(f"🎯 Applied route type filter at Supabase level: {route_type_filter}")
+                # Build proper OR conditions for multiple route types
+                if len(route_type_filter) == 1:
+                    # Single route type - use direct filter
+                    route_type = route_type_filter[0].lower()
+                    if route_type == 'local':
+                        query = query.ilike('route_type', '%local%')
+                    elif route_type == 'otr':
+                        # Use OR for OTR variations
+                        query = query.or_('route_type.ilike.%otr%,route_type.ilike.%over%')
+                    elif route_type == 'unknown':
+                        query = query.or_('route_type.is.null,route_type.eq.')
+                    print(f"🎯 Applied single route type filter: {route_type}")
+                else:
+                    # Multiple route types - build OR condition
+                    route_conditions = []
+                    for route_type in route_type_filter:
+                        if route_type.lower() == 'local':
+                            route_conditions.append('route_type.ilike.%local%')
+                        elif route_type.lower() == 'otr':
+                            route_conditions.append('route_type.ilike.%otr%')
+                            route_conditions.append('route_type.ilike.%over%')
+                        elif route_type.lower() == 'unknown':
+                            route_conditions.append('route_type.is.null')
+                            route_conditions.append('route_type.eq.')
+                    
+                    if route_conditions:
+                        query = query.or_(','.join(route_conditions))
+                        print(f"🎯 Applied multiple route type filter: {route_type_filter}")
         
         response = (
             query
