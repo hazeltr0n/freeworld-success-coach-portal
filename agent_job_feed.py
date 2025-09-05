@@ -540,7 +540,8 @@ def main():
             'coach_username': coach_username,
             'memory_hours': 72,
             'job_limit': agent_params.get('max_jobs', 25),
-            'route_filter': agent_params.get('route_filter', 'both'),
+            'route_type_filter': [agent_params.get('route_filter', 'both')],  # Pipeline expects list
+            'match_quality_filter': agent_params.get('match_level', 'good and so-so').split(' and '),  # Convert to list
             'fair_chance_only': agent_params.get('fair_chance_only', False),
             'candidate_name': agent_params.get('agent_name', ''),
             'candidate_id': agent_params.get('agent_uuid', ''),
@@ -579,25 +580,8 @@ def main():
             """, unsafe_allow_html=True)
             return
         
-        # Filter jobs by experience level
-        df = filter_jobs_by_experience(df, agent_params.get('experience_level', 'both'))
-        
-        # Filter for route type if specified
-        route_filter = agent_params.get('route_filter', 'both')
-        if route_filter != 'both' and 'ai.route_type' in df.columns:
-            if route_filter == 'local':
-                df = df[df['ai.route_type'].str.lower() == 'local']
-            elif route_filter == 'otr':
-                df = df[df['ai.route_type'].str.lower() == 'otr']
-        
-        # Filter for fair chance if enabled
-        if agent_params.get('fair_chance_only', False):
-            # Look for fair chance indicators in multiple fields
-            fair_chance_mask = False
-            for field in ['meta.tags', 'rules.fair_chance', 'source.description']:
-                if field in df.columns:
-                    fair_chance_mask |= df[field].astype(str).str.contains('fair', case=False, na=False)
-            df = df[fair_chance_mask]
+        # Filtering is now handled at the Supabase level via pipeline parameters
+        # No post-processing filtering needed
         
         # Prioritize jobs for display
         df = prioritize_jobs_for_display(df, agent_params.get('fair_chance_only', False))
