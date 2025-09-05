@@ -2,13 +2,14 @@
 """
 FreeWorld Success Coach Portal - QA/STAGING ENVIRONMENT  
 Complete fresh start to bypass Streamlit Cloud import caching
-DEPLOYMENT VERSION: September 5, 2025 - CSV routing debug and fix - CACHE BUST
-CACHE_BUSTER_ID: tab_navigation_syntax_fix_b8e2c95
+DEPLOYMENT VERSION: September 5, 2025 - Tab navigation complete fix - CACHE BUST
+CACHE_BUSTER_ID: tab_complete_fix_force_rebuild_c9f3d06
 """
 
 # === IMPORTS ===
 # AGGRESSIVE CACHE BUST - Import cache buster to force rebuild
 from CACHE_BUSTER import CACHE_BUST_VERSION
+print(f"🔥 FORCE REBUILD ACTIVE: {CACHE_BUST_VERSION}")
 
 import streamlit as st
 

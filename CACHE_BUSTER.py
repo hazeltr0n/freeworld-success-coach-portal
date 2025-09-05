@@ -7,7 +7,7 @@ This file forces Streamlit to completely rebuild the environment
 by changing import-level code and dependencies.
 """
 
-CACHE_BUST_VERSION = "v2025.09.05.1900.TAB_NAVIGATION_SYNTAX_FIX"
+CACHE_BUST_VERSION = "v2025.09.05.1905.TAB_COMPLETE_FIX_FORCE_REBUILD"
 
 def force_cache_invalidation():
     """Force complete cache invalidation"""
