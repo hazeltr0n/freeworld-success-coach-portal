@@ -222,17 +222,9 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
         if agent_params:
             print(f"🎯 Applying filters: fair_chance_only={agent_params.get('fair_chance_only', False)}, route_types={agent_params.get('route_type_filter', [])}, match_quality={agent_params.get('match_quality_filter', ['good', 'so-so'])}")
         
-        # Query with smart prioritization: newest good + fair chance jobs first
-        # Use SQL to prioritize: Good+FairChance -> Good -> So-so+FairChance -> So-so
-        priority_sql = """
-        CASE 
-            WHEN match_level = 'good' AND (fair_chance ILIKE '%fair_chance_employer%' OR fair_chance = 'true') THEN 1
-            WHEN match_level = 'good' THEN 2  
-            WHEN match_level = 'so-so' AND (fair_chance ILIKE '%fair_chance_employer%' OR fair_chance = 'true') THEN 3
-            WHEN match_level = 'so-so' THEN 4
-            ELSE 5
-        END as priority
-        """
+        # Simplified priority SQL to avoid parsing issues
+        # Priority: good=1, so-so=2, others=3
+        priority_sql = "CASE WHEN match_level = 'good' THEN 1 WHEN match_level = 'so-so' THEN 2 ELSE 3 END as priority"
         
         # Build query with agent-specific filters
         # Use match_quality_filter from agent_params if available, otherwise default to ['good', 'so-so']

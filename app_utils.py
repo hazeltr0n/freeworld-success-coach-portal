@@ -31,7 +31,8 @@ def filter_quality_jobs(df: pd.DataFrame) -> pd.DataFrame:
         # Primary filter: route.final_status  
         # Include both 'included*' and 'passed_all_filters' statuses
         if 'route.final_status' in df.columns:
-            status_col = df['route.final_status'].astype(str)
+            # Handle NaN values properly before string operations
+            status_col = df['route.final_status'].fillna('').astype(str)
             mask = (status_col.str.startswith('included') | (status_col == 'passed_all_filters'))
             if mask.any():
                 return df[mask]
