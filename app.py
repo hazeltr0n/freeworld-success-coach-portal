@@ -5107,10 +5107,12 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
     )
     
     # Check if we have previous search results to display (even if no button clicked)
+    # Make results display more resilient to accidental clearing
     has_previous_memory_results = (
         hasattr(st.session_state, 'memory_search_df') and 
         st.session_state.memory_search_df is not None and
-        not st.session_state.memory_search_df.empty
+        not st.session_state.memory_search_df.empty and
+        st.session_state.get('search_results_protected', False)  # Only show if protected
     )
     
     # Clear results button (only show if we have results)
@@ -5128,6 +5130,8 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                 del st.session_state.memory_search_metadata
             if hasattr(st.session_state, 'memory_search_params'):
                 del st.session_state.memory_search_params
+            if hasattr(st.session_state, 'search_results_protected'):
+                del st.session_state.search_results_protected
             st.rerun()
     
     # Indeed Search Button  
@@ -5346,9 +5350,11 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                             print(f"🔧 Applied market sanitization to Memory Only results")
                         
                         # Store results in session state so they persist until next search
+                        # Add protection flag to prevent accidental clearing
                         st.session_state.memory_search_df = df
                         st.session_state.memory_search_metadata = metadata
                         st.session_state.memory_search_params = params.copy()  # Store search params too
+                        st.session_state.search_results_protected = True  # Protection flag
                 except Exception as e:
                     # Ensure we always define df/metadata on error and surface logs
                     # pandas already imported globally
@@ -5359,6 +5365,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                     st.session_state.memory_search_df = df
                     st.session_state.memory_search_metadata = metadata
                     st.session_state.memory_search_params = params.copy()
+                    st.session_state.search_results_protected = True  # Protection flag even for errors
             mem_logs = log_buffer.getvalue()
 
             # Build concise debug summary for memory search
