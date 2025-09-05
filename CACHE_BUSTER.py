@@ -7,7 +7,7 @@ This file forces Streamlit to completely rebuild the environment
 by changing import-level code and dependencies.
 """
 
-CACHE_BUST_VERSION = "v2025.09.05.2115.SUPABASE_UPSERT_CONFLICT_FIXED"
+CACHE_BUST_VERSION = "v2025.09.05.2130.ADMIN_PANEL_RADIO_BUTTONS"
 
 def force_cache_invalidation():
     """Force complete cache invalidation"""

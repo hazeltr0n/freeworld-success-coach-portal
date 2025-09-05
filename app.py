@@ -4170,8 +4170,23 @@ def main():
         if coach.role == 'admin':
             st.header("👑 Admin Panel")
             
-            # Clone admin functionality from sidebar
-            admin_tab_select = st.selectbox("Admin Function", ["Manage Coaches", "View Analytics", "System Settings"], key="tab_admin_function")
+            # Initialize session state for admin function selection
+            admin_function_options = ["Manage Coaches", "View Analytics", "System Settings"]
+            if 'admin_function_index' not in st.session_state:
+                st.session_state.admin_function_index = 0
+            
+            # Use radio buttons for admin function selection
+            admin_tab_select = st.radio(
+                "Admin Function",
+                options=admin_function_options,
+                index=st.session_state.admin_function_index,
+                key="admin_function_radio",
+                horizontal=True
+            )
+            
+            # Update session state
+            if admin_tab_select in admin_function_options:
+                st.session_state.admin_function_index = admin_function_options.index(admin_tab_select)
             
             if admin_tab_select == "Manage Coaches":
                 st.markdown("### ➕ Add New Coach")
