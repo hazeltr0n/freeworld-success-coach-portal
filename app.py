@@ -12,9 +12,25 @@ from CACHE_BUSTER import CACHE_BUST_VERSION
 
 import streamlit as st
 
+# === AGGRESSIVE CACHE CLEARING (copied from main app) ===
+# Prevent infinite rerun loops by clearing only once per session
+if not st.session_state.get("_cleared_startup_cache_once"):
+    try:
+        st.cache_data.clear()
+        print("🧹 Cleared st.cache_data on startup")
+    except Exception:
+        pass
+    try:
+        st.cache_resource.clear()
+        print("🧹 Cleared st.cache_resource on startup")
+    except Exception:
+        pass
+    st.session_state["_cleared_startup_cache_once"] = True
+    print("🚀 Cache clearing completed - fresh session")
+
 # === CACHE BUSTER ===
 # Clear all Streamlit caches on app startup to ensure fresh deployment
-CACHE_VERSION = "supabase_filter_fix_v2_262d9f9_sept5"
+CACHE_VERSION = "supabase_filter_fix_v2_262d9f9_sept5_AGGRESSIVE_CLEAR"
 
 @st.cache_data
 def get_cache_version():
