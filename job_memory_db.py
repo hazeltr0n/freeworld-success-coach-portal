@@ -208,6 +208,62 @@ class JobMemoryDB:
             logger.error(f"Error storing job classifications: {e}")
             return False
     
+    def update_tracking_urls(self, job_tracking_map: Dict[str, str]) -> bool:
+        """
+        Update tracking URLs for existing jobs in Supabase
+        
+        Args:
+            job_tracking_map: Dict mapping job_id to tracked_url
+            
+        Returns:
+            bool: Success status
+        """
+        if not self.supabase or not job_tracking_map:
+            return False
+            
+        try:
+            logger.info(f"🔗 Updating tracking URLs for {len(job_tracking_map)} jobs in Supabase")
+            
+            # Update jobs in batches to avoid request limits
+            batch_size = 100
+            job_items = list(job_tracking_map.items())
+            updated_count = 0
+            
+            for i in range(0, len(job_items), batch_size):
+                batch = job_items[i:i + batch_size]
+                
+                # Prepare update records
+                update_records = []
+                for job_id, tracked_url in batch:
+                    update_records.append({
+                        'id': job_id,
+                        'tracked_url': tracked_url,
+                        'updated_at': datetime.now().isoformat()
+                    })
+                
+                # Execute batch update
+                try:
+                    result = self.supabase.table('jobs').upsert(update_records).execute()
+                    if result.data:
+                        batch_count = len(result.data)
+                        updated_count += batch_count
+                        logger.info(f"✅ Updated tracking URLs for {batch_count} jobs (batch {i//batch_size + 1})")
+                    else:
+                        logger.warning(f"⚠️ No results returned for batch {i//batch_size + 1}")
+                except Exception as batch_error:
+                    logger.error(f"❌ Failed to update batch {i//batch_size + 1}: {batch_error}")
+                    
+            if updated_count > 0:
+                logger.info(f"✅ Successfully updated tracking URLs for {updated_count} jobs in Supabase")
+                return True
+            else:
+                logger.warning("⚠️ No tracking URLs were updated")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Error updating tracking URLs: {e}")
+            return False
+    
     def check_job_memory(self, job_ids: List[str], hours: int = 168) -> Dict[str, Dict]:
         """
         Check which job IDs already exist in memory database

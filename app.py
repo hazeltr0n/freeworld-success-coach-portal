@@ -6811,10 +6811,57 @@ def show_combined_batches_and_scheduling_page(coach):
                     except Exception:
                         pass
 
-                    # Store to memory (Supabase) ONLY — no link tracking, no PDFs
+                    # Generate tracking URLs for CSV jobs (previously missing)
+                    try:
+                        from link_tracker import LinkTracker
+                        link_tracker = LinkTracker()
+                        if link_tracker.is_available:
+                            jobs_without_tracking = df_final[df_final.get('meta.tracked_url', '').fillna('') == '']
+                            if len(jobs_without_tracking) > 0:
+                                st.info(f"🔗 Generating tracking URLs for {len(jobs_without_tracking)} CSV jobs...")
+                                
+                                for idx, job in jobs_without_tracking.iterrows():
+                                    original_url = job.get('source.url', '')
+                                    if original_url:
+                                        job_title = job.get('source.title', 'CSV Job')[:50]  # Truncate for clean tracking
+                                        
+                                        # Create tracking tags for CSV jobs
+                                        tags = ['source:csv']
+                                        if job.get('meta.market'):
+                                            tags.append(f"market:{job.get('meta.market')}")
+                                        if job.get('ai.match'):
+                                            tags.append(f"match:{job.get('ai.match')}")
+                                        if job.get('ai.route_type'):
+                                            tags.append(f"route:{job.get('ai.route_type')}")
+                                        
+                                        tracked_url = link_tracker.create_short_link(
+                                            original_url,
+                                            title=f"CSV Import: {job_title}",
+                                            tags=tags
+                                        )
+                                        
+                                        if tracked_url and tracked_url != original_url:
+                                            df_final.at[idx, 'meta.tracked_url'] = tracked_url
+                                        else:
+                                            df_final.at[idx, 'meta.tracked_url'] = original_url
+                                
+                                st.success(f"✅ Generated tracking URLs for {len(jobs_without_tracking)} CSV jobs")
+                            else:
+                                st.info("ℹ️ All CSV jobs already have tracking URLs")
+                        else:
+                            st.warning("⚠️ LinkTracker not available - using original URLs")
+                            # Ensure all jobs have meta.tracked_url field populated
+                            missing_urls = df_final['meta.tracked_url'].fillna('') == ''
+                            df_final.loc[missing_urls, 'meta.tracked_url'] = df_final.loc[missing_urls, 'source.url']
+                    except Exception as link_e:
+                        st.warning(f"⚠️ Link generation failed: {link_e} - using original URLs")
+                        missing_urls = df_final.get('meta.tracked_url', pd.Series(dtype=str)).fillna('') == ''
+                        df_final.loc[missing_urls, 'meta.tracked_url'] = df_final.loc[missing_urls, 'source.url']
+
+                    # Store to memory (Supabase) WITH tracking URLs
                     try:
                         pipe._stage8_storage(df_final, push_to_airtable=False)
-                        st.success(f"✅ Stored {included or len(df_final)} classified jobs to memory (no tracking, no PDFs)")
+                        st.success(f"✅ Stored {included or len(df_final)} classified jobs to memory with tracking URLs")
                     except Exception as store_e:
                         st.warning(f"⚠️ Classification complete, but storing to memory encountered an issue: {store_e}")
 

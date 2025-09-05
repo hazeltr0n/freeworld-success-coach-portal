@@ -195,10 +195,58 @@ def main(argv: List[str]) -> int:
     print(f"OTR Routes: {otr_routes}")
 
     if args.store:
-        print("\n💾 Storing to memory (Supabase)…")
+        print("\n🔗 Generating tracking URLs for CSV jobs…")
+        try:
+            from link_tracker import LinkTracker
+            link_tracker = LinkTracker()
+            if link_tracker.is_available:
+                jobs_without_tracking = df_final[df_final.get('meta.tracked_url', '').fillna('') == '']
+                if len(jobs_without_tracking) > 0:
+                    print(f"📊 Processing {len(jobs_without_tracking)} jobs without tracking URLs...")
+                    
+                    for idx, job in jobs_without_tracking.iterrows():
+                        original_url = job.get('source.url', '')
+                        if original_url:
+                            job_title = job.get('source.title', 'CSV Job')[:50]
+                            
+                            # Create tracking tags
+                            tags = ['source:csv-terminal']
+                            if job.get('meta.market'):
+                                tags.append(f"market:{job.get('meta.market')}")
+                            if job.get('ai.match'):
+                                tags.append(f"match:{job.get('ai.match')}")
+                            if job.get('ai.route_type'):
+                                tags.append(f"route:{job.get('ai.route_type')}")
+                            
+                            tracked_url = link_tracker.create_short_link(
+                                original_url,
+                                title=f"CSV Terminal: {job_title}",
+                                tags=tags
+                            )
+                            
+                            if tracked_url and tracked_url != original_url:
+                                df_final.at[idx, 'meta.tracked_url'] = tracked_url
+                                print(f"✅ Created tracking URL for {job_title[:30]}...")
+                            else:
+                                df_final.at[idx, 'meta.tracked_url'] = original_url
+                                print(f"⚠️ Using original URL for {job_title[:30]}...")
+                    
+                    print(f"✅ Generated tracking URLs for {len(jobs_without_tracking)} CSV jobs")
+                else:
+                    print("ℹ️ All CSV jobs already have tracking URLs")
+            else:
+                print("⚠️ LinkTracker not available - using original URLs")
+                missing_urls = df_final['meta.tracked_url'].fillna('') == ''
+                df_final.loc[missing_urls, 'meta.tracked_url'] = df_final.loc[missing_urls, 'source.url']
+        except Exception as link_e:
+            print(f"⚠️ Link generation failed: {link_e} - using original URLs")
+            missing_urls = df_final.get('meta.tracked_url', pd.Series(dtype=str)).fillna('') == ''
+            df_final.loc[missing_urls, 'meta.tracked_url'] = df_final.loc[missing_urls, 'source.url']
+        
+        print("\n💾 Storing to memory (Supabase) with tracking URLs…")
         try:
             pipe._stage8_storage(df_final, push_to_airtable=False)
-            print(f"✅ Stored {included or total} classified jobs to memory")
+            print(f"✅ Stored {included or total} classified jobs to memory with tracking URLs")
         except Exception as e:
             print(f"⚠️ Storage failed: {e}")
             return 4

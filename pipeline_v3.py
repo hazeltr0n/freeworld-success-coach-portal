@@ -354,56 +354,102 @@ class FreeWorldPipelineV3:
 
             print(f"✅ Final selection: {len(final_df)} jobs for output")
 
-            # Skip link generation for memory searches unless forced - jobs should already have tracked URLs
-            # This prevents schema validation issues (99 columns from CSV vs 133 from Pipeline V3)
-            if force_link_generation:
-                print("🔗 Force link generation enabled - generating tracked URLs even for memory search")
-                # Generate links for memory search when forced
-                from link_tracker import LinkTracker
-                try:
+            # Smart link generation for memory searches - generate for jobs without tracking URLs
+            print("🔗 Checking memory jobs for missing tracking URLs...")
+            try:
+                # Ensure meta.tracked_url column exists
+                if 'meta.tracked_url' not in final_df.columns:
+                    final_df['meta.tracked_url'] = ''
+                
+                # Find jobs without tracking URLs or with original URLs as placeholders
+                jobs_without_tracking = final_df[
+                    (final_df['meta.tracked_url'].fillna('') == '') |
+                    (final_df['meta.tracked_url'] == final_df['source.url'])
+                ]
+                
+                if len(jobs_without_tracking) > 0 or force_link_generation:
+                    from link_tracker import LinkTracker
                     link_tracker = LinkTracker()
-                    url_mapping = {}
                     
-                    for idx, row in final_df.iterrows():
-                        job_id = row['id.job']
-                        original_url = row.get('source.url', '')
+                    if force_link_generation:
+                        jobs_to_process = final_df
+                        print(f"🔗 Force link generation enabled - processing all {len(jobs_to_process)} jobs")
+                    else:
+                        jobs_to_process = jobs_without_tracking
+                        print(f"🔗 Generating tracking URLs for {len(jobs_to_process)} memory jobs without tracking")
+                    
+                    if link_tracker.is_available:
+                        for idx, row in jobs_to_process.iterrows():
+                            job_id = row['id.job']
+                            original_url = row.get('source.url', '')
+                            
+                            if original_url and original_url.startswith('http'):
+                                # Create meaningful tags for memory jobs
+                                tags = ['source:memory']
+                                if candidate_id:
+                                    tags.append(f"candidate:{candidate_id}")
+                                if coach_username:
+                                    tags.append(f"coach:{coach_username}")
+                                if row.get('meta.market'):
+                                    tags.append(f"market:{row.get('meta.market')}")
+                                if row.get('ai.match'):
+                                    tags.append(f"match:{row.get('ai.match')}")
+                                if row.get('ai.route_type'):
+                                    tags.append(f"route:{row.get('ai.route_type')}")
+                                
+                                job_title = row.get('source.title', 'CDL Position')[:50]
+                                tracked_url = link_tracker.create_short_link(
+                                    original_url,
+                                    title=f"Memory: {job_title}",
+                                    tags=tags,
+                                    candidate_id=candidate_id
+                                )
+                                
+                                if tracked_url and tracked_url != original_url:
+                                    final_df.at[idx, 'meta.tracked_url'] = tracked_url
+                                    print(f"🔗 Generated tracking URL for {job_id[:8]}")
+                                else:
+                                    final_df.at[idx, 'meta.tracked_url'] = original_url
+                                    print(f"⚠️ Using original URL for {job_id[:8]}")
                         
-                        if original_url and original_url.startswith('http'):
-                            tags = []
-                            if candidate_id:
-                                tags.append(f"candidate:{candidate_id}")
-                            if coach_username:
-                                tags.append(f"coach:{coach_username}")
+                        print(f"✅ Link generation complete for memory search")
+                        
+                        # Update Supabase with new tracking URLs
+                        try:
+                            tracking_updates = {}
+                            for idx, row in jobs_to_process.iterrows():
+                                job_id = row.get('id.job')
+                                tracked_url = final_df.at[idx, 'meta.tracked_url']
+                                if job_id and tracked_url and tracked_url != row.get('source.url', ''):
+                                    tracking_updates[job_id] = tracked_url
                             
-                            tracked_url = link_tracker.create_short_link(
-                                original_url,
-                                title=f"Job: {row.get('source.title', 'CDL Position')}",
-                                tags=tags,
-                                candidate_id=candidate_id
-                            )
-                            
-                            if tracked_url and tracked_url != original_url:
-                                final_df.at[idx, 'meta.tracked_url'] = tracked_url
-                                print(f"🔗 Generated link for {job_id[:8]}: {tracked_url}")
-                            else:
-                                final_df.at[idx, 'meta.tracked_url'] = original_url
-                except Exception as e:
-                    print(f"⚠️ Link generation error: {e}")
-            else:
-                print("✅ Using existing URLs from memory (skipping link generation to avoid schema conflicts)")
-            
-            # Ensure meta.tracked_url column exists for compatibility
-            if 'meta.tracked_url' not in final_df.columns:
-                final_df['meta.tracked_url'] = ''
-                # Populate with original URLs if no tracking URLs exist
-                for idx, job in final_df.iterrows():
-                    if not final_df.at[idx, 'meta.tracked_url']:
-                        original_url = job.get('source.url', '')
-                        if original_url:
-                            final_df.at[idx, 'meta.tracked_url'] = original_url
-                    # Add tracked_url column if it doesn't exist
-                    if 'meta.tracked_url' not in final_df.columns:
-                        final_df['meta.tracked_url'] = ''
+                            if tracking_updates:
+                                success = self.memory_db.update_tracking_urls(tracking_updates)
+                                if success:
+                                    print(f"✅ Updated {len(tracking_updates)} tracking URLs in Supabase")
+                                else:
+                                    print(f"⚠️ Failed to update tracking URLs in Supabase")
+                        except Exception as update_e:
+                            print(f"⚠️ Error updating tracking URLs in Supabase: {update_e}")
+                    else:
+                        print("⚠️ LinkTracker not available - using original URLs")
+                        final_df.loc[jobs_to_process.index, 'meta.tracked_url'] = jobs_to_process['source.url']
+                else:
+                    print("ℹ️ All memory jobs already have tracking URLs")
+                
+                # Final fallback - ensure no empty tracking URLs
+                missing_urls = final_df['meta.tracked_url'].fillna('') == ''
+                if missing_urls.any():
+                    final_df.loc[missing_urls, 'meta.tracked_url'] = final_df.loc[missing_urls, 'source.url']
+                    print(f"🔄 Fallback: filled {missing_urls.sum()} remaining empty tracking URLs")
+                    
+            except Exception as e:
+                print(f"⚠️ Link generation error: {e}")
+                # Emergency fallback
+                if 'meta.tracked_url' not in final_df.columns:
+                    final_df['meta.tracked_url'] = ''
+                missing_urls = final_df['meta.tracked_url'].fillna('') == ''
+                final_df.loc[missing_urls, 'meta.tracked_url'] = final_df.loc[missing_urls, 'source.url']
                     
                     for idx, job in final_df.iterrows():
                         # Use consolidated URL field
