@@ -450,56 +450,6 @@ class FreeWorldPipelineV3:
                     final_df['meta.tracked_url'] = ''
                 missing_urls = final_df['meta.tracked_url'].fillna('') == ''
                 final_df.loc[missing_urls, 'meta.tracked_url'] = final_df.loc[missing_urls, 'source.url']
-                    
-                    for idx, job in final_df.iterrows():
-                        # Use consolidated URL field
-                        original_url = job.get('source.url', '')
-                        job_id = job.get('id.job', '')
-                        
-                        if original_url and len(original_url) > 10:
-                            try:
-                                # Get coach/candidate info from environment (set by Streamlit wrapper or terminal script)
-                                import os
-                                coach_username = os.getenv('FREEWORLD_COACH_USERNAME', '')
-                                candidate_name = os.getenv('FREEWORLD_CANDIDATE_NAME', '')
-                                candidate_id = os.getenv('FREEWORLD_CANDIDATE_ID', '')
-
-                                # Prepare tags for Short.io
-                                tags = []
-                                if coach_username:
-                                    tags.append(f"coach:{coach_username}")
-                                if candidate_id:
-                                    tags.append(f"candidate:{candidate_id}")
-                                if candidate_name:
-                                    tags.append(f"agent:{candidate_name.replace(' ', '-')}")  # Short.io tags prefer dashes
-                                if location:
-                                    tags.append(f"market:{location}")
-                                if job.get('ai.match'):
-                                    tags.append(f"match:{job['ai.match']}")
-                                if fair_chance_only:
-                                    tags.append(f"fair:true")
-                                else:
-                                    tags.append(f"fair:false")
-                                
-                                # Use actual job title for better tracking context
-                                job_title_for_tracking = job.get('source.title', f"Job {job_id[:8]}")
-
-                                tracked_url = link_tracker.create_short_link(
-                                    original_url,
-                                    title=job_title_for_tracking,
-                                    tags=tags
-                                )
-                                
-                                if tracked_url and tracked_url != original_url:
-                                    final_df.at[idx, 'meta.tracked_url'] = tracked_url
-                                    print(f"🔗 Shortened URL for job {job_id[:8]}: {tracked_url}")
-                                else:
-                                    final_df.at[idx, 'meta.tracked_url'] = original_url
-                                    print(f"⚠️ Using original URL for {job_id[:8]}")
-                                    
-                            except Exception as e:
-                                print(f"❌ Link shortening failed for {job_id[:8]}: {e}")
-                                final_df.at[idx, 'meta.tracked_url'] = original_url
 
             # Generate outputs
             files = {}

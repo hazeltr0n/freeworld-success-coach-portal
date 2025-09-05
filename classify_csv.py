@@ -87,6 +87,7 @@ def main(argv: List[str]) -> int:
     ap.add_argument("--fallback-market", default="Dallas", help="Fallback market if unmapped")
     ap.add_argument("--store", action="store_true", help="Store to Supabase memory (default is dry-run)")
     ap.add_argument("--limit", type=int, default=0, help="Optional limit on rows to process for quick tests")
+    ap.add_argument("--test-refresh", action="store_true", help="Test smart classification refresh logic (shows memory detection without storing)")
     args = ap.parse_args(argv)
 
     csv_path = Path(args.csv).expanduser()
@@ -125,6 +126,7 @@ def main(argv: List[str]) -> int:
     from shared_search import MARKET_TO_LOCATION
 
     pipe = FreeWorldPipelineV3()
+    pipe._is_custom_location = False  # CSV classifier doesn't use custom locations
 
     print("📥 Ingesting…")
     df_ing = transform_ingest_outscraper(raw_rows, pipe.run_id) if raw_rows else ensure_schema(pd.DataFrame())
@@ -193,6 +195,59 @@ def main(argv: List[str]) -> int:
     print(f"Possible Fits: {ai_soso}")
     print(f"Local Routes: {local_routes}")
     print(f"OTR Routes: {otr_routes}")
+
+    # Test smart classification refresh logic
+    if args.test_refresh:
+        print("\n🧪 TESTING SMART CLASSIFICATION REFRESH LOGIC")
+        print("=" * 60)
+        try:
+            from job_memory_db import JobMemoryDB
+            memory_db = JobMemoryDB()
+            
+            # Check which jobs already exist in memory
+            job_ids = df_final['id.job'].dropna().astype(str).tolist()[:20]  # Test first 20 jobs
+            print(f"🔍 Checking {len(job_ids)} job IDs in memory database...")
+            
+            memory_lookup = memory_db.check_job_memory(job_ids, hours=720)  # 30 days
+            
+            if memory_lookup:
+                print(f"✅ Found {len(memory_lookup)} existing jobs in memory:")
+                print("\n📋 EXISTING JOBS DETAILS:")
+                for job_id, memory_job in memory_lookup.items():
+                    print(f"\n  Job ID: {job_id[:12]}...")
+                    print(f"    Title: {memory_job.get('job_title', 'N/A')[:60]}...")
+                    print(f"    Company: {memory_job.get('company', 'N/A')}")
+                    print(f"    Match: {memory_job.get('match', 'N/A')}")
+                    print(f"    Summary: {memory_job.get('summary', 'N/A')[:80]}...")
+                    print(f"    Fair Chance: {memory_job.get('fair_chance', 'N/A')}")
+                    print(f"    Tracking URL: {memory_job.get('tracked_url', 'None')[:50]}...")
+                
+                # Show what would happen with smart storage
+                print(f"\n🎯 SMART STORAGE SIMULATION:")
+                print(f"  📊 Total quality jobs to process: {len(df_final)}")
+                
+                # Simulate classification source detection  
+                memory_job_ids = set(memory_lookup.keys())
+                df_jobs_with_ids = df_final[df_final['id.job'].isin(memory_job_ids)]
+                df_jobs_without_ids = df_final[~df_final['id.job'].isin(memory_job_ids)]
+                
+                print(f"  🔄 Jobs that would be REFRESHED (timestamp only): {len(df_jobs_with_ids)}")
+                print(f"  🆕 Jobs that would be STORED (full data): {len(df_jobs_without_ids)}")
+                
+                if len(df_jobs_with_ids) > 0:
+                    print(f"\n  🔄 REFRESH SIMULATION (preserving existing data):")
+                    for idx, (job_id, memory_job) in enumerate(list(memory_lookup.items())[:3]):
+                        print(f"    Job {idx+1}: {job_id[:12]}... -> Keep existing AI data, update timestamp")
+                
+            else:
+                print("ℹ️  No existing jobs found in memory - all would be stored as new")
+                
+        except Exception as e:
+            print(f"❌ Test refresh failed: {e}")
+        
+        print("\n🧪 Test complete - no data was modified")
+        print("(Use --store to actually save data)")
+        return 0
 
     if args.store:
         print("\n🔗 Generating tracking URLs for CSV jobs…")
