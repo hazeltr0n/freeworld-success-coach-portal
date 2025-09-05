@@ -241,9 +241,12 @@ class FreeWorldPipelineV3:
                     'coach_username': coach_username or ''
                 }
                 
-                # Build agent parameters dict - these come from function args if available
-                # For now, create empty dict since function doesn't have agent params yet
-                agent_params = {}
+                # Build agent parameters dict - pass PDF filters to Supabase query level
+                agent_params = {
+                    'fair_chance_only': fair_chance_only,
+                    'route_type_filter': route_type_filter,  # Pass full list for Supabase filtering
+                    'match_quality_filter': match_quality_filter
+                }
                 
                 # Speed optimization: Pull only what we need instead of 3x over-fetch
                 # Prioritizes most recent jobs that match filters for PDF
@@ -289,25 +292,11 @@ class FreeWorldPipelineV3:
             # print(f"🔄 After deduplication: {len(canonical_df)} jobs remaining")
             print(f"⚠️ Deduplication disabled again - still causing over-filtering")
             
-            # Apply advanced filters
+            # Filters now applied at Supabase query level - no post-filtering needed for basic filters
             filtered_df = canonical_df.copy()
+            print(f"✅ Using Supabase-level filtering - {len(filtered_df)} pre-filtered jobs retrieved")
             
-            # Quality filter
-            if 'ai.match' in filtered_df.columns and match_quality_filter:
-                filtered_df = filtered_df[filtered_df['ai.match'].isin(match_quality_filter)]
-                print(f"   Quality filter: {len(filtered_df)} jobs after filtering")
-            
-            # Fair chance filter
-            if fair_chance_only and 'ai.fair_chance' in filtered_df.columns:
-                filtered_df = filtered_df[filtered_df['ai.fair_chance'] == 'Yes']
-                print(f"   Fair chance filter: {len(filtered_df)} jobs after filtering")
-            
-            # Route type filter
-            if route_type_filter and 'ai.route_type' in filtered_df.columns:
-                filtered_df = filtered_df[filtered_df['ai.route_type'].isin(route_type_filter)]
-                print(f"   Route type filter: {len(filtered_df)} jobs after filtering")
-            
-            # Experience level filter
+            # Only keep experience level filter since it's not handled at Supabase level yet
             if experience_level_filter != 'Any' and 'rules.has_experience_req' in filtered_df.columns:
                 if experience_level_filter == 'Entry Level':
                     filtered_df = filtered_df[filtered_df['rules.has_experience_req'] == False]

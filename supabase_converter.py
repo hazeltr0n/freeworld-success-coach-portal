@@ -219,6 +219,8 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
         # Use market-based search as primary method
         market_name = (location or '').strip()
         print(f"🔍 Searching Supabase for jobs: market='{market_name}', limit={limit}, since={cutoff_date}")
+        if agent_params:
+            print(f"🎯 Applying filters: fair_chance_only={agent_params.get('fair_chance_only', False)}, route_types={agent_params.get('route_type_filter', [])}, match_quality={agent_params.get('match_quality_filter', ['good', 'so-so'])}")
         
         # Query with smart prioritization: newest good + fair chance jobs first
         # Use SQL to prioritize: Good+FairChance -> Good -> So-so+FairChance -> So-so
@@ -233,12 +235,17 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
         """
         
         # Build query with agent-specific filters
+        # Use match_quality_filter from agent_params if available, otherwise default to ['good', 'so-so']
+        match_levels = ['good', 'so-so']  # default
+        if agent_params and agent_params.get('match_quality_filter'):
+            match_levels = agent_params['match_quality_filter']
+            
         query = (
             supabase_client
             .table('jobs')
             .select(f'*, {priority_sql}')
             .eq('market', market_name)
-            .in_('match_level', ['good', 'so-so'])
+            .in_('match_level', match_levels)
             .gte('created_at', cutoff_date)
         )
         
@@ -249,15 +256,23 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
                 query = query.ilike('fair_chance', '%fair_chance_employer%')
                 print(f"🎯 Applied fair_chance_only filter at Supabase level")
             
-            # Route filter
-            route_filter = agent_params.get('route_filter', 'both')
-            if route_filter and route_filter != 'both':
-                if route_filter.lower() == 'local':
-                    query = query.ilike('route_type', '%local%')
-                    print(f"🎯 Applied local route filter at Supabase level")
-                elif route_filter.lower() == 'otr':
-                    query = query.or_('route_type.ilike.%otr%,route_type.ilike.%over%')
-                    print(f"🎯 Applied OTR route filter at Supabase level")
+            # Route type filter - handle multiple route types
+            route_type_filter = agent_params.get('route_type_filter', [])
+            if route_type_filter and len(route_type_filter) < 3:  # If not all route types selected
+                route_conditions = []
+                for route_type in route_type_filter:
+                    if route_type.lower() == 'local':
+                        route_conditions.append('route_type.ilike.%local%')
+                    elif route_type.lower() == 'otr':
+                        route_conditions.append('route_type.ilike.%otr%')
+                        route_conditions.append('route_type.ilike.%over%')  # Also match "over the road"
+                    elif route_type.lower() == 'unknown':
+                        route_conditions.append('route_type.is.null')
+                        route_conditions.append('route_type.eq.')  # Empty string
+                
+                if route_conditions:
+                    query = query.or_(','.join(route_conditions))
+                    print(f"🎯 Applied route type filter at Supabase level: {route_type_filter}")
         
         response = (
             query
