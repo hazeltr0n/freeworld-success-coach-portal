@@ -236,9 +236,8 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
         except Exception as e:
             print(f"🔍 DEBUG query failed: {e}")
         
-        # Simplified priority SQL to avoid parsing issues
-        # Priority: good=1, so-so=2, others=3
-        priority_sql = "CASE WHEN match_level = 'good' THEN 1 WHEN match_level = 'so-so' THEN 2 ELSE 3 END as priority"
+        # Simplified approach: Skip the complex CASE statement that's causing parsing errors
+        # We'll handle priority sorting in Python instead of SQL
         
         # Build query with agent-specific filters
         # Use match_quality_filter from agent_params if available, otherwise default to ['good', 'so-so']
@@ -249,7 +248,7 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
         query = (
             supabase_client
             .table('jobs')
-            .select(f'*, {priority_sql}')
+            .select('*')  # Skip the broken priority SQL for now
             .eq('market', market_name)
             .in_('match_level', match_levels)
             .gte('created_at', cutoff_date)
@@ -299,8 +298,7 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
         
         response = (
             query
-            .order('priority', desc=False)  # Lower priority number = higher priority
-            .order('created_at', desc=True)  # Within same priority, newest first
+            .order('created_at', desc=True)  # Order by newest first (skip priority for now)
             .limit(limit)  # Now we can use normal limit since we're pre-filtering
             .execute()
         )
