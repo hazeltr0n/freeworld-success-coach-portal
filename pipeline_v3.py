@@ -1208,7 +1208,7 @@ class FreeWorldPipelineV3:
         
         # Generate clean URLs for deduplication
         print("🔗 Generating clean URLs for deduplication")
-        df['clean_apply_url'] = df.apply(lambda x: self._extract_clean_url(
+        df.loc[:, 'clean_apply_url'] = df.apply(lambda x: self._extract_clean_url(
             x.get('source.url', '')
         ), axis=1)
         
@@ -1258,7 +1258,7 @@ class FreeWorldPipelineV3:
         url_dupes_removed = 0
         if filter_settings.get('url_dedup', True):
             # Extract clean URLs for comparison
-            df['clean_apply_url'] = df.apply(lambda x: self._extract_clean_url(
+            df.loc[:, 'clean_apply_url'] = df.apply(lambda x: self._extract_clean_url(
                 x.get('source.url', '')
             ), axis=1)
             

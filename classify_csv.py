@@ -105,13 +105,40 @@ def main(argv: List[str]) -> int:
     # Map to raw Outscraper-like dicts
     print("🧭 Mapping CSV → raw rows (title/company/location/url)…")
     cols_map = {c.lower(): c for c in df_src.columns}
+    
+    # Debug: Show available columns
+    print(f"🔍 Available CSV columns: {list(df_src.columns)}")
+    print(f"🔍 Column mapping: {cols_map}")
+    
     raw_rows: List[Dict[str, Any]] = []
-    for _, row in df_src.iterrows():
+    for i, (_, row) in enumerate(df_src.iterrows()):
         title = _first(row, cols_map, ["title", "job_title", "job"], "")
         company = _first(row, cols_map, ["company", "company_name", "employer"], "")
         location_raw = _first(row, cols_map, ["formattedLocation", "location", "city", "job_location"], "")
         apply_url = _first(row, cols_map, ["viewJobLink", "apply_url", "applyUrl", "url", "link"], "")
         description = _first(row, cols_map, ["snippet", "description", "job_description", "jobDescription", "details"], "")
+        
+        # Debug first row to show field mapping
+        if i == 0:
+            print(f"🔍 FIRST ROW MAPPING DEBUG:")
+            print(f"   title: '{title}' (len={len(title)})")
+            print(f"   company: '{company}' (len={len(company)})")
+            print(f"   location: '{location_raw}' (len={len(location_raw)})")
+            print(f"   apply_url: '{apply_url}' (len={len(apply_url)})")
+            print(f"   description: '{description}' (len={len(description)})")
+            
+            # Show which description field was found
+            desc_found = False
+            for field_name in ["snippet", "description", "job_description", "jobDescription", "details"]:
+                if field_name.lower() in cols_map:
+                    actual_col = cols_map[field_name.lower()]
+                    actual_value = row.get(actual_col, '')
+                    print(f"   Found desc field '{field_name}' → column '{actual_col}' → value: '{str(actual_value)[:100]}...' (len={len(str(actual_value))})")
+                    desc_found = True
+                    break
+            if not desc_found:
+                print(f"   ❌ NO DESCRIPTION FIELD FOUND in columns: {list(cols_map.keys())}")
+        
         raw_rows.append({
             "title": title,
             "company": company,
