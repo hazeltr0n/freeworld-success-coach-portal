@@ -1362,28 +1362,60 @@ class FreeWorldPipelineV3:
         
         print(f"🔍 Classifying {len(fresh_unclassified)} fresh jobs...")
         
-        # Prepare jobs for classification
+        # Prepare jobs for classification - use cleaned description from normalization stage
         jobs_for_ai = []
         for _, job in fresh_unclassified.iterrows():
+            # Prefer cleaned 'norm.description' over raw 'source.description_raw' for AI classification
+            raw_desc = job.get('source.description_raw', '')
+            clean_desc = job.get('norm.description', '')
+            
+            # Use cleaned description if available and not empty, otherwise fallback to raw
+            final_desc = clean_desc if clean_desc and str(clean_desc).strip() else raw_desc
+            
             job_data = {
                 'job_id': job['id.job'],
-                'job_title': job['source.title'],
-                'company': job['source.company'],
-                'location': job['source.location_raw'],
-                'job_description': job['source.description_raw']
+                'job_title': job.get('source.title', ''),
+                'company': job.get('source.company', ''),
+                'location': job.get('source.location_raw', ''),
+                'job_description': final_desc
             }
             jobs_for_ai.append(job_data)
         
-        # Debug first job to see data quality
+        # Debug first few jobs to see data quality, especially description content
         if jobs_for_ai:
-            sample = jobs_for_ai[0]
-            print(f"🔍 AI Classification Sample Job:")
-            print(f"    job_id: '{sample['job_id']}' (len={len(str(sample['job_id']))})")
-            print(f"    job_title: '{sample['job_title']}' (len={len(str(sample['job_title']))})")
-            print(f"    company: '{sample['company']}' (len={len(str(sample['company']))})")
-            print(f"    location: '{sample['location']}' (len={len(str(sample['location']))})")
-            desc_preview = str(sample['job_description'])[:100] + "..." if len(str(sample['job_description'])) > 100 else str(sample['job_description'])
-            print(f"    job_description: '{desc_preview}' (len={len(str(sample['job_description']))})")
+            num_to_debug = min(2, len(jobs_for_ai))  # Show first 2 jobs for debugging
+            for idx in range(num_to_debug):
+                sample = jobs_for_ai[idx]
+                print(f"🔍 AI Classification Sample Job #{idx + 1}:")
+                print(f"    job_id: '{sample['job_id']}' (len={len(str(sample['job_id']))})")
+                print(f"    job_title: '{sample['job_title']}' (len={len(str(sample['job_title']))})")
+                print(f"    company: '{sample['company']}' (len={len(str(sample['company']))})")
+                print(f"    location: '{sample['location']}' (len={len(str(sample['location']))})")
+                
+                # Enhanced description debugging - show both raw and cleaned versions
+                desc_str = str(sample['job_description'])
+                desc_len = len(desc_str)
+                has_html = '<' in desc_str and '>' in desc_str
+                desc_preview = desc_str[:200] + "..." if desc_len > 200 else desc_str
+                
+                print(f"    job_description: (len={desc_len}, has_html={has_html})")
+                print(f"    description_preview: '{desc_preview}'")
+                
+                # Show which description source was used (for debugging the fallback logic)
+                job_idx = fresh_unclassified.index[idx] if idx < len(fresh_unclassified) else None
+                if job_idx is not None:
+                    source_job = fresh_unclassified.loc[job_idx]
+                    raw_desc = source_job.get('source.description_raw', '')
+                    clean_desc = source_job.get('norm.description', '')
+                    
+                    print(f"    📄 Raw description: (len={len(str(raw_desc))}) '{str(raw_desc)[:100]}...'")
+                    print(f"    🧹 Clean description: (len={len(str(clean_desc))}) '{str(clean_desc)[:100]}...'")
+                    print(f"    🎯 Used for AI: {'cleaned' if clean_desc and str(clean_desc).strip() else 'raw'}")
+                
+                # Check if description is empty/null
+                if not desc_str or desc_str.strip() == '' or desc_str.lower() in ['nan', 'none', 'null']:
+                    print(f"    ⚠️  WARNING: Job description is empty/null!")
+                print()  # Add blank line between jobs
         
         # Run AI classification (using optimized async classifier)
         try:

@@ -118,26 +118,30 @@ def main(argv: List[str]) -> int:
         apply_url = _first(row, cols_map, ["viewJobLink", "apply_url", "applyUrl", "url", "link"], "")
         description = _first(row, cols_map, ["snippet", "description", "job_description", "jobDescription", "details"], "")
         
-        # Debug first row to show field mapping
-        if i == 0:
-            print(f"🔍 FIRST ROW MAPPING DEBUG:")
+        # Debug first few rows to show field mapping and detect HTML issues
+        if i < 3:  # Show first 3 rows for better debugging
+            print(f"🔍 ROW {i+1} MAPPING DEBUG:")
             print(f"   title: '{title}' (len={len(title)})")
             print(f"   company: '{company}' (len={len(company)})")
             print(f"   location: '{location_raw}' (len={len(location_raw)})")
             print(f"   apply_url: '{apply_url}' (len={len(apply_url)})")
-            print(f"   description: '{description}' (len={len(description)})")
+            print(f"   description: '{str(description)[:150]}...' (len={len(str(description))})")
             
-            # Show which description field was found
+            # Show which description field was found and check for HTML content
             desc_found = False
             for field_name in ["snippet", "description", "job_description", "jobDescription", "details"]:
                 if field_name.lower() in cols_map:
                     actual_col = cols_map[field_name.lower()]
                     actual_value = row.get(actual_col, '')
-                    print(f"   Found desc field '{field_name}' → column '{actual_col}' → value: '{str(actual_value)[:100]}...' (len={len(str(actual_value))})")
+                    actual_str = str(actual_value)
+                    has_html = '<' in actual_str and '>' in actual_str
+                    print(f"   Found desc field '{field_name}' → column '{actual_col}' → (len={len(actual_str)}, has_html={has_html})")
+                    print(f"   Raw content: '{actual_str[:200]}...'")
                     desc_found = True
                     break
             if not desc_found:
                 print(f"   ❌ NO DESCRIPTION FIELD FOUND in columns: {list(cols_map.keys())}")
+            print()  # Add blank line for readability
         
         raw_rows.append({
             "title": title,
