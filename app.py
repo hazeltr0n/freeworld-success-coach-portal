@@ -3734,7 +3734,13 @@ def main():
 
                             # Generate encoded configuration
                             from free_agent_system import encode_agent_params
-                            encoded_config = encode_agent_params(portal_config)
+                            
+                            # Translate parameter names for backward compatibility
+                            agent_params = portal_config.copy()
+                            if 'route_type_filter' in agent_params:
+                                agent_params['route_filter'] = agent_params.pop('route_type_filter')
+                            
+                            encoded_config = encode_agent_params(agent_params)
 
                             # Create portal URL
                             base_url = "https://fwcareercoach.streamlit.app"
@@ -3778,7 +3784,7 @@ def main():
                                     st.write("📊 **Max Jobs:**", portal_config['max_jobs'])
                                     st.write("🔄 **Search Radius:**", f"{portal_config['search_radius']} miles")
                                 with col2:
-                                    st.write("🛣️ **Route Filter:**", portal_config['route_filter'])
+                                    st.write("🛣️ **Route Filter:**", portal_config.get('route_type_filter', ['All']))
                                     st.write("🎓 **No Experience Required:**", "Yes" if portal_config.get('no_experience', False) else "No")
                                     st.write("🤝 **Fair Chance Only:**", "Yes" if portal_config['fair_chance_only'] else "No")
                                     if candidate_name_tab:
