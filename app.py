@@ -3777,10 +3777,8 @@ def main():
                             # Generate encoded configuration
                             from free_agent_system import encode_agent_params
                             
-                            # Translate parameter names for backward compatibility
+                            # Use modern parameter names (agent portal now supports both old and new)
                             agent_params = portal_config.copy()
-                            if 'route_type_filter' in agent_params:
-                                agent_params['route_filter'] = agent_params.pop('route_type_filter')
                             
                             encoded_config = encode_agent_params(agent_params)
 
