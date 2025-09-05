@@ -933,7 +933,9 @@ def transform_routing(df: pd.DataFrame, route_filter: str = 'both') -> pd.DataFr
             return 'filtered: No valid application URL'
         
         # If we get here, job passes all filters - now check AI classification to determine final status
-        ai_match = row.get('ai.match', '').lower()
+        ai_match_raw = row.get('ai.match', '')
+        # Handle NaN values safely
+        ai_match = str(ai_match_raw).lower() if pd.notna(ai_match_raw) else ''
         if ai_match in ['good', 'so-so']:
             return f'included: {ai_match} match'
         elif ai_match == 'bad':

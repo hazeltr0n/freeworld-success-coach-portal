@@ -4800,486 +4800,34 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
         # Silently handle notification errors to not break main app
         pass
     
-    st.sidebar.header("🎯 Search Parameters")
-    
-    # Location selection - Permission-based
-    location_options = ["Select Market"]
-    if check_coach_permission('can_use_custom_locations'):
-        location_options.append("Custom Location")
-    else:
-        st.sidebar.info("💡 Custom locations disabled. Contact admin to enable.")
-    
-    location_type = st.sidebar.radio(
-        "Location Type:",
-        location_options,
-        help="Choose from preset markets or enter a custom location"
-    )
-    
+    # Removed obsolete sidebar code - all functionality moved to main tab interface
+    # Set default values for removed sidebar variables  
+    search_type = None
     location = None
     custom_location = None
-    
-    if location_type == "Select Market":
-        markets = pipeline.get_markets()
-        selected_markets = st.sidebar.multiselect(
-            "Target Markets:",
-            markets,
-            help="Select one or more markets to search"
-        )
-        
-        if selected_markets:
-            # Show selected markets
-            locations = [pipeline.get_market_location(market) for market in selected_markets]
-            location = ", ".join(locations)  # Combine for display
-            st.sidebar.success(f"📍 Selected: {len(selected_markets)} market{'s' if len(selected_markets) > 1 else ''}")
-            
-            # Show locations in expandable section
-            with st.sidebar.expander("📋 Selected Markets", expanded=len(selected_markets) <= 3):
-                for i, market in enumerate(selected_markets):
-                    market_location = pipeline.get_market_location(market)
-                    st.write(f"{i+1}. **{market}**: {market_location}")
-        else:
-            location = None
-        
-    else:  # Custom Location
-        custom_location = st.sidebar.text_input(
-            "Custom Location:",
-            placeholder="e.g., Austin, TX or 90210",
-            help="Enter city, state, or ZIP code"
-        )
-        location = custom_location
-    
-    # Search parameters
-    route_filter = st.sidebar.selectbox(
-        "Route Preference:",
-        ["both", "local", "regional", "otr"],
-        help="Filter jobs by route type"
-    )
-    
-    # Search mode - Permission-based with job count display
-    # Use shared constants to prevent duplication
-    mode_display_map = MODE_DISPLAY_MAP
-    search_display_options = MODE_DISPLAY_OPTIONS.copy()
-    if check_coach_permission('can_access_full_mode'):
-        search_display_options.append("1000 jobs")
-    
-    search_mode_display = st.sidebar.selectbox(
-        "Search Mode:",
-        search_display_options,
-        index=1,  # default to "100 jobs" (sample)
-        help="Number of jobs to analyze and classify"
-    )
-    
-    # Convert display choice back to pipeline mode
-    search_mode = mode_display_map[search_mode_display]
-    
-    search_terms = st.sidebar.text_input(
-        "Search Terms:",
-        value="CDL Driver No Experience",
-        help="Job search keywords. Use commas for multiple terms: 'CDL driver, truck driver, delivery driver'"
-    )
-    
-    # Exact location option (affects radius calculation)
-    exact_location = st.sidebar.checkbox(
-        "Use exact location only",
-        value=False,
-        help="Search only the specified city (radius=0). Faster and more stable, but may find fewer jobs."
-    )
-    
-    # Search radius (conditional on exact location setting)
-    if exact_location:
-        search_radius = 0
-        st.sidebar.info("📍 Radius set to 0 (exact location mode)")
-    else:
-        search_radius = st.sidebar.selectbox(
-            "Search Radius:",
-            [25, 50, 100],
-            index=1,  # default to 50
-            help="Search radius in miles from target location"
-        )
-    
-    # PDF Export Options - COMMENTED OUT (not being used, use main tab interface instead)
-    # with st.sidebar.expander("📄 PDF Export Options"):
-    #     st.markdown("**Quality & Quantity Controls**")
-    #     max_jobs_pdf = st.slider(
-    #         "Maximum jobs in PDF",
-    #         min_value=10,
-    #         max_value=200,
-    #         value=50,
-    #         step=5,
-    #         help="Maximum number of jobs to include in PDF report"
-    #     )
-    #     
-    #     pdf_match_quality_filter = st.multiselect(
-    #         "Include job quality levels",
-    #         options=['good', 'so-so', 'bad'],
-    #         default=['good', 'so-so'],
-    #         help="Which AI quality assessments to include in PDF"
-    #     )
-    #     
-    #     pdf_include_memory_jobs = st.checkbox(
-    #         "Include memory jobs",
-    #         value=True,
-    #         help="Include recent jobs from memory database in PDF output"
-    #     )
-    #     
-    #     
-    #     st.markdown("**Job Characteristics Filters**")
-    #     col1, col2 = st.columns(2)
-    #     with col1:
-    #         pdf_fair_chance_only = st.checkbox(
-    #             "Fair chance jobs only", 
-    #             value=False,
-    #             help="Include only jobs friendly to people with records in PDF"
-    #         )
-    #         
-    #         pdf_route_type_filter = st.multiselect(
-    #             "Route types to include",
-    #             options=['Local', 'OTR', 'Unknown'],
-    #             default=['Local', 'OTR', 'Unknown'],
-    #             help="Which driving route types to include in PDF"
-    #         )
-    #     
-    #     with col2:
-    #         pdf_experience_level_filter = st.selectbox(
-    #             "Experience level filter",
-    #             options=['Any', 'Entry Level', 'Experienced'],
-    #             index=0,
-    #             help="Experience level filter for PDF jobs"
-    #         )
-    
-    
-    # Experience filter (for all search types)
-    no_experience = st.sidebar.checkbox(
-        "No Experience Filter", 
-        value=True,
-        help="Include jobs that don't require prior experience"
-    )
-    
-    # Advanced options - Permission-based controls
-    with st.sidebar.expander("🔧 Advanced Options"):
-        st.markdown("**Output Formats**")
-        # Only show PDF generation if coach has permission
-        generate_pdf = False
-        if check_coach_permission('can_generate_pdf'):
-            generate_pdf = st.checkbox("Generate PDF Report", value=True)
-        
-        # Only show CSV export if coach has permission
-        generate_csv = False
-        if check_coach_permission('can_generate_csv'):
-            generate_csv = st.checkbox("Generate CSV Export", value=True)
-        save_parquet = st.checkbox("Save Parquet Files", value=False, help="Save pipeline stage data for debugging")
-        
-        # Search strategy is now determined by which search button is clicked
-        search_strategy = "balanced"
-        
-        # Force fresh is now handled by dedicated button below
-        force_fresh = False
-        
-        # Only show Force Fresh Classification if coach has permission  
-        force_fresh_classification = False
-        if check_coach_permission('can_force_fresh_classification'):
-            force_fresh_classification = st.checkbox("Force Fresh Classification", value=False, help="Re-run AI classification even on cached jobs (useful when testing new prompts)")
-        
-        st.markdown("**Data Sync**")
-        # Airtable upload removed (read-only usage only)
-        push_to_airtable = False
-        
-        st.markdown("**Candidate Tagging (Optional)**")
-        # Agent lookup UI with data source toggle
-        with st.container(border=True):
-            # Add toggle for data source
-            col1, col2 = st.columns([2, 1])
-            with col1:
-                st.caption("Lookup Free Agent (fills fields below)")
-            with col2:
-                use_supabase = st.checkbox("Use Supabase", value=True, key="use_supabase_lookup", help="Search your saved agents (recommended)")
-            
-            c1, c2, c3 = st.columns([2,1,1])
-            with c1:
-                lookup_q = st.text_input("Search", key="candidate_lookup_q", placeholder="Type name, UUID, or email")
-            with c2:
-                lookup_by = st.selectbox("By", ["name", "uuid", "email"], index=0, key="candidate_lookup_by")
-            with c3:
-                # Add spacing to align button with input fields
-                st.markdown("<div style='height: 1.75rem;'></div>", unsafe_allow_html=True)
-                do_lookup = st.button("🔎 Search", key="do_candidate_lookup")
-            
-            if do_lookup:
-                # Get coach username from current_coach object
-                current_coach = st.session_state.get('current_coach')
-                coach_username_debug = current_coach.username if current_coach else 'NOT LOGGED IN'
-                st.write(f"🔍 DEBUG: Search button clicked! Query='{lookup_q}', Use Supabase={use_supabase}, Coach='{coach_username_debug}'")
-                st.write(f"🔍 DEBUG: Coach filtering - only agents assigned to '{coach_username_debug}' will be returned")
-                
-                if use_supabase:
-                    # Use Supabase search for coach's saved agents
-                    try:
-                        from supabase_utils import supabase_find_agents
-                        st.write("🔍 DEBUG: About to call supabase_find_agents...")
-                        st.session_state.candidate_search_results = supabase_find_agents(
-                            lookup_q, 
-                            coach_username=coach_username_debug, 
-                            by=lookup_by, 
-                            limit=15
-                        )
-                        st.write(f"🔍 DEBUG: Supabase function completed successfully!")
-                        st.write(f"🔍 DEBUG: Supabase returned {len(st.session_state.candidate_search_results)} results")
-                        if st.session_state.candidate_search_results:
-                            st.info(f"✅ Found {len(st.session_state.candidate_search_results)} agent(s) from your saved profiles")
-                        else:
-                            st.warning("No matching agents found in your saved profiles")
-                    except Exception as e:
-                        st.error(f"Supabase search failed: {e}")
-                        st.session_state.candidate_search_results = []
-                else:
-                    # Use Airtable search as fallback
-                    st.write("🔍 DEBUG: Using Airtable search...")
-                    st.session_state.candidate_search_results = airtable_find_candidates(lookup_q, by=lookup_by, limit=15)
-                    if st.session_state.candidate_search_results:
-                        st.info(f"✅ Found {len(st.session_state.candidate_search_results)} agent(s) from Airtable")
-            
-            results = st.session_state.get("candidate_search_results", [])
-            if results:
-                def _label(r):
-                    loc = ", ".join([x for x in [r.get('city') or '', r.get('state') or ''] if x])
-                    suffix = f" ({loc})" if loc else ""
-                    
-                    
-                    return f"{r['name']} — {r['uuid'] or 'no-uuid'}{suffix}"
-                
-                options = [_label(r) for r in results]
-                sel = st.selectbox("Select Agent", options, index=0, key="candidate_select")
-                if sel and st.button("Use Selected", key="use_selected_candidate"):
-                    idx = options.index(sel)
-                    chosen = results[idx]
-                    st.session_state.candidate_id = chosen.get("uuid", "")
-                    st.session_state.candidate_name = chosen.get("name", "")
-                    
-                    # Show success message with data source
-                    source = "Supabase" if chosen.get('source') == 'supabase' else "Airtable"
-                    st.success(f"✅ Selected {chosen['name']} from {source}")
-            else:
-                if do_lookup:
-                    source_name = "Supabase" if use_supabase else "Airtable"
-                    st.info(f"No agents found in {source_name}. Try switching the search mode or broadening your query.")
-        # Manual override / final values
-        candidate_id = st.text_input(
-            "Candidate ID (UUID)", 
-            value=st.session_state.get("candidate_id", ""), 
-            help="Attach a specific Free Agent to links for analytics"
-        )
-        candidate_name = st.text_input(
-            "Candidate Name", 
-            value=st.session_state.get("candidate_name", ""), 
-            help="Used on PDF title page and link tags"
-        )
-    
-    # Pipeline Settings (matching GUI wrapper functionality)
-    with st.sidebar.expander("⚙️ Pipeline Settings"):
-        st.markdown("**Quality Filters**")
-        enable_business_rules = st.checkbox("Business Rules Filter", value=True, help="Remove spam and low-quality jobs")
-        enable_deduplication = st.checkbox("Deduplication", value=True, help="Remove duplicate job postings")
-        enable_experience_filter = st.checkbox("Experience Level Filter", value=True, help="Filter by experience requirements")
-        
-        # Clear cache button moved here from header
-        if st.button("🔄 Clear Cache", help="Clear cached data and force fresh results"):
-            try:
-                st.cache_data.clear()
-                st.cache_resource.clear()
-                st.success("✅ Cache cleared successfully!")
-                st.rerun()
-            except Exception as e:
-                st.error(f"❌ Error clearing cache: {e}")
-        
-        st.markdown("**Data Processing**")
-        classification_model = st.selectbox("AI Classification Model", ["gpt-4o-mini", "gpt-4o"], index=0)
-        batch_size = st.number_input("Batch Size", min_value=1, max_value=100, value=25, help="Jobs processed per API call")
-        
-        if st.button("🔄 Reset to Defaults"):
-            st.rerun()
-
-        # Quick Actions: Copy/Regenerate for a single agent
-        with st.expander("⚡ Quick Actions", expanded=False):
-            try:
-                names = [a.get('agent_name', 'Unknown') for a in agents]
-                selection = st.selectbox("Select agent", names, index=0 if names else None)
-                if selection:
-                    agent = next((a for a in agents if a.get('agent_name') == selection), None)
-                    if agent:
-                        # Generate dynamic portal URL based on current agent preferences
-                        agent_uuid = agent.get('agent_uuid', '')
-                        if agent_uuid:
-                            portal_url = generate_dynamic_portal_link(agent)
-                        else:
-                            portal_url = "Missing UUID - Cannot generate secure link"
-                        st.write("Portal Link:")
-                        st.code(portal_url, language=None)
-                        # Copy to clipboard button (JS hack)
-                        btn_key = f"copy_portal_{agent.get('agent_uuid','')[:8]}"
-                        copy_script = f"""
-                        <button onclick="navigator.clipboard.writeText('{portal_url}');" style="padding:6px 10px; border:1px solid #444; border-radius:6px; background:#CDF95C; font-weight:600;">📋 Copy Portal Link</button>
-                        """
-                        st.markdown(copy_script, unsafe_allow_html=True)
-                        # Single regenerate action
-                        if st.button("🔗 Regenerate Link for Agent", key=f"regen_{btn_key}"):
-                            try:
-                                from link_tracker import LinkTracker
-                                link_tracker = LinkTracker()
-                                portal_tags = [
-                                    f"coach:{coach.username}",
-                                    f"candidate:{agent.get('agent_uuid','')}",
-                                    f"market:{(agent.get('location','') or '').lower().replace(' ', '_')}",
-                                    "type:portal_access"
-                                ]
-                                new_short = link_tracker.create_short_link(portal_url, title=f"Portal - {agent.get('agent_name','Agent')}", tags=portal_tags, candidate_id=agent.get('agent_uuid',''))
-                                updated = agent.copy()
-                                updated['portal_url'] = new_short
-                                success, message = save_agent_profile(coach.username, updated)
-                                if success:
-                                    st.success("✅ Regenerated portal link")
-                                    st.rerun()
-                                else:
-                                    st.error(f"❌ Failed to save regenerated link: {message}")
-                            except Exception as e:
-                                st.error(f"❌ Could not regenerate: {e}")
-            except Exception:
-                pass
-    
-    # Cost estimation
-    if location:
-        cost_info = pipeline.estimate_cost(search_mode, 1)
-        st.sidebar.markdown("<br>", unsafe_allow_html=True)
-        st.sidebar.markdown("💰 **Cost Estimate**")
-        
-        # Safe access to job_limit
-        job_limit = cost_info.get('job_limit', 100)
-        st.sidebar.metric(
-            "Search Cost",
-            f"${cost_info['total_cost']:.3f}"
-        )
-    
-    # Run Job Search Button in Sidebar - Always show regardless of location
-    st.sidebar.markdown("<br>", unsafe_allow_html=True)
-    
-    run_disabled = not location or (location_type == "Custom Location" and not custom_location)
-    
-    # Three search options - all visible
-    st.sidebar.markdown("### 🚀 Search Options")
-    
-    # Memory system configuration
-    memory_time_period = st.sidebar.selectbox(
-        "Smart memory lookback period",
-        options=['24h', '48h', '72h', '96h'],
-        index=2,  # default to 72h
-        help="How far back the smart memory system searches for existing jobs"
-    )
-    
-    # Memory Search Button
-    memory_clicked = st.sidebar.button(
-        "💾 Search Memory Only", 
-        disabled=run_disabled,
-        help="Search cached jobs from all sources - instant results, no API costs",
-        key="memory_search_btn"
-    )
-    
-    # Check if we have previous search results to display (even if no button clicked)
-    # Make results display more resilient to accidental clearing
-    has_previous_memory_results = (
-        hasattr(st.session_state, 'memory_search_df') and 
-        st.session_state.memory_search_df is not None and
-        not st.session_state.memory_search_df.empty and
-        st.session_state.get('search_results_protected', False)  # Only show if protected
-    )
-    
-    # Clear results button (only show if we have results)
-    if has_previous_memory_results:
-        clear_clicked = st.sidebar.button(
-            "🗑️ Clear Results",
-            help="Clear previous search results", 
-            key="clear_results_btn"
-        )
-        if clear_clicked:
-            # Clear search results from session state
-            if hasattr(st.session_state, 'memory_search_df'):
-                del st.session_state.memory_search_df
-            if hasattr(st.session_state, 'memory_search_metadata'):
-                del st.session_state.memory_search_metadata
-            if hasattr(st.session_state, 'memory_search_params'):
-                del st.session_state.memory_search_params
-            if hasattr(st.session_state, 'search_results_protected'):
-                del st.session_state.search_results_protected
-            st.rerun()
-    
-    # Indeed Search Button  
-    indeed_clicked = st.sidebar.button(
-        "🔍 Search Indeed + Memory",
-        disabled=run_disabled,
-        help="Search fresh Indeed jobs plus all cached jobs (~$0.10/search)",
-        key="indeed_search_btn"
-    )
-    
-    # Indeed Fresh Only Button (if permission)
-    indeed_fresh_clicked = False
-    if can_pull_fresh:
-        indeed_fresh_clicked = st.sidebar.button(
-            "🔍 Indeed Fresh Only",
-            disabled=run_disabled,
-            help="Search Indeed API only, bypass memory cache (~$0.10/search)",
-            key="indeed_fresh_btn"
-        )
-    
-    # Google ordering removed from Job Search sidebar
-    google_clicked = False
-    
-    # Scheduling option
-    st.sidebar.markdown("---")
-    schedule_search = st.sidebar.checkbox(
-        "🗓️ Schedule this search",
-        value=False,
-        help="Set up recurring searches instead of running once"
-    )
-    
-    if schedule_search:
-        with st.sidebar.expander("⏰ Scheduling Options"):
-            schedule_freq = st.selectbox("Frequency", ["Daily", "Weekly", "Once"])
-            schedule_time = st.time_input("Run at", value=pd.Timestamp("02:00").time())
-            
-            if schedule_freq == "Weekly":
-                schedule_days = st.multiselect("Days", 
-                    ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-                    default=["Mon", "Wed", "Fri"]
-                )
-    
-    # Account management at bottom of sidebar
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("### 👤 Account")
-    
-    col1, col2 = st.sidebar.columns(2)
-    with col1:
-        if st.button("🔐 Change Password", key="sidebar_change_password", width='stretch'):
-            st.session_state.show_password_change = True
-    with col2:
-        if st.button("🚪 Logout", key="sidebar_logout", width='stretch'):
-            st.session_state.current_coach = None
-            st.rerun()
-    
-    # Handle button clicks
-    if memory_clicked:
-        search_type = 'memory'
-    elif indeed_clicked:
-        search_type = 'indeed'
-    elif indeed_fresh_clicked:
-        search_type = 'indeed_fresh'
-    # Google ordering removed from Job Search sidebar
-    else:
-        # No button was clicked - check if we should display previous results
-        if has_previous_memory_results:
-            search_type = 'memory_display'  # Special mode to display previous results
-        else:
-            search_type = None
+    route_filter = "both"
+    search_mode = "sample"
+    search_terms = "CDL Driver No Experience"
+    exact_location = False
+    search_radius = 50
+    no_experience = True
+    generate_pdf = False
+    generate_csv = False
+    save_parquet = False
+    search_strategy = "balanced"
+    force_fresh = False
+    force_fresh_classification = False
+    push_to_airtable = False
+    candidate_id = ""
+    candidate_name = ""
+    enable_business_rules = True
+    enable_deduplication = True
+    enable_experience_filter = True
+    classification_model = "gpt-4o-mini"
+    batch_size = 25
     
     # Safe preview location for any HTML preview blocks (avoid UnboundLocalError)
-    preview_location = custom_location if (location_type == "Custom Location" and custom_location) else location
+    preview_location = location
 
     if search_type:
         if not location:
@@ -6340,10 +5888,25 @@ def show_combined_batches_and_scheduling_page(coach):
         from async_job_manager import AsyncJobManager
         async_manager = AsyncJobManager()
         
-        # Create tabs within the combined page
-        batch_tab, schedule_tab, csv_tab = st.tabs(["📦 Async Batches", "🗓️ Scheduled Searches", "📄 CSV Classification"])
+        # Create radio buttons for inner tabs (persistent navigation)
+        inner_tab_options = ["📦 Async Batches", "🗓️ Scheduled Searches", "📄 CSV Classification"]
         
-        with batch_tab:
+        # Initialize session state for inner tab if not exists
+        if 'inner_tab_index' not in st.session_state:
+            st.session_state.inner_tab_index = 0
+        
+        selected_inner_tab = st.radio(
+            "Select Section",
+            options=inner_tab_options,
+            index=st.session_state.inner_tab_index,
+            key="inner_tab_radio",
+            horizontal=True
+        )
+        
+        # Update session state based on selection
+        st.session_state.inner_tab_index = inner_tab_options.index(selected_inner_tab)
+        
+        if selected_inner_tab == "📦 Async Batches":
             st.markdown("### 🚀 Batch Job Scheduler")
             st.markdown("Create async Google/Indeed jobs with the same search parameters as main search")
             
@@ -6433,7 +5996,7 @@ def show_combined_batches_and_scheduling_page(coach):
             st.markdown("### 📊 Batch Jobs")
             show_simple_batch_table(coach)
         
-        with schedule_tab:
+        elif selected_inner_tab == "🗓️ Scheduled Searches":
             # Scheduled Searches content 
             st.markdown("Manage your scheduled job searches and view their status.")
             st.caption("Times below are Central Time (America/Chicago)")
@@ -6541,7 +6104,7 @@ def show_combined_batches_and_scheduling_page(coach):
             st.subheader("Recent Scheduled Search History") 
             st.info("📊 Search history will appear here once scheduling is active.")
 
-        with csv_tab:
+        elif selected_inner_tab == "📄 CSV Classification":
             st.markdown("### 📄 Classify CSV (Outscraper → Pipeline)")
             st.caption("Drop an Outscraper CSV (Google or Indeed). We will map fields, classify with AI, and generate outputs. Markets are tracked as plain names (e.g., Dallas, Bay Area, Inland Empire). City,ST is used only for scraping — not here.")
 
