@@ -66,14 +66,26 @@ def generate_agent_url(agent_uuid: str, params: Dict[str, Any]) -> str:
         
         # Detect environment and set appropriate base URL
         current_dir = os.getcwd()
-        is_qa_portal = 'freeworld-qa-portal' in current_dir
+        repo_name = os.path.basename(current_dir)
+        
+        # Multiple ways to detect QA environment
+        is_qa_portal = (
+            'freeworld-qa-portal' in current_dir or 
+            repo_name == 'freeworld-qa-portal' or
+            '/mount/src/freeworld-qa-portal' in current_dir or
+            os.path.exists('.qa-portal-marker')  # Fallback marker file
+        )
         
         if is_qa_portal:
             # QA Portal URL
             base_url = "https://fwcareertest.streamlit.app"  # QA environment
+            print(f"🧪 QA Environment detected - using QA portal URL: {base_url}")
         else:
             # Production URL  
             base_url = "https://fwcareercoach.streamlit.app"  # Production environment
+            print(f"🏭 Production Environment detected - using production URL: {base_url}")
+        
+        print(f"🔍 Environment debug: current_dir='{current_dir}', repo_name='{repo_name}', is_qa_portal={is_qa_portal}")
             
         # Override for local development
         is_local = False
