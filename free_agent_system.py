@@ -14,14 +14,37 @@ import streamlit as st
 
 def encode_agent_params(params: Dict[str, Any]) -> str:
     """Encode agent parameters into a URL-safe string"""
+    
+    # Handle route_type_filter (modern) vs route_filter (legacy)  
+    route_value = params.get('route_type_filter', params.get('route_filter', 'both'))
+    if isinstance(route_value, list):
+        # Convert list back to string for encoding
+        if len(route_value) == 1:
+            route_value = route_value[0].lower()
+        elif set([r.lower() for r in route_value]) == {'local', 'otr', 'unknown'}:
+            route_value = 'both'
+        else:
+            route_value = 'both'
+    
+    # Handle match_quality_filter (modern) vs match_level (legacy)
+    match_value = params.get('match_quality_filter', params.get('match_level', 'good and so-so'))
+    if isinstance(match_value, list):
+        # Convert list back to string for encoding
+        if set([m.lower() for m in match_value]) == {'good', 'so-so'}:
+            match_value = 'good and so-so'
+        elif 'good' in [m.lower() for m in match_value]:
+            match_value = 'good'
+        else:
+            match_value = 'good and so-so'
+    
     param_map = {
         'agent_uuid': params.get('agent_uuid', ''),
         'agent_name': params.get('agent_name', ''),
         'location': params.get('location', 'Houston'),  # Just city name
-        'route_filter': params.get('route_filter', params.get('route_type_filter', 'both')),  # Accept both parameter names
+        'route_type_filter': route_value,  # Use modern parameter name
         'fair_chance_only': params.get('fair_chance_only', False),
         'max_jobs': params.get('max_jobs', 25),  # 15/25/50/100
-        'match_level': params.get('match_level', 'good and so-so'),  # good/so-so/good and so-so/all
+        'match_quality_filter': match_value,  # Use modern parameter name
         'coach_username': params.get('coach_username', ''),
     }
     
