@@ -241,9 +241,9 @@ class JobMemoryDB:
             except Exception as rpc_error:
                 logger.warning(f"Database deduplication failed, falling back to upsert: {rpc_error}")
                 
-                # Fallback to simple insert if RPC function doesn't exist yet
-                # The Supabase table should handle deduplication with triggers or constraints
-                result = self.supabase.table('jobs').insert(records).execute()
+                # Fallback to upsert since job_id is primary key and may have duplicates
+                # This will update existing records or insert new ones
+                result = self.supabase.table('jobs').upsert(records).execute()
                 
                 if result.data:
                     logger.info(f"✅ Stored {len(result.data)} job classifications in memory database (fallback mode)")
