@@ -2183,18 +2183,16 @@ def show_free_agent_management_page(coach):
                         agent_name = edited_row['Free Agent Name']
                         
                         # Create updated agent object with current table filter values
-                        # Handle different data types for original_agent (dict or other)
-                        if isinstance(original_agent, dict):
-                            updated_agent = original_agent.copy()
-                        else:
-                            # Fallback: create dict from the original data
-                            updated_agent = dict(original_agent) if original_agent else {}
-                            
-                        # Ensure we have essential fields
-                        if not updated_agent.get('agent_uuid'):
-                            updated_agent['agent_uuid'] = edited_row.get('_agent_uuid', '')
-                        if not updated_agent.get('agent_name'):
-                            updated_agent['agent_name'] = agent_name
+                        # Build fresh agent dict from table data instead of trying to convert original_agent
+                        updated_agent = {
+                            'agent_uuid': edited_row.get('_agent_uuid', ''),
+                            'agent_name': agent_name,
+                            'agent_email': getattr(original_agent, 'get', lambda x,d: d)('agent_email', ''),
+                            'agent_city': getattr(original_agent, 'get', lambda x,d: d)('agent_city', ''),
+                            'agent_state': getattr(original_agent, 'get', lambda x,d: d)('agent_state', ''),
+                            'created_at': edited_row.get('_created_at', ''),
+                            'coach_username': coach.username
+                        }
                         updated_agent.update({
                             'location': edited_row['Market'],
                             'route_filter': edited_row['Route'],  # Use route_filter (expected by portal generation)
