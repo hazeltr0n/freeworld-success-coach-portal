@@ -121,8 +121,8 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
             # Use agent parameters for the memory search
             params = {
                 'mode': 'sample',
-                'route_type_filter': [agent_params.get('route_filter', 'both')],  # Use agent's actual route preference (pipeline expects list)
-                'match_quality_filter': agent_params.get('match_level', 'good and so-so').split(' and '),  # Convert string to list
+                'route_type_filter': [agent_params.get('route_type_filter', agent_params.get('route_filter', 'both'))],  # Support both modern and legacy parameter names
+                'match_quality_filter': agent_params.get('match_quality_filter', agent_params.get('match_level', 'good and so-so')).split(' and ') if isinstance(agent_params.get('match_quality_filter', agent_params.get('match_level', 'good and so-so')), str) else agent_params.get('match_quality_filter', ['good', 'so-so']),  # Support both parameter formats
                 'fair_chance_only': agent_params.get('fair_chance_only', False),  # Agent's fair chance preference
                 'max_jobs': agent_params.get('max_jobs', 25),  # Agent's max jobs limit
                 'search_terms': '',
