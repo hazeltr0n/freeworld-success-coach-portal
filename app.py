@@ -6482,32 +6482,30 @@ def show_combined_batches_and_scheduling_page(coach):
                             
                             st.text(qc_report)
                             
-                            if len(df_validated) == 0:
-                                st.error("❌ No jobs passed quality control validation")
-                            else:
-                                # Store validated jobs to Supabase directly (same as classify_csv.py)
-                                st.info(f"💾 Storing {len(df_validated)} QC-validated jobs to Supabase...")
-                                from job_memory_db import JobMemoryDB
-                                memory_db = JobMemoryDB()
-                                
-                                success = memory_db.store_classifications(df_validated)
-                                error_count = (df_validated.get('ai.match', '') == 'error').sum() if 'ai.match' in df_validated.columns else 0
-                                
-                                if success:
-                                    if error_count > 0:
-                                        st.success(f"✅ Stored {len(df_validated)} QC-validated jobs to Supabase ({error_count} had classification errors)")
-                                    else:
-                                        st.success(f"✅ Stored {len(df_validated)} QC-validated jobs to Supabase with tracking URLs")
-                                        
-                                    # Show data quality summary
-                                    rejected_count = len(supabase_jobs) - len(df_validated)
-                                    filtered_count = len(df_final) - len(supabase_jobs)
-                                    if rejected_count > 0:
-                                        st.info(f"📊 QC Summary: {rejected_count} jobs had quality issues but were stored with warnings")
-                                    if filtered_count > 0:
-                                        st.info(f"📊 Routing Summary: {filtered_count} jobs filtered out (not 'passed_all_filters' or 'included')")
+                            # QC is now REPORT-ONLY mode - always proceed to upload all jobs
+                            # Store validated jobs to Supabase directly (same as classify_csv.py)
+                            st.info(f"💾 Storing {len(df_validated)} QC-validated jobs to Supabase...")
+                            from job_memory_db import JobMemoryDB
+                            memory_db = JobMemoryDB()
+                            
+                            success = memory_db.store_classifications(df_validated)
+                            error_count = (df_validated.get('ai.match', '') == 'error').sum() if 'ai.match' in df_validated.columns else 0
+                            
+                            if success:
+                                if error_count > 0:
+                                    st.success(f"✅ Stored {len(df_validated)} QC-validated jobs to Supabase ({error_count} had classification errors)")
                                 else:
-                                    st.warning("⚠️ Failed to store some jobs to Supabase")
+                                    st.success(f"✅ Stored {len(df_validated)} QC-validated jobs to Supabase with tracking URLs")
+                                    
+                                # Show data quality summary
+                                rejected_count = len(supabase_jobs) - len(df_validated)
+                                filtered_count = len(df_final) - len(supabase_jobs)
+                                if rejected_count > 0:
+                                    st.info(f"📊 QC Summary: {rejected_count} jobs had quality issues but were stored with warnings")
+                                if filtered_count > 0:
+                                    st.info(f"📊 Routing Summary: {filtered_count} jobs filtered out (not 'passed_all_filters' or 'included')")
+                            else:
+                                st.warning("⚠️ Failed to store some jobs to Supabase")
                     except Exception as store_e:
                         st.warning(f"⚠️ Classification complete, but Supabase storage failed: {store_e}")
                     

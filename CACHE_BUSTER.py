@@ -7,7 +7,7 @@ This file forces Streamlit to completely rebuild the environment
 by changing import-level code and dependencies.
 """
 
-CACHE_BUST_VERSION = "v2025.09.05.2015.SUPABASE_UPLOAD_FIXED_DEDUP_READY"
+CACHE_BUST_VERSION = "v2025.09.05.2100.QC_BLOCKING_UPLOAD_BUG_FIXED"
 
 def force_cache_invalidation():
     """Force complete cache invalidation"""
