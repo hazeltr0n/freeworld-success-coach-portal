@@ -117,7 +117,7 @@ def supabase_to_canonical_df(supabase_rows: List[Dict],
     canonical_df['meta.market'] = df.get('market', '')
     canonical_df['meta.query'] = df.get('search_query', '')
     canonical_df['meta.search_terms'] = df.get('search_query', '')  # Use same as query
-    canonical_df['meta.tracked_url'] = ''  # Generated at output time, not stored
+    canonical_df['meta.tracked_url'] = df.get('tracked_url', '')  # Use stored tracking URL from Supabase
     canonical_df['meta.airtable_id'] = ''  # Not applicable for memory jobs
     
     # === SEARCH PARAMETERS ===
