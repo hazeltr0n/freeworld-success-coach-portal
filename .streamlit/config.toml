@@ -7,7 +7,7 @@ textColor = "#E5E5E5"  # light text
 
 [server]
 maxUploadSize = 200
-enableCORS = false
+enableCORS = true
 enableXsrfProtection = true
 fileWatcherType = "none"
 # AGGRESSIVE CACHE BUST - 2025-09-05-14-40-PORTAL-FIX
