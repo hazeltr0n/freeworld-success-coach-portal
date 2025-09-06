@@ -4055,48 +4055,9 @@ def main():
                     else:
                         st.error(f"❌ Search failed: {metadata.get('error', 'Unknown error')}")
         else:
-            st.info("🚧 Click a search button above to start searching for jobs...")
-            
-            # Show previous multi-market results with full display
-            if 'last_results' in st.session_state:
-                st.markdown("---")
-                st.markdown("### 📊 Last Search Results")
-                results = st.session_state.last_results
-                df = results.get('df')
-                metadata = results.get('metadata', {})
-                
-                if df is not None and not df.empty and metadata.get('success', False):
-                    # Multi-market metrics display
-                    try:
-                        # Global combined metrics computed from DataFrame (ALL markets)
-                        ai_series = df.get('ai.match')
-                        route_series = df.get('ai.route_type')
-                        ai_good = int((ai_series == 'good').sum()) if ai_series is not None else 0
-                        ai_soso = int((ai_series == 'so-so').sum()) if ai_series is not None else 0
-                        quality_jobs = ai_good + ai_soso
-                        total_jobs = int(len(df))
-                        local_routes = int((route_series == 'Local').sum()) if route_series is not None else 0
-
-                        c1, c2, c3, c4, c5 = st.columns(5)
-                        with c1:
-                            st.metric("Quality Jobs Found", quality_jobs)
-                        with c2:
-                            st.metric("Total Jobs Analyzed", total_jobs)
-                        with c3:
-                            st.metric("Excellent Matches", ai_good)
-                        with c4:
-                            st.metric("Possible Fits", ai_soso)
-                        with c5:
-                            st.metric("Local Routes", local_routes)
-
-                    except Exception:
-                        pass
-                    
-                    # Multi-market PDF removed - no longer using multi-market searches
-                elif df is not None and not df.empty:
-                    st.info(f"Previous search: {len(df)} jobs found, but encountered issues.")
-                else:
-                    st.info("No previous results available.")
+            # Only show placeholder message if no persistent results exist
+            if 'last_results' not in st.session_state:
+                st.info("🚧 Click a search button above to start searching for jobs...")
     
     elif selected_tab == "🗓️ Batches & Scheduling":
         show_combined_batches_and_scheduling_page(coach)
@@ -4870,7 +4831,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
         elif search_type == 'memory':
             # Memory-only search - use EXACT same approach as Indeed button but with memory_only=True
             # Clear any previous results first since we're running a new search
-            for key in ['memory_search_df', 'memory_search_metadata', 'memory_search_params']:
+            for key in ['memory_search_df', 'memory_search_metadata', 'memory_search_params', 'last_results']:
                 if hasattr(st.session_state, key):
                     delattr(st.session_state, key)
             
@@ -5188,7 +5149,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
         elif search_type in ['indeed', 'indeed_fresh']:
             # Indeed searches (with or without memory) 
             # Clear any previous results first since we're running a new search
-            for key in ['memory_search_df', 'memory_search_metadata', 'memory_search_params']:
+            for key in ['memory_search_df', 'memory_search_metadata', 'memory_search_params', 'last_results']:
                 if hasattr(st.session_state, key):
                     delattr(st.session_state, key)
             
@@ -5514,8 +5475,8 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
         
         # (Removed legacy 'Last Search Results' status block)
     
-    # Results display - DISABLED (moved to Job Search tab) 
-    if False and 'last_results' in st.session_state:
+    # Results display - Show persistent results from last search
+    if 'last_results' in st.session_state:
         results = st.session_state.last_results
         df = results['df']
         metadata = results['metadata']
@@ -5523,6 +5484,12 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
         
         if not df.empty and metadata.get('success', False):
             st.markdown("---")
+            
+            # Add timestamp info for the persistent results
+            result_timestamp = results.get('timestamp', 'Unknown time')
+            search_type = results.get('search_type', 'Unknown')
+            st.info(f"📊 **Last Search Results** (from {search_type} search at {result_timestamp.strftime('%I:%M %p') if hasattr(result_timestamp, 'strftime') else result_timestamp})")
+            st.markdown("*These results will persist until you run a new search*")
 
             # Included Jobs view (filtered to PDF-exportable)
             filtered_df = df

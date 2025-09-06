@@ -81,7 +81,7 @@ class SimpleBypassSystem:
             
             location_filtered = self._filter_by_location(all_jobs_df, location)
             
-            # Apply route filtering (include Unknown with both Local and OTR)
+            # Apply route filtering (exact selection only)
             route_filtered = self._apply_route_filter(location_filtered, route_filter)
             
             jobs_count = len(route_filtered)
@@ -255,17 +255,20 @@ class SimpleBypassSystem:
         return filtered_df
     
     def _apply_route_filter(self, df: pd.DataFrame, route_filter: str) -> pd.DataFrame:
-        """Apply route filtering including Unknown jobs with both Local and OTR"""
+        """Apply route filtering - only include exactly what's requested"""
         if df.empty or route_filter == "both":
             return df
         
-        # Include Unknown route types with both Local and OTR filtering  
+        # Only include exactly what's requested - no auto-inclusion of Unknown
         if route_filter.lower() == "local":
-            # Local filter includes Local jobs + Unknown route jobs
-            route_mask = df['route_type'].str.lower().isin(['local', 'unknown', ''])
+            # Local filter includes only Local jobs
+            route_mask = df['route_type'].str.lower().isin(['local'])
         elif route_filter.lower() == "otr":
-            # OTR filter includes OTR jobs + Unknown route jobs
-            route_mask = df['route_type'].str.lower().isin(['otr', 'unknown', ''])
+            # OTR filter includes only OTR jobs  
+            route_mask = df['route_type'].str.lower().isin(['otr'])
+        elif route_filter.lower() == "unknown":
+            # Unknown filter includes only Unknown/empty route jobs
+            route_mask = df['route_type'].str.lower().isin(['unknown', '']) | df['route_type'].isna()
         else:
             # Default to showing all jobs if filter not recognized
             return df

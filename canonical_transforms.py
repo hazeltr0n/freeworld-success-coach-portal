@@ -918,13 +918,15 @@ def transform_routing(df: pd.DataFrame, route_filter: str = 'both') -> pd.DataFr
             reason = row.get('ai.reason', 'Bad match')
             return f"AI classified as bad: {reason}"
         
-        # Check route filter
+        # Check route filter - exact match only (no auto-inclusion of Unknown)
         if route_filter != 'both':
             job_route = row.get('ai.route_type', '').lower()
             if route_filter == 'local' and job_route != 'local':
                 return f'filtered: Route type {job_route} (local only requested)'
             elif route_filter == 'otr' and job_route not in ['otr', 'regional']:
                 return f'filtered: Route type {job_route} (OTR only requested)'
+            elif route_filter == 'unknown' and job_route not in ['unknown', '', None]:
+                return f'filtered: Route type {job_route} (unknown only requested)'
         
         # Check for valid application URLs (QC filter)
         source_url = str(row.get('source.url', ''))
