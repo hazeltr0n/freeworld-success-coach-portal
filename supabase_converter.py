@@ -274,13 +274,19 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
                         route_conditions.append('route_type.ilike.%otr%')
                         route_conditions.append('route_type.ilike.%over%')
                     elif route_type.lower() == 'unknown':
-                        route_conditions.append('route_type.is.null')
-                        route_conditions.append('route_type.eq.')
+                        # Handle all possible "unknown" variations
+                        route_conditions.append('route_type.is.null')           # Null values
+                        route_conditions.append('route_type.eq.')               # Empty strings
+                        route_conditions.append('route_type.ilike.%unknown%')   # Contains "unknown"
+                        route_conditions.append('route_type.eq. ')              # Single space
+                        route_conditions.append('route_type.eq.null')           # String "null"
                 
                 if route_conditions:
                     # Always use OR syntax for consistency
-                    query = query.or_(','.join(route_conditions))
+                    or_conditions = ','.join(route_conditions)
+                    query = query.or_(or_conditions)
                     print(f"🎯 Applied route type filter (exact selection only): {route_type_filter}")
+                    print(f"🔍 Generated Supabase OR conditions: {or_conditions}")
         
         response = (
             query
@@ -290,6 +296,15 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
         )
         
         print(f"📦 Found {len(response.data)} memory jobs in Supabase")
+        
+        # Debug: Show actual route_type values in the returned data
+        if agent_params and agent_params.get('route_type_filter') and len(response.data) > 0:
+            route_types_found = {}
+            for job in response.data[:10]:  # Check first 10 jobs
+                rt = job.get('route_type')
+                rt_key = f"'{rt}'" if rt is not None else 'null'
+                route_types_found[rt_key] = route_types_found.get(rt_key, 0) + 1
+            print(f"🔍 Route types in returned data (first 10): {dict(route_types_found)}")
         
         # CRITICAL TEST: If we filtered for Local only, there should be ZERO OTR jobs
         if agent_params and agent_params.get('route_type_filter') == ['Local']:

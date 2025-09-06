@@ -3078,8 +3078,8 @@ def main():
         push_to_airtable_tab = False
         
         
-        # PDF Export Configuration
-        st.markdown("### 📄 PDF Export Configuration")
+        # Free Agent Portal/PDF Configuration
+        st.markdown("### 📄 Free Agent Portal/PDF Configuration")
         
         # Only show PDF generation if coach has permission
         if check_coach_permission('can_generate_pdf'):
@@ -3573,13 +3573,17 @@ def main():
                 except Exception:
                     pass
                 
-                # Store results in session state
+                # Store results in session state (including HTML preview and portal link data for persistence)
                 st.session_state.last_results = {
                     'df': df,
                     'metadata': metadata,
                     'params': params,
                     'search_type': search_type_tab,
-                    'timestamp': datetime.now()
+                    'timestamp': datetime.now(),
+                    'html_preview_enabled': show_html_preview_tab,
+                    'portal_link_enabled': generate_portal_link_tab,
+                    'html_preview_data': None,  # Will be populated if HTML preview is generated
+                    'portal_link_data': None   # Will be populated if portal link is generated
                 }
                 
                 # Display results (fallback to DataFrame presence)
@@ -3766,6 +3770,15 @@ def main():
                             
                             html = render_jobs_html(jobs, agent_params)
                             phone_html = wrap_html_in_phone_screen(html)
+                            
+                            # Store HTML preview data in session state for persistence
+                            if 'last_results' in st.session_state:
+                                st.session_state.last_results['html_preview_data'] = {
+                                    'agent_params': agent_params,
+                                    'phone_html': phone_html,
+                                    'job_count': len(jobs)
+                                }
+                            
                             st.components.v1.html(phone_html, height=900, scrolling=False)
                         except Exception as e:
                             st.error(f"HTML preview error: {e}")
@@ -3850,6 +3863,16 @@ def main():
                                 candidate_id=candidate_id
                             )
 
+                            # Store portal link data in session state for persistence
+                            if 'last_results' in st.session_state:
+                                st.session_state.last_results['portal_link_data'] = {
+                                    'shortened_url': shortened_url,
+                                    'portal_config': portal_config,
+                                    'agent_name': candidate_name_tab,
+                                    'location': final_location_tab,
+                                    'search_type': search_type_tab
+                                }
+                            
                             # Display the shortened link with copy functionality
                             st.success("✅ **Custom Job Portal Generated!**")
                             st.code(shortened_url, language="text")
@@ -5020,12 +5043,16 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                 except Exception:
                     pass
             
-            # Store results in session state (same as Indeed button)
+            # Store results in session state (same as Indeed button, with HTML/portal data)
             st.session_state.last_results = {
                 'df': df,
                 'metadata': metadata,
                 'params': params,
-                'timestamp': datetime.now()
+                'timestamp': datetime.now(),
+                'html_preview_enabled': show_html_preview_tab,
+                'portal_link_enabled': generate_portal_link_tab,
+                'html_preview_data': None,  # Will be populated if HTML preview is generated
+                'portal_link_data': None   # Will be populated if portal link is generated
             }
             
             # Show results (fallback to DataFrame presence)
@@ -5073,6 +5100,15 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         
                         html = render_jobs_html(jobs, agent_params)
                         phone_html = wrap_html_in_phone_screen(html)
+                        
+                        # Store HTML preview data in session state for persistence
+                        if 'last_results' in st.session_state:
+                            st.session_state.last_results['html_preview_data'] = {
+                                'agent_params': agent_params,
+                                'phone_html': phone_html,
+                                'job_count': len(jobs)
+                            }
+                        
                         st.components.v1.html(phone_html, height=900, scrolling=False)
                     except Exception as e:
                         st.error(f"HTML preview error: {e}")
@@ -5267,12 +5303,16 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
             except Exception:
                 indeed_debug_summary = "(debug summary unavailable)\n\n"
             
-            # Store results in session state
+            # Store results in session state (with HTML/portal data)
             st.session_state.last_results = {
                 'df': df,
                 'metadata': metadata,
                 'params': params,
-                'timestamp': datetime.now()
+                'timestamp': datetime.now(),
+                'html_preview_enabled': show_html_preview_tab,
+                'portal_link_enabled': generate_portal_link_tab,
+                'html_preview_data': None,  # Will be populated if HTML preview is generated
+                'portal_link_data': None   # Will be populated if portal link is generated
             }
             
             # Show results and update coach stats
@@ -5316,6 +5356,15 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         
                         html = render_jobs_html(jobs, agent_params)
                         phone_html = wrap_html_in_phone_screen(html)
+                        
+                        # Store HTML preview data in session state for persistence
+                        if 'last_results' in st.session_state:
+                            st.session_state.last_results['html_preview_data'] = {
+                                'agent_params': agent_params,
+                                'phone_html': phone_html,
+                                'job_count': len(jobs)
+                            }
+                        
                         st.components.v1.html(phone_html, height=900, scrolling=False)
                     except Exception as e:
                         st.error(f"HTML preview error: {e}")
@@ -5543,6 +5592,48 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                 with d5:
                     st.metric("Memory Efficiency", f"{metadata.get('memory_efficiency', 0):.1f}%")
 
+            except Exception:
+                pass
+                
+            # Display persistent HTML preview and portal links if they were generated
+            html_preview_data = results.get('html_preview_data')
+            portal_link_data = results.get('portal_link_data')
+            
+            if html_preview_data and results.get('html_preview_enabled', False):
+                try:
+                    st.markdown("### 👁️ HTML Preview (Persistent)")
+                    st.info(f"📱 Showing HTML preview with {html_preview_data['job_count']} jobs")
+                    st.components.v1.html(html_preview_data['phone_html'], height=900, scrolling=False)
+                except Exception as e:
+                    st.error(f"HTML preview display error: {e}")
+                    
+            if portal_link_data and results.get('portal_link_enabled', False):
+                try:
+                    st.markdown("### 🔗 Custom Job Portal Link (Persistent)")
+                    st.success("✅ **Custom Job Portal Generated!**")
+                    st.code(portal_link_data['shortened_url'], language="text")
+                    
+                    # Show portal configuration summary
+                    with st.expander("🔍 Portal Configuration Summary"):
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.write("📍 **Location:**", portal_link_data.get('location', 'N/A'))
+                            st.write("🔍 **Search Type:**", portal_link_data.get('search_type', 'N/A'))
+                            if portal_link_data.get('agent_name'):
+                                st.write("👤 **Free Agent:**", portal_link_data['agent_name'])
+                        with col2:
+                            portal_config = portal_link_data.get('portal_config', {})
+                            st.write("⚙️ **Mode:**", portal_config.get('mode', 'N/A'))
+                            st.write("📊 **Max Jobs:**", portal_config.get('max_jobs', 'N/A'))
+                            st.write("🛣️ **Route Filter:**", portal_config.get('route_type_filter', ['N/A']))
+                            st.write("🤝 **Fair Chance Only:**", "Yes" if portal_config.get('fair_chance_only', False) else "No")
+
+                    st.info("💡 **Tip:** This shortened link contains ALL your search settings and will run the same search when accessed!")
+                except Exception as e:
+                    st.error(f"Portal link display error: {e}")
+
+            # Resume with original metrics and data display
+            try:
                 # Terminal Parquet (99_complete)
                 parquet_path = metadata.get('parquet_path')
                 run_id = metadata.get('run_id', 'unknown')
