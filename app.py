@@ -6007,21 +6007,52 @@ def show_combined_batches_and_scheduling_page(coach):
                     with col2:
                         batch_source = st.selectbox("Source", ["Google Jobs", "Indeed"])
                         batch_job_limit = st.selectbox("Job Limit", [100, 250, 500, 1000], index=1)
-                        batch_route_filter = st.selectbox("Route Filter", ["All Routes", "Local Only", "OTR Only"])
+                        batch_route_filter = st.multiselect("🛣️ Route types:",
+                                                          options=['Local', 'OTR', 'Unknown'],
+                                                          default=['Local', 'OTR', 'Unknown'],
+                                                          help="Which driving route types to include")
                     
                     with col3:
+                        batch_search_mode = st.selectbox("Search Mode", ["sample", "medium", "full"], 
+                                                        help="Job search depth: sample=100, medium=500, full=1000")
+                        batch_search_radius = st.selectbox("Search Radius (miles)", [10, 25, 50, 100], index=2)
                         batch_frequency = st.selectbox("Frequency", ["Once", "Daily", "Weekly"])
                         if batch_frequency == "Weekly":
                             batch_days = st.multiselect("Days", 
                                                        ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
                                                        default=["Mon", "Wed", "Fri"])
-                        batch_time = st.time_input("Run Time", value=pd.Timestamp("02:00").time())
+                        batch_time = st.time_input("Run Time (Central Time)", 
+                                                 value=pd.Timestamp("02:00").time(),
+                                                 help="Time in Central Time Zone (CT/CST)")
+                        
+                    # Additional Parameters Row  
+                    col4, col5, col6 = st.columns(3)
+                    with col4:
+                        batch_fair_chance_only = st.checkbox("🤝 Fair chance jobs only", value=False)
+                        batch_no_experience = st.checkbox("🎓 No experience required", value=False)
+                    with col5:
+                        batch_match_quality_filter = st.multiselect("⭐ Job quality levels:",
+                                                                  options=['good', 'so-so', 'bad'],
+                                                                  default=['good', 'so-so'],
+                                                                  help="AI quality assessments to include")
+                    with col6:
+                        batch_force_fresh = st.checkbox("🔄 Force fresh classification", value=False,
+                                                      help="Bypass AI classification cache")
                     
                     # Submit buttons
                     col_save, col_run = st.columns(2)
                     with col_save:
                         submitted = st.form_submit_button("💾 Save for Later", use_container_width=True)
                     with col_run:
+                        # Add custom CSS for better text contrast on Run Now button
+                        st.markdown("""
+                        <style>
+                        div[data-testid="stForm"] button[kind="primary"] {
+                            color: #1f2937 !important;  /* Dark text color */
+                            font-weight: 600 !important;
+                        }
+                        </style>
+                        """, unsafe_allow_html=True)
                         run_now = st.form_submit_button("🚀 Run Now", use_container_width=True, type="primary")
                     
                     if submitted or run_now:
@@ -6035,15 +6066,35 @@ def show_combined_batches_and_scheduling_page(coach):
                             else:
                                 location = batch_custom_location or "Houston, TX"
                             
-                            # Create job parameters
+                            # Create job parameters compatible with AsyncJobManager (simplified format)
                             search_params = {
+                                # Core parameters expected by AsyncJobManager
                                 'search_terms': batch_search_terms,
                                 'location': location,
                                 'limit': batch_job_limit,
-                                'route_filter': batch_route_filter,
-                                'frequency': batch_frequency,
+                                
+                                # Extended parameters for future pipeline compatibility
                                 'coach_username': coach.username,
-                                'run_immediately': run_now  # Flag for immediate execution
+                                'coach_name': coach.full_name,
+                                'mode': batch_search_mode,
+                                'search_radius': batch_search_radius,
+                                'force_fresh_classification': batch_force_fresh,
+                                'no_experience': batch_no_experience,
+                                'route_type_filter': batch_route_filter,
+                                'match_quality_filter': batch_match_quality_filter,
+                                'fair_chance_only': batch_fair_chance_only,
+                                
+                                # Scheduling metadata
+                                'frequency': batch_frequency,
+                                'scheduled_time': batch_time.strftime('%H:%M'),
+                                'scheduled_days': batch_days if batch_frequency == "Weekly" else None,
+                                'run_immediately': run_now,
+                                'source_type': batch_source,
+                                
+                                # Location metadata
+                                'location_type': batch_location_type,
+                                'selected_markets': batch_markets if batch_location_type == "Select Market" else None,
+                                'custom_location': batch_custom_location if batch_location_type == "Custom Location" else None
                             }
                             
                             # Submit the job
@@ -6065,8 +6116,8 @@ def show_combined_batches_and_scheduling_page(coach):
                         except Exception as e:
                             st.error(f"❌ Failed to create batch: {e}")
             
-            # Simple batch jobs table
-            st.markdown("### 📊 Batch Jobs")
+            # Scheduled batches table
+            st.markdown("### 📊 Scheduled Batches Table")
             show_simple_batch_table(coach)
         
         elif selected_inner_tab == "🗓️ Scheduled Searches":
@@ -7088,7 +7139,7 @@ def show_pending_jobs_page(coach):
         st.code(traceback.format_exc())
 
 def show_simple_batch_table(coach):
-    """Simple, clear batch table with 4-status workflow"""
+    """Scheduled Batches Table with full batch management functionality"""
     try:
         from async_job_manager import AsyncJobManager
         from datetime import datetime, timedelta
@@ -7106,40 +7157,49 @@ def show_simple_batch_table(coach):
         all_jobs = pending_jobs + completed_jobs + failed_jobs + retrieved_jobs
         
         if not all_jobs:
-            st.info("📝 No batch jobs found. Create your first batch above!")
+            st.info("📝 No scheduled batches found. Create your first batch above!")
             return
         
-        # Prepare table data with your 4-status workflow
+        st.info("💡 **Batch Types**: One-off batches run once, Recurring batches run on schedule. All times shown in Central Time.")
+        
+        # Prepare table data with enhanced information
         table_data = []
         for job in all_jobs:
-            # Calculate time since creation for fetch button logic
+            # Calculate time since creation
             created_time = pd.to_datetime(job.created_at)
             time_since_creation = datetime.now() - created_time.replace(tzinfo=None)
             
-            # Map database status to your 4-status workflow
+            # Map database status to display status
             if job.status == 'submitted':
                 if time_since_creation < timedelta(minutes=5):
                     display_status = "⏳ Scheduled"
                 else:
-                    display_status = "🔄 Pending Response"
+                    display_status = "🔄 Processing"
             elif job.status == 'processing':
-                display_status = "📥 Awaiting Classification"
+                display_status = "📥 Running"
             elif job.status == 'completed':
                 display_status = "✅ Complete"
             elif job.status == 'failed':
                 display_status = "❌ Failed"
+            elif job.status == 'cancelled':
+                display_status = "🚫 Cancelled"
             else:
                 display_status = f"❓ {job.status}"
             
-            # Get search parameters
+            # Get search parameters safely
             params = job.search_params if isinstance(job.search_params, dict) else {}
             location = params.get('location', 'Unknown')
             search_terms = params.get('search_terms', 'Unknown')
-            limit = params.get('limit', 'Unknown')
+            limit = params.get('limit', params.get('max_jobs', 'Unknown'))
+            frequency = params.get('frequency', 'Once')
+            
+            # Determine batch type
+            batch_type = "🔄 Recurring" if frequency != "Once" else "1️⃣ One-off"
             
             table_data.append({
                 'ID': job.id,
                 'Coach': job.coach_username,
+                'Type': batch_type,
                 'Source': 'Google Jobs' if job.job_type == 'google_jobs' else 'Indeed',
                 'Location': location,
                 'Terms': search_terms,
@@ -7148,75 +7208,133 @@ def show_simple_batch_table(coach):
                 'Total Jobs': job.result_count or 0,
                 'Quality Jobs': job.quality_job_count or 0,
                 'Created': created_time.strftime('%m/%d %H:%M'),
-                'Actions': time_since_creation.total_seconds() // 60  # Minutes since creation
+                'Frequency': frequency,
+                'job_obj': job  # Store full job object for actions
             })
         
-        # Display table
+        # Display enhanced table with better management
         if table_data:
-            df = pd.DataFrame(table_data)
+            # Add table header
+            header_cols = st.columns([1, 1, 1, 1, 2, 1, 1, 1, 1, 3])
+            headers = ['ID', 'Coach', 'Type', 'Source', 'Location/Terms', 'Status', 'Total', 'Quality', 'Created', 'Actions']
             
-            # Display as interactive table with action buttons
-            for i, row in df.iterrows():
-                job_id = row['ID']
-                status = row['Status']
-                minutes_old = row['Actions']
+            for i, header in enumerate(headers):
+                with header_cols[i]:
+                    st.markdown(f"**{header}**")
+            st.divider()
+            
+            # Display each batch with enhanced actions
+            for data in table_data:
+                job_id = data['ID']
+                status = data['Status']
+                job = data['job_obj']
                 
                 with st.container():
-                    col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 1, 2, 1, 1, 1, 2])
+                    cols = st.columns([1, 1, 1, 1, 2, 1, 1, 1, 1, 3])
                     
-                    with col1:
+                    with cols[0]:
                         st.write(f"**{job_id}**")
-                    with col2:
-                        st.write(row['Coach'])
-                    with col3:
-                        st.write(f"{row['Source']} | {row['Location']} | {row['Terms'][:20]}...")
-                    with col4:
+                    with cols[1]:
+                        st.write(data['Coach'])
+                    with cols[2]:
+                        st.write(data['Type'])
+                    with cols[3]:
+                        st.write(data['Source'])
+                    with cols[4]:
+                        location_terms = f"{data['Location']} | {data['Terms'][:25]}"
+                        if len(data['Terms']) > 25:
+                            location_terms += "..."
+                        st.write(location_terms)
+                    with cols[5]:
                         st.write(status)
-                    with col5:
-                        st.write(f"{row['Total Jobs']}")
-                    with col6:
-                        st.write(f"{row['Quality Jobs']}")
-                    with col7:
-                        # Action buttons based on status and time
-                        if "Pending Response" in status and minutes_old >= 5:
-                            if st.button("📥 Fetch Jobs", key=f"fetch_{job_id}"):
-                                st.info(f"Checking if batch {job_id} is ready...")
-                                # TODO: Implement fetch logic
-                        elif "Awaiting Classification" in status:
-                            if st.button("⚙️ Process Jobs", key=f"process_{job_id}"):
-                                st.info(f"Starting classification for batch {job_id}...")
-                                # TODO: Implement process logic
-                        elif "Complete" in status:
-                            col_action1, col_action2 = st.columns(2)
-                            with col_action1:
-                                if st.button("📊 Download CSV", key=f"download_{job_id}"):
-                                    st.info(f"Preparing download for batch {job_id}...")
-                                    # TODO: Implement download logic
-                            with col_action2:
-                                if st.button("🗑️ Delete", key=f"delete_{job_id}", type="secondary"):
+                    with cols[6]:
+                        st.write(f"{data['Total Jobs']}")
+                    with cols[7]:
+                        st.write(f"{data['Quality Jobs']}")
+                    with cols[8]:
+                        st.write(data['Created'])
+                    with cols[9]:
+                        # Enhanced action buttons based on status
+                        action_cols = st.columns([1, 1, 1])
+                        
+                        # Always show delete button (works for any status)
+                        with action_cols[0]:
+                            if st.button("🗑️", key=f"delete_{job_id}", help="Delete batch", use_container_width=True):
+                                try:
                                     if manager.delete_job(job_id):
                                         st.success(f"✅ Deleted batch {job_id}")
                                         st.rerun()
                                     else:
                                         st.error(f"❌ Failed to delete batch {job_id}")
-                        else:
-                            # For other statuses, just show delete button
-                            if st.button("🗑️ Delete", key=f"delete_{job_id}", type="secondary"):
-                                if manager.delete_job(job_id):
-                                    st.success(f"✅ Deleted batch {job_id}")
-                                    st.rerun()
-                                else:
-                                    st.error(f"❌ Failed to delete batch {job_id}")
-                    
+                                except Exception as e:
+                                    st.error(f"❌ Delete failed: {e}")
+                        
+                        # Status-specific actions
+                        if "Scheduled" in status or "Processing" in status:
+                            with action_cols[1]:
+                                if st.button("🚫", key=f"cancel_{job_id}", help="Cancel batch", use_container_width=True):
+                                    try:
+                                        # AsyncJobManager doesn't have cancel_job method, so update status to cancelled
+                                        if hasattr(manager, 'update_job'):
+                                            manager.update_job(job_id, {
+                                                'status': 'cancelled',
+                                                'error_message': f'Cancelled by {coach.username}',
+                                                'completed_at': datetime.now().isoformat()
+                                            })
+                                            st.success(f"✅ Cancelled batch {job_id}")
+                                            st.rerun()
+                                        else:
+                                            # Fallback: delete if update not available
+                                            if manager.delete_job(job_id):
+                                                st.success(f"✅ Stopped batch {job_id}")
+                                                st.rerun()
+                                            else:
+                                                st.error(f"❌ Failed to stop batch {job_id}")
+                                    except Exception as e:
+                                        st.error(f"❌ Cancel failed: {e}")
+                            with action_cols[2]:
+                                if st.button("📝", key=f"edit_{job_id}", help="Edit batch", use_container_width=True):
+                                    st.info(f"📝 Edit functionality for batch {job_id} - coming soon!")
+                                    
+                        elif "Complete" in status:
+                            with action_cols[1]:
+                                if st.button("📊", key=f"download_{job_id}", help="Download results", use_container_width=True):
+                                    try:
+                                        # Try to get results from the job
+                                        if hasattr(job, 'result_data') and job.result_data:
+                                            st.success(f"📊 Results available for batch {job_id}")
+                                            # TODO: Implement actual CSV download
+                                            st.info("💡 CSV download functionality coming soon!")
+                                        else:
+                                            st.warning(f"⚠️ No results data found for batch {job_id}")
+                                    except Exception as e:
+                                        st.error(f"❌ Download failed: {e}")
+                            with action_cols[2]:
+                                if st.button("🔄", key=f"rerun_{job_id}", help="Run again", use_container_width=True):
+                                    st.info(f"🔄 Rerun functionality for batch {job_id} - coming soon!")
+                                    
+                        elif "Failed" in status:
+                            with action_cols[1]:
+                                if st.button("🔄", key=f"retry_{job_id}", help="Retry batch", use_container_width=True):
+                                    st.info(f"🔄 Retry functionality for batch {job_id} - coming soon!")
+                            with action_cols[2]:
+                                if st.button("📋", key=f"logs_{job_id}", help="View logs", use_container_width=True):
+                                    # Show error details if available
+                                    if hasattr(job, 'error_message') and job.error_message:
+                                        st.error(f"❌ Error: {job.error_message}")
+                                    else:
+                                        st.info(f"📋 Error details for batch {job_id} - check logs")
+                
                     st.divider()
                     
         else:
-            st.info("📝 No batch jobs found. Create your first batch above!")
+            st.info("📝 No scheduled batches found. Create your first batch above!")
             
     except Exception as e:
-        st.error(f"❌ Error displaying batch table: {e}")
+        st.error(f"❌ Error displaying scheduled batches table: {e}")
         import traceback
-        st.code(traceback.format_exc())
+        with st.expander("🐛 Error Details", expanded=False):
+            st.code(traceback.format_exc())
 
 # Check for Free Agent Portal Access (after function definitions)
 try:
