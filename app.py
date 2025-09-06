@@ -2946,11 +2946,19 @@ def main():
     # Tab Navigation - Use radio buttons for persistent state
     tab_options = [
         "🔍 Job Search",
-        "🗓️ Batches & Scheduling", 
         "👥 Free Agents",
-        "📊 Coach Analytics",
-        "👑 Admin Panel" if coach.role == 'admin' else "🔒 Restricted"
+        "📊 Coach Analytics"
     ]
+    
+    # Add Batches & Scheduling tab only if coach has permission
+    if check_coach_permission('can_access_batches'):
+        tab_options.insert(1, "🗓️ Batches & Scheduling")
+    
+    # Add Admin Panel only for admins
+    if coach.role == 'admin':
+        tab_options.append("👑 Admin Panel")
+    else:
+        tab_options.append("🔒 Restricted")
     
     # Initialize current tab if not set
     if 'current_tab_index' not in st.session_state:
@@ -4083,7 +4091,12 @@ def main():
                 st.info("🚧 Click a search button above to start searching for jobs...")
     
     elif selected_tab == "🗓️ Batches & Scheduling":
-        show_combined_batches_and_scheduling_page(coach)
+        # Double-check access permission
+        if not check_coach_permission('can_access_batches'):
+            st.error("❌ Access to Batches & Scheduling is not enabled for your account")
+            st.info("💡 Contact your administrator to enable this feature")
+        else:
+            show_combined_batches_and_scheduling_page(coach)
     
     elif selected_tab == "👥 Free Agents":
         show_free_agent_management_page(coach)
@@ -4151,7 +4164,12 @@ def main():
             st.info("Coach analytics require the analytics modules to be properly set up.")
     
     elif selected_tab.startswith("👑 Admin Panel") or selected_tab == "🔒 Restricted":
-        if coach.role == 'admin':
+        # Strict admin-only access control
+        if coach.role != 'admin':
+            st.error("❌ Admin Panel access is restricted to administrators only")
+            st.info("💡 This section requires admin privileges")
+            st.warning("🔒 If you believe you should have admin access, contact your system administrator")
+        else:
             st.header("👑 Admin Panel")
             
             # Initialize session state for admin function selection
@@ -4218,6 +4236,7 @@ def main():
                                 new_edit_filters = st.checkbox("Edit Filters", value=existing_coach.can_edit_filters, key=f"tab_filters_{username}")
                                 new_pull_fresh = st.checkbox("Pull Fresh Jobs (API calls)", value=getattr(existing_coach, 'can_pull_fresh_jobs', True), key=f"tab_fresh_{username}")
                                 new_force_fresh_classification = st.checkbox("Force Fresh Classification", value=getattr(existing_coach, 'can_force_fresh_classification', existing_coach.role == 'admin'), key=f"tab_force_class_{username}")
+                                new_access_batches = st.checkbox("Batches & Scheduling Access", value=getattr(existing_coach, 'can_access_batches', True), key=f"tab_batches_{username}")
                                 
                                 st.markdown("**Role & Budget**")
                                 new_admin_role = st.checkbox("🔑 Admin Role (Full System Access)", value=existing_coach.role == "admin", key=f"tab_admin_{username}", help="Grants all permissions and access to admin panel")
@@ -4236,6 +4255,7 @@ def main():
                                         'can_edit_filters': new_edit_filters,
                                         'can_pull_fresh_jobs': new_pull_fresh,
                                         'can_force_fresh_classification': new_force_fresh_classification,
+                                        'can_access_batches': new_access_batches,
                                         'monthly_budget': new_budget
                                     }
                                     
@@ -4253,7 +4273,8 @@ def main():
                                             'can_access_full_mode': True,
                                             'can_edit_filters': True,
                                             'can_pull_fresh_jobs': True,
-                                            'can_force_fresh_classification': True
+                                            'can_force_fresh_classification': True,
+                                            'can_access_batches': True
                                         })
                                     elif not new_admin_role and existing_coach.role == "admin":
                                         existing_coach.role = "coach"
@@ -4498,6 +4519,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                                 new_edit_filters = st.checkbox("Edit Filters", value=existing_coach.can_edit_filters, key=f"filters_{username}")
                                 new_pull_fresh = st.checkbox("Pull Fresh Jobs (API calls)", value=getattr(existing_coach, 'can_pull_fresh_jobs', True), key=f"fresh_{username}")
                                 new_force_fresh_classification = st.checkbox("Force Fresh Classification", value=getattr(existing_coach, 'can_force_fresh_classification', existing_coach.role == 'admin'), key=f"force_class_{username}")
+                                new_access_batches = st.checkbox("Batches & Scheduling Access", value=getattr(existing_coach, 'can_access_batches', True), key=f"batches_{username}")
                                 
                                 st.markdown("**Role & Budget**")
                                 new_admin_role = st.checkbox("🔑 Admin Role (Full System Access)", value=existing_coach.role == "admin", key=f"admin_{username}", help="Grants all permissions and access to admin panel")
@@ -4516,6 +4538,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                                         'can_edit_filters': new_edit_filters,
                                         'can_pull_fresh_jobs': new_pull_fresh,
                                         'can_force_fresh_classification': new_force_fresh_classification,
+                                        'can_access_batches': new_access_batches,
                                         'monthly_budget': new_budget
                                     }
                                     
@@ -4533,7 +4556,8 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                                             'can_access_full_mode': True,
                                             'can_edit_filters': True,
                                             'can_pull_fresh_jobs': True,
-                                            'can_force_fresh_classification': True
+                                            'can_force_fresh_classification': True,
+                                            'can_access_batches': True
                                         })
                                     elif not new_admin_role and existing_coach.role == "admin":
                                         existing_coach.role = "coach"

@@ -34,6 +34,7 @@ class SuccessCoach:
     can_use_custom_locations: bool
     can_access_full_mode: bool  # 1000 jobs vs limited to 250
     can_access_google_jobs: bool  # Google Jobs API access (99% cost savings)
+    can_access_batches: bool  # Access to Batches & Scheduling page
     
     # Advanced admin features
     can_edit_ai_prompt: bool  # Modify AI system prompt
@@ -78,6 +79,9 @@ class CoachManager:
                         # Add new Google Jobs field for existing coaches
                         if 'can_access_google_jobs' not in coach_data:
                             coach_data['can_access_google_jobs'] = True  # Enable by default for cost savings
+                        # Add new Batches access field for existing coaches
+                        if 'can_access_batches' not in coach_data:
+                            coach_data['can_access_batches'] = True  # Enable by default
                         # Remove deprecated fields that are no longer in the dataclass
                         if 'can_use_multi_search' in coach_data:
                             del coach_data['can_use_multi_search']
@@ -100,6 +104,9 @@ class CoachManager:
                         # Add new Google Jobs field for existing coaches
                         if 'can_access_google_jobs' not in coach_data:
                             coach_data['can_access_google_jobs'] = True  # Enable by default for cost savings
+                        # Add new Batches access field for existing coaches
+                        if 'can_access_batches' not in coach_data:
+                            coach_data['can_access_batches'] = True  # Enable by default
                         # Remove deprecated fields that are no longer in the dataclass
                         if 'can_use_multi_search' in coach_data:
                             del coach_data['can_use_multi_search']
@@ -172,6 +179,7 @@ class CoachManager:
             can_manage_users=True,
             can_pull_fresh_jobs=True,
             can_force_fresh_classification=True,
+            can_access_batches=True,
             total_searches=0,
             total_jobs_processed=0,
             created_date=datetime.now().isoformat(),
@@ -200,6 +208,7 @@ class CoachManager:
             can_manage_users=False,
             can_pull_fresh_jobs=True,
             can_force_fresh_classification=True,
+            can_access_batches=True,
             total_searches=0,
             total_jobs_processed=0,
             created_date=datetime.now().isoformat(),
@@ -238,6 +247,7 @@ class CoachManager:
                 can_manage_users=True,
                 can_pull_fresh_jobs=can_pull_fresh_jobs,
                 can_force_fresh_classification=True,  # Admins get force classification by default
+                can_access_batches=True,  # Admins get batches access by default
                 total_searches=0,
                 total_jobs_processed=0,
                 created_date=datetime.now().isoformat(),
@@ -265,6 +275,7 @@ class CoachManager:
                 can_manage_users=False,
                 can_pull_fresh_jobs=can_pull_fresh_jobs,
                 can_force_fresh_classification=False,  # Regular coaches need explicit permission
+                can_access_batches=True,  # Enable batches access by default for regular coaches
                 total_searches=0,
                 total_jobs_processed=0,
                 created_date=datetime.now().isoformat(),
@@ -407,6 +418,7 @@ class CoachManager:
             coach.can_edit_filters = permissions.get('can_edit_filters', coach.can_edit_filters)
             coach.can_pull_fresh_jobs = permissions.get('can_pull_fresh_jobs', getattr(coach, 'can_pull_fresh_jobs', True))
             coach.can_force_fresh_classification = permissions.get('can_force_fresh_classification', getattr(coach, 'can_force_fresh_classification', coach.role == 'admin'))
+            coach.can_access_batches = permissions.get('can_access_batches', getattr(coach, 'can_access_batches', True))
             
             # Handle budget (numeric value, not boolean)
             if 'monthly_budget' in permissions:
