@@ -4382,10 +4382,6 @@ Streamlit Version: {st.__version__}
 App Version: {APP_VERSION}
 Deployment: {DEPLOYMENT_TIMESTAMP}
                     """)
-        else:
-            st.header("🔒 Restricted Access")
-            st.warning("Admin access required for this section.")
-            st.info("Contact an administrator to get admin privileges if needed.")
     
     # Password change modal
     if st.session_state.get('show_password_change', False):
