@@ -6018,7 +6018,7 @@ def show_combined_batches_and_scheduling_page(coach):
                         
                         if batch_location_type == "Select Market":
                             batch_markets = st.multiselect("Markets", 
-                                                          ["Houston", "Dallas", "Bay Area", "Stockton", "Denver", "Vegas", "Newark", "Phoenix", "Trenton", "Inland Empire"],
+                                                          ["Houston", "Dallas", "Bay Area", "Stockton", "Denver", "Las Vegas", "Newark", "Phoenix", "Trenton", "Inland Empire"],
                                                           default=["Houston"])
                         else:
                             batch_custom_location = st.text_input("Custom Location", 
@@ -6027,10 +6027,6 @@ def show_combined_batches_and_scheduling_page(coach):
                     with col2:
                         batch_source = st.selectbox("Source", ["Google Jobs", "Indeed"])
                         batch_job_limit = st.selectbox("Job Limit", [100, 250, 500, 1000], index=1)
-                        batch_route_filter = st.multiselect("🛣️ Route types:",
-                                                          options=['Local', 'OTR', 'Unknown'],
-                                                          default=['Local', 'OTR', 'Unknown'],
-                                                          help="Which driving route types to include")
                     
                     with col3:
                         batch_search_radius = st.selectbox("Search Radius (miles)", [10, 25, 50, 100], index=2)
@@ -6046,13 +6042,9 @@ def show_combined_batches_and_scheduling_page(coach):
                     # Additional Parameters Row  
                     col4, col5, col6 = st.columns(3)
                     with col4:
-                        batch_fair_chance_only = st.checkbox("🤝 Fair chance jobs only", value=False)
-                        batch_no_experience = st.checkbox("🎓 No experience required", value=False)
+                        pass  # Reserved for future options
                     with col5:
-                        batch_match_quality_filter = st.multiselect("⭐ Job quality levels:",
-                                                                  options=['good', 'so-so', 'bad'],
-                                                                  default=['good', 'so-so'],
-                                                                  help="AI quality assessments to include")
+                        pass  # Reserved for future options
                     with col6:
                         batch_force_fresh = st.checkbox("🔄 Force fresh classification", value=False,
                                                       help="Bypass AI classification cache")
@@ -6062,16 +6054,7 @@ def show_combined_batches_and_scheduling_page(coach):
                     with col_save:
                         submitted = st.form_submit_button("💾 Save for Later", use_container_width=True)
                     with col_run:
-                        # Add custom CSS for better text contrast on Run Now button
-                        st.markdown("""
-                        <style>
-                        div[data-testid="stForm"] button[kind="primary"] {
-                            color: #1f2937 !important;  /* Dark text color */
-                            font-weight: 600 !important;
-                        }
-                        </style>
-                        """, unsafe_allow_html=True)
-                        run_now = st.form_submit_button("🚀 Run Now", use_container_width=True, type="primary")
+                        run_now = st.form_submit_button("🚀 Run Now", use_container_width=True, type="secondary")
                     
                     if submitted or run_now:
                         try:
@@ -6080,7 +6063,10 @@ def show_combined_batches_and_scheduling_page(coach):
                             
                             # Determine location
                             if batch_location_type == "Select Market":
-                                location = ", ".join(batch_markets) if batch_markets else "Houston"
+                                # Map display names to proper location names
+                                location_mapping = {"Las Vegas": "Las Vegas"}  # Ensure Las Vegas stays as Las Vegas
+                                mapped_markets = [location_mapping.get(market, market) for market in batch_markets]
+                                location = ", ".join(mapped_markets) if mapped_markets else "Houston"
                             else:
                                 location = batch_custom_location or "Houston, TX"
                             
@@ -6097,15 +6083,11 @@ def show_combined_batches_and_scheduling_page(coach):
                                 'mode': {100: 'sample', 250: 'medium', 500: 'large', 1000: 'full'}.get(batch_job_limit, 'sample'),
                                 'search_radius': batch_search_radius,
                                 'force_fresh_classification': batch_force_fresh,
-                                'no_experience': batch_no_experience,
-                                'route_type_filter': batch_route_filter,
-                                'match_quality_filter': batch_match_quality_filter,
-                                'fair_chance_only': batch_fair_chance_only,
                                 
                                 # Scheduling metadata
                                 'frequency': batch_frequency,
                                 'scheduled_time': batch_time.strftime('%H:%M'),
-                                'scheduled_days': batch_days if batch_frequency == "Weekly" else None,
+                                'scheduled_days': batch_days if batch_frequency == "Weekly" and 'batch_days' in locals() else None,
                                 'run_immediately': run_now,
                                 'source_type': batch_source,
                                 
