@@ -4339,8 +4339,8 @@ def main():
                 if st.button("🧪 Test All APIs", key="tab_test_apis"):
                     # Test Supabase
                     try:
-                        from supabase_utils import get_supabase
-                        supabase = get_supabase()
+                        from supabase_utils import get_client
+                        supabase = get_client()
                         if supabase:
                             st.success("✅ Supabase connection successful")
                         else:

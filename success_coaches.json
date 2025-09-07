@@ -12,6 +12,7 @@
     "can_use_custom_locations": true,
     "can_access_full_mode": true,
     "can_access_google_jobs": true,
+    "can_access_batches": true,
     "can_edit_ai_prompt": true,
     "can_edit_filters": true,
     "can_manage_users": true,
@@ -20,7 +21,7 @@
     "total_searches": 0,
     "total_jobs_processed": 0,
     "created_date": "2025-09-05T17:52:14.584986",
-    "last_login": "2025-09-05T17:52:14.584994",
+    "last_login": "2025-09-06T20:31:04.511588",
     "monthly_budget": 1000.0,
     "current_month_spending": 0.0,
     "spending_alerts": true
@@ -38,6 +39,7 @@
     "can_use_custom_locations": true,
     "can_access_full_mode": false,
     "can_access_google_jobs": true,
+    "can_access_batches": true,
     "can_edit_ai_prompt": false,
     "can_edit_filters": false,
     "can_manage_users": false,
@@ -46,7 +48,7 @@
     "total_searches": 0,
     "total_jobs_processed": 0,
     "created_date": "2025-09-05T17:52:14.585008",
-    "last_login": "2025-09-05T17:52:14.585010",
+    "last_login": "2025-09-06T20:31:04.539455",
     "monthly_budget": 200.0,
     "current_month_spending": 0.0,
     "spending_alerts": true

@@ -11,12 +11,24 @@ except Exception:
 
 
 def get_client() -> "Client | None":
-    """Initialize Supabase client from env variables.
+    """Initialize Supabase client from env variables or Streamlit secrets.
 
     Requires SUPABASE_URL and SUPABASE_ANON_KEY (or service role key if using RLS writes).
     """
+    # Try environment variables first
     url = os.getenv("SUPABASE_URL")
     key = os.getenv("SUPABASE_ANON_KEY")
+    
+    # If not found, try Streamlit secrets (for Streamlit Cloud deployment)
+    if not (url and key):
+        try:
+            import streamlit as st
+            if hasattr(st, 'secrets'):
+                url = url or st.secrets.get("SUPABASE_URL")
+                key = key or st.secrets.get("SUPABASE_ANON_KEY")
+        except:
+            pass
+    
     if not (url and key) or create_client is None:
         return None
     try:
