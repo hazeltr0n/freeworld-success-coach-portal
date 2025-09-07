@@ -48,8 +48,8 @@ class AsyncJobManager:
     def __init__(self):
         self.supabase_client = get_client()
         self.outscraper_api_key = os.getenv('OUTSCRAPER_API_KEY')
-        self.google_jobs_url = "https://api.outscraper.com/google-search-jobs"
-        self.indeed_jobs_url = "https://api.outscraper.com/indeed-jobs"
+        self.google_jobs_url = "https://api.outscraper.cloud/google-search-jobs"
+        self.indeed_jobs_url = "https://api.outscraper.cloud/indeed-search"
         
     def create_job_entry(self, coach_username: str, job_type: str, search_params: Dict) -> AsyncJob:
         """Create new async job entry in database"""
@@ -294,7 +294,7 @@ class AsyncJobManager:
         """Poll for async job results from Outscraper"""
         try:
             headers = {'X-API-KEY': self.outscraper_api_key}
-            url = f"https://api.outscraper.com/requests/{request_id}"
+            url = f"https://api.outscraper.cloud/requests/{request_id}"
             print(f"🔍 Polling Outscraper API: {url}")
             
             response = requests.get(url, headers=headers, timeout=30)
