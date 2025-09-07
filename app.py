@@ -6033,8 +6033,6 @@ def show_combined_batches_and_scheduling_page(coach):
                                                           help="Which driving route types to include")
                     
                     with col3:
-                        batch_search_mode = st.selectbox("Search Mode", ["sample", "medium", "full"], 
-                                                        help="Job search depth: sample=100, medium=500, full=1000")
                         batch_search_radius = st.selectbox("Search Radius (miles)", [10, 25, 50, 100], index=2)
                         batch_frequency = st.selectbox("Frequency", ["Once", "Daily", "Weekly"])
                         if batch_frequency == "Weekly":
@@ -6096,7 +6094,7 @@ def show_combined_batches_and_scheduling_page(coach):
                                 # Extended parameters for future pipeline compatibility
                                 'coach_username': coach.username,
                                 'coach_name': coach.full_name,
-                                'mode': batch_search_mode,
+                                'mode': {100: 'sample', 250: 'medium', 500: 'large', 1000: 'full'}.get(batch_job_limit, 'sample'),
                                 'search_radius': batch_search_radius,
                                 'force_fresh_classification': batch_force_fresh,
                                 'no_experience': batch_no_experience,
