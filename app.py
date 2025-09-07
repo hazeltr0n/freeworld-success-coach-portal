@@ -2947,7 +2947,8 @@ def main():
     tab_options = [
         "🔍 Job Search",
         "👥 Free Agents",
-        "📊 Coach Analytics"
+        "📊 Coach Analytics",
+        "🏢 Companies"
     ]
     
     # Add Batches & Scheduling tab only if coach has permission
@@ -4162,6 +4163,16 @@ def main():
         except ImportError as e:
             st.error(f"Coach analytics not available: {e}")
             st.info("Coach analytics require the analytics modules to be properly set up.")
+    
+    elif selected_tab == "🏢 Companies":
+        try:
+            from companies_dashboard import show_companies_dashboard
+            show_companies_dashboard()
+        except ImportError as e:
+            st.error(f"❌ Companies dashboard not available: {e}")
+            st.info("💡 The companies analytics module is not properly configured.")
+        except Exception as e:
+            st.error(f"❌ Error loading companies dashboard: {e}")
     
     elif selected_tab.startswith("👑 Admin Panel") or selected_tab == "🔒 Restricted":
         # Strict admin-only access control
