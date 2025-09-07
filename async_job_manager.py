@@ -193,68 +193,102 @@ class AsyncJobManager:
             raise e
     
     def submit_indeed_search(self, search_params: Dict, coach_username: str) -> AsyncJob:
-        """Submit async Indeed Jobs search via Outscraper"""
+        """Run synchronous Indeed search - no async needed for Indeed"""
         # Create job queue entry
         job = self.create_job_entry(coach_username, 'indeed_jobs', search_params)
         
         try:
-            # Submit to Outscraper Indeed API with async=true and webhook
-            headers = {'X-API-KEY': self.outscraper_api_key}
-            params = {
-                'query': search_params['search_terms'],
+            print(f"🔄 Running synchronous Indeed search for {coach_username}")
+            
+            # Update job status to processing immediately
+            self.update_job(job.id, {
+                'status': 'processing',
+                'submitted_at': datetime.now(timezone.utc).isoformat()
+            })
+            
+            # Run Indeed search using the existing pipeline system
+            from pipeline_wrapper import StreamlitPipelineWrapper
+            pipeline = StreamlitPipelineWrapper()
+            
+            # Convert search params to pipeline format
+            pipeline_params = {
+                'mode': search_params.get('mode', 'sample'),
                 'location': search_params['location'],
-                'limit': search_params.get('limit', 500),
-                'async': 'true',  # Key parameter for background processing
-                'webhook': os.getenv('OUTSCRAPER_WEBHOOK_URL')  # Webhook for completion notifications
+                'search_terms': search_params['search_terms'],
+                'search_radius': search_params.get('search_radius', 50),
+                'force_fresh': True,  # Force fresh Indeed search
+                'force_fresh_classification': search_params.get('force_fresh_classification', False),
+                'no_experience': False,
+                'memory_only': False,  # We want fresh Indeed data
+                'search_sources': {'indeed': True, 'google': False},  # Indeed only
+                'search_strategy': 'fresh_first',
+                'push_to_airtable': False,  # Let the batch system handle uploads
+                'generate_pdf': False,
+                'generate_csv': False,
+                'candidate_id': '',
+                'candidate_name': '',
+                'max_jobs': search_params.get('limit', 250),
+                'coach_username': coach_username
             }
             
-            # Remove webhook if not configured
-            if not params['webhook']:
-                del params['webhook']
+            print(f"📋 Running pipeline with params: location={pipeline_params['location']}, terms={pipeline_params['search_terms']}")
             
-            response = requests.get(self.indeed_jobs_url, params=params, headers=headers)
-            response.raise_for_status()
-            result = response.json()
+            # Run the pipeline
+            df, metadata = pipeline.run_pipeline(pipeline_params)
             
-            # Outscraper returns 'id' field for async requests
-            request_id = result.get('request_id') or result.get('id')
-            if request_id:
-                # Update job with request_id
+            if metadata.get('success', False) and df is not None and not df.empty:
+                result_count = len(df)
+                quality_count = len(df[df.get('ai.match', '') == 'good']) if 'ai.match' in df.columns else 0
+                
+                print(f"✅ Indeed search completed: {result_count} jobs found, {quality_count} quality jobs")
+                
+                # Upload results to Supabase
+                try:
+                    self.store_scraped_jobs(df, coach_username)
+                    print(f"📊 Stored {result_count} jobs to Supabase")
+                except Exception as e:
+                    print(f"⚠️ Failed to store jobs to Supabase: {e}")
+                
+                # Update job as completed
                 self.update_job(job.id, {
-                    'request_id': request_id,
-                    'status': 'submitted',
-                    'submitted_at': datetime.now(timezone.utc).isoformat()
+                    'status': 'completed',
+                    'completed_at': datetime.now(timezone.utc).isoformat(),
+                    'result_count': result_count,
+                    'quality_job_count': quality_count
                 })
                 
-                # Create notification for coach
+                # Notify coach
                 self.notify_coach(
                     coach_username,
-                    f"🔄 Indeed Jobs search submitted for {search_params['location']}! Check back in 2-3 minutes.",
-                    'search_submitted',
+                    f"✅ Indeed search completed! Found {result_count} jobs ({quality_count} quality matches) for {search_params['location']}",
+                    'search_complete',
                     job.id
                 )
                 
-                # Update the job object for return
-                job.request_id = request_id
-                job.status = 'submitted'
-                job.submitted_at = datetime.now(timezone.utc)
+                # Update job object
+                job.status = 'completed'
+                job.completed_at = datetime.now(timezone.utc)
+                job.result_count = result_count
+                job.quality_job_count = quality_count
                 
                 return job
             else:
-                raise Exception(f"No request_id/id in response: {result}")
+                error_msg = metadata.get('error', 'No jobs found or pipeline failed')
+                raise Exception(error_msg)
                 
         except Exception as e:
-            # Update job with error
+            print(f"❌ Indeed search failed: {e}")
+            # Update job status to failed
             self.update_job(job.id, {
-                'status': 'failed',
+                'status': 'failed', 
                 'error_message': str(e),
                 'completed_at': datetime.now(timezone.utc).isoformat()
             })
             
-            # Notify coach of error
+            # Notify coach of failure
             self.notify_coach(
                 coach_username,
-                f"❌ Indeed Jobs search failed: {str(e)}",
+                f"❌ Indeed search failed for {search_params['location']}: {str(e)}",
                 'error',
                 job.id
             )
