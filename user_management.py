@@ -69,7 +69,7 @@ class CoachManager:
         if load_coaches_json:
             try:
                 data = load_coaches_json() or {}
-                if data:
+                if data:  # Only process if we actually have coach data
                     # Fill missing fields default and remove deprecated fields
                     for username, coach_data in data.items():
                         if 'can_pull_fresh_jobs' not in coach_data:
@@ -87,6 +87,7 @@ class CoachManager:
                             del coach_data['can_use_multi_search']
                     self.coaches = {k: SuccessCoach(**v) for k, v in data.items()}
                     return
+                # If Supabase returned empty data, fall through to local fallback
             except Exception as e:
                 import streamlit as st
                 st.error(f"🔍 Debug - Supabase coach loading failed: {e}")

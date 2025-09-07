@@ -20,11 +20,11 @@ def get_client() -> "Client | None":
     key = os.getenv("SUPABASE_ANON_KEY")
     
     # If not found, try Streamlit secrets (for Streamlit Cloud deployment)
-    if not (url and key):
+    if not url or not key:
         try:
             import streamlit as st
             if hasattr(st, 'secrets'):
-                url = url or st.secrets.get("SUPABASE_URL")
+                url = url or st.secrets.get("SUPABASE_URL") 
                 key = key or st.secrets.get("SUPABASE_ANON_KEY")
         except:
             pass
@@ -215,7 +215,7 @@ def load_coaches_json() -> Dict[str, Dict]:
         res = tbl.select("username,data").limit(1000).execute()
         rows = res.data or []
         return {r.get("username"): (r.get("data") or {}) for r in rows}
-    except Exception:
+    except Exception as e:
         return {}
 
 
