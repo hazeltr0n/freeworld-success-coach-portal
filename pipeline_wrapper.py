@@ -984,13 +984,66 @@ class StreamlitPipelineWrapper:
                 print(f"Error reading parquet: {e}")
         return b""
     
-    def generate_pdf_from_canonical(self, df: Any, market_name: str) -> bytes:
+    def generate_pdf_from_canonical(self, df: Any, market_name: str, 
+                                   coach_name: str = '', coach_username: str = '',
+                                   candidate_name: str = '', candidate_id: str = '',
+                                   show_prepared_for: bool = True) -> bytes:
         """Generate PDF from DataFrame (for download button functionality)"""
         if df.empty:
             return b""
         
         try:
-            # Use the fpdf_pdf_generator to create PDF from DataFrame
+            print(f"🔍 Wrapper PDF Generator received: {len(df)} jobs")
+            print(f"   Market: '{market_name}' (empty={not market_name})")
+            print(f"   Coach: '{coach_name}' (empty={not coach_name})")
+            print(f"   Coach Username: '{coach_username}' (empty={not coach_username})")
+            print(f"   Candidate: '{candidate_name}' (empty={not candidate_name})")
+            print(f"   Candidate ID: '{candidate_id}' (empty={not candidate_id})")
+            print(f"   Show Prepared For: {show_prepared_for}")
+            
+            # Try to use HTML template system first for better control over prepared message
+            try:
+                from pdf.html_pdf_generator import jobs_dataframe_to_dicts, render_jobs_html, export_pdf_weasyprint
+                
+                # Build agent_params with all necessary data
+                agent_params = {
+                    'location': market_name,
+                    'agent_name': candidate_name,
+                    'agent_uuid': candidate_id,
+                    'coach_name': coach_name,
+                    'coach_username': coach_username,
+                    'show_prepared_for': show_prepared_for
+                }
+                
+                print(f"   🔧 Using HTML template system with agent_params: {agent_params}")
+                
+                # Convert DataFrame to job dictionaries
+                jobs = jobs_dataframe_to_dicts(df)
+                
+                # Generate HTML using the template system
+                html = render_jobs_html(jobs, agent_params)
+                
+                # Create temporary PDF file
+                import tempfile
+                with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
+                    temp_path = tmp_file.name
+                
+                # Use WeasyPrint for HTML-to-PDF conversion
+                export_pdf_weasyprint(html, temp_path)
+                
+                # Read PDF bytes
+                if os.path.exists(temp_path):
+                    with open(temp_path, 'rb') as f:
+                        pdf_bytes = f.read()
+                    os.unlink(temp_path)  # Clean up temp file
+                    print(f"✅ HTML-based PDF generated successfully: {len(pdf_bytes)} bytes")
+                    return pdf_bytes
+                
+            except ImportError:
+                print("⚠️ HTML template system not available, falling back to FPDF")
+                pass  # Fall through to FPDF fallback
+            
+            # Fallback to FPDF system if HTML system not available
             from fpdf_pdf_generator import generate_fpdf_job_cards
             import tempfile
             
@@ -998,17 +1051,28 @@ class StreamlitPipelineWrapper:
             with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
                 temp_path = tmp_file.name
             
-            # Generate PDF - parameters now come from DataFrame columns
-            generate_fpdf_job_cards(df, temp_path, market=market_name)
+            # Generate PDF using FPDF (legacy path - doesn't support show_prepared_for)
+            generate_fpdf_job_cards(
+                df, 
+                temp_path, 
+                market=market_name,
+                coach_name=coach_name,
+                coach_username=coach_username,
+                candidate_name=candidate_name,
+                candidate_id=candidate_id
+            )
             
             # Read PDF bytes
             if os.path.exists(temp_path):
                 with open(temp_path, 'rb') as f:
                     pdf_bytes = f.read()
                 os.unlink(temp_path)  # Clean up temp file
+                print(f"✅ FPDF-based PDF generated successfully: {len(pdf_bytes)} bytes")
                 return pdf_bytes
             
             return b""
         except Exception as e:
-            print(f"Error generating PDF: {e}")
+            print(f"❌ Error generating PDF: {e}")
+            import traceback
+            traceback.print_exc()
             return b""

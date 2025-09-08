@@ -1979,17 +1979,11 @@ class FreeWorldPipelineV3:
     
     def generate_pdf_from_canonical(self, df: pd.DataFrame, market_name: str, 
                                    coach_name: str = '', coach_username: str = '',
-                                   candidate_name: str = '', candidate_id: str = '') -> Optional[bytes]:
+                                   candidate_name: str = '', candidate_id: str = '',
+                                   show_prepared_for: bool = True) -> Optional[bytes]:
         """Generate PDF from canonical DataFrame and return as bytes for Streamlit download"""
         try:
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            
-            # Create temporary file path
-            temp_dir = os.path.join(self.output_dir, "temp_pdfs")
-            os.makedirs(temp_dir, exist_ok=True)
-            
-            pdf_filename = f"FreeWorld_Jobs_{market_name}_{timestamp}.pdf"
-            pdf_path = os.path.join(temp_dir, pdf_filename)
             
             print(f"🔍 PDF Generator received: {len(df)} jobs")
             print(f"   Market: '{market_name}' (empty={not market_name})")
@@ -1997,45 +1991,91 @@ class FreeWorldPipelineV3:
             print(f"   Coach Username: '{coach_username}' (empty={not coach_username})")
             print(f"   Candidate: '{candidate_name}' (empty={not candidate_name})")
             print(f"   Candidate ID: '{candidate_id}' (empty={not candidate_id})")
+            print(f"   Show Prepared For: {show_prepared_for}")
             
-            # Extract first names for personalized titles
-            if candidate_name and len(candidate_name.split()) > 0:
-                agent_first_name = candidate_name.split()[0]
-                print(f"   🏷️  Agent first name: '{agent_first_name}' (empty={not agent_first_name})")
+            # Use HTML template system for better control over prepared message
+            if jobs_dataframe_to_dicts and render_jobs_html:
+                # Build agent_params with all necessary data
+                agent_params = {
+                    'location': market_name,
+                    'agent_name': candidate_name,
+                    'agent_uuid': candidate_id,
+                    'coach_name': coach_name,
+                    'coach_username': coach_username,
+                    'show_prepared_for': show_prepared_for
+                }
+                
+                print(f"   🔧 Using HTML template system with agent_params: {agent_params}")
+                
+                # Convert DataFrame to job dictionaries
+                jobs = jobs_dataframe_to_dicts(df)
+                
+                # Generate HTML using the template system
+                html = render_jobs_html(jobs, agent_params)
+                
+                # Create temporary file path for PDF output
+                temp_dir = os.path.join(self.output_dir, "temp_pdfs")
+                os.makedirs(temp_dir, exist_ok=True)
+                
+                pdf_filename = f"FreeWorld_Jobs_{market_name}_{timestamp}.pdf"
+                pdf_path = os.path.join(temp_dir, pdf_filename)
+                
+                # Use WeasyPrint for HTML-to-PDF conversion
+                try:
+                    from pdf.html_pdf_generator import export_pdf_weasyprint
+                    export_pdf_weasyprint(html, pdf_path)
+                except ImportError:
+                    # Fallback to Playwright if WeasyPrint not available
+                    from pdf.html_pdf_generator import export_pdf_playwright
+                    export_pdf_playwright(html, pdf_path)
+                
+                # Read PDF as bytes
+                with open(pdf_path, 'rb') as f:
+                    pdf_bytes = f.read()
+                
+                # Clean up temp file
+                try:
+                    os.remove(pdf_path)
+                except:
+                    pass
+                
+                print(f"✅ HTML-based PDF generated successfully: {len(pdf_bytes)} bytes")
+                return pdf_bytes
+                
             else:
-                agent_first_name = ''
-            
-            if coach_name and len(coach_name.split()) > 0:
-                coach_first_name = coach_name.split()[0]
-                print(f"   🏷️  Coach first name: '{coach_first_name}' (empty={not coach_first_name})")
-                print(f"   🔍  Original coach_name: '{coach_name}'")
-                print(f"   🔍  Extracted coach_first_name: '{coach_first_name}'")
-            else:
-                coach_first_name = ''
-            
-            # Generate PDF using the fpdf generator
-            generate_fpdf_job_cards(
-                df, 
-                pdf_path, 
-                market=market_name,
-                coach_name=coach_name,
-                coach_username=coach_username,
-                candidate_name=candidate_name,
-                candidate_id=candidate_id
-            )
-            
-            # Read PDF as bytes
-            with open(pdf_path, 'rb') as f:
-                pdf_bytes = f.read()
-            
-            # Clean up temp file
-            try:
-                os.remove(pdf_path)
-            except:
-                pass
-            
-            print(f"✅ PDF generated successfully: {len(pdf_bytes)} bytes")
-            return pdf_bytes
+                # Fallback to FPDF system if HTML system not available
+                print("⚠️ HTML template system not available, falling back to FPDF")
+                
+                # Create temporary file path
+                temp_dir = os.path.join(self.output_dir, "temp_pdfs")
+                os.makedirs(temp_dir, exist_ok=True)
+                
+                pdf_filename = f"FreeWorld_Jobs_{market_name}_{timestamp}.pdf"
+                pdf_path = os.path.join(temp_dir, pdf_filename)
+                
+                # Generate PDF using the fpdf generator (legacy path)
+                generate_fpdf_job_cards(
+                    df, 
+                    pdf_path, 
+                    market=market_name,
+                    coach_name=coach_name,
+                    coach_username=coach_username,
+                    candidate_name=candidate_name,
+                    candidate_id=candidate_id
+                )
+                
+                # Read PDF as bytes
+                with open(pdf_path, 'rb') as f:
+                    pdf_bytes = f.read()
+                
+                # Clean up temp file
+                try:
+                    os.remove(pdf_path)
+                except:
+                    pass
+                
+                print(f"✅ FPDF-based PDF generated successfully: {len(pdf_bytes)} bytes")
+                return pdf_bytes
             
         except Exception as e:
             print(f"❌ UI PDF generation failed: {e}")

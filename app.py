@@ -4030,7 +4030,12 @@ def main():
                                                                         
                                                                         pdf_bytes = _pipeline.generate_pdf_from_canonical(
                                                                             pdf_df,
-                                                                            market_name=market
+                                                                            market_name=market,
+                                                                            coach_name=coach.full_name,
+                                                                            coach_username=coach.username,
+                                                                            candidate_name=candidate_name,
+                                                                            candidate_id=candidate_id,
+                                                                            show_prepared_for=show_prepared_for_tab
                                                                         )
                                                                     if pdf_bytes:
                                                                         # Store PDF in session state
@@ -5185,7 +5190,12 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         
                         pdf_bytes = pipeline.generate_pdf_from_canonical(
                             pdf_df,
-                            market_name=market_name
+                            market_name=market_name,
+                            coach_name=coach.full_name,
+                            coach_username=coach.username,
+                            candidate_name=candidate_name_tab if 'candidate_name_tab' in locals() else st.session_state.get('candidate_name', ''),
+                            candidate_id=candidate_id_tab if 'candidate_id_tab' in locals() else st.session_state.get('candidate_id', ''),
+                            show_prepared_for=show_prepared_for_tab
                         )
                         if pdf_bytes:
                             st.download_button(
@@ -5438,7 +5448,12 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         
                         pdf_bytes = pipeline.generate_pdf_from_canonical(
                             pdf_df,
-                            market_name=market_name
+                            market_name=market_name,
+                            coach_name=coach.full_name,
+                            coach_username=coach.username,
+                            candidate_name=candidate_name_tab if 'candidate_name_tab' in locals() else st.session_state.get('candidate_name', ''),
+                            candidate_id=candidate_id_tab if 'candidate_id_tab' in locals() else st.session_state.get('candidate_id', ''),
+                            show_prepared_for=show_prepared_for_tab
                         )
                         if pdf_bytes:
                             st.download_button(
