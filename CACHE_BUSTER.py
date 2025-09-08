@@ -7,7 +7,7 @@ This file forces Streamlit to completely rebuild the environment
 by changing import-level code and dependencies.
 """
 
-CACHE_BUST_VERSION = "v2025.09.06.1400.ACCESS_CONTROL_PERMISSIONS"
+CACHE_BUST_VERSION = "v2025.09.08.0900.SHOW_PREPARED_FOR_PDF_FIX"
 
 # Force import changes to invalidate Python module cache
 import sys
