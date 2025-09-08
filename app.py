@@ -13,38 +13,29 @@ print(f"🔥 FORCE REBUILD ACTIVE: {CACHE_BUST_VERSION}")
 
 import streamlit as st
 
-# === AGGRESSIVE CACHE CLEARING (copied from main app) ===
-# Prevent infinite rerun loops by clearing only once per session
-if not st.session_state.get("_cleared_startup_cache_once"):
-    try:
-        st.cache_data.clear()
-        print("🧹 Cleared st.cache_data on startup")
-    except Exception:
-        pass
-    try:
-        st.cache_resource.clear()
-        print("🧹 Cleared st.cache_resource on startup")
-    except Exception:
-        pass
-    st.session_state["_cleared_startup_cache_once"] = True
-    print("🚀 Cache clearing completed - fresh session")
+# === PRODUCTION FIX: DISABLE AGGRESSIVE CACHE CLEARING ===
+# This was breaking Supabase connections and auth state on every session
+# Only clear caches when explicitly requested via URL parameter
+if not st.session_state.get("_startup_initialized"):
+    st.session_state["_startup_initialized"] = True
+    print("🚀 App startup completed - preserving connections and cache")
 
 # === CACHE BUSTER ===
 # Clear all Streamlit caches on app startup to ensure fresh deployment
-CACHE_VERSION = "production_agent_loading_fix_sept8_2025_CRITICAL_HOTFIX"
+CACHE_VERSION = "production_cache_fix_sept8_2025_PRESERVE_SUPABASE_CONNECTIONS"
 
 @st.cache_data
 def get_cache_version():
     """Returns cache version to force cache invalidation on deployment"""
     return CACHE_VERSION
 
-# Force cache clearing on version change
+# PRODUCTION FIX: Don't auto-clear caches on version change - this breaks Supabase connections
+# Only track version changes, don't clear caches automatically
 current_version = get_cache_version()
 if 'cache_version' not in st.session_state or st.session_state.cache_version != current_version:
-    st.cache_data.clear()
-    st.cache_resource.clear() 
+    # Just update the version, don't clear caches
     st.session_state.cache_version = current_version
-    print(f"🔄 Cache cleared for version: {current_version}")
+    print(f"📝 Version updated: {current_version} (caches preserved)")
 
 # Add QA environment banner at the very top
 st.markdown("""
@@ -171,18 +162,18 @@ except Exception:
     # Fallback - no query params
     qp_clear = False
 
-if force_clear or qp_clear:
+# PRODUCTION FIX: Only clear caches when explicitly requested via ?clear=1 URL parameter
+# Don't auto-clear on deployment as this breaks Supabase connections and auth
+if qp_clear:  # Only clear when user explicitly requests it, not on every deploy
     # Prevent infinite rerun loops by clearing only once per session
     if not st.session_state.get("_cleared_startup_cache_once"):
         try:
-            st.cache_data.clear()
-        except Exception:
-            pass
-        try:
-            st.cache_resource.clear()
+            st.cache_data.clear()  # Clear data cache only
+            # DON'T clear st.cache_resource as it breaks Supabase client connections
         except Exception:
             pass
         st.session_state["_cleared_startup_cache_once"] = True
+        st.success("🧹 Data cache cleared (keeping resource connections intact)")
         st.rerun()
 
 # --- end kill-switch ---
