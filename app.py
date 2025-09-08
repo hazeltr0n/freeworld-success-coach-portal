@@ -1811,6 +1811,163 @@ def show_free_agent_management_page(coach):
                         st.error(f"❌ Error adding agent: {str(e)}")
                 else:
                     st.warning("⚠️ Please select an agent first")
+        
+        # Manual Entry Section
+        st.markdown("---")
+        st.markdown("### Manual Entry")
+        st.markdown("Add a Free Agent manually without Airtable lookup")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            manual_agent_name = st.text_input(
+                "Agent Name *", 
+                placeholder="Enter full name",
+                key="manual_agent_name",
+                help="Required: Full name of the Free Agent"
+            )
+            manual_agent_email = st.text_input(
+                "Email", 
+                placeholder="agent@example.com",
+                key="manual_agent_email",
+                help="Optional: Agent's email address"
+            )
+            manual_agent_city = st.text_input(
+                "City", 
+                placeholder="Houston",
+                key="manual_agent_city", 
+                help="Optional: Agent's city"
+            )
+        
+        with col2:
+            manual_agent_uuid = st.text_input(
+                "Agent UUID", 
+                placeholder="Auto-generated if empty",
+                key="manual_agent_uuid",
+                help="Optional: Will generate UUID if not provided"
+            )
+            manual_agent_state = st.text_input(
+                "State", 
+                placeholder="TX",
+                key="manual_agent_state",
+                help="Optional: Agent's state (2-letter code)"
+            )
+            manual_location = st.selectbox(
+                "Market *",
+                options=get_market_options(),
+                index=get_market_options().index("Houston") if "Houston" in get_market_options() else 0,
+                key="manual_location",
+                help="Required: Market/location for job search"
+            )
+        
+        # Advanced Settings
+        with st.expander("⚙️ Advanced Settings", expanded=False):
+            col1, col2 = st.columns(2)
+            with col1:
+                manual_route_filter = st.selectbox(
+                    "Route Filter",
+                    ["both", "local", "otr"],
+                    index=0,
+                    key="manual_route_filter",
+                    help="Filter jobs by route type"
+                )
+                manual_fair_chance = st.checkbox(
+                    "Fair Chance Only",
+                    value=False,
+                    key="manual_fair_chance",
+                    help="Show only fair chance employers"
+                )
+            with col2:
+                manual_max_jobs = st.number_input(
+                    "Max Jobs",
+                    min_value=1,
+                    max_value=100,
+                    value=25,
+                    key="manual_max_jobs",
+                    help="Maximum jobs to show in portal"
+                )
+                manual_experience = st.selectbox(
+                    "Experience Level",
+                    ["both", "entry_level", "experienced"],
+                    index=0,
+                    key="manual_experience",
+                    help="Experience level filter"
+                )
+        
+        # Add Manual Agent Button
+        if st.button("➕ Add Manual Agent", key="add_manual_agent_btn", type="primary"):
+            if manual_agent_name and manual_location:
+                try:
+                    # Generate UUID if not provided
+                    if not manual_agent_uuid:
+                        import uuid
+                        generated_uuid = str(uuid.uuid4())
+                    else:
+                        generated_uuid = manual_agent_uuid.strip()
+                    
+                    # Create agent profile
+                    agent_data = {
+                        'agent_uuid': generated_uuid,
+                        'agent_name': manual_agent_name.strip(),
+                        'agent_email': manual_agent_email.strip() if manual_agent_email else '',
+                        'agent_city': manual_agent_city.strip() if manual_agent_city else '',
+                        'agent_state': manual_agent_state.strip().upper() if manual_agent_state else '',
+                        'location': manual_location,
+                        'route_filter': manual_route_filter,
+                        'fair_chance_only': manual_fair_chance,
+                        'max_jobs': manual_max_jobs,
+                        'experience_level': manual_experience,
+                        'coach_username': coach.username,
+                        'created_at': datetime.now(timezone.utc).isoformat()
+                    }
+                    
+                    # Show loading spinner while generating portal link and saving to database
+                    with st.spinner("🔗 Generating portal link and saving agent..."):
+                        # Generate secure portal URL with token validation and search parameters
+                        full_portal_url = generate_dynamic_portal_link(agent_data)
+                        
+                        # Create Short.io link with proper tags
+                        try:
+                            from link_tracker import LinkTracker
+                            link_tracker = LinkTracker()
+                            
+                            portal_tags = [
+                                f"coach:{coach.username}",
+                                f"candidate:{agent_data['agent_uuid']}",
+                                f"market:{agent_data['location'].lower().replace(' ', '_')}",
+                                "type:portal_access"
+                            ]
+                            
+                            shortened_url = link_tracker.create_short_link(
+                                full_portal_url, 
+                                title=f"Portal - {agent_data['agent_name']}", 
+                                tags=portal_tags, 
+                                candidate_id=agent_data['agent_uuid']
+                            )
+                            agent_data['portal_url'] = shortened_url
+                            st.write(f"🔗 Generated portal link: {shortened_url}")
+                            
+                        except Exception as e:
+                            st.warning(f"⚠️ Could not generate short link: {e}")
+                            agent_data['portal_url'] = full_portal_url  # Fallback to full URL
+                        
+                        success, message = save_agent_profile(coach.username, agent_data)
+                    
+                    if success:
+                        st.success(f"✅ {manual_agent_name} successfully added to database!")
+                        if agent_data.get('portal_url'):
+                            st.info(f"🔗 Portal link: {agent_data['portal_url']}")
+                        st.balloons()
+                        st.rerun()
+                    else:
+                        st.error(f"❌ Database save failed: {message}")
+                        st.warning("💡 Ensure Supabase is connected and environment variables are set")
+                        
+                except Exception as e:
+                    st.error(f"❌ Error adding manual agent: {str(e)}")
+                    import traceback
+                    st.code(traceback.format_exc())
+            else:
+                st.warning("⚠️ Please enter at least Agent Name and select a Market")
 
     # CSV Import Section
     with st.expander("📥 Import Free Agents (CSV)", expanded=False):
