@@ -4207,6 +4207,9 @@ def main():
                 st.session_state.admin_function_index = admin_function_options.index(admin_tab_select)
             
             if admin_tab_select == "Manage Coaches":
+                # Get fresh coach manager instance to ensure latest data
+                coach_manager = get_coach_manager()
+                
                 st.markdown("### ➕ Add New Coach")
                 with st.form("tab_add_coach"):
                     new_username = st.text_input("Username", placeholder="new.coach", key="tab_new_username")
