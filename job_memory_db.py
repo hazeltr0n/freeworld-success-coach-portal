@@ -128,7 +128,8 @@ class JobMemoryDB:
             skipped_jobs = []
             for idx, job in jobs_df.iterrows():
                 # Handle jobs with different routing statuses
-                final_status = job.get('route.final_status', '')
+                # Check both canonical (route.final_status) and Supabase field names (filter_reason)
+                final_status = job.get('route.final_status', '') or job.get('filter_reason', '')
                 job_id = job.get('id.job', job.get('job_id', f'job_{idx}'))
                 
                 # Try canonical fields first (ai.match, ai.reason, ai.summary), then fallback to legacy field names
@@ -138,6 +139,8 @@ class JobMemoryDB:
                 
                 # If route.final_status is included or passed_all_filters, ALWAYS store to Supabase
                 if final_status == 'passed_all_filters' or final_status.startswith('included'):
+                    # Debug: Log job being stored
+                    logger.debug(f"✅ Storing job {job_id[:8]}... with final_status='{final_status}', match='{match}'")
                     # Provide default AI values if missing (required by Supabase schema)
                     if not match or str(match) in ['', 'nan', 'None', 'null']:
                         if final_status.startswith('included'):
@@ -150,7 +153,8 @@ class JobMemoryDB:
                         summary = f'Job with status: {final_status}'
                 else:
                     # For other statuses (filtered, error, etc.), skip uploading to Supabase
-                    skipped_jobs.append({'job_id': job_id, 'final_status': final_status, 'match': str(match), 'reason': 'Status not included/passed_all_filters'})
+                    logger.debug(f"⏭️ Skipping job {job_id[:8]}... with final_status='{final_status}', match='{match}' (not included/passed_all_filters)")
+                    skipped_jobs.append({'job_id': job_id, 'final_status': final_status, 'match': str(match), 'reason': 'Status not included/passed_all_filters', 'summary': str(summary)[:50]})
                     continue
                     
                 # Market sanitization: ensure no state abbreviations and map representative cities
