@@ -1051,7 +1051,7 @@ class StreamlitPipelineWrapper:
             with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
                 temp_path = tmp_file.name
             
-            # Generate PDF using FPDF (legacy path - doesn't support show_prepared_for)
+            # Generate PDF using FPDF (legacy path - now supports show_prepared_for)
             generate_fpdf_job_cards(
                 df, 
                 temp_path, 
@@ -1059,7 +1059,8 @@ class StreamlitPipelineWrapper:
                 coach_name=coach_name,
                 coach_username=coach_username,
                 candidate_name=candidate_name,
-                candidate_id=candidate_id
+                candidate_id=candidate_id,
+                show_prepared_for=show_prepared_for
             )
             
             # Read PDF bytes

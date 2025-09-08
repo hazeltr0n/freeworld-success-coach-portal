@@ -7,7 +7,7 @@ This file forces Streamlit to completely rebuild the environment
 by changing import-level code and dependencies.
 """
 
-CACHE_BUST_VERSION = "v2025.09.08.1100.JOB_SORTING_FIX"
+CACHE_BUST_VERSION = "v2025.09.08.1115.FPDF_SORTING_TOGGLE_FIX"
 
 # Force import changes to invalidate Python module cache
 import sys

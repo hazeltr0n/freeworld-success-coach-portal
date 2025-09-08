@@ -875,7 +875,7 @@ class FreeWorldJobCardFPDF(FPDF):
             print(f"  ⚠️ Link tracking failed: {e}")
             return apply_url
 
-def generate_fpdf_job_cards(jobs_df, output_path, market="Unknown", coach_name:"str"="", coach_username:"str"="", candidate_name:"str"="", candidate_id:"str"=""):
+def generate_fpdf_job_cards(jobs_df, output_path, market="Unknown", coach_name:"str"="", coach_username:"str"="", candidate_name:"str"="", candidate_id:"str"="", show_prepared_for:bool=True):
     """Generate job cards using FPDF2 with beautiful title page"""
     
     # Read coach/candidate info from DataFrame if available (preferred method)
@@ -961,8 +961,18 @@ def generate_fpdf_job_cards(jobs_df, output_path, market="Unknown", coach_name:"
     
     print(f"  📄 Creating title page and {total_jobs} job cards with FPDF2")
     
-    # Sort jobs by priority: Excellent+Fair Chance → Excellent → Possible+Fair Chance → Possible
+    # Sort jobs by priority: Local→OTR→Unknown, then by quality within each route type
     def get_sort_priority(row):
+        # Route type priority (most important)
+        route_type = str(row.get('ai.route_type', '')).lower()
+        if route_type == 'local':
+            route_priority = 0
+        elif route_type in ['otr', 'regional']:
+            route_priority = 1  
+        else:
+            route_priority = 2  # Unknown/other
+        
+        # Quality priority within route type
         ai_match = row.get('ai.match', '')
         fair_chance = row.get('ai.fair_chance', '').lower()
         
@@ -971,15 +981,19 @@ def generate_fpdf_job_cards(jobs_df, output_path, market="Unknown", coach_name:"
         has_fair_chance = 'fair_chance_employer' in fair_chance
         
         if is_excellent and has_fair_chance:
-            return 1  # Highest priority
+            quality_priority = 1  # Highest quality
         elif is_excellent:
-            return 2  # Second priority  
+            quality_priority = 2  # Second quality  
         elif is_possible and has_fair_chance:
-            return 3  # Third priority
+            quality_priority = 3  # Third quality
         elif is_possible:
-            return 4  # Fourth priority
+            quality_priority = 4  # Fourth quality
         else:
-            return 5  # Lowest priority (bad/unknown matches)
+            quality_priority = 5  # Lowest quality (bad/unknown matches)
+        
+        # Combine: route_priority * 10 + quality_priority for proper ordering
+        # This ensures Local jobs always come first, then OTR, then Unknown
+        return route_priority * 10 + quality_priority
     
     # Apply sorting
     jobs_df = jobs_df.copy()
@@ -988,8 +1002,8 @@ def generate_fpdf_job_cards(jobs_df, output_path, market="Unknown", coach_name:"
 
     # Create beautiful title page first
     pdf.create_title_page(clean_market, total_jobs, coach_name if coach_name else "",)
-    # If candidate name OR coach name available, draw personalization line
-    if candidate_name or coach_name:
+    # If candidate name OR coach name available AND show_prepared_for is True, draw personalization line
+    if show_prepared_for and (candidate_name or coach_name):
         try:
             agent_first_name = candidate_name.split()[0] if candidate_name.split() else candidate_name
             

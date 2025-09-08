@@ -1930,7 +1930,7 @@ class FreeWorldPipelineV3:
         
         return complete_path
     
-    def _generate_pdf(self, exportable_df: pd.DataFrame, market: str, custom_location: str, coach_name: str = '', coach_username: str = '', candidate_name: str = '', candidate_id: str = '') -> Optional[str]:
+    def _generate_pdf(self, exportable_df: pd.DataFrame, market: str, custom_location: str, coach_name: str = '', coach_username: str = '', candidate_name: str = '', candidate_id: str = '', show_prepared_for: bool = True) -> Optional[str]:
         """Generate PDF using existing generator"""
         
         try:
@@ -1967,7 +1967,8 @@ class FreeWorldPipelineV3:
                 coach_name=coach_name,
                 coach_username=coach_username,
                 candidate_name=candidate_name,
-                candidate_id=candidate_id
+                candidate_id=candidate_id,
+                show_prepared_for=show_prepared_for
             )
             
             print(f"✅ PDF generated: {pdf_path}")
@@ -2061,7 +2062,8 @@ class FreeWorldPipelineV3:
                     coach_name=coach_name,
                     coach_username=coach_username,
                     candidate_name=candidate_name,
-                    candidate_id=candidate_id
+                    candidate_id=candidate_id,
+                    show_prepared_for=show_prepared_for
                 )
                 
                 # Read PDF as bytes
