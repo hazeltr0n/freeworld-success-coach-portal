@@ -88,7 +88,8 @@ def jobs_dataframe_to_dicts(df) -> List[Dict]:
                 # Support { 'baseSalary': {'unitOfWork': 'HOUR', 'range': {'min': x, 'max': y}}, 'currencyCode': 'USD' }
                 base = d.get('baseSalary', {}) if isinstance(d, dict) else {}
                 rng = base.get('range', {}) if isinstance(base, dict) else {}
-                unit = (base.get('unitOfWork') or '').lower()
+                unit_raw = base.get('unitOfWork') or ''
+                unit = str(unit_raw).lower() if unit_raw else ''
                 cur = d.get('currencyCode', 'USD')
                 if rng:
                     mn = rng.get('min') or rng.get('minimum')
@@ -101,7 +102,7 @@ def jobs_dataframe_to_dicts(df) -> List[Dict]:
                     elif mx:
                         parts.append(f"{cur} {mx}")
                     if unit:
-                        parts.append(f"per {unit.lower()}")
+                        parts.append(f"per {unit}")
                     return ' '.join(parts)
             except Exception:
                 pass
@@ -143,7 +144,8 @@ def jobs_dataframe_to_dicts(df) -> List[Dict]:
         state = _clean_text(r.get('norm.state', ''))
         location_fallback = _clean_text(r.get('norm.location') or r.get('source.location_raw') or '')
         route_type = r.get('ai.route_type', 'Unknown')
-        ai_match = r.get('ai.match', 'good').lower()
+        ai_match_raw = r.get('ai.match', 'good')
+        ai_match = str(ai_match_raw).lower() if ai_match_raw is not None else 'good'
         fair_raw = r.get('ai.fair_chance', False)
         # Normalize fair chance to a boolean
         fair_chance = False
