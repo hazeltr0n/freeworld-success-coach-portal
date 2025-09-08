@@ -20,7 +20,20 @@ class JobMemoryDB:
         self._init_supabase()
     
     def _init_supabase(self):
-        """Initialize Supabase client"""
+        """Initialize Supabase client using centralized connection"""
+        try:
+            # Try to use the centralized client first (handles both env vars and Streamlit secrets)
+            from supabase_utils import get_client
+            self.supabase = get_client()
+            
+            if self.supabase:
+                print("✅ Supabase job memory database connected via centralized client")
+                return
+                
+        except ImportError:
+            pass
+        
+        # Fallback to direct connection for non-Streamlit environments
         try:
             from supabase import create_client, Client
             from dotenv import load_dotenv
@@ -59,7 +72,7 @@ class JobMemoryDB:
                 return
             
             self.supabase: Client = create_client(supabase_url, supabase_key)
-            print("✅ Supabase job memory database connected")
+            print("✅ Supabase job memory database connected via direct client")
             
         except ImportError:
             print("⚠️ Supabase not installed - pip install supabase")
