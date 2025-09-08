@@ -31,7 +31,7 @@ if not st.session_state.get("_cleared_startup_cache_once"):
 
 # === CACHE BUSTER ===
 # Clear all Streamlit caches on app startup to ensure fresh deployment
-CACHE_VERSION = "supabase_filter_fix_v2_262d9f9_sept5_AGGRESSIVE_CLEAR"
+CACHE_VERSION = "production_agent_loading_fix_sept8_2025_CRITICAL_HOTFIX"
 
 @st.cache_data
 def get_cache_version():
@@ -2094,17 +2094,23 @@ def show_free_agent_management_page(coach):
     
     # Load existing agents with optimized batch loading (includes click stats)
     # Include inactive agents if checkbox is checked
-    if show_deleted:
-        # For deleted agents, use basic loading since stats don't matter much
-        agents = load_agent_profiles(coach.username, include_inactive=True)
-        # Add empty stats for compatibility
-        for agent in agents:
-            if 'click_count' not in agent:
-                agent['click_count'] = 0
-            if 'total_portal_visits' not in agent:
-                agent['total_portal_visits'] = 0
-    else:
-        agents = load_agent_profiles_with_stats(coach.username, current_lookback)
+    # PRODUCTION FIX: Add robust error handling to prevent crashes
+    try:
+        if show_deleted:
+            # For deleted agents, use basic loading since stats don't matter much
+            agents = load_agent_profiles(coach.username, include_inactive=True)
+            # Add empty stats for compatibility
+            for agent in agents:
+                if 'click_count' not in agent:
+                    agent['click_count'] = 0
+                if 'total_portal_visits' not in agent:
+                    agent['total_portal_visits'] = 0
+        else:
+            agents = load_agent_profiles_with_stats(coach.username, current_lookback)
+    except Exception as e:
+        st.error(f"⚠️ Failed to load agent profiles: {str(e)}")
+        st.info("💡 Using fallback mode - some features may be limited")
+        agents = []  # Fallback to empty list to prevent crashes
     
     # Debug info for testing
     if agents:
