@@ -60,7 +60,7 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
             processed_df = update_job_tracking_for_agent(df, agent_params)
             
             # Jobs are already filtered at Supabase level - just apply prioritization
-            # Apply smart prioritization: excellent match > newest > fair chance > local routes
+            # Apply smart prioritization: excellent match > newest > fair chance > local > OTR > unknown routes
             if len(processed_df) > 0:
                 print(f"🎯 CLEAN AGENT PORTAL: Applying smart prioritization")
                 
@@ -79,20 +79,20 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
                     if 'fair' in fair_chance:
                         score += 20
                     
-                    # Priority 3: Route type (Local first)
+                    # Priority 3: Route type (Local first, then OTR, then Unknown)
                     route_type = str(row.get('ai.route_type', '')).lower()
                     if 'local' in route_type:
                         score += 10
-                    elif 'regional' in route_type:
+                    elif 'otr' in route_type or 'regional' in route_type:
                         score += 5
-                    # OTR gets 0 additional points
+                    # Unknown gets 0 points (lowest priority)
                     
                     return score
                 
                 processed_df['_priority_score'] = processed_df.apply(get_priority_score, axis=1)
                 processed_df = processed_df.sort_values('_priority_score', ascending=False)
                 processed_df = processed_df.drop('_priority_score', axis=1)
-                print(f"🎯 CLEAN AGENT PORTAL: Jobs prioritized by match quality > fair chance > local routes")
+                print(f"🎯 CLEAN AGENT PORTAL: Jobs prioritized by match quality > fair chance > local > OTR > unknown routes")
             
             # 4. Apply max_jobs limit from agent params
             max_jobs = agent_params.get('max_jobs', 25)  # Default to 25 if not specified
@@ -173,7 +173,7 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
                 processed_df = update_job_tracking_for_agent(df, agent_params)
                 
                 # Jobs are already filtered at Supabase level - just apply prioritization (pipeline path)
-                # Apply smart prioritization: excellent match > newest > fair chance > local routes
+                # Apply smart prioritization: excellent match > newest > fair chance > local > OTR > unknown routes
                 if len(processed_df) > 0:
                     print(f"🎯 CLEAN AGENT PORTAL: Applying smart prioritization (pipeline path)")
                     
@@ -192,20 +192,20 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
                         if 'fair' in fair_chance:
                             score += 20
                         
-                        # Priority 3: Route type (Local first)
+                        # Priority 3: Route type (Local first, then OTR, then Unknown)
                         route_type = str(row.get('ai.route_type', '')).lower()
                         if 'local' in route_type:
                             score += 10
-                        elif 'regional' in route_type:
+                        elif 'otr' in route_type or 'regional' in route_type:
                             score += 5
-                        # OTR gets 0 additional points
+                        # Unknown gets 0 points (lowest priority)
                         
                         return score
                     
                     processed_df['_priority_score'] = processed_df.apply(get_priority_score, axis=1)
                     processed_df = processed_df.sort_values('_priority_score', ascending=False)
                     processed_df = processed_df.drop('_priority_score', axis=1)
-                    print(f"🎯 CLEAN AGENT PORTAL: Jobs prioritized by match quality > fair chance > local routes (pipeline path)")
+                    print(f"🎯 CLEAN AGENT PORTAL: Jobs prioritized by match quality > fair chance > local > OTR > unknown routes (pipeline path)")
                 
                 # 4. Apply max_jobs limit from agent params
                 max_jobs = agent_params.get('max_jobs', 25)  # Default to 25 if not specified

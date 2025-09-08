@@ -108,7 +108,7 @@ def jobs_dataframe_to_dicts(df) -> List[Dict]:
                 pass
         return txt
 
-    # Sort for portal parity: excellent match first, then fair-chance, then local
+    # Sort for portal parity: excellent match first, then fair-chance, then local → OTR → unknown
     df_sorted = df.copy()
     try:
         def _is_good(x):
@@ -116,8 +116,15 @@ def jobs_dataframe_to_dicts(df) -> List[Dict]:
         def _is_fair(x):
             xs = str(x).lower()
             return 0 if ('fair_chance_employer' in xs or xs in ('true', 'yes', '1')) else 1
-        def _is_local(x):
-            return 0 if str(x) == 'Local' else 1
+        def _route_priority(x):
+            # Local first (0), then OTR (1), then Unknown (2) 
+            route = str(x).lower()
+            if route == 'local':
+                return 0
+            elif route in ['otr', 'regional']:
+                return 1
+            else:
+                return 2
         if 'ai.match' in df_sorted.columns:
             df_sorted['_s_match'] = df_sorted['ai.match'].map(_is_good)
         else:
@@ -127,9 +134,9 @@ def jobs_dataframe_to_dicts(df) -> List[Dict]:
         else:
             df_sorted['_s_fair'] = 1
         if 'ai.route_type' in df_sorted.columns:
-            df_sorted['_s_route'] = df_sorted['ai.route_type'].map(_is_local)
+            df_sorted['_s_route'] = df_sorted['ai.route_type'].map(_route_priority)
         else:
-            df_sorted['_s_route'] = 1
+            df_sorted['_s_route'] = 2  # Default to Unknown priority
         df_sorted = df_sorted.sort_values(['_s_match', '_s_fair', '_s_route'], ascending=True)
     except Exception:
         pass
