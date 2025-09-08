@@ -2153,7 +2153,7 @@ class FreeWorldPipelineV3:
         total_jobs = len(df)
         fresh_jobs = (df['sys.is_fresh_job'] == True).sum() if 'sys.is_fresh_job' in df.columns else 0
         memory_jobs = (df['sys.is_fresh_job'] == False).sum() if 'sys.is_fresh_job' in df.columns else 0
-        included_jobs = (df['route.final_status'].str.startswith('included')).sum() if 'route.final_status' in df.columns else 0
+        included_jobs = (df['route.final_status'].astype(str).str.startswith('included')).sum() if 'route.final_status' in df.columns else 0
         quality_jobs = (df['ai.match'].isin(['good', 'so-so'])).sum() if 'ai.match' in df.columns else 0
         
         # Calculate actual cost metrics based on source and fresh vs memory jobs

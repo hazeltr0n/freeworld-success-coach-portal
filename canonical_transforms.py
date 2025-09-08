@@ -955,20 +955,20 @@ def transform_routing(df: pd.DataFrame, route_filter: str = 'both') -> pd.DataFr
     
     # Set boolean flags
     routing_fields['route.filtered'] = (
-        routing_fields['route.final_status'].str.startswith('filtered:') | 
-        routing_fields['route.final_status'].str.startswith('AI classified as bad') |
-        routing_fields['route.final_status'].str.startswith('processing_error:')
+        routing_fields['route.final_status'].astype(str).str.startswith('filtered:') | 
+        routing_fields['route.final_status'].astype(str).str.startswith('AI classified as bad') |
+        routing_fields['route.final_status'].astype(str).str.startswith('processing_error:')
     )
     
     # Ready for export: ALL jobs that have been fully processed and classified
     # Quality filtering happens at export time, not routing time
     routing_fields['route.ready_for_export'] = (
         # Jobs with 'included' status (good/so-so matches)
-        routing_fields['route.final_status'].str.startswith('included:') |
+        routing_fields['route.final_status'].astype(str).str.startswith('included:') |
         # OR jobs that passed all filters but no AI classification yet
         (routing_fields['route.final_status'] == 'passed_all_filters') |
         # OR jobs classified as bad but still fully processed (for complete DataFrame)
-        (routing_fields['route.final_status'].str.startswith('AI classified as bad'))
+        (routing_fields['route.final_status'].astype(str).str.startswith('AI classified as bad'))
     )
     
     # Update stage and timestamp
@@ -1140,7 +1140,7 @@ def view_fresh_quality(df: pd.DataFrame) -> pd.DataFrame:
     fresh_mask = (
         (df.get('sys.is_fresh_job', False) == True) &
         ((df.get('route.final_status', '') == 'passed_all_filters') |
-         (df.get('route.final_status', '').str.startswith('included')))
+         (df.get('route.final_status', '').astype(str).str.startswith('included')))
     )
     return df[fresh_mask]
 

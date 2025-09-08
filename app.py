@@ -6690,7 +6690,7 @@ def show_combined_batches_and_scheduling_page(coach):
                                 
                                 # Show CSV stats
                                 total_csv_jobs = len(df_final)
-                                included_csv_jobs = int((df_final['route.final_status'].str.startswith('included')).sum()) if 'route.final_status' in df_final.columns else 0
+                                included_csv_jobs = int((df_final['route.final_status'].astype(str).str.startswith('included')).sum()) if 'route.final_status' in df_final.columns else 0
                                 filtered_csv_jobs = total_csv_jobs - included_csv_jobs
                                 
                                 st.caption(f"CSV contains: {total_csv_jobs} jobs total • {included_csv_jobs} included • {filtered_csv_jobs} filtered/bad")
@@ -6722,8 +6722,8 @@ def show_combined_batches_and_scheduling_page(coach):
                                 
                                 # Final status breakdown
                                 if 'route.final_status' in df_final.columns:
-                                    included_jobs = int(df_final['route.final_status'].str.startswith('included').sum())
-                                    filtered_jobs = int(df_final['route.final_status'].str.startswith('filtered').sum())
+                                    included_jobs = int(df_final['route.final_status'].astype(str).str.startswith('included').sum())
+                                    filtered_jobs = int(df_final['route.final_status'].astype(str).str.startswith('filtered').sum())
                                     passed_filters = int((df_final['route.final_status'] == 'passed_all_filters').sum())
                                 else:
                                     included_jobs = ai_good + ai_soso
