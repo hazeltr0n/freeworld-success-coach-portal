@@ -2,8 +2,8 @@
 """
 FreeWorld Success Coach Portal - QA/STAGING ENVIRONMENT  
 Complete fresh start to bypass Streamlit Cloud import caching
-DEPLOYMENT VERSION: September 8, 2025 - Fixed show_prepared_for PDF parameter - CACHE BUST
-CACHE_BUSTER_ID: show_prepared_for_pdf_fix_312e9ba
+DEPLOYMENT VERSION: September 8, 2025 - Fixed fresh job storage in store_classifications - CACHE BUST
+CACHE_BUSTER_ID: fresh_job_storage_fix_5b4d4bb
 """
 
 # === IMPORTS ===
