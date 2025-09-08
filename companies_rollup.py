@@ -138,9 +138,9 @@ def analyze_jobs_for_companies() -> pd.DataFrame:
     # Get jobs from the last 60 days to focus on active/recent companies
     cutoff_date = (datetime.now(timezone.utc) - timedelta(days=60)).isoformat()
     
-    # Fetch jobs data
+    # Fetch jobs data - use correct Supabase field names
     result = client.table('jobs').select(
-        'company, location, title, ai_match, ai_route_type, ai_fair_chance, salary, created_at, coach_username'
+        'company, location, job_title, match_level, route_type, fair_chance, salary, created_at, success_coach'
     ).gte('created_at', cutoff_date).execute()
     
     jobs_data = result.data or []
@@ -190,20 +190,20 @@ def analyze_jobs_for_companies() -> pd.DataFrame:
         total_jobs = len(company_jobs)
         
         # Fair chance analysis
-        fair_chance_jobs = company_jobs['ai_fair_chance'].astype(str).str.lower().str.contains('fair|yes|true', na=False).sum()
+        fair_chance_jobs = company_jobs['fair_chance'].astype(str).str.lower().str.contains('fair|yes|true', na=False).sum()
         has_fair_chance = fair_chance_jobs > 0
         
         # Markets (unique locations)
         markets = company_jobs['market'].dropna().unique().tolist()
         
         # Job titles (top 10 most common)
-        job_titles = company_jobs['title'].dropna().value_counts().head(10).index.tolist()
+        job_titles = company_jobs['job_title'].dropna().value_counts().head(10).index.tolist()
         
         # Route types
-        route_types = company_jobs['ai_route_type'].dropna().unique().tolist()
+        route_types = company_jobs['route_type'].dropna().unique().tolist()
         
         # Quality breakdown
-        quality_counts = company_jobs['ai_match'].value_counts().to_dict()
+        quality_counts = company_jobs['match_level'].value_counts().to_dict()
         
         # Date ranges
         dates = pd.to_datetime(company_jobs['created_at'])
