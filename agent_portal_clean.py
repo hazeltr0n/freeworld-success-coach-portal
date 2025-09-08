@@ -59,40 +59,16 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
             # Process DataFrame the same way Memory Only search does
             processed_df = update_job_tracking_for_agent(df, agent_params)
             
-            # Jobs are already filtered at Supabase level - just apply prioritization
-            # Apply smart prioritization: excellent match > newest > fair chance > local > OTR > unknown routes
+            # Apply unified sorting to match FPDF exactly
             if len(processed_df) > 0:
-                print(f"🎯 CLEAN AGENT PORTAL: Applying smart prioritization")
+                print(f"🎯 CLEAN AGENT PORTAL: Applying unified sorting (matches FPDF)")
                 
-                def get_priority_score(row):
-                    score = 0
-                    
-                    # Priority 1: Match quality (most important)
-                    ai_match = str(row.get('ai.match', '')).lower()
-                    if ai_match == 'good':
-                        score += 100
-                    elif ai_match == 'so-so':
-                        score += 50
-                    
-                    # Priority 2: Fair chance employers
-                    fair_chance = str(row.get('ai.fair_chance', '')).lower()
-                    if 'fair' in fair_chance:
-                        score += 20
-                    
-                    # Priority 3: Route type (Local first, then OTR, then Unknown)
-                    route_type = str(row.get('ai.route_type', '')).lower()
-                    if 'local' in route_type:
-                        score += 10
-                    elif 'otr' in route_type or 'regional' in route_type:
-                        score += 5
-                    # Unknown gets 0 points (lowest priority)
-                    
-                    return score
-                
-                processed_df['_priority_score'] = processed_df.apply(get_priority_score, axis=1)
-                processed_df = processed_df.sort_values('_priority_score', ascending=False)
-                processed_df = processed_df.drop('_priority_score', axis=1)
-                print(f"🎯 CLEAN AGENT PORTAL: Jobs prioritized by match quality > fair chance > local > OTR > unknown routes")
+                try:
+                    from job_sorting_utils import apply_unified_sorting
+                    processed_df = apply_unified_sorting(processed_df)
+                    print(f"🎯 CLEAN AGENT PORTAL: Jobs sorted by route type (Local→OTR→Unknown) then quality")
+                except Exception as e:
+                    print(f"⚠️ CLEAN AGENT PORTAL: Sorting failed, using original order: {e}")
             
             # 4. Apply max_jobs limit from agent params
             max_jobs = agent_params.get('max_jobs', 25)  # Default to 25 if not specified
@@ -170,40 +146,16 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
                 
                 processed_df = update_job_tracking_for_agent(df, agent_params)
                 
-                # Jobs are already filtered at Supabase level - just apply prioritization (pipeline path)
-                # Apply smart prioritization: excellent match > newest > fair chance > local > OTR > unknown routes
+                # Apply unified sorting to match FPDF exactly (pipeline path)
                 if len(processed_df) > 0:
-                    print(f"🎯 CLEAN AGENT PORTAL: Applying smart prioritization (pipeline path)")
+                    print(f"🎯 CLEAN AGENT PORTAL: Applying unified sorting (matches FPDF) (pipeline path)")
                     
-                    def get_priority_score(row):
-                        score = 0
-                        
-                        # Priority 1: Match quality (most important)
-                        ai_match = str(row.get('ai.match', '')).lower()
-                        if ai_match == 'good':
-                            score += 100
-                        elif ai_match == 'so-so':
-                            score += 50
-                        
-                        # Priority 2: Fair chance employers
-                        fair_chance = str(row.get('ai.fair_chance', '')).lower()
-                        if 'fair' in fair_chance:
-                            score += 20
-                        
-                        # Priority 3: Route type (Local first, then OTR, then Unknown)
-                        route_type = str(row.get('ai.route_type', '')).lower()
-                        if 'local' in route_type:
-                            score += 10
-                        elif 'otr' in route_type or 'regional' in route_type:
-                            score += 5
-                        # Unknown gets 0 points (lowest priority)
-                        
-                        return score
-                    
-                    processed_df['_priority_score'] = processed_df.apply(get_priority_score, axis=1)
-                    processed_df = processed_df.sort_values('_priority_score', ascending=False)
-                    processed_df = processed_df.drop('_priority_score', axis=1)
-                    print(f"🎯 CLEAN AGENT PORTAL: Jobs prioritized by match quality > fair chance > local > OTR > unknown routes (pipeline path)")
+                    try:
+                        from job_sorting_utils import apply_unified_sorting
+                        processed_df = apply_unified_sorting(processed_df)
+                        print(f"🎯 CLEAN AGENT PORTAL: Jobs sorted by route type (Local→OTR→Unknown) then quality (pipeline path)")
+                    except Exception as e:
+                        print(f"⚠️ CLEAN AGENT PORTAL: Sorting failed, using original order: {e}")
                 
                 # 4. Apply max_jobs limit from agent params
                 max_jobs = agent_params.get('max_jobs', 25)  # Default to 25 if not specified
