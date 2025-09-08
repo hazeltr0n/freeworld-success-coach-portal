@@ -67,6 +67,7 @@ def decode_agent_params(encoded: str) -> Dict[str, Any]:
             'max_jobs': 25,
             'match_level': 'good and so-so',
             'coach_username': '',
+            'show_prepared_for': False,  # Default to False when decoding fails
         }
 
 def generate_agent_url(agent_uuid: str, params: Dict[str, Any]) -> str:
@@ -422,11 +423,11 @@ def save_agent_profile(coach_username: str, agent_data: Dict) -> Tuple[bool, str
         print(f"❌ {error_msg}")
         return False, error_msg
 
-def load_agent_profiles(coach_username: str) -> List[Dict]:
+def load_agent_profiles(coach_username: str, include_inactive: bool = False) -> List[Dict]:
     """Load agent profiles for a coach from Supabase ONLY - no session state fallback"""
     try:
         from supabase_utils import load_agent_profiles_from_supabase
-        profiles, error = load_agent_profiles_from_supabase(coach_username)
+        profiles, error = load_agent_profiles_from_supabase(coach_username, include_inactive)
         
         if error is None:
             print(f"✅ Loaded {len(profiles)} agent profiles from Supabase")

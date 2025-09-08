@@ -102,10 +102,8 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
             
             jobs = jobs_dataframe_to_dicts(processed_df)
             
-            # Ensure agent_params includes show_prepared_for parameter 
+            # Pass agent_params as-is - don't override show_prepared_for
             agent_params_with_prepared = {**agent_params}
-            if 'show_prepared_for' not in agent_params_with_prepared:
-                agent_params_with_prepared['show_prepared_for'] = True  # Default to True for backward compatibility
             
             html = render_jobs_html(jobs, agent_params_with_prepared, fragment=True)
             
@@ -215,10 +213,8 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
                 
                 jobs = jobs_dataframe_to_dicts(processed_df)
                 
-                # Ensure agent_params includes show_prepared_for parameter 
+                # Pass agent_params as-is - don't override show_prepared_for
                 agent_params_with_prepared = {**agent_params}
-                if 'show_prepared_for' not in agent_params_with_prepared:
-                    agent_params_with_prepared['show_prepared_for'] = True  # Default to True for backward compatibility
                 
                 html = render_jobs_html(jobs, agent_params_with_prepared, fragment=True)
                 

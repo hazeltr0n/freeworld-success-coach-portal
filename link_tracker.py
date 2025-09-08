@@ -151,16 +151,16 @@ class LinkTracker:
         return parsed
     
     def create_short_link(self, original_url: str, title: Optional[str] = None, 
-                         tags: Optional[list] = None, expires_hours: int = 96, 
+                         tags: Optional[list] = None, expires_hours: int = 0, 
                          candidate_id: Optional[str] = None) -> Optional[str]:
         """
-        Create a tracked short link for a job URL with automatic expiration
+        Create a tracked short link for a job URL with no expiration
         
         Args:
             original_url: The original job application URL
             title: Optional title for the link (job title)
             tags: Optional tags for categorization (e.g., ['job', 'cdl', 'dallas'])
-            expires_hours: Hours until link expires (default: 96 hours)
+            expires_hours: Hours until link expires (0 = no expiration)
             candidate_id: Optional candidate ID for Supabase edge function tracking
             
         Returns:
@@ -285,7 +285,7 @@ class LinkTracker:
         return short or original_url
     
     def _create_shortio_link_internal(self, original_url: str, title: Optional[str] = None, 
-                                    tags: Optional[list] = None, expires_hours: int = 96) -> Optional[str]:
+                                    tags: Optional[list] = None, expires_hours: int = 0) -> Optional[str]:
         """Internal method to create Short.io links"""
         payload = {
             "originalURL": original_url.strip(),
@@ -302,6 +302,8 @@ class LinkTracker:
             payload["expiredURL"] = "https://freeworld.org/job-expired"  # Redirect after expiration
             
             self.logger.info(f"Link will expire in {expires_hours} hours: {expiration_time.isoformat()}")
+        else:
+            self.logger.info("Creating permanent link with no expiration")
         
         # Add optional metadata
         if title:

@@ -2068,8 +2068,8 @@ def show_free_agent_management_page(coach):
             except Exception as e:
                 st.error(f"CSV parse error: {e}")
     
-    # Add refresh button and status indicator
-    col1, col2, col3 = st.columns([3, 1, 1])
+    # Add refresh button, deleted agents, and status indicator
+    col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
     with col2:
         if st.button("🔄 Refresh", help="Reload agents from database"):
             # Clear any session state cache to force fresh load
@@ -2078,6 +2078,9 @@ def show_free_agent_management_page(coach):
             st.rerun()
     
     with col3:
+        show_deleted = st.checkbox("👻 Show Deleted", help="Show soft-deleted (inactive) agents")
+    
+    with col4:
         # Show data source indicator
         try:
             from supabase_utils import get_client
@@ -2090,7 +2093,18 @@ def show_free_agent_management_page(coach):
             st.warning("🟡 Session")
     
     # Load existing agents with optimized batch loading (includes click stats)
-    agents = load_agent_profiles_with_stats(coach.username, current_lookback)
+    # Include inactive agents if checkbox is checked
+    if show_deleted:
+        # For deleted agents, use basic loading since stats don't matter much
+        agents = load_agent_profiles(coach.username, include_inactive=True)
+        # Add empty stats for compatibility
+        for agent in agents:
+            if 'click_count' not in agent:
+                agent['click_count'] = 0
+            if 'total_portal_visits' not in agent:
+                agent['total_portal_visits'] = 0
+    else:
+        agents = load_agent_profiles_with_stats(coach.username, current_lookback)
     
     # Debug info for testing
     if agents:
@@ -2127,7 +2141,12 @@ def show_free_agent_management_page(coach):
             else:
                 dynamic_portal_url = "Missing UUID - Cannot generate secure link"
             
+            # Determine status
+            is_active = agent.get('is_active', True)
+            status = "🟢 Active" if is_active else "👻 Deleted"
+            
             agent_row = {
+                'Status': status,
                 'Free Agent Name': agent.get('agent_name', 'Unknown'),
                 f'Total Clicks ({current_lookback}d)': stats['total_clicks'],
                 'Recent (7d)': stats['recent_clicks'],
@@ -2141,20 +2160,21 @@ def show_free_agent_management_page(coach):
                 'Created': agent.get('created_at', '')[:10] if agent.get('created_at') else '',
                 'Portal Link': dynamic_portal_url,
                 'Admin Portal': agent.get('admin_portal_url', ''),
-                'Delete': False,  # Checkbox for bulk deletion
+                'Restore' if not is_active else 'Delete': False,  # Checkbox for restore/deletion
                 # Hidden fields for updates
                 '_agent_uuid': agent.get('agent_uuid', ''),
                 '_created_at': agent.get('created_at', ''),
-                '_original_data': agent  # Store original for comparison
+                '_original_data': agent,  # Store original for comparison
+                '_is_active': is_active  # Store active status
             }
             agent_data.append(agent_row)
         
         df = pd.DataFrame(agent_data)
         # Reorder columns to prioritize metrics next to name 
         desired_order = [
-            'Free Agent Name', f'Total Clicks ({current_lookback}d)', 'Recent (7d)',
+            'Status', 'Free Agent Name', f'Total Clicks ({current_lookback}d)', 'Recent (7d)',
             'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Match Level', 'City', 'State', 'Created',
-            'Portal Link', 'Admin Portal', 'Delete', '_agent_uuid', '_created_at', '_original_data'
+            'Portal Link', 'Admin Portal', 'Delete', 'Restore', '_agent_uuid', '_created_at', '_original_data', '_is_active'
         ]
         df = df[[c for c in desired_order if c in df.columns]]
         
@@ -2341,6 +2361,43 @@ def show_free_agent_management_page(coach):
                         st.rerun()
             with col2:
                 if st.button("❌ Cancel", type="primary"):
+                    st.rerun()
+        
+        # Handle bulk restores
+        agents_to_restore = edited_df[edited_df.get('Restore', pd.Series([False]*len(edited_df))) == True]
+        if not agents_to_restore.empty:
+            st.success(f"🔄 {len(agents_to_restore)} agent(s) marked for restore")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("🔄 Confirm Restore Selected", type="primary"):
+                    restore_count = 0
+                    for _, agent_row in agents_to_restore.iterrows():
+                        agent_uuid = agent_row['_agent_uuid'] 
+                        agent_name = agent_row['Free Agent Name']
+                        try:
+                            from supabase_utils import get_client
+                            client = get_client()
+                            if client:
+                                result = client.table('agent_profiles').update({
+                                    'is_active': True,
+                                    'last_accessed': 'NOW()'
+                                }).eq('coach_username', coach.username).eq('agent_uuid', agent_uuid).execute()
+                                
+                                if result.data:
+                                    restore_count += 1
+                                    st.success(f"✅ Restored {agent_name}")
+                                else:
+                                    st.error(f"❌ Failed to restore {agent_name}")
+                            else:
+                                st.error(f"❌ Database connection failed for {agent_name}")
+                        except Exception as e:
+                            st.error(f"❌ Error restoring {agent_name}: {e}")
+                    
+                    if restore_count > 0:
+                        st.success(f"✅ Successfully restored {restore_count} agent(s)")
+                        st.rerun()
+            with col2:
+                if st.button("❌ Cancel Restore", type="secondary"):
                     st.rerun()
         
         # Bulk actions

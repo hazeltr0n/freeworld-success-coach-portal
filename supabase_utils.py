@@ -313,31 +313,39 @@ def save_agent_profile_to_supabase(coach_username: str, agent_data: Dict) -> Tup
     except Exception as e:
         return False, str(e)
 
-def load_agent_profiles_from_supabase(coach_username: str) -> Tuple[List[Dict], str | None]:
+def load_agent_profiles_from_supabase(coach_username: str, include_inactive: bool = False) -> Tuple[List[Dict], str | None]:
     """Load agent profiles for a coach from Supabase"""
     client = get_client()
     if client is None:
         return [], "Supabase client not available"
     
     try:
+        # Build query based on whether to include inactive agents
+        query_base = client.table('agent_profiles').select(
+            'agent_uuid, agent_name, agent_email, agent_city, agent_state, '
+            'search_config, custom_url, is_active, created_at, last_accessed, '
+            'admin_portal_url'
+        ).eq('coach_username', coach_username)
+        
+        # Only filter by is_active if we don't want to include inactive agents
+        if not include_inactive:
+            query_base = query_base.eq('is_active', True)
+        
         # Try with admin_portal_url first, fallback without it if column doesn't exist
         try:
-            result = client.table('agent_profiles').select(
-                'agent_uuid, agent_name, agent_email, agent_city, agent_state, '
-                'search_config, custom_url, is_active, created_at, last_accessed, '
-                'admin_portal_url'
-            ).eq('coach_username', coach_username).eq('is_active', True).order(
-                'created_at', desc=True
-            ).execute()
+            result = query_base.order('created_at', desc=True).execute()
         except Exception as e:
             # If admin_portal_url column doesn't exist, try without it
             print(f"⚠️ admin_portal_url column not found, trying without it: {e}")
-            result = client.table('agent_profiles').select(
+            query_base = client.table('agent_profiles').select(
                 'agent_uuid, agent_name, agent_email, agent_city, agent_state, '
                 'search_config, custom_url, is_active, created_at, last_accessed'
-            ).eq('coach_username', coach_username).eq('is_active', True).order(
-                'created_at', desc=True
-            ).execute()
+            ).eq('coach_username', coach_username)
+            
+            if not include_inactive:
+                query_base = query_base.eq('is_active', True)
+                
+            result = query_base.order('created_at', desc=True).execute()
         
         profiles = []
         for row in result.data or []:
