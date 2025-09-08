@@ -423,9 +423,14 @@ def main(argv: List[str]) -> int:
             from link_tracker import LinkTracker
             link_tracker = LinkTracker()
             if link_tracker.is_available:
-                jobs_without_tracking = df_final[df_final.get('meta.tracked_url', '').fillna('') == '']
+                # Only generate tracking URLs for included jobs (not all classified jobs)
+                included_jobs_mask = (df_final.get('route.included', False) == True)
+                included_jobs = df_final[included_jobs_mask]
+                print(f"🎯 Filtering to {len(included_jobs)} included jobs from {len(df_final)} total classified jobs")
+                
+                jobs_without_tracking = included_jobs[included_jobs.get('meta.tracked_url', '').fillna('') == '']
                 if len(jobs_without_tracking) > 0:
-                    print(f"📊 Processing {len(jobs_without_tracking)} jobs without tracking URLs...")
+                    print(f"🔗 Generating tracking URLs for {len(jobs_without_tracking)} included jobs...")
                     
                     for idx, job in jobs_without_tracking.iterrows():
                         original_url = job.get('source.url', '')
