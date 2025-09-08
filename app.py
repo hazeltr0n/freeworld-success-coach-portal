@@ -3916,7 +3916,7 @@ def main():
                                 'agent_name': candidate_name_tab,
                                 'agent_uuid': candidate_id_tab,
                                 'coach_username': get_current_coach_name(),
-                                'show_prepared_for': show_prepared_for_tab
+                                'show_prepared_for': st.session_state.get('tab_show_prepared_for', True)
                             }
                             
                             # Supabase has already filtered by route type and quality - no need for post-processing
@@ -3989,7 +3989,7 @@ def main():
                                     'agent_uuid': candidate_id_tab,
                                     'agent_name': candidate_name_tab,
                                     'coach_username': get_current_coach_name(),
-                                    'show_prepared_for': show_prepared_for_tab
+                                    'show_prepared_for': st.session_state.get('tab_show_prepared_for', True)
                                 })
 
                             # Generate encoded configuration
@@ -4192,7 +4192,7 @@ def main():
                                                                             coach_username=coach.username,
                                                                             candidate_name=candidate_name,
                                                                             candidate_id=candidate_id,
-                                                                            show_prepared_for=show_prepared_for_tab
+                                                                            show_prepared_for=st.session_state.get('tab_show_prepared_for', True)
                                                                         )
                                                                     if pdf_bytes:
                                                                         # Store PDF in session state
@@ -5280,7 +5280,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                             'agent_name': candidate_name_tab,
                             'agent_uuid': candidate_id_tab,
                             'coach_username': get_current_coach_name(),
-                            'show_prepared_for': show_prepared_for_tab
+                            'show_prepared_for': st.session_state.get('tab_show_prepared_for', True)
                         }
                         
                         # Supabase has already filtered by route type, quality, and fair chance - no post-processing needed
@@ -5355,7 +5355,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                             coach_username=coach.username,
                             candidate_name=candidate_name_tab if 'candidate_name_tab' in locals() else st.session_state.get('candidate_name', ''),
                             candidate_id=candidate_id_tab if 'candidate_id_tab' in locals() else st.session_state.get('candidate_id', ''),
-                            show_prepared_for=show_prepared_for_tab
+                            show_prepared_for=st.session_state.get('tab_show_prepared_for', True)
                         )
                         if pdf_bytes:
                             st.download_button(
@@ -5541,7 +5541,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                             'agent_name': candidate_name_tab,
                             'agent_uuid': candidate_id_tab,
                             'coach_username': get_current_coach_name(),
-                            'show_prepared_for': show_prepared_for_tab
+                            'show_prepared_for': st.session_state.get('tab_show_prepared_for', True)
                         }
                         
                         # Supabase has already filtered by route type, quality, and fair chance - no post-processing needed
@@ -5613,7 +5613,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                             coach_username=coach.username,
                             candidate_name=candidate_name_tab if 'candidate_name_tab' in locals() else st.session_state.get('candidate_name', ''),
                             candidate_id=candidate_id_tab if 'candidate_id_tab' in locals() else st.session_state.get('candidate_id', ''),
-                            show_prepared_for=show_prepared_for_tab
+                            show_prepared_for=st.session_state.get('tab_show_prepared_for', True)
                         )
                         if pdf_bytes:
                             st.download_button(
