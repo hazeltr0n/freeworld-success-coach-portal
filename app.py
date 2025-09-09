@@ -4246,7 +4246,7 @@ def main():
                                                                             coach_username=coach.username,
                                                                             candidate_name=candidate_name,
                                                                             candidate_id=candidate_id,
-                                                                            show_prepared_for=st.session_state.get('tab_show_prepared_for', True)
+                                                                            show_prepared_for=(lambda x: print(f"🔍 APP DEBUG: tab_show_prepared_for session value = {x}") or x)(st.session_state.get('tab_show_prepared_for', True))
                                                                         )
                                                                     if pdf_bytes:
                                                                         # Store PDF in session state

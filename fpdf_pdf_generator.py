@@ -878,6 +878,9 @@ class FreeWorldJobCardFPDF(FPDF):
 def generate_fpdf_job_cards(jobs_df, output_path, market="Unknown", coach_name:"str"="", coach_username:"str"="", candidate_name:"str"="", candidate_id:"str"="", show_prepared_for:bool=True):
     """Generate job cards using FPDF2 with beautiful title page"""
     
+    print(f"🔍 FPDF DEBUG: show_prepared_for received = {show_prepared_for} (type: {type(show_prepared_for)})")
+    print(f"🔍 FPDF DEBUG: candidate_name = '{candidate_name}', coach_name = '{coach_name}'")
+    
     # Read coach/candidate info from DataFrame if available (preferred method)
     if len(jobs_df) > 0:
         # Prefer canonical agent.* fields; fall back to legacy meta.*
