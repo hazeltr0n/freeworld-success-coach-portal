@@ -610,7 +610,7 @@ class FreeWorldPipelineV3:
     def _generate_pdf_output(self, df: pd.DataFrame, location: str, coach_name: str, show_prepared_for: bool = True, candidate_name: str = "", candidate_id: str = "") -> str:
         """Generate PDF output file"""
         try:
-                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             filename = f"{location.replace(', ', '_').replace(' ', '_')}_memory_{timestamp}.pdf"
             filepath = os.path.join(self.output_dir, filename)
             
