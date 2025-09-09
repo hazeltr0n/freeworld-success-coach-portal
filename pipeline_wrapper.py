@@ -1024,31 +1024,25 @@ class StreamlitPipelineWrapper:
             with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
                 temp_path = tmp_file.name
             
-            # Convert HTML to PDF using xhtml2pdf (pure Python, works in cloud)
-            try:
-                from xhtml2pdf import pisa
-                from pdf_css_converter import convert_css_variables_for_xhtml2pdf
-                
-                # Convert CSS variables to hex colors for xhtml2pdf compatibility
-                html_converted = convert_css_variables_for_xhtml2pdf(html)
-                
-                with open(temp_path, "wb") as result_file:
-                    pisa_status = pisa.CreatePDF(html_converted, dest=result_file)
-                
-                if pisa_status.err:
-                    print(f"❌ xhtml2pdf generation failed with errors")
-                    return b""
-            except ImportError:
-                print(f"⚠️ xhtml2pdf not available - cannot generate PDF")
-                return b""
+            # Generate PDF using clean FPDF2 generator (EXACT parameter alignment)
+            from fpdf_pdf_generator_v2 import generate_pdf_bytes_from_dataframe
             
-            # Read PDF bytes
-            if os.path.exists(temp_path):
-                with open(temp_path, 'rb') as f:
-                    pdf_bytes = f.read()
-                os.unlink(temp_path)  # Clean up temp file
+            pdf_bytes = generate_pdf_bytes_from_dataframe(
+                df=df,
+                market=market_name,
+                coach_name=coach_name,
+                coach_username=coach_username,
+                candidate_name=candidate_name,
+                candidate_id=candidate_id,
+                show_prepared_for=show_prepared_for  # CRITICAL: Pass exactly as received
+            )
+            
+            if pdf_bytes:
                 print(f"✅ FPDF2 PDF generated successfully: {len(pdf_bytes)} bytes")
                 return pdf_bytes
+            else:
+                print(f"❌ FPDF2 PDF generation failed")
+                return b""
             
             return b""
         except Exception as e:

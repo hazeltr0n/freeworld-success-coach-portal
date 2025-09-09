@@ -634,24 +634,24 @@ class FreeWorldPipelineV3:
             jobs = jobs_dataframe_to_dicts(df)
             html = render_jobs_html(jobs, agent_params)
             
-            # Convert HTML to PDF using xhtml2pdf (pure Python, works in cloud)
-            try:
-                from xhtml2pdf import pisa
-                from pdf_css_converter import convert_css_variables_for_xhtml2pdf
-                
-                # Convert CSS variables to hex colors for xhtml2pdf compatibility
-                html_converted = convert_css_variables_for_xhtml2pdf(html)
-                
-                with open(filepath, "wb") as result_file:
-                    pisa_status = pisa.CreatePDF(html_converted, dest=result_file)
-                
-                if not pisa_status.err:
-                    print(f"✅ PDF generated with xhtml2pdf: {filepath}")
-                else:
-                    print(f"❌ xhtml2pdf generation failed with errors")
-                    return ""
-            except ImportError:
-                print(f"⚠️ xhtml2pdf not available - cannot generate PDF")
+            # Generate PDF using clean FPDF2 generator (EXACT parameter alignment)
+            from fpdf_pdf_generator_v2 import generate_pdf_from_dataframe
+            
+            result = generate_pdf_from_dataframe(
+                df=df,
+                output_path=filepath,
+                market=location,
+                coach_name=coach_name,
+                coach_username=coach_name,  # Use coach_name for both
+                candidate_name=candidate_name,
+                candidate_id=candidate_id,
+                show_prepared_for=show_prepared_for  # CRITICAL: Pass exactly as received
+            )
+            
+            if result and result.get('success'):
+                print(f"✅ FPDF2 PDF generated successfully: {filepath}")
+            else:
+                print(f"❌ FPDF2 PDF generation failed")
                 return ""
             
             return filepath
@@ -2005,26 +2005,26 @@ class FreeWorldPipelineV3:
             jobs = jobs_dataframe_to_dicts(pdf_df)
             html = render_jobs_html(jobs, agent_params)
             
-            # Convert HTML to PDF using xhtml2pdf (pure Python, works in cloud)
-            try:
-                from xhtml2pdf import pisa
-                from pdf_css_converter import convert_css_variables_for_xhtml2pdf
-                
-                # Convert CSS variables to hex colors for xhtml2pdf compatibility
-                html_converted = convert_css_variables_for_xhtml2pdf(html)
-                
-                with open(pdf_path, "wb") as result_file:
-                    pisa_status = pisa.CreatePDF(html_converted, dest=result_file)
-                
-                if pisa_status.err:
-                    print(f"❌ xhtml2pdf generation failed with errors")
-                    return None
-            except ImportError:
-                print(f"⚠️ xhtml2pdf not available - cannot generate PDF")
-                return None
+            # Generate PDF using clean FPDF2 generator (EXACT parameter alignment)
+            from fpdf_pdf_generator_v2 import generate_pdf_from_dataframe
             
-            print(f"✅ PDF generated: {pdf_path}")
-            return pdf_path
+            result = generate_pdf_from_dataframe(
+                df=pdf_df,
+                output_path=pdf_path,
+                market=market,
+                coach_name=coach_name,
+                coach_username=coach_username,
+                candidate_name=candidate_name,
+                candidate_id=candidate_id,
+                show_prepared_for=show_prepared_for  # CRITICAL: Pass exactly as received
+            )
+            
+            if result and result.get('success'):
+                print(f"✅ FPDF2 PDF generated successfully: {pdf_path}")
+                return pdf_path
+            else:
+                print(f"❌ FPDF2 PDF generation failed")
+                return None
             
         except Exception as e:
             print(f"❌ PDF generation failed: {e}")
@@ -2080,29 +2080,24 @@ class FreeWorldPipelineV3:
                 f.write(html)
             print(f"   📄 HTML saved for debugging: {html_path}")
             
-            # Convert HTML to PDF using xhtml2pdf (pure Python, works in cloud)
-            try:
-                from xhtml2pdf import pisa
-                from pdf_css_converter import convert_css_variables_for_xhtml2pdf
-                
-                # Convert CSS variables to hex colors for xhtml2pdf compatibility
-                html_converted = convert_css_variables_for_xhtml2pdf(html)
-                
-                with open(pdf_path, "wb") as result_file:
-                    pisa_status = pisa.CreatePDF(html_converted, dest=result_file)
-                
-                if pisa_status.err:
-                    print(f"   ❌ xhtml2pdf generation failed with errors")
-                    return None
-                else:
-                    print(f"   ✅ PDF generated with xhtml2pdf: {pdf_path}")
-            except ImportError:
-                print(f"   ⚠️ xhtml2pdf not available - cannot generate PDF")
-                return None
+            # Generate PDF using clean FPDF2 generator (EXACT parameter alignment)
+            from fpdf_pdf_generator_v2 import generate_pdf_bytes_from_dataframe
             
-            # Read PDF as bytes
-            with open(pdf_path, 'rb') as f:
-                pdf_bytes = f.read()
+            pdf_bytes = generate_pdf_bytes_from_dataframe(
+                df=df,
+                market=market_name,
+                coach_name=coach_name,
+                coach_username=coach_username,
+                candidate_name=candidate_name,
+                candidate_id=candidate_id,
+                show_prepared_for=show_prepared_for  # CRITICAL: Pass exactly as received
+            )
+            
+            if pdf_bytes:
+                print(f"   ✅ FPDF2 PDF generated successfully: {len(pdf_bytes)} bytes")
+            else:
+                print(f"   ❌ FPDF2 PDF generation failed")
+                return None
             
             # Clean up temp file
             try:
