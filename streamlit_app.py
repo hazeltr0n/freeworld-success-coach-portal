@@ -359,7 +359,8 @@ def main():
                 'no_experience': no_experience,
                 'force_fresh': force_fresh,
                 'use_multi_search': use_multi_search,
-                'coach_name': coach.full_name
+                'coach_name': coach.full_name,
+                'show_prepared_for': st.session_state.get('show_prepared_for', True)
             }
 
             # Pass multi-market selection if provided
