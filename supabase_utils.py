@@ -15,25 +15,41 @@ def get_client() -> "Client | None":
 
     Requires SUPABASE_URL and SUPABASE_ANON_KEY (or service role key if using RLS writes).
     """
-    # Try environment variables first
-    url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_ANON_KEY")
+    # Check for offline mode first
+    offline_mode = os.getenv('OFFLINE_MODE', '').lower() in ('true', '1', 'yes')
+    if offline_mode:
+        return None
     
-    # If not found, try Streamlit secrets (for Streamlit Cloud deployment)
+    # Try Streamlit secrets first (for deployment)
+    url = None
+    key = None
+    try:
+        import streamlit as st
+        if hasattr(st, 'secrets'):
+            offline_from_secrets = st.secrets.get("OFFLINE_MODE", "").lower() in ('true', '1', 'yes')
+            if offline_from_secrets:
+                return None
+            url = st.secrets.get("SUPABASE_URL")
+            key = st.secrets.get("SUPABASE_ANON_KEY")
+    except:
+        pass
+    
+    # Fallback to environment variables
     if not url or not key:
-        try:
-            import streamlit as st
-            if hasattr(st, 'secrets'):
-                url = url or st.secrets.get("SUPABASE_URL") 
-                key = key or st.secrets.get("SUPABASE_ANON_KEY")
-        except:
-            pass
+        url = os.getenv("SUPABASE_URL")
+        key = os.getenv("SUPABASE_ANON_KEY")
+    
+    # Check if we have dummy/test values (offline mode)
+    if url and ('dummy' in url.lower() or 'test' in url.lower()):
+        return None
     
     if not (url and key) or create_client is None:
         return None
     try:
         return create_client(url, key)
-    except Exception:
+    except Exception as e:
+        # Log the specific error for debugging
+        print(f"⚠️  Supabase connection failed: {e}")
         return None
 
 

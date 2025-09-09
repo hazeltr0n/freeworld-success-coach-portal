@@ -327,5 +327,5 @@ def export_pdf_playwright(html: str, output_path: str):
             browser.close()
 
 def export_pdf_weasyprint(html: str, output_path: str):
-    from weasyprint import HTML
-    HTML(string=html, base_url=str(BASE)).write_pdf(output_path)
+    """Export PDF using Playwright (renamed for compatibility)"""
+    export_pdf_playwright(html, output_path)
