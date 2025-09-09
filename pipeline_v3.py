@@ -495,7 +495,7 @@ class FreeWorldPipelineV3:
                         candidate_id=cand_id_param
                     )
                 except Exception:
-                    pdf_path = self._generate_pdf_output(final_df, location, coach_username or 'Memory Search', show_prepared_for)
+                    pdf_path = self._generate_pdf_output(final_df, location, coach_username or 'Memory Search', show_prepared_for, cand_name_param, cand_id_param)
                 files['pdf'] = pdf_path
                 print(f"📄 PDF generated: {pdf_path}")
             
