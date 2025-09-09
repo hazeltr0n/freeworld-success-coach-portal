@@ -265,8 +265,6 @@ def render_jobs_html(jobs: List[Dict], agent_params=None, *, fragment: bool = Fa
 
     tmpl = env.get_template("report.html")
     try:
-        print(f"   🔍 HTML RENDER DEBUG: agent_params = {agent_params}")
-        print(f"   🔍 HTML RENDER DEBUG: show_prepared_for = {agent_params.get('show_prepared_for')}")
         html = tmpl.render(
             location=location,
             generated_on=generated_on,

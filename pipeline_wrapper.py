@@ -1001,7 +1001,6 @@ class StreamlitPipelineWrapper:
             print(f"   Candidate: '{candidate_name}' (empty={not candidate_name})")
             print(f"   Candidate ID: '{candidate_id}' (empty={not candidate_id})")
             print(f"   Show Prepared For: {show_prepared_for}")
-            print(f"   🔍 DEBUG: show_prepared_for type = {type(show_prepared_for)}, value = '{show_prepared_for}'")
             
             # Try to use HTML template system first for better control over prepared message
             try:
@@ -1017,15 +1016,11 @@ class StreamlitPipelineWrapper:
                     'show_prepared_for': show_prepared_for
                 }
                 
-                print(f"   🔧 Using HTML template system with agent_params: {agent_params}")
-                print(f"   🔍 DEBUG: agent_params['show_prepared_for'] = {agent_params.get('show_prepared_for')}")
-                
                 # Convert DataFrame to job dictionaries
                 jobs = jobs_dataframe_to_dicts(df)
                 
                 # Generate HTML using the template system
                 html = render_jobs_html(jobs, agent_params)
-                print(f"🔍 CRITICAL: Using HTML template path for PDF generation!")
                 
                 # Create temporary PDF file
                 import tempfile
@@ -1056,7 +1051,6 @@ class StreamlitPipelineWrapper:
                 temp_path = tmp_file.name
             
             # Generate PDF using FPDF (legacy path - now supports show_prepared_for)
-            print(f"🔍 CRITICAL: Using FPDF fallback path for PDF generation!")
             generate_fpdf_job_cards(
                 df, 
                 temp_path, 

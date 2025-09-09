@@ -878,8 +878,6 @@ class FreeWorldJobCardFPDF(FPDF):
 def generate_fpdf_job_cards(jobs_df, output_path, market="Unknown", coach_name:"str"="", coach_username:"str"="", candidate_name:"str"="", candidate_id:"str"="", show_prepared_for:bool=True):
     """Generate job cards using FPDF2 with beautiful title page"""
     
-    print(f"🔍 FPDF DEBUG: show_prepared_for received = {show_prepared_for} (type: {type(show_prepared_for)})")
-    print(f"🔍 FPDF DEBUG: candidate_name = '{candidate_name}', coach_name = '{coach_name}'")
     
     # Read coach/candidate info from DataFrame if available (preferred method)
     if len(jobs_df) > 0:
@@ -899,6 +897,11 @@ def generate_fpdf_job_cards(jobs_df, output_path, market="Unknown", coach_name:"
         coach_username = (df_coach_username_agent or df_coach_username_meta or coach_username)
         candidate_name = (df_candidate_name_agent or df_candidate_name_meta or candidate_name)
         candidate_id = (df_candidate_id_agent or df_candidate_id_meta or candidate_id)
+        
+        # Override names if show_prepared_for is False (hide message but keep DataFrame tracking)
+        if not show_prepared_for:
+            coach_name = ""
+            candidate_name = ""
     
     # Debug: Check what we received/extracted
     print(f"🔍 PDF Generator received: {len(jobs_df)} jobs")
