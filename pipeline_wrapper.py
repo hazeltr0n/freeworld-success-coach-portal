@@ -1025,6 +1025,7 @@ class StreamlitPipelineWrapper:
                 
                 # Generate HTML using the template system
                 html = render_jobs_html(jobs, agent_params)
+                print(f"🔍 CRITICAL: Using HTML template path for PDF generation!")
                 
                 # Create temporary PDF file
                 import tempfile
@@ -1055,6 +1056,7 @@ class StreamlitPipelineWrapper:
                 temp_path = tmp_file.name
             
             # Generate PDF using FPDF (legacy path - now supports show_prepared_for)
+            print(f"🔍 CRITICAL: Using FPDF fallback path for PDF generation!")
             generate_fpdf_job_cards(
                 df, 
                 temp_path, 
