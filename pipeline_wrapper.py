@@ -524,6 +524,8 @@ class StreamlitPipelineWrapper:
                 env['FREEWORLD_CANDIDATE_NAME'] = params.get('candidate_name')
             if params.get('candidate_id'):
                 env['FREEWORLD_CANDIDATE_ID'] = params.get('candidate_id')
+            if 'show_prepared_for' in params:
+                env['FREEWORLD_SHOW_PREPARED_FOR'] = str(params['show_prepared_for']).lower()
             
             # Ensure subprocess uses same Python environment
             env['PYTHONPATH'] = ':'.join(sys.path)

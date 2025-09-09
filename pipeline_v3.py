@@ -1715,6 +1715,11 @@ class FreeWorldPipelineV3:
                 candidate_name = os.getenv('FREEWORLD_CANDIDATE_NAME', '')
                 candidate_id = os.getenv('FREEWORLD_CANDIDATE_ID', '')
                 
+            # Override show_prepared_for from environment if set (for subprocess calls)
+            env_show_prepared = os.getenv('FREEWORLD_SHOW_PREPARED_FOR')
+            if env_show_prepared is not None:
+                show_prepared_for = env_show_prepared.lower() == 'true'
+                
             pdf_path = self._generate_pdf(exportable_df, market, custom_location, coach_name, coach_username, candidate_name, candidate_id, show_prepared_for=show_prepared_for)
             results['pdf_path'] = pdf_path
             if pdf_path:
