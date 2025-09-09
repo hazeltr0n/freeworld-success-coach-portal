@@ -247,7 +247,8 @@ class StreamlitPipelineWrapper:
                     # NUCLEAR FIX: Pass Free Agent parameters directly to pipeline_v3
                     candidate_name=params.get('candidate_name', ''),
                     candidate_id=params.get('candidate_id', ''),
-                    force_link_generation=params.get('force_link_generation', False)
+                    force_link_generation=params.get('force_link_generation', False),
+                    show_prepared_for=params.get('show_prepared_for', True)
                 )
 
                 df_part = results.get('jobs_df')

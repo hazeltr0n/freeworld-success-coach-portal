@@ -170,6 +170,7 @@ class FreeWorldPipelineV3:
         generate_csv: bool = True,
         hours: int = 72,
         text_search: bool = False,
+        show_prepared_for: bool = True,
         # NUCLEAR FIX: Add Free Agent parameters
         candidate_name: str = "",
         candidate_id: str = "",
@@ -494,7 +495,7 @@ class FreeWorldPipelineV3:
                         candidate_id=cand_id_param
                     )
                 except Exception:
-                    pdf_path = self._generate_pdf_output(final_df, location, coach_username or 'Memory Search')
+                    pdf_path = self._generate_pdf_output(final_df, location, coach_username or 'Memory Search', show_prepared_for)
                 files['pdf'] = pdf_path
                 print(f"📄 PDF generated: {pdf_path}")
             
@@ -607,7 +608,7 @@ class FreeWorldPipelineV3:
         
         return filepath
     
-    def _generate_pdf_output(self, df: pd.DataFrame, location: str, coach_name: str) -> str:
+    def _generate_pdf_output(self, df: pd.DataFrame, location: str, coach_name: str, show_prepared_for: bool = True) -> str:
         """Generate PDF output file"""
         try:
             from fpdf_pdf_generator import generate_fpdf_job_cards
@@ -622,7 +623,8 @@ class FreeWorldPipelineV3:
                 jobs_df=df,
                 output_path=filepath,
                 market=location,
-                coach_name=coach_name
+                coach_name=coach_name,
+                show_prepared_for=show_prepared_for
             )
             
             return filepath
