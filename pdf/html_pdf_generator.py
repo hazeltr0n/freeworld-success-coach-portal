@@ -108,38 +108,14 @@ def jobs_dataframe_to_dicts(df) -> List[Dict]:
                 pass
         return txt
 
-    # Sort for portal parity: excellent match first, then fair-chance, then local → OTR → unknown
-    df_sorted = df.copy()
+    # Use unified sorting to match FPDF exactly
     try:
-        def _is_good(x):
-            return 0 if str(x).lower() == 'good' else 1
-        def _is_fair(x):
-            xs = str(x).lower()
-            return 0 if ('fair_chance_employer' in xs or xs in ('true', 'yes', '1')) else 1
-        def _route_priority(x):
-            # Local first (0), then OTR (1), then Unknown (2) 
-            route = str(x).lower()
-            if route == 'local':
-                return 0
-            elif route in ['otr', 'regional']:
-                return 1
-            else:
-                return 2
-        if 'ai.match' in df_sorted.columns:
-            df_sorted['_s_match'] = df_sorted['ai.match'].map(_is_good)
-        else:
-            df_sorted['_s_match'] = 1
-        if 'ai.fair_chance' in df_sorted.columns:
-            df_sorted['_s_fair'] = df_sorted['ai.fair_chance'].map(_is_fair)
-        else:
-            df_sorted['_s_fair'] = 1
-        if 'ai.route_type' in df_sorted.columns:
-            df_sorted['_s_route'] = df_sorted['ai.route_type'].map(_route_priority)
-        else:
-            df_sorted['_s_route'] = 2  # Default to Unknown priority
-        df_sorted = df_sorted.sort_values(['_s_match', '_s_fair', '_s_route'], ascending=True)
-    except Exception:
-        pass
+        from job_sorting_utils import apply_unified_sorting
+        df_sorted = apply_unified_sorting(df)
+    except Exception as e:
+        # Fallback to original DataFrame if sorting fails
+        print(f"⚠️ Unified sorting failed: {e}, using original order")
+        df_sorted = df.copy()
 
     rows = []
     for _, r in df_sorted.iterrows():
@@ -289,6 +265,8 @@ def render_jobs_html(jobs: List[Dict], agent_params=None, *, fragment: bool = Fa
 
     tmpl = env.get_template("report.html")
     try:
+        print(f"   🔍 HTML RENDER DEBUG: agent_params = {agent_params}")
+        print(f"   🔍 HTML RENDER DEBUG: show_prepared_for = {agent_params.get('show_prepared_for')}")
         html = tmpl.render(
             location=location,
             generated_on=generated_on,
