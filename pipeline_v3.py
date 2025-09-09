@@ -492,7 +492,8 @@ class FreeWorldPipelineV3:
                         coach_name=coach_username,
                         coach_username=coach_username,
                         candidate_name=cand_name_param,
-                        candidate_id=cand_id_param
+                        candidate_id=cand_id_param,
+                        show_prepared_for=show_prepared_for
                     )
                 except Exception:
                     pdf_path = self._generate_pdf_output(final_df, location, coach_username or 'Memory Search', show_prepared_for, cand_name_param, cand_id_param)
@@ -1687,7 +1688,7 @@ class FreeWorldPipelineV3:
                 candidate_name = os.getenv('FREEWORLD_CANDIDATE_NAME', '')
                 candidate_id = os.getenv('FREEWORLD_CANDIDATE_ID', '')
                 
-            pdf_path = self._generate_pdf(exportable_df, market, custom_location, coach_name, coach_username, candidate_name, candidate_id)
+            pdf_path = self._generate_pdf(exportable_df, market, custom_location, coach_name, coach_username, candidate_name, candidate_id, show_prepared_for=True)
             results['pdf_path'] = pdf_path
             if pdf_path:
                 results['files'].append(pdf_path)
