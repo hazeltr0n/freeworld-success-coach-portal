@@ -1024,13 +1024,9 @@ class StreamlitPipelineWrapper:
             with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
                 temp_path = tmp_file.name
             
-            # Convert HTML to PDF using WeasyPrint (maintains exact styling)
-            try:
-                import weasyprint
-                weasyprint.HTML(string=html).write_pdf(temp_path)
-            except ImportError:
-                print(f"⚠️ WeasyPrint not available - cannot generate PDF")
-                return b""
+            # TODO: Convert HTML to PDF using xhtml2pdf
+            print(f"⚠️ PDF generation temporarily disabled - needs xhtml2pdf implementation")
+            return b""
             
             # Read PDF bytes
             if os.path.exists(temp_path):

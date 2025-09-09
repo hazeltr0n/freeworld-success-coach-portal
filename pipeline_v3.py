@@ -634,13 +634,9 @@ class FreeWorldPipelineV3:
             jobs = jobs_dataframe_to_dicts(df)
             html = render_jobs_html(jobs, agent_params)
             
-            # Convert HTML to PDF using WeasyPrint (maintains exact styling)
-            try:
-                import weasyprint
-                weasyprint.HTML(string=html).write_pdf(filepath)
-            except ImportError:
-                print(f"⚠️ WeasyPrint not available - cannot generate PDF")
-                return ""
+            # TODO: Convert HTML to PDF using FPDF2
+            print(f"⚠️ PDF generation temporarily disabled - needs FPDF2 implementation")
+            return ""
             
             return filepath
         except Exception as e:
@@ -1993,13 +1989,9 @@ class FreeWorldPipelineV3:
             jobs = jobs_dataframe_to_dicts(pdf_df)
             html = render_jobs_html(jobs, agent_params)
             
-            # Convert HTML to PDF using WeasyPrint (maintains exact styling)
-            try:
-                import weasyprint
-                weasyprint.HTML(string=html).write_pdf(pdf_path)
-            except ImportError:
-                print(f"⚠️ WeasyPrint not available - cannot generate PDF")
-                return None
+            # TODO: Convert HTML to PDF using xhtml2pdf
+            print(f"⚠️ PDF generation temporarily disabled - needs xhtml2pdf implementation")
+            return None
             
             print(f"✅ PDF generated: {pdf_path}")
             return pdf_path
@@ -2058,14 +2050,10 @@ class FreeWorldPipelineV3:
                 f.write(html)
             print(f"   📄 HTML saved for debugging: {html_path}")
             
-            # Use ReportLab to convert HTML to PDF (maintains exact styling)
-            try:
-                import weasyprint
-                weasyprint.HTML(string=html).write_pdf(pdf_path)
-                print(f"   ✅ PDF generated with WeasyPrint: {pdf_path}")
-            except ImportError:
-                print(f"   ⚠️ WeasyPrint not available - HTML saved instead: {html_path}")
-                return None
+            # TODO: Convert HTML to PDF using xhtml2pdf
+            print(f"   ⚠️ PDF generation temporarily disabled - needs xhtml2pdf implementation")
+            print(f"   📄 HTML saved for debugging: {html_path}")
+            return None
             
             # Read PDF as bytes
             with open(pdf_path, 'rb') as f:
