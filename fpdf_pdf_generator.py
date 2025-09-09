@@ -78,53 +78,73 @@ def generate_fpdf_job_cards_from_template_data(jobs: List[Dict], agent_params: D
         pdf.set_font('Arial', 'B', 14)
         pdf.set_text_color(0, 71, 81)
         
-        # EXACTLY MIRROR HTML template fields
+        # EXACTLY MIRROR _job_card.html template structure
+        
+        # Job Title (line 5: {{ job.title }})
         title = job.get('title', 'Unknown Title')[:60] + ('...' if len(job.get('title', '')) > 60 else '')
         pdf.cell(0, 10, title, 0, 1)
         
-        # Company and location - EXACTLY like HTML template
+        # Badges Row (lines 10-17)
+        pdf.set_font('Arial', '', 10)
+        pdf.set_text_color(0, 0, 0)
+        
+        badges = []
+        match_badge = job.get('match_badge', '')
+        if match_badge == 'Excellent Match':
+            badges.append('[EXCELLENT MATCH]')
+        elif match_badge == 'Possible Fit':
+            badges.append('[POSSIBLE FIT]')
+            
+        if job.get('fair_chance', False):
+            badges.append('[FAIR CHANCE EMPLOYER]')
+            
+        if badges:
+            pdf.cell(0, 8, ' '.join(badges), 0, 1)
+        
+        # Metadata Row (lines 21-32)
         pdf.set_font('Arial', '', 11)
         pdf.set_text_color(0, 0, 0)
-        company = job.get('company', 'Unknown Company')
-        city = job.get('city', '')
-        state = job.get('state', '')
         
-        # Build location string like HTML template does
-        if city and state:
-            location_str = f"{city}, {state}"
+        # Company (line 22)
+        company = job.get('company', 'Unknown Company')
+        pdf.cell(0, 8, company, 0, 1)
+        
+        # Location (lines 23-27) - EXACT template logic
+        if job.get('city') or job.get('state'):
+            city = job.get('city', '')
+            state = job.get('state', '')
+            if city and state:
+                location_str = f"{city}, {state}"
+            elif city:
+                location_str = city
+            elif state:
+                location_str = state
         elif job.get('location'):
             location_str = job.get('location')
         else:
-            location_str = 'Unknown Location'
+            location_str = None
             
-        pdf.cell(0, 8, f"{company} - {location_str}", 0, 1)
+        if location_str:
+            pdf.cell(0, 8, location_str, 0, 1)
         
-        # Match badge and route type - EXACTLY like HTML template
-        match_badge = job.get('match_badge', '')  # 'Excellent Match', 'Possible Fit', or ''
-        route_type = job.get('route_type', 'Unknown')
+        # Route Type (lines 29-31)
+        route_type = job.get('route_type', '')
+        if route_type and route_type != 'Unknown':
+            pdf.cell(0, 8, route_type, 0, 1)
         
-        if match_badge:
-            pdf.cell(0, 8, f"{match_badge} - {route_type} Route", 0, 1)
-        else:
-            pdf.cell(0, 8, f"{route_type} Route", 0, 1)
+        # Summary Content (lines 35-42) - EXACT template logic
+        pdf.set_font('Arial', '', 9)
+        pdf.set_text_color(60, 60, 60)
         
-        # Fair chance employer - EXACTLY like HTML template
-        if job.get('fair_chance', False):
-            pdf.cell(0, 8, "Fair Chance Employer", 0, 1)
-        
-        # Description - use AI summary (description_summary field) - EXACTLY like HTML template
-        description = job.get('description_summary', job.get('description', ''))
+        # Use description_summary first, then description_full (same as template)
+        description = job.get('description_summary', job.get('description_full', ''))
         if description and description.strip():
-            # AI summary is clean text, no bullets or Unicode
+            # Clean and wrap text
             desc_clean = str(description).strip()
             desc_short = desc_clean[:300] + ('...' if len(desc_clean) > 300 else '')
             
-            pdf.set_font('Arial', '', 9)
-            pdf.set_text_color(60, 60, 60)
-            
-            # Wrap text for PDF
             lines = textwrap.wrap(desc_short, width=100)
-            for line in lines[:3]:  # Max 3 lines
+            for line in lines[:4]:  # Allow more lines for summary
                 pdf.cell(0, 6, line, 0, 1)
         
         # Separator line
