@@ -1967,10 +1967,10 @@ class FreeWorldPipelineV3:
             pdf_filename = f"FreeWorld_Jobs_{market}_{timestamp.replace(':', '.')}.pdf"
             pdf_path = os.path.join(location_folder, pdf_filename)
             
-            # Use HTML template system for PDF generation
-            from pdf.html_pdf_generator import jobs_dataframe_to_dicts, render_jobs_html, export_pdf_weasyprint
+            # Use FPDF2 for PDF generation with template-compatible parameters
+            from fpdf_pdf_generator import generate_pdf_from_dataframe
             
-            # Build agent_params
+            # Build agent_params - same format as HTML template system
             agent_params = {
                 'location': market,
                 'agent_name': candidate_name,
@@ -1980,14 +1980,8 @@ class FreeWorldPipelineV3:
                 'show_prepared_for': show_prepared_for
             }
             
-            # Convert DataFrame to job dictionaries
-            jobs = jobs_dataframe_to_dicts(pdf_df)
-            
-            # Generate HTML using the template system
-            html = render_jobs_html(jobs, agent_params)
-            
-            # Use WeasyPrint for HTML-to-PDF conversion
-            export_pdf_weasyprint(html, pdf_path)
+            # Generate PDF using FPDF2 with template-compatible interface
+            generate_pdf_from_dataframe(pdf_df, agent_params, pdf_path)
             
             print(f"✅ PDF generated: {pdf_path}")
             return pdf_path
@@ -2012,100 +2006,43 @@ class FreeWorldPipelineV3:
             print(f"   Candidate ID: '{candidate_id}' (empty={not candidate_id})")
             print(f"   Show Prepared For: {show_prepared_for}")
             
-            # Use HTML template system for better control over prepared message
-            if jobs_dataframe_to_dicts and render_jobs_html:
-                # Build agent_params with all necessary data
-                agent_params = {
-                    'location': market_name,
-                    'agent_name': candidate_name,
-                    'agent_uuid': candidate_id,
-                    'coach_name': coach_name,
-                    'coach_username': coach_username,
-                    'show_prepared_for': show_prepared_for
-                }
-                
-                print(f"   🔧 Using HTML template system with agent_params: {agent_params}")
-                
-                # Convert DataFrame to job dictionaries
-                jobs = jobs_dataframe_to_dicts(df)
-                
-                # Generate HTML using the template system
-                html = render_jobs_html(jobs, agent_params)
-                
-                # Create temporary file path for PDF output
-                temp_dir = os.path.join(self.output_dir, "temp_pdfs")
-                os.makedirs(temp_dir, exist_ok=True)
-                
-                pdf_filename = f"FreeWorld_Jobs_{market_name}_{timestamp}.pdf"
-                pdf_path = os.path.join(temp_dir, pdf_filename)
-                
-                # Use WeasyPrint for HTML-to-PDF conversion
-                try:
-                    from pdf.html_pdf_generator import export_pdf_weasyprint
-                    export_pdf_weasyprint(html, pdf_path)
-                except ImportError:
-                    # Fallback to Playwright if WeasyPrint not available
-                    from pdf.html_pdf_generator import export_pdf_playwright
-                    export_pdf_playwright(html, pdf_path)
-                
-                # Read PDF as bytes
-                with open(pdf_path, 'rb') as f:
-                    pdf_bytes = f.read()
-                
-                # Clean up temp file
-                try:
-                    os.remove(pdf_path)
-                except:
-                    pass
-                
-                print(f"✅ HTML-based PDF generated successfully: {len(pdf_bytes)} bytes")
-                return pdf_bytes
-                
-            else:
-                # Fallback to FPDF system if HTML system not available
-                print("⚠️ HTML template system not available, falling back to FPDF")
-                
-                # Create temporary file path
-                temp_dir = os.path.join(self.output_dir, "temp_pdfs")
-                os.makedirs(temp_dir, exist_ok=True)
-                
-                pdf_filename = f"FreeWorld_Jobs_{market_name}_{timestamp}.pdf"
-                pdf_path = os.path.join(temp_dir, pdf_filename)
-                
-                # Use HTML template system for PDF generation
-                from pdf.html_pdf_generator import jobs_dataframe_to_dicts, render_jobs_html, export_pdf_weasyprint
-                
-                # Build agent_params
-                agent_params = {
-                    'location': market_name,
-                    'agent_name': candidate_name,
-                    'agent_uuid': candidate_id,
-                    'coach_name': coach_name,
-                    'coach_username': coach_username,
-                    'show_prepared_for': show_prepared_for
-                }
-                
-                # Convert DataFrame to job dictionaries
-                jobs = jobs_dataframe_to_dicts(df)
-                
-                # Generate HTML using the template system
-                html = render_jobs_html(jobs, agent_params)
-                
-                # Use WeasyPrint for HTML-to-PDF conversion
-                export_pdf_weasyprint(html, pdf_path)
-                
-                # Read PDF as bytes
-                with open(pdf_path, 'rb') as f:
-                    pdf_bytes = f.read()
-                
-                # Clean up temp file
-                try:
-                    os.remove(pdf_path)
-                except:
-                    pass
-                
-                print(f"✅ FPDF-based PDF generated successfully: {len(pdf_bytes)} bytes")
-                return pdf_bytes
+            # Use FPDF2 for PDF generation - single clean path
+            from fpdf_pdf_generator import generate_pdf_from_dataframe
+            
+            # Build agent_params with all necessary data
+            agent_params = {
+                'location': market_name,
+                'agent_name': candidate_name,
+                'agent_uuid': candidate_id,
+                'coach_name': coach_name,
+                'coach_username': coach_username,
+                'show_prepared_for': show_prepared_for
+            }
+            
+            print(f"   🔧 Using FPDF2 system with agent_params: {agent_params}")
+            
+            # Create temporary file path for PDF output
+            temp_dir = os.path.join(self.output_dir, "temp_pdfs")
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            pdf_filename = f"FreeWorld_Jobs_{market_name}_{timestamp}.pdf"
+            pdf_path = os.path.join(temp_dir, pdf_filename)
+            
+            # Generate PDF directly using FPDF2
+            generate_pdf_from_dataframe(df, agent_params, pdf_path)
+            
+            # Read PDF as bytes
+            with open(pdf_path, 'rb') as f:
+                pdf_bytes = f.read()
+            
+            # Clean up temp file
+            try:
+                os.remove(pdf_path)
+            except:
+                pass
+            
+            print(f"✅ FPDF2 PDF generated successfully: {len(pdf_bytes)} bytes")
+            return pdf_bytes
             
         except Exception as e:
             print(f"❌ UI PDF generation failed: {e}")
