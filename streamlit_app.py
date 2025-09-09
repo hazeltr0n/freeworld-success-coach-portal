@@ -520,6 +520,10 @@ def main():
                                 # Get show_prepared_for setting
                                 show_prepared_for = st.session_state.get('show_prepared_for', True)
                                 
+                                # DEBUG: Show what we're actually sending
+                                st.write(f"🔍 DEBUG: show_prepared_for = {show_prepared_for}")
+                                st.write(f"🔍 DEBUG: session_state keys = {list(st.session_state.keys())}")
+                                
                                 pdf_bytes = pipeline.generate_pdf_from_canonical(
                                     quality_df, 
                                     market_name,
