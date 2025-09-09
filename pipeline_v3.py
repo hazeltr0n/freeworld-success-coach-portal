@@ -604,58 +604,6 @@ class FreeWorldPipelineV3:
         
         return filepath
     
-    def _generate_pdf_output(self, df: pd.DataFrame, location: str, coach_name: str, show_prepared_for: bool = True, candidate_name: str = "", candidate_id: str = "") -> str:
-        """Generate PDF output file"""
-        try:
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"{location.replace(', ', '_').replace(' ', '_')}_memory_{timestamp}.pdf"
-            filepath = os.path.join(self.output_dir, filename)
-            
-            # Create directory if it doesn't exist
-            os.makedirs(os.path.dirname(filepath), exist_ok=True)
-            
-            # Use YOUR HTML template system - EXACTLY like HTML preview
-            from pdf.html_pdf_generator import jobs_dataframe_to_dicts, render_jobs_html
-            
-            # Build agent_params - same format as HTML template system
-            agent_params = {
-                'location': location,
-                'agent_name': candidate_name,
-                'agent_uuid': candidate_id,
-                'coach_name': coach_name,
-                'coach_username': coach_name,
-                'show_prepared_for': show_prepared_for
-            }
-            
-            # Convert DataFrame and generate HTML using YOUR template system
-            jobs = jobs_dataframe_to_dicts(df)
-            html = render_jobs_html(jobs, agent_params)
-            
-            # Generate PDF using clean FPDF2 generator (EXACT parameter alignment)
-            from fpdf_pdf_generator_v2 import generate_pdf_from_dataframe
-            
-            result = generate_pdf_from_dataframe(
-                df=df,
-                output_path=filepath,
-                market=location,
-                coach_name=coach_name,
-                coach_username=coach_name,  # Use coach_name for both
-                candidate_name=candidate_name,
-                candidate_id=candidate_id,
-                show_prepared_for=show_prepared_for  # CRITICAL: Pass exactly as received
-            )
-            
-            if result and result.get('success'):
-                print(f"✅ FPDF2 PDF generated successfully: {filepath}")
-            else:
-                print(f"❌ FPDF2 PDF generation failed")
-                return ""
-            
-            return filepath
-        except Exception as e:
-            print(f"⚠️ PDF generation failed: {e}")
-            return ""
-    
     def run_complete_pipeline(
         self,
         location: str,
