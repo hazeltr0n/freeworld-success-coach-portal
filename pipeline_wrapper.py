@@ -1002,8 +1002,8 @@ class StreamlitPipelineWrapper:
             print(f"   Candidate ID: '{candidate_id}' (empty={not candidate_id})")
             print(f"   Show Prepared For: {show_prepared_for}")
             
-            # Use FPDF2 for PDF generation with template-compatible parameters
-            from fpdf_pdf_generator import generate_pdf_from_dataframe
+            # Use YOUR HTML template system - EXACTLY like HTML preview
+            from pdf.html_pdf_generator import jobs_dataframe_to_dicts, render_jobs_html
             
             # Build agent_params - same format as HTML template system
             agent_params = {
@@ -1015,13 +1015,22 @@ class StreamlitPipelineWrapper:
                 'show_prepared_for': show_prepared_for
             }
             
+            # Convert DataFrame and generate HTML using YOUR template system
+            jobs = jobs_dataframe_to_dicts(df)
+            html = render_jobs_html(jobs, agent_params)
+            
             # Create temporary PDF file
             import tempfile
             with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
                 temp_path = tmp_file.name
             
-            # Generate PDF using FPDF2 with template-compatible interface
-            generate_pdf_from_dataframe(df, agent_params, temp_path)
+            # Convert HTML to PDF using WeasyPrint (maintains exact styling)
+            try:
+                import weasyprint
+                weasyprint.HTML(string=html).write_pdf(temp_path)
+            except ImportError:
+                print(f"⚠️ WeasyPrint not available - cannot generate PDF")
+                return b""
             
             # Read PDF bytes
             if os.path.exists(temp_path):

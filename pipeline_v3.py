@@ -617,8 +617,8 @@ class FreeWorldPipelineV3:
             # Create directory if it doesn't exist
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             
-            # Use FPDF2 for PDF generation with template-compatible parameters
-            from fpdf_pdf_generator import generate_pdf_from_dataframe
+            # Use YOUR HTML template system - EXACTLY like HTML preview
+            from pdf.html_pdf_generator import jobs_dataframe_to_dicts, render_jobs_html
             
             # Build agent_params - same format as HTML template system
             agent_params = {
@@ -630,8 +630,17 @@ class FreeWorldPipelineV3:
                 'show_prepared_for': show_prepared_for
             }
             
-            # Generate PDF using FPDF2 with template-compatible interface
-            generate_pdf_from_dataframe(df, agent_params, filepath)
+            # Convert DataFrame and generate HTML using YOUR template system
+            jobs = jobs_dataframe_to_dicts(df)
+            html = render_jobs_html(jobs, agent_params)
+            
+            # Convert HTML to PDF using WeasyPrint (maintains exact styling)
+            try:
+                import weasyprint
+                weasyprint.HTML(string=html).write_pdf(filepath)
+            except ImportError:
+                print(f"⚠️ WeasyPrint not available - cannot generate PDF")
+                return ""
             
             return filepath
         except Exception as e:
@@ -1967,8 +1976,8 @@ class FreeWorldPipelineV3:
             pdf_filename = f"FreeWorld_Jobs_{market}_{timestamp.replace(':', '.')}.pdf"
             pdf_path = os.path.join(location_folder, pdf_filename)
             
-            # Use FPDF2 for PDF generation with template-compatible parameters
-            from fpdf_pdf_generator import generate_pdf_from_dataframe
+            # Use YOUR HTML template system - EXACTLY like HTML preview
+            from pdf.html_pdf_generator import jobs_dataframe_to_dicts, render_jobs_html
             
             # Build agent_params - same format as HTML template system
             agent_params = {
@@ -1980,8 +1989,17 @@ class FreeWorldPipelineV3:
                 'show_prepared_for': show_prepared_for
             }
             
-            # Generate PDF using FPDF2 with template-compatible interface
-            generate_pdf_from_dataframe(pdf_df, agent_params, pdf_path)
+            # Convert DataFrame and generate HTML using YOUR template system
+            jobs = jobs_dataframe_to_dicts(pdf_df)
+            html = render_jobs_html(jobs, agent_params)
+            
+            # Convert HTML to PDF using WeasyPrint (maintains exact styling)
+            try:
+                import weasyprint
+                weasyprint.HTML(string=html).write_pdf(pdf_path)
+            except ImportError:
+                print(f"⚠️ WeasyPrint not available - cannot generate PDF")
+                return None
             
             print(f"✅ PDF generated: {pdf_path}")
             return pdf_path
@@ -2006,10 +2024,10 @@ class FreeWorldPipelineV3:
             print(f"   Candidate ID: '{candidate_id}' (empty={not candidate_id})")
             print(f"   Show Prepared For: {show_prepared_for}")
             
-            # Use FPDF2 for PDF generation - single clean path
-            from fpdf_pdf_generator import generate_pdf_from_dataframe
+            # Use YOUR HTML template system - EXACTLY like HTML preview
+            from pdf.html_pdf_generator import jobs_dataframe_to_dicts, render_jobs_html
             
-            # Build agent_params with all necessary data
+            # Build agent_params - same format as HTML template system
             agent_params = {
                 'location': market_name,
                 'agent_name': candidate_name,
@@ -2019,7 +2037,13 @@ class FreeWorldPipelineV3:
                 'show_prepared_for': show_prepared_for
             }
             
-            print(f"   🔧 Using FPDF2 system with agent_params: {agent_params}")
+            print(f"   🔧 Using HTML template system with agent_params: {agent_params}")
+            
+            # Convert DataFrame to job dictionaries using YOUR template method
+            jobs = jobs_dataframe_to_dicts(df)
+            
+            # Generate HTML using YOUR template system - EXACTLY like preview
+            html = render_jobs_html(jobs, agent_params)
             
             # Create temporary file path for PDF output
             temp_dir = os.path.join(self.output_dir, "temp_pdfs")
@@ -2028,8 +2052,20 @@ class FreeWorldPipelineV3:
             pdf_filename = f"FreeWorld_Jobs_{market_name}_{timestamp}.pdf"
             pdf_path = os.path.join(temp_dir, pdf_filename)
             
-            # Generate PDF directly using FPDF2
-            generate_pdf_from_dataframe(df, agent_params, pdf_path)
+            # Save HTML first for debugging
+            html_path = pdf_path.replace('.pdf', '.html')
+            with open(html_path, 'w', encoding='utf-8') as f:
+                f.write(html)
+            print(f"   📄 HTML saved for debugging: {html_path}")
+            
+            # Use ReportLab to convert HTML to PDF (maintains exact styling)
+            try:
+                import weasyprint
+                weasyprint.HTML(string=html).write_pdf(pdf_path)
+                print(f"   ✅ PDF generated with WeasyPrint: {pdf_path}")
+            except ImportError:
+                print(f"   ⚠️ WeasyPrint not available - HTML saved instead: {html_path}")
+                return None
             
             # Read PDF as bytes
             with open(pdf_path, 'rb') as f:
