@@ -78,39 +78,51 @@ def generate_fpdf_job_cards_from_template_data(jobs: List[Dict], agent_params: D
         pdf.set_font('Arial', 'B', 14)
         pdf.set_text_color(0, 71, 81)
         
-        title = job.get('job_title', 'Unknown Title')[:60] + ('...' if len(job.get('job_title', '')) > 60 else '')
+        # EXACTLY MIRROR HTML template fields
+        title = job.get('title', 'Unknown Title')[:60] + ('...' if len(job.get('title', '')) > 60 else '')
         pdf.cell(0, 10, title, 0, 1)
         
-        # Company and location
+        # Company and location - EXACTLY like HTML template
         pdf.set_font('Arial', '', 11)
         pdf.set_text_color(0, 0, 0)
-        company = job.get('company_name', 'Unknown Company')
-        location = job.get('job_location', 'Unknown Location')
-        pdf.cell(0, 8, f"{company} • {location}", 0, 1)
+        company = job.get('company', 'Unknown Company')
+        city = job.get('city', '')
+        state = job.get('state', '')
         
-        # Salary if available
-        salary = job.get('salary_display', job.get('salary', ''))
-        if salary and salary.strip() and salary.lower() not in ['nan', 'none', '']:
-            pdf.cell(0, 8, f"💰 {salary}", 0, 1)
+        # Build location string like HTML template does
+        if city and state:
+            location_str = f"{city}, {state}"
+        elif job.get('location'):
+            location_str = job.get('location')
+        else:
+            location_str = 'Unknown Location'
+            
+        pdf.cell(0, 8, f"{company} - {location_str}", 0, 1)
         
-        # Match quality and route type
-        match_quality = job.get('match_quality', 'unknown')
+        # Match badge and route type - EXACTLY like HTML template
+        match_badge = job.get('match_badge', '')  # 'Excellent Match', 'Possible Fit', or ''
         route_type = job.get('route_type', 'Unknown')
         
-        match_emoji = {'good': '🟢', 'so-so': '🟡', 'bad': '🔴'}.get(match_quality, '⚪')
-        pdf.cell(0, 8, f"{match_emoji} {match_quality.title()} Match • {route_type} Route", 0, 1)
+        if match_badge:
+            pdf.cell(0, 8, f"{match_badge} - {route_type} Route", 0, 1)
+        else:
+            pdf.cell(0, 8, f"{route_type} Route", 0, 1)
         
-        # Job description (truncated)
-        description = job.get('job_description', job.get('description', ''))
+        # Fair chance employer - EXACTLY like HTML template
+        if job.get('fair_chance', False):
+            pdf.cell(0, 8, "Fair Chance Employer", 0, 1)
+        
+        # Description - use AI summary (description_summary field) - EXACTLY like HTML template
+        description = job.get('description_summary', job.get('description', ''))
         if description and description.strip():
-            # Clean and truncate description
-            desc_clean = description.replace('\n', ' ').replace('\r', ' ')
-            desc_short = desc_clean[:200] + ('...' if len(desc_clean) > 200 else '')
+            # AI summary is clean text, no bullets or Unicode
+            desc_clean = str(description).strip()
+            desc_short = desc_clean[:300] + ('...' if len(desc_clean) > 300 else '')
             
             pdf.set_font('Arial', '', 9)
             pdf.set_text_color(60, 60, 60)
             
-            # Wrap text
+            # Wrap text for PDF
             lines = textwrap.wrap(desc_short, width=100)
             for line in lines[:3]:  # Max 3 lines
                 pdf.cell(0, 6, line, 0, 1)
@@ -126,40 +138,47 @@ def generate_fpdf_job_cards_from_template_data(jobs: List[Dict], agent_params: D
     pdf.output(output_path)
     print(f"✅ FPDF2 PDF generated: {output_path}")
 
-def convert_dataframe_to_job_dicts(df: pd.DataFrame) -> List[Dict]:
-    """Convert DataFrame to job dictionaries compatible with template system"""
-    jobs = []
+def clean_unicode_text(text: str) -> str:
+    """Clean Unicode characters that FPDF2 can't handle"""
+    if not text:
+        return ""
     
-    for _, row in df.iterrows():
-        # Map DataFrame columns to template-expected fields
-        job = {
-            'job_title': row.get('source.title', row.get('norm.title', 'Unknown Title')),
-            'company_name': row.get('source.company', row.get('norm.company', 'Unknown Company')),
-            'job_location': row.get('source.location_raw', row.get('norm.location', 'Unknown Location')),
-            'job_description': row.get('source.description_raw', row.get('norm.description', '')),
-            'salary_display': row.get('norm.salary_display', ''),
-            'salary': row.get('source.salary_raw', ''),
-            'match_quality': row.get('ai.match', 'unknown'),
-            'route_type': row.get('ai.route_type', 'Unknown'),
-            'fair_chance': row.get('ai.fair_chance', ''),
-            'posted_date': row.get('source.posted_date', ''),
-            'job_url': row.get('meta.tracked_url', row.get('source.url', '')),
-        }
-        jobs.append(job)
+    # Replace Unicode characters with ASCII alternatives
+    text = str(text)
+    text = text.replace('•', '- ')  # Replace bullet points
+    text = text.replace('💰', '$')  # Replace money emoji
+    text = text.replace('🟢', '[GOOD]')  # Replace green circle
+    text = text.replace('🟡', '[OK]')  # Replace yellow circle  
+    text = text.replace('🔴', '[POOR]')  # Replace red circle
+    text = text.replace('⚪', '[?]')  # Replace white circle
+    text = text.replace('\u2022', '- ')  # Unicode bullet point
+    text = text.replace('\u00A0', ' ')  # Non-breaking space
     
-    return jobs
+    # Remove any remaining non-ASCII characters
+    text = ''.join(char if ord(char) < 128 else '?' for char in text)
+    
+    return text
 
 def generate_pdf_from_dataframe(df: pd.DataFrame, agent_params: Dict[str, Any], output_path: str):
     """
-    Main function to generate PDF from DataFrame using template-compatible approach
+    Main function to generate PDF from DataFrame using HTML template system data
     
     Args:
         df: Job DataFrame
         agent_params: Same parameters as HTML template system
         output_path: Where to save PDF
     """
-    # Convert DataFrame to job dictionaries
-    jobs = convert_dataframe_to_job_dicts(df)
+    # Use the HTML template system to convert DataFrame to job dictionaries
+    from pdf.html_pdf_generator import jobs_dataframe_to_dicts
+    
+    # Get job data using the same method as HTML template
+    jobs = jobs_dataframe_to_dicts(df)
+    
+    # Clean Unicode characters from job data
+    for job in jobs:
+        for key, value in job.items():
+            if isinstance(value, str):
+                job[key] = clean_unicode_text(value)
     
     # Generate PDF using template-compatible function
     generate_fpdf_job_cards_from_template_data(jobs, agent_params, output_path)
