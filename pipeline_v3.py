@@ -37,7 +37,6 @@ try:
     from job_classifier import JobClassifier
     from job_memory_db import JobMemoryDB
     from cost_calculator import CostCalculator
-    from fpdf_pdf_generator import generate_fpdf_job_cards
     from simple_bypass_system import SimpleBypassSystem
     from route_classifier import RouteClassifier
     from free_agent_lookup import FreeAgentLookup
@@ -59,7 +58,6 @@ except ImportError:
     from job_classifier import JobClassifier
     from job_memory_db import JobMemoryDB
     from cost_calculator import CostCalculator
-    from fpdf_pdf_generator import generate_fpdf_job_cards
     from simple_bypass_system import SimpleBypassSystem
     from route_classifier import RouteClassifier
     from jobs_schema import (
@@ -612,23 +610,34 @@ class FreeWorldPipelineV3:
     def _generate_pdf_output(self, df: pd.DataFrame, location: str, coach_name: str, show_prepared_for: bool = True, candidate_name: str = "", candidate_id: str = "") -> str:
         """Generate PDF output file"""
         try:
-            from fpdf_pdf_generator import generate_fpdf_job_cards
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             filename = f"{location.replace(', ', '_').replace(' ', '_')}_memory_{timestamp}.pdf"
             filepath = os.path.join(self.output_dir, filename)
             
             # Create directory if it doesn't exist
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             
-            generate_fpdf_job_cards(
-                jobs_df=df,
-                output_path=filepath,
-                market=location,
-                coach_name=coach_name,
-                candidate_name=candidate_name,
-                candidate_id=candidate_id,
-                show_prepared_for=show_prepared_for
-            )
+            # Use HTML template system for PDF generation
+            from pdf.html_pdf_generator import jobs_dataframe_to_dicts, render_jobs_html, export_pdf_weasyprint
+            
+            # Build agent_params
+            agent_params = {
+                'location': location,
+                'agent_name': candidate_name,
+                'agent_uuid': candidate_id,
+                'coach_name': coach_name,
+                'coach_username': coach_name,
+                'show_prepared_for': show_prepared_for
+            }
+            
+            # Convert DataFrame to job dictionaries
+            jobs = jobs_dataframe_to_dicts(df)
+            
+            # Generate HTML using the template system
+            html = render_jobs_html(jobs, agent_params)
+            
+            # Use WeasyPrint for HTML-to-PDF conversion
+            export_pdf_weasyprint(html, filepath)
             
             return filepath
         except Exception as e:
@@ -1964,17 +1973,27 @@ class FreeWorldPipelineV3:
             pdf_filename = f"FreeWorld_Jobs_{market}_{timestamp.replace(':', '.')}.pdf"
             pdf_path = os.path.join(location_folder, pdf_filename)
             
-            # Use parameters passed to pipeline instead of environment variables
-            generate_fpdf_job_cards(
-                pdf_df, 
-                pdf_path, 
-                market=market,
-                coach_name=coach_name,
-                coach_username=coach_username,
-                candidate_name=candidate_name,
-                candidate_id=candidate_id,
-                show_prepared_for=show_prepared_for
-            )
+            # Use HTML template system for PDF generation
+            from pdf.html_pdf_generator import jobs_dataframe_to_dicts, render_jobs_html, export_pdf_weasyprint
+            
+            # Build agent_params
+            agent_params = {
+                'location': market,
+                'agent_name': candidate_name,
+                'agent_uuid': candidate_id,
+                'coach_name': coach_name,
+                'coach_username': coach_username,
+                'show_prepared_for': show_prepared_for
+            }
+            
+            # Convert DataFrame to job dictionaries
+            jobs = jobs_dataframe_to_dicts(pdf_df)
+            
+            # Generate HTML using the template system
+            html = render_jobs_html(jobs, agent_params)
+            
+            # Use WeasyPrint for HTML-to-PDF conversion
+            export_pdf_weasyprint(html, pdf_path)
             
             print(f"✅ PDF generated: {pdf_path}")
             return pdf_path
@@ -2059,17 +2078,27 @@ class FreeWorldPipelineV3:
                 pdf_filename = f"FreeWorld_Jobs_{market_name}_{timestamp}.pdf"
                 pdf_path = os.path.join(temp_dir, pdf_filename)
                 
-                # Generate PDF using the fpdf generator (legacy path)
-                generate_fpdf_job_cards(
-                    df, 
-                    pdf_path, 
-                    market=market_name,
-                    coach_name=coach_name,
-                    coach_username=coach_username,
-                    candidate_name=candidate_name,
-                    candidate_id=candidate_id,
-                    show_prepared_for=show_prepared_for
-                )
+                # Use HTML template system for PDF generation
+                from pdf.html_pdf_generator import jobs_dataframe_to_dicts, render_jobs_html, export_pdf_weasyprint
+                
+                # Build agent_params
+                agent_params = {
+                    'location': market_name,
+                    'agent_name': candidate_name,
+                    'agent_uuid': candidate_id,
+                    'coach_name': coach_name,
+                    'coach_username': coach_username,
+                    'show_prepared_for': show_prepared_for
+                }
+                
+                # Convert DataFrame to job dictionaries
+                jobs = jobs_dataframe_to_dicts(df)
+                
+                # Generate HTML using the template system
+                html = render_jobs_html(jobs, agent_params)
+                
+                # Use WeasyPrint for HTML-to-PDF conversion
+                export_pdf_weasyprint(html, pdf_path)
                 
                 # Read PDF as bytes
                 with open(pdf_path, 'rb') as f:

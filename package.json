@@ -1,0 +1,30 @@
+{
+  "name": "freeworld-qa-portal",
+  "version": "1.0.0",
+  "description": "**This is your STAGING environment** - an exact copy of the main app where you can safely test changes before they go live.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hazeltr0n/freeworld-qa-portal.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hazeltr0n/freeworld-qa-portal/issues"
+  },
+  "homepage": "https://github.com/hazeltr0n/freeworld-qa-portal#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "playwright": "^1.55.0"
+  }
+}

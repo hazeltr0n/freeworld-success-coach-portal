@@ -90,7 +90,7 @@ def authenticate_coach():
             with st.form("coach_login"):
                 username = st.text_input("Username", placeholder="jessica.martinez")
                 password = st.text_input("Password", type="password", placeholder="Enter your password")
-                submit = st.form_submit_button("🔓 Sign In", width=None)
+                submit = st.form_submit_button("🔓 Sign In")
                 
                 if submit:
                     coach_manager = get_coach_manager()

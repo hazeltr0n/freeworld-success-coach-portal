@@ -1,0 +1,53 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e7]:
+      - button "Deploy" [ref=e9] [cursor=pointer]:
+        - generic [ref=e11] [cursor=pointer]: Deploy
+      - button [ref=e13] [cursor=pointer]:
+        - img [ref=e14] [cursor=pointer]
+  - generic [ref=e21]:
+    - generic [ref=e26]:
+      - button "Fullscreen" [ref=e31] [cursor=pointer]:
+        - img [ref=e32] [cursor=pointer]
+      - img "0" [ref=e37]
+    - generic [ref=e39]:
+      - heading "🚛 Success Coach Portal" [level=3] [ref=e44]: 🚛 Success Coach Portal
+      - paragraph [ref=e49]:
+        - strong [ref=e50]: FreeWorld Job Scraper
+        - text: "- Find quality CDL driver positions for Free Agents"
+      - generic [ref=e53]:
+        - generic [ref=e55]:
+          - paragraph [ref=e58]: Username
+          - textbox "Username" [ref=e61]: admin.test
+        - generic [ref=e63]:
+          - paragraph [ref=e66]: Password
+          - generic [ref=e68]:
+            - textbox "Password" [ref=e69]: TestPass123
+            - button "Show password text" [ref=e70] [cursor=pointer]:
+              - img "Show password text" [ref=e71] [cursor=pointer]
+        - button "🔓 Sign In" [active] [ref=e76] [cursor=pointer]:
+          - paragraph [ref=e78] [cursor=pointer]: 🔓 Sign In
+        - alert [ref=e81]:
+          - paragraph [ref=e86]: ❌ Invalid username or password
+      - separator [ref=e90]
+      - alert [ref=e93]:
+        - generic [ref=e97]:
+          - paragraph [ref=e98]:
+            - text: 💡
+            - strong [ref=e99]: "Default accounts for testing:"
+          - paragraph [ref=e100]:
+            - strong [ref=e101]: Admin
+            - text: ":"
+            - code [ref=e102]: admin
+            - text: /
+            - code [ref=e103]: admin123
+          - paragraph [ref=e104]:
+            - strong [ref=e105]: Sample Coach
+            - text: ":"
+            - code [ref=e106]: sarah.johnson
+            - text: /
+            - code [ref=e107]: coach123
+```
