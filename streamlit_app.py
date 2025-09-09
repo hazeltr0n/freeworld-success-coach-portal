@@ -506,8 +506,29 @@ def main():
                         # Generate PDF button
                         if st.button("📄 Generate PDF Report", width=None):
                             with st.spinner("Generating PDF report..."):
+                                from datetime import datetime
                                 market_name = results['params'].get('location') or 'Multiple Markets'
-                                pdf_bytes = pipeline.generate_pdf_from_canonical(quality_df, market_name)
+                                
+                                # Get coach info from session state
+                                coach_name = st.session_state.get('coach_username', '')
+                                coach_username = st.session_state.get('coach_username', '')
+                                
+                                # Get agent info (if any)
+                                candidate_name = st.session_state.get('candidate_name', '')
+                                candidate_id = st.session_state.get('candidate_id', '')
+                                
+                                # Get show_prepared_for setting
+                                show_prepared_for = st.session_state.get('show_prepared_for', True)
+                                
+                                pdf_bytes = pipeline.generate_pdf_from_canonical(
+                                    quality_df, 
+                                    market_name,
+                                    coach_name=coach_name,
+                                    coach_username=coach_username,
+                                    candidate_name=candidate_name,
+                                    candidate_id=candidate_id,
+                                    show_prepared_for=show_prepared_for
+                                )
                             
                             if pdf_bytes:
                                 st.download_button(
