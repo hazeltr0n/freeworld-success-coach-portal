@@ -97,7 +97,8 @@ class StreamlitPipelineWrapper:
         generate_pdf: bool = True,
         generate_csv: bool = True,
         force_memory_only: bool = False,
-        mode_info: Dict = None
+        mode_info: Dict = None,
+        show_prepared_for: bool = True
     ) -> Dict[str, Any]:
         """Complete pipeline with force_memory_only support - calls pipeline_v3 directly"""
         try:
@@ -122,7 +123,8 @@ class StreamlitPipelineWrapper:
                 generate_pdf=generate_pdf,
                 generate_csv=generate_csv,
                 force_memory_only=force_memory_only,
-                mode_info=mode_info or {'mode': 'sample', 'limit': max_jobs}
+                mode_info=mode_info or {'mode': 'sample', 'limit': max_jobs},
+                show_prepared_for=show_prepared_for
             )
             
             return results
@@ -405,7 +407,8 @@ class StreamlitPipelineWrapper:
                         coach_name=params.get('coach_name', ''),
                         coach_username=params.get('coach_username', ''),
                         candidate_name=params.get('candidate_name', ''),
-                        candidate_id=params.get('candidate_id', '')
+                        candidate_id=params.get('candidate_id', ''),
+                        show_prepared_for=params.get('show_prepared_for', True)
                     )
 
                     df_part = results.get('jobs_df') if isinstance(results, dict) else (pd.DataFrame() if pd else None)

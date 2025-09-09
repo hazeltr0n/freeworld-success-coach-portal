@@ -683,7 +683,8 @@ class FreeWorldPipelineV3:
         coach_name: str = "",
         coach_username: str = "",
         candidate_name: str = "",
-        candidate_id: str = ""
+        candidate_id: str = "",
+        show_prepared_for: bool = True
     ) -> Dict[str, Any]:
         """
         Execute complete pipeline with single canonical DataFrame
@@ -783,7 +784,8 @@ class FreeWorldPipelineV3:
             # STAGE 7: OUTPUT GENERATION
             results = self._stage7_output(
                 canonical_df, hardcoded_market or location, custom_location,
-                generate_pdf, generate_csv, generate_html, force_memory_only
+                generate_pdf, generate_csv, generate_html, force_memory_only,
+                show_prepared_for
             )
             
             # STAGE 8: DATA STORAGE
@@ -1501,7 +1503,8 @@ class FreeWorldPipelineV3:
         generate_pdf: bool,
         generate_csv: bool,
         generate_html: bool, # New parameter for HTML generation
-        force_memory_only: bool = False
+        force_memory_only: bool = False,
+        show_prepared_for: bool = True
     ) -> Dict[str, Any]:
         """Stage 7: Generate output files"""
         
@@ -1712,7 +1715,7 @@ class FreeWorldPipelineV3:
                 candidate_name = os.getenv('FREEWORLD_CANDIDATE_NAME', '')
                 candidate_id = os.getenv('FREEWORLD_CANDIDATE_ID', '')
                 
-            pdf_path = self._generate_pdf(exportable_df, market, custom_location, coach_name, coach_username, candidate_name, candidate_id, show_prepared_for=True)
+            pdf_path = self._generate_pdf(exportable_df, market, custom_location, coach_name, coach_username, candidate_name, candidate_id, show_prepared_for=show_prepared_for)
             results['pdf_path'] = pdf_path
             if pdf_path:
                 results['files'].append(pdf_path)
