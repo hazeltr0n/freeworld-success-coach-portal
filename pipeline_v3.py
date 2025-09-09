@@ -637,9 +637,13 @@ class FreeWorldPipelineV3:
             # Convert HTML to PDF using xhtml2pdf (pure Python, works in cloud)
             try:
                 from xhtml2pdf import pisa
+                from pdf_css_converter import convert_css_variables_for_xhtml2pdf
+                
+                # Convert CSS variables to hex colors for xhtml2pdf compatibility
+                html_converted = convert_css_variables_for_xhtml2pdf(html)
                 
                 with open(filepath, "wb") as result_file:
-                    pisa_status = pisa.CreatePDF(html, dest=result_file)
+                    pisa_status = pisa.CreatePDF(html_converted, dest=result_file)
                 
                 if not pisa_status.err:
                     print(f"✅ PDF generated with xhtml2pdf: {filepath}")
@@ -2004,9 +2008,13 @@ class FreeWorldPipelineV3:
             # Convert HTML to PDF using xhtml2pdf (pure Python, works in cloud)
             try:
                 from xhtml2pdf import pisa
+                from pdf_css_converter import convert_css_variables_for_xhtml2pdf
+                
+                # Convert CSS variables to hex colors for xhtml2pdf compatibility
+                html_converted = convert_css_variables_for_xhtml2pdf(html)
                 
                 with open(pdf_path, "wb") as result_file:
-                    pisa_status = pisa.CreatePDF(html, dest=result_file)
+                    pisa_status = pisa.CreatePDF(html_converted, dest=result_file)
                 
                 if pisa_status.err:
                     print(f"❌ xhtml2pdf generation failed with errors")
@@ -2075,9 +2083,13 @@ class FreeWorldPipelineV3:
             # Convert HTML to PDF using xhtml2pdf (pure Python, works in cloud)
             try:
                 from xhtml2pdf import pisa
+                from pdf_css_converter import convert_css_variables_for_xhtml2pdf
+                
+                # Convert CSS variables to hex colors for xhtml2pdf compatibility
+                html_converted = convert_css_variables_for_xhtml2pdf(html)
                 
                 with open(pdf_path, "wb") as result_file:
-                    pisa_status = pisa.CreatePDF(html, dest=result_file)
+                    pisa_status = pisa.CreatePDF(html_converted, dest=result_file)
                 
                 if pisa_status.err:
                     print(f"   ❌ xhtml2pdf generation failed with errors")
