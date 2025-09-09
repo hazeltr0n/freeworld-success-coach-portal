@@ -190,6 +190,14 @@ def render_jobs_html(jobs: List[Dict], agent_params=None, *, fragment: bool = Fa
     agent_params = agent_params or {}
     location = agent_params.get("location") or "Unknown"
     
+    # CRITICAL FIX: Ensure show_prepared_for is always a boolean for template processing
+    if 'show_prepared_for' in agent_params:
+        show_prepared_for = agent_params['show_prepared_for']
+        if isinstance(show_prepared_for, str):
+            agent_params['show_prepared_for'] = show_prepared_for.lower() not in ('false', '0', 'f', 'no', '')
+        else:
+            agent_params['show_prepared_for'] = bool(show_prepared_for)
+    
     # Helpers: extract a clean first name from various formats
     def _first_name(raw: str, *, fallback: str) -> str:
         try:

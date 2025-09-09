@@ -608,7 +608,7 @@ class FreeWorldPipelineV3:
         
         return filepath
     
-    def _generate_pdf_output(self, df: pd.DataFrame, location: str, coach_name: str, show_prepared_for: bool = True) -> str:
+    def _generate_pdf_output(self, df: pd.DataFrame, location: str, coach_name: str, show_prepared_for: bool = True, candidate_name: str = "", candidate_id: str = "") -> str:
         """Generate PDF output file"""
         try:
             from fpdf_pdf_generator import generate_fpdf_job_cards
@@ -624,6 +624,8 @@ class FreeWorldPipelineV3:
                 output_path=filepath,
                 market=location,
                 coach_name=coach_name,
+                candidate_name=candidate_name,
+                candidate_id=candidate_id,
                 show_prepared_for=show_prepared_for
             )
             
