@@ -1002,10 +1002,10 @@ class StreamlitPipelineWrapper:
             print(f"   Candidate ID: '{candidate_id}' (empty={not candidate_id})")
             print(f"   Show Prepared For: {show_prepared_for}")
             
-            # Use HTML template system for PDF generation
-            from pdf.html_pdf_generator import jobs_dataframe_to_dicts, render_jobs_html, export_pdf_weasyprint
+            # Use FPDF2 for PDF generation with template-compatible parameters
+            from fpdf_pdf_generator import generate_pdf_from_dataframe
             
-            # Build agent_params with all necessary data
+            # Build agent_params - same format as HTML template system
             agent_params = {
                 'location': market_name,
                 'agent_name': candidate_name,
@@ -1015,26 +1015,20 @@ class StreamlitPipelineWrapper:
                 'show_prepared_for': show_prepared_for
             }
             
-            # Convert DataFrame to job dictionaries
-            jobs = jobs_dataframe_to_dicts(df)
-            
-            # Generate HTML using the template system
-            html = render_jobs_html(jobs, agent_params)
-            
             # Create temporary PDF file
             import tempfile
             with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
                 temp_path = tmp_file.name
             
-            # Use WeasyPrint for HTML-to-PDF conversion
-            export_pdf_weasyprint(html, temp_path)
+            # Generate PDF using FPDF2 with template-compatible interface
+            generate_pdf_from_dataframe(df, agent_params, temp_path)
             
             # Read PDF bytes
             if os.path.exists(temp_path):
                 with open(temp_path, 'rb') as f:
                     pdf_bytes = f.read()
                 os.unlink(temp_path)  # Clean up temp file
-                print(f"✅ HTML-based PDF generated successfully: {len(pdf_bytes)} bytes")
+                print(f"✅ FPDF2 PDF generated successfully: {len(pdf_bytes)} bytes")
                 return pdf_bytes
             
             return b""

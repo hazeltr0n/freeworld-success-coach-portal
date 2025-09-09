@@ -617,10 +617,10 @@ class FreeWorldPipelineV3:
             # Create directory if it doesn't exist
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             
-            # Use HTML template system for PDF generation
-            from pdf.html_pdf_generator import jobs_dataframe_to_dicts, render_jobs_html, export_pdf_weasyprint
+            # Use FPDF2 for PDF generation with template-compatible parameters
+            from fpdf_pdf_generator import generate_pdf_from_dataframe
             
-            # Build agent_params
+            # Build agent_params - same format as HTML template system
             agent_params = {
                 'location': location,
                 'agent_name': candidate_name,
@@ -630,14 +630,8 @@ class FreeWorldPipelineV3:
                 'show_prepared_for': show_prepared_for
             }
             
-            # Convert DataFrame to job dictionaries
-            jobs = jobs_dataframe_to_dicts(df)
-            
-            # Generate HTML using the template system
-            html = render_jobs_html(jobs, agent_params)
-            
-            # Use WeasyPrint for HTML-to-PDF conversion
-            export_pdf_weasyprint(html, filepath)
+            # Generate PDF using FPDF2 with template-compatible interface
+            generate_pdf_from_dataframe(df, agent_params, filepath)
             
             return filepath
         except Exception as e:
