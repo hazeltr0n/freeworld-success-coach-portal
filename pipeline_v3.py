@@ -472,29 +472,26 @@ class FreeWorldPipelineV3:
                 print(f"📄 CSV exported: {csv_path}")
 
             if generate_pdf and len(final_df) > 0:
+                # Pass through known coach/candidate context if available
+                cand_name_param = ''
+                cand_id_param = ''
                 try:
-                    # Pass through known coach/candidate context if available
-                    cand_name_param = ''
-                    cand_id_param = ''
-                    try:
-                        cand_name_param = (self.agent_data.get('agent.name') if self.agent_data else '') or os.getenv('FREEWORLD_CANDIDATE_NAME', '')
-                        cand_id_param = (self.agent_data.get('agent.uuid') if self.agent_data else '') or os.getenv('FREEWORLD_CANDIDATE_ID', '')
-                    except Exception:
-                        cand_name_param = os.getenv('FREEWORLD_CANDIDATE_NAME', '')
-                        cand_id_param = os.getenv('FREEWORLD_CANDIDATE_ID', '')
-
-                    pdf_path = self._generate_pdf(
-                        final_df,
-                        location,
-                        custom_location="",
-                        coach_name=coach_username,
-                        coach_username=coach_username,
-                        candidate_name=cand_name_param,
-                        candidate_id=cand_id_param,
-                        show_prepared_for=show_prepared_for
-                    )
+                    cand_name_param = (self.agent_data.get('agent.name') if self.agent_data else '') or os.getenv('FREEWORLD_CANDIDATE_NAME', '')
+                    cand_id_param = (self.agent_data.get('agent.uuid') if self.agent_data else '') or os.getenv('FREEWORLD_CANDIDATE_ID', '')
                 except Exception:
-                    pdf_path = self._generate_pdf_output(final_df, location, coach_username or 'Memory Search', show_prepared_for, cand_name_param, cand_id_param)
+                    cand_name_param = os.getenv('FREEWORLD_CANDIDATE_NAME', '')
+                    cand_id_param = os.getenv('FREEWORLD_CANDIDATE_ID', '')
+
+                pdf_path = self._generate_pdf(
+                    final_df,
+                    location,
+                    custom_location="",
+                    coach_name=coach_username,
+                    coach_username=coach_username,
+                    candidate_name=cand_name_param,
+                    candidate_id=cand_id_param,
+                    show_prepared_for=show_prepared_for
+                )
                 files['pdf'] = pdf_path
                 print(f"📄 PDF generated: {pdf_path}")
             
