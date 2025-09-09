@@ -1024,9 +1024,19 @@ class StreamlitPipelineWrapper:
             with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
                 temp_path = tmp_file.name
             
-            # TODO: Convert HTML to PDF using xhtml2pdf
-            print(f"⚠️ PDF generation temporarily disabled - needs xhtml2pdf implementation")
-            return b""
+            # Convert HTML to PDF using xhtml2pdf (pure Python, works in cloud)
+            try:
+                from xhtml2pdf import pisa
+                
+                with open(temp_path, "wb") as result_file:
+                    pisa_status = pisa.CreatePDF(html, dest=result_file)
+                
+                if pisa_status.err:
+                    print(f"❌ xhtml2pdf generation failed with errors")
+                    return b""
+            except ImportError:
+                print(f"⚠️ xhtml2pdf not available - cannot generate PDF")
+                return b""
             
             # Read PDF bytes
             if os.path.exists(temp_path):

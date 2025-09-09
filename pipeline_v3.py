@@ -634,9 +634,21 @@ class FreeWorldPipelineV3:
             jobs = jobs_dataframe_to_dicts(df)
             html = render_jobs_html(jobs, agent_params)
             
-            # TODO: Convert HTML to PDF using FPDF2
-            print(f"⚠️ PDF generation temporarily disabled - needs FPDF2 implementation")
-            return ""
+            # Convert HTML to PDF using xhtml2pdf (pure Python, works in cloud)
+            try:
+                from xhtml2pdf import pisa
+                
+                with open(filepath, "wb") as result_file:
+                    pisa_status = pisa.CreatePDF(html, dest=result_file)
+                
+                if not pisa_status.err:
+                    print(f"✅ PDF generated with xhtml2pdf: {filepath}")
+                else:
+                    print(f"❌ xhtml2pdf generation failed with errors")
+                    return ""
+            except ImportError:
+                print(f"⚠️ xhtml2pdf not available - cannot generate PDF")
+                return ""
             
             return filepath
         except Exception as e:
@@ -1989,9 +2001,19 @@ class FreeWorldPipelineV3:
             jobs = jobs_dataframe_to_dicts(pdf_df)
             html = render_jobs_html(jobs, agent_params)
             
-            # TODO: Convert HTML to PDF using xhtml2pdf
-            print(f"⚠️ PDF generation temporarily disabled - needs xhtml2pdf implementation")
-            return None
+            # Convert HTML to PDF using xhtml2pdf (pure Python, works in cloud)
+            try:
+                from xhtml2pdf import pisa
+                
+                with open(pdf_path, "wb") as result_file:
+                    pisa_status = pisa.CreatePDF(html, dest=result_file)
+                
+                if pisa_status.err:
+                    print(f"❌ xhtml2pdf generation failed with errors")
+                    return None
+            except ImportError:
+                print(f"⚠️ xhtml2pdf not available - cannot generate PDF")
+                return None
             
             print(f"✅ PDF generated: {pdf_path}")
             return pdf_path
@@ -2050,10 +2072,21 @@ class FreeWorldPipelineV3:
                 f.write(html)
             print(f"   📄 HTML saved for debugging: {html_path}")
             
-            # TODO: Convert HTML to PDF using xhtml2pdf
-            print(f"   ⚠️ PDF generation temporarily disabled - needs xhtml2pdf implementation")
-            print(f"   📄 HTML saved for debugging: {html_path}")
-            return None
+            # Convert HTML to PDF using xhtml2pdf (pure Python, works in cloud)
+            try:
+                from xhtml2pdf import pisa
+                
+                with open(pdf_path, "wb") as result_file:
+                    pisa_status = pisa.CreatePDF(html, dest=result_file)
+                
+                if pisa_status.err:
+                    print(f"   ❌ xhtml2pdf generation failed with errors")
+                    return None
+                else:
+                    print(f"   ✅ PDF generated with xhtml2pdf: {pdf_path}")
+            except ImportError:
+                print(f"   ⚠️ xhtml2pdf not available - cannot generate PDF")
+                return None
             
             # Read PDF as bytes
             with open(pdf_path, 'rb') as f:
