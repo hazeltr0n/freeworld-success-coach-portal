@@ -221,6 +221,11 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
         # Use market-based search as primary method
         market_name = (location or '').strip()
         print(f"🔍 Searching Supabase for jobs: market='{market_name}', limit={limit}, since={cutoff_date}")
+        
+        # DEBUG: Check for potential location name variations that might cause duplicates
+        if market_name and ',' in market_name:
+            base_city = market_name.split(',')[0].strip()
+            print(f"🔍 LOCATION DEBUG: Searching for '{market_name}' (base city: '{base_city}')")
         if agent_params:
             print(f"🎯 Applying filters: fair_chance_only={agent_params.get('fair_chance_only', False)}, route_types={agent_params.get('route_type_filter', [])}, match_quality={agent_params.get('match_quality_filter', ['good', 'so-so'])}")
         

@@ -767,11 +767,16 @@ class StreamlitPipelineWrapper:
                     parsed_csvs = [csv_path]
 
                 # Also glob for CSVs matching this run timestamp; else fallback to recent mtime window
+                # CRITICAL: For custom location searches, ONLY use the specific search results, not aggregated historical data
+                is_custom_location = params.get('location_type') == 'custom' or params.get('custom_location')
+                if is_custom_location:
+                    print(f"🔍 CUSTOM LOCATION SEARCH: Skipping historical CSV aggregation for clean results")
+                
                 try:
                     import glob
                     out_dir = os.path.join(self.parent_dir, 'FreeWorld_Jobs')
                     recent_csvs = []
-                    if os.path.isdir(out_dir):
+                    if os.path.isdir(out_dir) and not is_custom_location:
                         if run_timestamp:
                             ts_patterns = [
                                 os.path.join(out_dir, f"*_{run_timestamp}.csv"),
