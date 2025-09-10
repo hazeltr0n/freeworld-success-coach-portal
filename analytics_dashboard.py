@@ -106,8 +106,8 @@ class AnalyticsDashboard:
                     links_today += 1
                 if datetime.fromisoformat(link["timestamp"]) >= week_ago:
                     links_this_week += 1
-            except:
-                continue
+            except (ValueError, KeyError, TypeError):
+                continue  # Skip malformed timestamp data
         
         self.analytics_data["summary"] = {
             "total_links": len(self.analytics_data["links_created"]),

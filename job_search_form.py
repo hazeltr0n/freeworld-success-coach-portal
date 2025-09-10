@@ -397,8 +397,8 @@ class JobSearchForm:
                         # Clean up temp file
                         try:
                             os.remove(temp_path)
-                        except:
-                            pass
+                        except (OSError, FileNotFoundError):
+                            pass  # Ignore cleanup failures
                         
                         if pipeline_results:
                             print(f"  ✅ {market} pipeline completed!")
