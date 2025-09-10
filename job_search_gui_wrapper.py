@@ -608,7 +608,7 @@ Every job URL in generated PDFs is automatically tracked using Short.io.
         try:
             from link_tracker import LinkTracker
             tracker_status = "🟢 Active - Links will be tracked automatically"
-        except:
+        except ImportError:
             tracker_status = "🔴 Not Available - Check SHORT_API_KEY in .env file"
         
         status_label = ttk.Label(status_frame, text=tracker_status, font=('Helvetica', 11))

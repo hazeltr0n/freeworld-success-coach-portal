@@ -242,7 +242,7 @@ def get_base64_of_image(path):
     try:
         with open(path, "rb") as img_file:
             return base64.b64encode(img_file.read()).decode()
-    except:
+    except (FileNotFoundError, OSError):
         return None
 
 # Page config with FreeWorld branding (use FW favicon if available)
@@ -3025,8 +3025,8 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                                                     filtered_pdf_df[date_column] = pd.to_datetime(filtered_pdf_df[date_column], errors='coerce')
                                                     sort_columns.append(date_column)
                                                     sort_ascending.append(False)  # Most recent first
-                                                except:
-                                                    pass
+                                                except (KeyError, ValueError):
+                                                    pass  # Date column not found or invalid format
                                             
                                             # Apply sorting
                                             if sort_columns:
