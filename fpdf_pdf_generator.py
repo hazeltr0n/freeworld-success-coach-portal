@@ -881,6 +881,7 @@ def generate_fpdf_job_cards(jobs_df, output_path, market="Unknown", coach_name:"
     
     
     # Read coach/candidate info from DataFrame if available (preferred method)
+    # ALWAYS extract names for tracking/analytics, regardless of show_prepared_for
     if len(jobs_df) > 0:
         # Prefer canonical agent.* fields; fall back to legacy meta.*
         df_coach_name_agent = jobs_df.get('agent.coach_name', pd.Series()).iloc[0] if 'agent.coach_name' in jobs_df.columns else ""
@@ -893,16 +894,11 @@ def generate_fpdf_job_cards(jobs_df, output_path, market="Unknown", coach_name:"
         df_candidate_name_meta = jobs_df.get('meta.candidate_name', pd.Series()).iloc[0] if 'meta.candidate_name' in jobs_df.columns else ""
         df_candidate_id_meta = jobs_df.get('meta.candidate_id', pd.Series()).iloc[0] if 'meta.candidate_id' in jobs_df.columns else ""
 
-        # Use DataFrame values if available, otherwise use parameters
+        # Use DataFrame values if available, otherwise use parameters  
         coach_name = (df_coach_name_agent or df_coach_name_meta or coach_name)
         coach_username = (df_coach_username_agent or df_coach_username_meta or coach_username)
         candidate_name = (df_candidate_name_agent or df_candidate_name_meta or candidate_name)
         candidate_id = (df_candidate_id_agent or df_candidate_id_meta or candidate_id)
-        
-        # Override names if show_prepared_for is False (hide message but keep DataFrame tracking)
-        if not show_prepared_for:
-            coach_name = ""
-            candidate_name = ""
     
     # Debug: Check what we received/extracted
     print(f"🔍 PDF Generator received: {len(jobs_df)} jobs")
@@ -1009,6 +1005,13 @@ def generate_fpdf_job_cards(jobs_df, output_path, market="Unknown", coach_name:"
 
     # Create beautiful title page first
     pdf.create_title_page(clean_market, total_jobs, coach_name if coach_name else "",)
+    # Debug: Check the prepared message conditional
+    print(f"🔍 PREPARED MESSAGE CHECK:")
+    print(f"   show_prepared_for = {show_prepared_for}")
+    print(f"   candidate_name = '{candidate_name}' (exists={bool(candidate_name)})")
+    print(f"   coach_name = '{coach_name}' (exists={bool(coach_name)})")
+    print(f"   Condition result = {show_prepared_for and (candidate_name or coach_name)}")
+    
     # If candidate name OR coach name available AND show_prepared_for is True, draw personalization line
     if show_prepared_for and (candidate_name or coach_name):
         try:
