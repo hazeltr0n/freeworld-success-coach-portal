@@ -7,7 +7,7 @@ This file forces Streamlit to completely rebuild the environment
 by changing import-level code and dependencies.
 """
 
-CACHE_BUST_VERSION = "v2025.09.08.1845.PRESERVE_SUPABASE_CONNECTIONS_FIX"
+CACHE_BUST_VERSION = "v2025.09.10.FIX_PDF_PREPARED_FOR_CHECKBOX_PARAMETER"
 
 # Force import changes to invalidate Python module cache
 import sys
