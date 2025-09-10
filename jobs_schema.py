@@ -424,12 +424,14 @@ def sanctify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
                 df['route.ready_for_export'] = df['route.ready_for_export'].fillna(False)
                 df.loc[quality, 'route.ready_for_export'] = True
             if 'route.final_status' in df.columns:
-                fs = df['route.final_status'].astype('string')
-                empty = fs.isna() | (fs == '')
+                # Convert to string type and assign back to DataFrame
+                df['route.final_status'] = df['route.final_status'].astype('string')
+                empty = df['route.final_status'].isna() | (df['route.final_status'] == '')
                 df.loc[quality & empty, 'route.final_status'] = 'included: quality'
             if 'route.stage' in df.columns:
-                stg = df['route.stage'].astype('string')
-                empty = stg.isna() | (stg == '')
+                # Convert to string type and assign back to DataFrame
+                df['route.stage'] = df['route.stage'].astype('string')
+                empty = df['route.stage'].isna() | (df['route.stage'] == '')
                 df.loc[quality & empty, 'route.stage'] = 'exported'
     except Exception:
         pass
@@ -451,21 +453,27 @@ def sanctify_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     # System metadata
     try:
         if 'sys.version' in df.columns:
-            sv = df['sys.version'].astype('string')
-            df.loc[sv.isna() | (sv == ''), 'sys.version'] = SCHEMA_VERSION
+            # Convert to string type and assign back to DataFrame
+            df['sys.version'] = df['sys.version'].astype('string')
+            # Fill missing values
+            df.loc[df['sys.version'].isna() | (df['sys.version'] == ''), 'sys.version'] = SCHEMA_VERSION
     except Exception:
         pass
     try:
         if 'sys.schema_sha' in df.columns:
-            sh = df['sys.schema_sha'].astype('string')
-            df.loc[sh.isna() | (sh == ''), 'sys.schema_sha'] = SCHEMA_HASH
+            # Convert to string type and assign back to DataFrame
+            df['sys.schema_sha'] = df['sys.schema_sha'].astype('string')
+            # Fill missing values
+            df.loc[df['sys.schema_sha'].isna() | (df['sys.schema_sha'] == ''), 'sys.schema_sha'] = SCHEMA_HASH
     except Exception:
         pass
     try:
         coach_env = os.getenv('FREEWORLD_COACH_USERNAME', '')
         if coach_env and 'sys.coach' in df.columns:
-            sc = df['sys.coach'].astype('string')
-            df.loc[sc.isna() | (sc == ''), 'sys.coach'] = coach_env
+            # Convert to string type and assign back to DataFrame
+            df['sys.coach'] = df['sys.coach'].astype('string')
+            # Fill missing values
+            df.loc[df['sys.coach'].isna() | (df['sys.coach'] == ''), 'sys.coach'] = coach_env
     except Exception:
         pass
 
