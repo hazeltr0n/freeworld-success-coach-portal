@@ -27,8 +27,9 @@ def get_unified_sort_priority(row):
     
     # Quality priority within route type - EXACTLY as FPDF does it
     ai_match = row.get('ai.match', '')
-    fair_chance_raw = row.get('ai.fair_chance', '')
-    fair_chance = str(fair_chance_raw).lower() if fair_chance_raw is not None else ''
+    fair_chance_val = row.get('ai.fair_chance', '')
+    # Handle case where the stored value is None (shouldn't happen but being defensive)
+    fair_chance = str(fair_chance_val or '').lower()
     
     is_excellent = ai_match == 'good'
     is_possible = ai_match == 'so-so'  

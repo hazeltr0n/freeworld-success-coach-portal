@@ -825,15 +825,15 @@ def transform_ai_classification(df: pd.DataFrame, ai_results: Dict[str, Dict], j
         """Apply AI result for a specific job"""
         # Only apply AI classification to jobs that were actually sent for classification
         if job_ids_classified is not None and job_id not in job_ids_classified:
-            # This job was not sent for AI classification - leave ai fields empty/None
+            # This job was not sent for AI classification - use sensible defaults instead of None
             return {
-                'ai.match': None,
-                'ai.reason': None,
-                'ai.summary': None,
-                'ai.normalized_location': None,
-                'ai.fair_chance': None,
-                'ai.endorsements': None,
-                'ai.route_type': None
+                'ai.match': 'error',
+                'ai.reason': 'Not classified in this run',
+                'ai.summary': '',
+                'ai.normalized_location': '',
+                'ai.fair_chance': 'no_requirements_mentioned',
+                'ai.endorsements': 'none_required',
+                'ai.route_type': 'Unknown'
             }
         
         if job_id not in ai_results:
