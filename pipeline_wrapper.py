@@ -336,8 +336,8 @@ class StreamlitPipelineWrapper:
     def run_pipeline(self, params: Dict) -> Tuple[Any, Dict]:
         """Run pipeline - use in-process path for memory-only, subprocess for others"""
         try:
-            # UI direct path (avoid subprocess/CSV parsing)
-            if params.get('ui_direct', False):
+            # UI direct path (avoid subprocess/CSV parsing) - but skip if memory_only
+            if params.get('ui_direct', False) and not params.get('memory_only', False):
                 print(f"🎯 Using UI_DIRECT path - force_link_generation={params.get('force_link_generation', False)}")
                 from pipeline_v3 import FreeWorldPipelineV3
                 if not hasattr(self, 'pipeline_v3') or self.pipeline_v3 is None:
