@@ -380,7 +380,8 @@ class StreamlitPipelineWrapper:
                     'processing_time': 0,
                     'total_cost': 0.0,
                     'memory_efficiency': 0.0,
-                    'run_ids': []
+                    'run_ids': [],
+                    'pdf_path': None  # Add PDF path support
                 }
 
                 for loc in locations_to_run:
@@ -396,7 +397,7 @@ class StreamlitPipelineWrapper:
                         force_link_generation=params.get('force_link_generation', False),
                         hardcoded_market=None,
                         custom_location=custom_location if custom_location else None,
-                        generate_pdf=False,  # per-run PDF disabled in UI-direct path
+                        generate_pdf=params.get('generate_pdf', False),  # Respect PDF generation request from UI
                         generate_csv=False,
                         generate_html=True,
                         radius=params.get('search_radius', 50),
@@ -425,6 +426,9 @@ class StreamlitPipelineWrapper:
                         combined_meta['memory_efficiency'] = max(combined_meta['memory_efficiency'], float(results.get('memory_efficiency', 0.0)))
                         if results.get('run_id'):
                             combined_meta['run_ids'].append(results.get('run_id'))
+                        # Collect PDF path from the first result that has one
+                        if results.get('pdf_path') and not combined_meta['pdf_path']:
+                            combined_meta['pdf_path'] = results.get('pdf_path')
 
                 # If nothing returned but we ran at least once, still return empty DF with success=False
                 if not combined_df.empty:
