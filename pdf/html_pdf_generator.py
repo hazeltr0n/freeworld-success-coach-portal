@@ -135,7 +135,8 @@ def jobs_dataframe_to_dicts(df) -> List[Dict]:
         if isinstance(fair_raw, bool):
             fair_chance = fair_raw
         else:
-            fair_chance = str(fair_raw).lower().find('fair_chance_employer') >= 0 or str(fair_raw).lower() in ('true', 'yes', '1')
+            fair_str = str(fair_raw) if fair_raw is not None else ''
+            fair_chance = fair_str.lower().find('fair_chance_employer') >= 0 or fair_str.lower() in ('true', 'yes', '1')
         # Build both summary and full description for responsive display
         description_summary = _sanitize_html(r.get('ai.summary') or 'Great opportunity for CDL drivers.')
         description_full = _sanitize_html(r.get('source.description') or r.get('job_description') or r.get('norm.description') or 'Great opportunity for CDL drivers.')

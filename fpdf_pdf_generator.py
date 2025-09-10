@@ -458,7 +458,8 @@ class FreeWorldJobCardFPDF(FPDF):
         # No badge for bad/unknown matches - remove the fallback entirely
         
         # Fair Chance Badge (only if fair_chance_employer)
-        fair_chance = pdf_data['fair_chance'].lower() if pdf_data['fair_chance'] else ''
+        fair_chance_raw = pdf_data['fair_chance']
+        fair_chance = str(fair_chance_raw).lower() if fair_chance_raw is not None and str(fair_chance_raw).strip() else ''
         if 'fair_chance_employer' in fair_chance:
             # Set font first to get accurate text width measurement
             self._set_font('B', 12)
@@ -755,7 +756,8 @@ class FreeWorldJobCardFPDF(FPDF):
     def _get_fair_chance_text(self, job):
         """Get fair chance policy text"""
         pdf_data = prepare_pdf_data(job)
-        fair_chance = pdf_data['fair_chance'].lower() if pdf_data['fair_chance'] else ''
+        fair_chance_raw = pdf_data['fair_chance']
+        fair_chance = str(fair_chance_raw).lower() if fair_chance_raw is not None and str(fair_chance_raw).strip() else ''
         if 'fair_chance_employer' in fair_chance:
             return "Fair Chance Employer"
         elif 'no_requirements_mentioned' in fair_chance:
@@ -769,7 +771,8 @@ class FreeWorldJobCardFPDF(FPDF):
     def _get_endorsement_text(self, job):
         """Get CDL endorsement requirements"""
         pdf_data = prepare_pdf_data(job)
-        endorsements = pdf_data['endorsements'].lower() if pdf_data['endorsements'] else ''
+        endorsements_raw = pdf_data['endorsements']
+        endorsements = str(endorsements_raw).lower() if endorsements_raw is not None and str(endorsements_raw).strip() else ''
         if 'hazmat' in endorsements:
             return "HAZMAT Endorsement Required"
         elif 'passenger' in endorsements:
