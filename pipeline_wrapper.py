@@ -231,6 +231,10 @@ class StreamlitPipelineWrapper:
                 self.pipeline_v3 = FreeWorldPipelineV3()
             
             for loc in locations_to_run:
+                # DEBUG: Check show_prepared_for parameter
+                show_prepared_param = params.get('show_prepared_for', True)
+                print(f"🔍 DEBUG: Memory-only search show_prepared_for = {show_prepared_param}")
+                
                 # Call pipeline_v3 memory-only search directly with Free Agent parameters
                 results = self.pipeline_v3.run_memory_only_search(
                     location=loc,
@@ -336,7 +340,7 @@ class StreamlitPipelineWrapper:
     def run_pipeline(self, params: Dict) -> Tuple[Any, Dict]:
         """Run pipeline - use in-process path for memory-only, subprocess for others"""
         try:
-            # UI direct path (avoid subprocess/CSV parsing) - but skip if memory_only
+            # UI direct path (avoid subprocess/CSV parsing) - skip if memory_only (has own path)
             if params.get('ui_direct', False) and not params.get('memory_only', False):
                 print(f"🎯 Using UI_DIRECT path - force_link_generation={params.get('force_link_generation', False)}")
                 from pipeline_v3 import FreeWorldPipelineV3
