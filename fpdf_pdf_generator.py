@@ -1005,13 +1005,6 @@ def generate_fpdf_job_cards(jobs_df, output_path, market="Unknown", coach_name:"
 
     # Create beautiful title page first
     pdf.create_title_page(clean_market, total_jobs, coach_name if coach_name else "",)
-    # Debug: Check the prepared message conditional
-    print(f"🔍 PREPARED MESSAGE CHECK:")
-    print(f"   show_prepared_for = {show_prepared_for}")
-    print(f"   candidate_name = '{candidate_name}' (exists={bool(candidate_name)})")
-    print(f"   coach_name = '{coach_name}' (exists={bool(coach_name)})")
-    print(f"   Condition result = {show_prepared_for and (candidate_name or coach_name)}")
-    
     # If candidate name OR coach name available AND show_prepared_for is True, draw personalization line
     if show_prepared_for and (candidate_name or coach_name):
         try:

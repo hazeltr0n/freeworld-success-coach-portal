@@ -231,10 +231,6 @@ class StreamlitPipelineWrapper:
                 self.pipeline_v3 = FreeWorldPipelineV3()
             
             for loc in locations_to_run:
-                # DEBUG: Check show_prepared_for parameter
-                show_prepared_param = params.get('show_prepared_for', True)
-                print(f"🔍 DEBUG: Memory-only search show_prepared_for = {show_prepared_param}")
-                
                 # Call pipeline_v3 memory-only search directly with Free Agent parameters
                 results = self.pipeline_v3.run_memory_only_search(
                     location=loc,
