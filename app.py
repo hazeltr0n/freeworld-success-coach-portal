@@ -3663,7 +3663,8 @@ def main():
                     'max_jobs': max_jobs_pdf_tab if max_jobs_pdf_tab != "All" else 999,  # Pipeline expects 'max_jobs'
                     'route_type_filter': pdf_route_type_filter_tab,  # Pipeline expects 'route_type_filter'
                     'match_quality_filter': pdf_match_quality_filter_tab,  # Pipeline expects 'match_quality_filter' 
-                    'fair_chance_only': pdf_fair_chance_only_tab  # Pipeline expects 'fair_chance_only'
+                    'fair_chance_only': pdf_fair_chance_only_tab,  # Pipeline expects 'fair_chance_only'
+                    'show_prepared_for': show_prepared_for_tab  # Pipeline expects 'show_prepared_for'
                 })
                 
                 # Run pipeline with appropriate spinner message (non-Google searches only)
