@@ -89,8 +89,8 @@ class FreeWorldJobScraperGUIWrapper:
                 icon_path = "data/freeworld_app_icon.icns"
             if os.path.exists(icon_path):
                 self.root.iconbitmap(icon_path)
-        except:
-            pass
+        except (FileNotFoundError, OSError):
+            pass  # Icon file not found or not supported
         
         self.setup_ui()
 

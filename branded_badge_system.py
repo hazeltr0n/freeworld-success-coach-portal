@@ -64,7 +64,7 @@ class FreeWorldBadge(Flowable):
         font_name = "Outfit-Bold"
         try:
             self.canv.setFont("Outfit-Bold", 12)  # Try FreeWorld font
-        except:
+        except (KeyError, OSError):
             font_name = "Helvetica-Bold"
             self.canv.setFont("Helvetica-Bold", 12)  # Fallback to standard font
         text_width = self.canv.stringWidth(self.text, font_name, 12)

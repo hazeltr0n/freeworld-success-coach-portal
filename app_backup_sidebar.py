@@ -69,15 +69,15 @@ try:
         try:
             from dotenv import load_dotenv
             load_dotenv()
-        except:
-            pass
+        except ImportError:
+            pass  # dotenv not available in this environment
 except Exception as e:
     # Fallback to .env loading for local development
     try:
         from dotenv import load_dotenv
         load_dotenv()
-    except:
-        pass
+    except ImportError:
+        pass  # dotenv not available in this environment
 
 # Force cache refresh - increment this to clear caches on deployment
 APP_VERSION = "2.3.7-memory-architecture-fix"
