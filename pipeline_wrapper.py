@@ -200,18 +200,23 @@ class StreamlitPipelineWrapper:
                     pass
                 return df
             # Determine all locations to search (markets or a single custom location)
+            # CRITICAL: When custom location is specified, do not add any other locations
             markets = params.get('markets') or []
             custom_location = params.get('custom_location')
             base_location = params.get('location')
 
             if custom_location:
                 locations_to_run = [custom_location]
+                print(f"🔍 PIPELINE DEBUG: Using CUSTOM LOCATION ONLY: {custom_location}")
             elif isinstance(markets, (list, tuple)) and len(markets) > 0:
                 locations_to_run = list(markets)
+                print(f"🔍 PIPELINE DEBUG: Using MARKETS: {markets}")
             elif base_location:
                 locations_to_run = [base_location]
+                print(f"🔍 PIPELINE DEBUG: Using BASE LOCATION: {base_location}")
             else:
                 locations_to_run = ['Houston']
+                print(f"🔍 PIPELINE DEBUG: Using DEFAULT LOCATION: Houston")
 
             # Map search mode to max_jobs
             mode = params.get('mode', 'sample')
@@ -225,6 +230,12 @@ class StreamlitPipelineWrapper:
             # Track metrics across all locations
             all_results_metrics = []
 
+            # SAFEGUARD: Ensure no Houston appears when custom location is specified
+            if custom_location and 'Houston' in locations_to_run and custom_location != 'Houston':
+                print(f"⚠️ SAFEGUARD ACTIVATED: Removing Houston from search when custom location '{custom_location}' is specified")
+                locations_to_run = [loc for loc in locations_to_run if loc != 'Houston']
+                print(f"🔍 PIPELINE DEBUG: Cleaned locations_to_run: {locations_to_run}")
+            
             # Initialize pipeline v3 for direct calls
             from pipeline_v3 import FreeWorldPipelineV3
             if not hasattr(self, 'pipeline_v3') or self.pipeline_v3 is None:
@@ -349,14 +360,23 @@ class StreamlitPipelineWrapper:
                 markets = params.get('markets') or []
                 if custom_location:
                     locations_to_run = [custom_location]
+                    print(f"🔍 UI_DIRECT DEBUG: Using CUSTOM LOCATION ONLY: {custom_location}")
                 elif isinstance(markets, (list, tuple)) and len(markets) > 0:
                     # Run once per market name; pipeline handles mapping to city/state
                     locations_to_run = list(markets)
+                    print(f"🔍 UI_DIRECT DEBUG: Using MARKETS: {markets}")
                 else:
                     # Fallback to single provided location or default
                     fallback_loc = params.get('location')
                     # If the fallback is a multi-city combined string, it won't map well; prefer first market if available
                     locations_to_run = [fallback_loc] if fallback_loc else ['Houston']
+                    print(f"🔍 UI_DIRECT DEBUG: Using FALLBACK/DEFAULT: {locations_to_run}")
+                
+                # SAFEGUARD: Ensure no Houston appears when custom location is specified
+                if custom_location and 'Houston' in locations_to_run and custom_location != 'Houston':
+                    print(f"⚠️ UI_DIRECT SAFEGUARD: Removing Houston when custom location '{custom_location}' is specified")
+                    locations_to_run = [loc for loc in locations_to_run if loc != 'Houston']
+                    print(f"🔍 UI_DIRECT DEBUG: Cleaned locations_to_run: {locations_to_run}")
 
                 # Mode mapping
                 mode = params.get('mode', 'sample')
