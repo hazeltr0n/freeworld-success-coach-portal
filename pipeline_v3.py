@@ -2055,7 +2055,8 @@ class FreeWorldPipelineV3:
             # Clean up temp file
             try:
                 os.remove(pdf_path)
-            except:
+            except (OSError, FileNotFoundError):
+                # Ignore cleanup failures - temp file may already be deleted
                 pass
             
             print(f"✅ FPDF2 PDF generated successfully: {len(pdf_bytes)} bytes")

@@ -104,7 +104,7 @@ def generate_pdf_bytes_from_dataframe(
         # Clean up temp file
         try:
             os.unlink(temp_path)
-        except:
-            pass
+        except (OSError, FileNotFoundError):
+            pass  # Ignore cleanup failures
     
     return b""

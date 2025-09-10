@@ -3,6 +3,7 @@ import json
 import asyncio
 import aiohttp
 import time
+import queue
 import concurrent.futures
 import pandas as pd
 from openai import OpenAI
@@ -748,7 +749,7 @@ Job Description:
             while True:
                 try:
                     item = work_queue.get_nowait()
-                except:
+                except queue.Empty:
                     break
                 
                 # Make API call with timing

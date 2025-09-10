@@ -693,8 +693,9 @@ class StreamlitPipelineWrapper:
                         try:
                             breakdown_str = line.split('Match breakdown:')[-1].strip()
                             match_breakdown = eval(breakdown_str)  # Safe since we control the format
-                        except:
-                            pass
+                        except (ValueError, SyntaxError, NameError) as e:
+                            print(f"⚠️ Warning: Failed to parse match breakdown from log: {e}")
+                            print(f"   Line content: {line.strip()}")
                     elif 'Total processing time:' in line:
                         # Parse processing time - match pipeline_v3 exact format
                         import re
@@ -712,8 +713,9 @@ class StreamlitPipelineWrapper:
                                 match = re.search(r'(\d+\.?\d*)s', line)
                                 if match:
                                     processing_time = float(match.group(1))
-                        except:
-                            pass
+                        except (ValueError, AttributeError) as e:
+                            print(f"⚠️ Warning: Failed to parse processing time from log: {e}")
+                            print(f"   Line content: {line.strip()}")
                     elif 'Total cost:' in line:
                         # Parse total cost - match pipeline_v3 exact format: "💰 Total cost: $0.123"
                         import re
@@ -721,8 +723,9 @@ class StreamlitPipelineWrapper:
                             match = re.search(r'Total cost:\s*\$(\d+\.?\d*)', line)
                             if match:
                                 total_cost = float(match.group(1))
-                        except:
-                            pass
+                        except (ValueError, AttributeError) as e:
+                            print(f"⚠️ Warning: Failed to parse total cost from log: {e}")
+                            print(f"   Line content: {line.strip()}")
                     elif 'Cost per quality job:' in line:
                         # Parse cost per quality job - match pipeline_v3 exact format: "💰 Cost per quality job: $0.123"
                         import re
@@ -730,8 +733,9 @@ class StreamlitPipelineWrapper:
                             match = re.search(r'Cost per quality job:\s*\$(\d+\.?\d*)', line)
                             if match:
                                 cost_per_quality_job_parsed = float(match.group(1))
-                        except:
-                            pass
+                        except (ValueError, AttributeError) as e:
+                            print(f"⚠️ Warning: Failed to parse cost per quality job from log: {e}")
+                            print(f"   Line content: {line.strip()}")
                     elif 'Memory efficiency:' in line:
                         # Parse memory efficiency - match pipeline_v3 exact format: "🧠 Memory efficiency: 85.2%"
                         import re
@@ -739,8 +743,9 @@ class StreamlitPipelineWrapper:
                             match = re.search(r'Memory efficiency:\s*(\d+\.?\d*)%', line)
                             if match:
                                 memory_efficiency = float(match.group(1))
-                        except:
-                            pass
+                        except (ValueError, AttributeError) as e:
+                            print(f"⚠️ Warning: Failed to parse memory efficiency from log: {e}")
+                            print(f"   Line content: {line.strip()}")
                 
                 print(f"📄 Found CSV: {csv_path}")
                 print(f"📄 Found PDF: {pdf_path}")

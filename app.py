@@ -108,7 +108,7 @@ try:
     try:
         from PIL import Image
         qa_favicon = Image.open("fw_logo.png")
-    except:
+    except (ImportError, FileNotFoundError):
         qa_favicon = "🧪"  # Fallback emoji for QA
     
     st.set_page_config(
@@ -211,15 +211,15 @@ try:
         try:
             from dotenv import load_dotenv
             load_dotenv()
-        except:
-            pass
+        except ImportError:
+            pass  # dotenv not available in this environment
 except Exception as e:
     # Fallback to .env loading for local development
     try:
         from dotenv import load_dotenv
         load_dotenv()
-    except:
-        pass
+    except ImportError:
+        pass  # dotenv not available in this environment
 
 # Force cache refresh - increment this to clear caches on deployment
 APP_VERSION = "2.3.8-security-token-sync"
@@ -487,7 +487,7 @@ def get_base64_of_image(path):
     try:
         with open(path, "rb") as img_file:
             return base64.b64encode(img_file.read()).decode()
-    except:
+    except (FileNotFoundError, OSError):
         return None
 
 def generate_secure_portal_token(agent_uuid: str) -> str:
@@ -2080,8 +2080,8 @@ def show_free_agent_management_page(coach):
                 st.success("🟢 Supabase")
             else:
                 st.warning("🟡 Session")
-        except:
-            st.warning("🟡 Session")
+        except Exception:
+            st.warning("🟡 Session")  # Any error connecting to Supabase
     
     # Load existing agents with optimized batch loading (includes click stats)
     # Include inactive agents if checkbox is checked
@@ -2611,7 +2611,7 @@ def show_free_agent_portal(agent_config_encoded):
             # Use FreeWorld logo or fallback to QA emoji
             try:
                 qa_favicon = Image.open("fw_logo.png") if page_icon_img is None else page_icon_img
-            except:
+            except (FileNotFoundError, OSError):
                 qa_favicon = "🧪"  # QA test tube emoji
                 
             st.set_page_config(

@@ -552,7 +552,7 @@ class LinkTracker:
                     try:
                         delete_url = f"{self.base_url}/links/{data['idString']}"
                         self.session.delete(delete_url)
-                    except:
+                    except (requests.RequestException, KeyError):
                         pass  # Ignore cleanup errors
                         
             elif response.status_code == 401:
