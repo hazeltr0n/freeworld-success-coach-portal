@@ -3389,13 +3389,20 @@ def main():
                 )
                 
             # Row 4: Additional Options
-            col_prepared, col_empty1, col_empty2 = st.columns(3)
+            col_prepared, col_pdf, col_empty = st.columns(3)
             with col_prepared:
                 show_prepared_for_tab = st.checkbox(
                     "👤 Show 'prepared for' message",
                     value=True,
                     help="Include personalized 'Prepared for [Name] by Coach [Name]' message",
                     key="tab_show_prepared_for"
+                )
+            with col_pdf:
+                enable_pdf_generation_tab = st.checkbox(
+                    "📄 Enable PDF generation",
+                    value=True,
+                    help="Generate downloadable PDF reports for search results",
+                    key="tab_enable_pdf_generation"
                 )
         else:
             st.info("📄 PDF generation not available - contact admin for access")
@@ -3408,6 +3415,7 @@ def main():
             show_html_preview_tab = False
             generate_portal_link_tab = False
             show_prepared_for_tab = True
+            enable_pdf_generation_tab = False
         
         # Free Agent Lookup Section
         st.markdown("### 👤 Free Agent Lookup")
@@ -3657,9 +3665,9 @@ def main():
                         'location': final_location_tab
                     })
                 
-                # Add PDF parameters (always generate PDF) - use correct parameter names for pipeline
+                # Add PDF parameters - use correct parameter names for pipeline
                 params.update({
-                    'generate_pdf': True,  # Enable PDF generation
+                    'generate_pdf': enable_pdf_generation_tab,  # Use toggle value
                     'max_jobs': max_jobs_pdf_tab if max_jobs_pdf_tab != "All" else 999,  # Pipeline expects 'max_jobs'
                     'route_type_filter': pdf_route_type_filter_tab,  # Pipeline expects 'route_type_filter'
                     'match_quality_filter': pdf_match_quality_filter_tab,  # Pipeline expects 'match_quality_filter' 
@@ -4304,8 +4312,57 @@ def main():
                     else:
                         st.error(f"❌ Search failed: {metadata.get('error', 'Unknown error')}")
         else:
-            # Only show placeholder message if no persistent results exist
-            if 'last_results' not in st.session_state:
+            # Show persistent results if they exist, otherwise show placeholder
+            if 'last_results' in st.session_state:
+                # Display persistent results from previous search
+                results = st.session_state.last_results
+                df = results['df']
+                metadata = results['metadata']
+                result_timestamp = results.get('timestamp', 'Unknown time')
+                
+                if not df.empty and metadata.get('success', False):
+                    st.info(f"📊 **Previous Search Results** ({result_timestamp.strftime('%I:%M %p') if hasattr(result_timestamp, 'strftime') else result_timestamp})")
+                    st.markdown("*Results persist until you run a new search*")
+                    
+                    # Show results using the same logic as immediate results
+                    quality_df = filter_quality_jobs(df)
+                    show_all_rows = st.checkbox("Show all rows (no filters)", value=False, key="persistent_show_all_rows")
+                    display_df = (df if show_all_rows or quality_df.empty else quality_df).copy().reset_index(drop=True)
+                    st.dataframe(display_df, width="stretch", height=420, hide_index=True)
+                    
+                    # Add on-demand PDF generation for persistent results
+                    col_pdf_persistent, _ = st.columns([1, 3])
+                    with col_pdf_persistent:
+                        if st.button("📄 Generate PDF", key="persistent_generate_pdf_btn"):
+                            coach = st.session_state.get('current_coach')
+                            candidate_name = st.session_state.get('candidate_name', '')
+                            candidate_id = st.session_state.get('candidate_id', '')
+                            
+                            # Apply reasonable limit for persistent results
+                            limited_quality_df = quality_df.head(50)
+                            
+                            # Generate PDF from persistent results
+                            market_name = results.get('params', {}).get('location', 'Search Results')
+                            pdf_bytes = pipeline.generate_pdf_from_canonical(
+                                limited_quality_df,
+                                market_name=market_name,
+                                coach_name=coach.full_name if coach else '',
+                                coach_username=coach.username if coach else '',
+                                candidate_name=candidate_name,
+                                candidate_id=candidate_id,
+                                show_prepared_for=st.session_state.get('tab_show_prepared_for', True)
+                            )
+                            if pdf_bytes:
+                                st.download_button(
+                                    label="📥 Download PDF",
+                                    data=pdf_bytes,
+                                    file_name=f"freeworld_jobs_{str(market_name).replace(' ', '_')}.pdf",
+                                    mime="application/pdf",
+                                    use_container_width=True
+                                )
+                            else:
+                                st.error("PDF generation failed")
+            else:
                 st.info("🚧 Click a search button above to start searching for jobs...")
     
     elif selected_tab == "🗓️ Batches & Scheduling":
@@ -5105,9 +5162,10 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
         elif search_type == 'memory':
             # Memory-only search - use EXACT same approach as Indeed button but with memory_only=True
             # Clear any previous results first since we're running a new search
-            for key in ['memory_search_df', 'memory_search_metadata', 'memory_search_params', 'last_results']:
+            for key in ['memory_search_df', 'memory_search_metadata', 'memory_search_params']:
                 if hasattr(st.session_state, key):
                     delattr(st.session_state, key)
+            # Keep last_results for persistence across tab navigation
             
             # Build parameters exactly like Indeed button
             # Map UI lookback (e.g., '72h') to hours integer
@@ -5121,7 +5179,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                 'route_filter': route_filter,
                 'search_terms': search_terms,
                 'push_to_airtable': push_to_airtable,
-                'generate_pdf': False,  # UI memory-only: no PDF during search
+                'generate_pdf': enable_pdf_generation_tab,  # Use PDF toggle value  
                 'generate_csv': False,  # UI memory-only: no CSV during search
                 'search_radius': search_radius,
                 'no_experience': no_experience,
@@ -5441,9 +5499,10 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
         elif search_type in ['indeed', 'indeed_fresh']:
             # Indeed searches (with or without memory) 
             # Clear any previous results first since we're running a new search
-            for key in ['memory_search_df', 'memory_search_metadata', 'memory_search_params', 'last_results']:
+            for key in ['memory_search_df', 'memory_search_metadata', 'memory_search_params']:
                 if hasattr(st.session_state, key):
                     delattr(st.session_state, key)
+            # Keep last_results for persistence across tab navigation
             
             is_fresh_only = (search_type == 'indeed_fresh')
             
@@ -5453,7 +5512,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                 'route_filter': route_filter,
                 'search_terms': search_terms,
                 'push_to_airtable': push_to_airtable,
-                'generate_pdf': False,  # UI: no PDF during search; on-demand only
+                'generate_pdf': enable_pdf_generation_tab,  # Use PDF toggle value
                 'search_radius': search_radius,
                 'no_experience': no_experience,
                 'force_fresh': is_fresh_only,  # Force fresh for indeed_fresh, regular behavior for indeed
@@ -5783,396 +5842,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
         </div>
         """, unsafe_allow_html=True)
         
-        # (Removed legacy 'Last Search Results' status block)
-    
-    # Results display - Show persistent results from last search
-    if 'last_results' in st.session_state:
-        results = st.session_state.last_results
-        df = results['df']
-        metadata = results['metadata']
-        
-        
-        if not df.empty and metadata.get('success', False):
-            st.markdown("---")
-            
-            # Add timestamp info for the persistent results
-            result_timestamp = results.get('timestamp', 'Unknown time')
-            search_type = results.get('search_type', 'Unknown')
-            st.info(f"📊 **Last Search Results** (from {search_type} search at {result_timestamp.strftime('%I:%M %p') if hasattr(result_timestamp, 'strftime') else result_timestamp})")
-            st.markdown("*These results will persist until you run a new search*")
-
-            # Included Jobs view (filtered to PDF-exportable)
-            filtered_df = df
-            try:
-                if 'route.final_status' in df.columns:
-                    _mask = df['route.final_status'].astype(str).str.startswith('included')
-                    if _mask.any():
-                        filtered_df = df[_mask]
-                elif 'ai.match' in df.columns:
-                    filtered_df = df[df['ai.match'].isin(['good', 'so-so'])]
-            except Exception:
-                pass
-
-            # (No global/top PDF button per new design)
-
-            # Top-level global metrics + quality DF
-            try:
-                # Global combined metrics computed from DataFrame (ALL markets)
-                ai_series = df.get('ai.match')
-                route_series = df.get('ai.route_type')
-                ai_good = int((ai_series == 'good').sum()) if ai_series is not None else 0
-                ai_soso = int((ai_series == 'so-so').sum()) if ai_series is not None else 0
-                quality_jobs = ai_good + ai_soso
-                total_jobs = int(len(df))
-                local_routes = int((route_series == 'Local').sum()) if route_series is not None else 0
-                otr_routes = int((route_series == 'OTR').sum()) if route_series is not None else 0
-
-                c1, c2, c3, c4, c5 = st.columns(5)
-                with c1:
-                    st.metric("Quality Jobs Found", quality_jobs)
-                with c2:
-                    st.metric("Total Jobs Analyzed", total_jobs)
-                with c3:
-                    st.metric("Excellent Matches", ai_good)
-                with c4:
-                    st.metric("Possible Fits", ai_soso)
-                with c5:
-                    st.metric("Local Routes", local_routes)
-
-                d1, d2, d3, d4, d5 = st.columns(5)
-                with d1:
-                    st.metric("OTR Routes", otr_routes)
-                with d2:
-                    st.metric("Pipeline Efficiency", f"{metadata.get('memory_efficiency', 0):.1f}%")
-                with d3:
-                    st.metric("Cost per Quality Job", f"${metadata.get('cost_per_quality_job', 0):.3f}")
-                with d4:
-                    processing_time = (metadata.get('processing_time', 0) or metadata.get('duration', 0) or metadata.get('elapsed_time', 0) or metadata.get('time', 0))
-                    time_str = f"{int(processing_time // 60)}m {processing_time % 60:.1f}s" if processing_time >= 60 else f"{processing_time:.1f}s"
-                    st.metric("Processing Time", time_str)
-                with d5:
-                    st.metric("Memory Efficiency", f"{metadata.get('memory_efficiency', 0):.1f}%")
-
-            except Exception:
-                pass
-                
-            # Display persistent HTML preview and portal links if they were generated
-            html_preview_data = results.get('html_preview_data')
-            portal_link_data = results.get('portal_link_data')
-            
-            if html_preview_data and results.get('html_preview_enabled', False):
-                try:
-                    st.markdown("### 👁️ HTML Preview (Persistent)")
-                    st.info(f"📱 Showing HTML preview with {html_preview_data['job_count']} jobs")
-                    st.components.v1.html(html_preview_data['phone_html'], height=900, scrolling=False)
-                except Exception as e:
-                    st.error(f"HTML preview display error: {e}")
-                    
-            if portal_link_data and results.get('portal_link_enabled', False):
-                try:
-                    st.markdown("### 🔗 Custom Job Portal Link (Persistent)")
-                    st.success("✅ **Custom Job Portal Generated!**")
-                    st.code(portal_link_data['shortened_url'], language="text")
-                    
-                    # Show portal configuration summary
-                    with st.expander("🔍 Portal Configuration Summary"):
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.write("📍 **Location:**", portal_link_data.get('location', 'N/A'))
-                            st.write("🔍 **Search Type:**", portal_link_data.get('search_type', 'N/A'))
-                            if portal_link_data.get('agent_name'):
-                                st.write("👤 **Free Agent:**", portal_link_data['agent_name'])
-                        with col2:
-                            portal_config = portal_link_data.get('portal_config', {})
-                            st.write("⚙️ **Mode:**", portal_config.get('mode', 'N/A'))
-                            st.write("📊 **Max Jobs:**", portal_config.get('max_jobs', 'N/A'))
-                            st.write("🛣️ **Route Filter:**", portal_config.get('route_type_filter', ['N/A']))
-                            st.write("🤝 **Fair Chance Only:**", "Yes" if portal_config.get('fair_chance_only', False) else "No")
-
-                    st.info("💡 **Tip:** This shortened link contains ALL your search settings and will run the same search when accessed!")
-                except Exception as e:
-                    st.error(f"Portal link display error: {e}")
-
-            # Resume with original metrics and data display
-            try:
-                # Terminal Parquet (99_complete)
-                parquet_path = metadata.get('parquet_path')
-                run_id = metadata.get('run_id', 'unknown')
-                pdebug = metadata.get('parquet_debug', {}) or {}
-                try:
-                    if parquet_path:
-                        pq_bytes2 = pipeline.get_parquet_bytes(parquet_path) if hasattr(pipeline, 'get_parquet_bytes') else None
-                        if pq_bytes2:
-                            st.download_button(
-                        
-                                label="📦 Download Parquet (Terminal Output)",
-                                data=pq_bytes2,
-                                file_name=os.path.basename(parquet_path),
-                                mime="application/octet-stream",
-                                width='stretch'
-                            )
-                            # Debug caption removed
-                        else:
-                            # Fallback: build combined parquet from DataFrame in-memory
-                            fallback_bytes = pipeline.dataframe_to_parquet_bytes(df) if hasattr(pipeline, 'dataframe_to_parquet_bytes') else b""
-                            if fallback_bytes:
-                                st.download_button(
-                        
-                                    label="📦 Download Parquet (Combined Results)",
-                                    data=fallback_bytes,
-                                    file_name=f"multi_market_combined_{datetime.now().strftime('%Y%m%d_%H%M%S')}.parquet",
-                                    mime="application/octet-stream",
-                                    width='stretch'
-                                )
-                                # Debug caption removed
-                            else:
-                                pass
-                    else:
-                        # Fallback when no path: attempt in-memory parquet from results
-                        fallback_bytes = pipeline.dataframe_to_parquet_bytes(df) if hasattr(pipeline, 'dataframe_to_parquet_bytes') else b""
-                        if fallback_bytes:
-                            st.download_button(
-                        
-                                label="📦 Download Parquet (Combined Results)",
-                                data=fallback_bytes,
-                                file_name=f"multi_market_combined_{datetime.now().strftime('%Y%m%d_%H%M%S')}.parquet",
-                                mime="application/octet-stream",
-                                width='stretch'
-                            )
-                            # Debug caption removed
-                        else:
-                            pass
-                except Exception:
-                    # Last-ditch fallback
-                    try:
-                        fallback_bytes = pipeline.dataframe_to_parquet_bytes(df) if hasattr(pipeline, 'dataframe_to_parquet_bytes') else b""
-                        if fallback_bytes:
-                            st.download_button(
-                        
-                                label="📦 Download Parquet (Combined Results)",
-                                data=fallback_bytes,
-                                file_name=f"multi_market_combined_{datetime.now().strftime('%Y%m%d_%H%M%S')}.parquet",
-                                mime="application/octet-stream",
-                                width='stretch'
-                            )
-                            # Debug caption removed
-                        else:
-                            pass
-                    except Exception:
-                        pass
-
-                # Optional: show recent parquet files in the directory to aid debugging
-                try:
-                    import glob, os, time
-                    pq_dir = pdebug.get('dir')
-                    if pq_dir and os.path.isdir(pq_dir):
-                        files = glob.glob(os.path.join(pq_dir, '*_99_complete.parquet'))
-                        files = sorted(files, key=os.path.getmtime, reverse=True)[:8]
-                        if files:
-                            rows = []
-                            for f in files:
-                                try:
-                                    rows.append({
-                                        'file': os.path.basename(f),
-                                        'modified': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(os.path.getmtime(f))),
-                                        'size_kb': int(os.path.getsize(f)/1024)
-                                    })
-                                except Exception:
-                                    pass
-                            if rows:
-                                with st.expander('Parquet files (debug)', expanded=False):
-                                    st.dataframe(pd.DataFrame(rows), width='stretch', height=180)
-                except Exception:
-                    pass
-
-                # (Removed selected/detected markets debug readout and table)
-
-                # Global quality DataFrame (all markets) - using standardized filtering
-                quality_df = filter_quality_jobs(df)
-                show_all_rows_global = st.checkbox("Show all rows (no filters)", value=False, key="global_show_all_rows")
-                display_df = (df if show_all_rows_global or quality_df.empty else quality_df).copy().reset_index(drop=True)
-                st.dataframe(display_df, width="stretch", height=420, hide_index=True)
-            except Exception:
-                pass
-
-            
-
-            
-
-            # (Removed bottom terminal parquet button and duplicate analytics)
-
-            # Collapsible full DataFrame
-            with st.expander("🔎 Full Results (all columns)", expanded=False):
-                # Show full canonical DataFrame, no filtering or reordering
-                st.dataframe(df, width='stretch')
-
-            # Per-market sections (clone results UI for each market)
-            try:
-                if 'meta.market' in df.columns:
-                    unique_mkts = [m for m in df['meta.market'].dropna().unique().tolist() if str(m).strip() != '' ]
-                    # DEBUG: Show actual market values in DataFrame
-                    market_counts = df['meta.market'].value_counts()
-                    st.info(f"🐛 DEBUG - Actual market values in DataFrame: {dict(market_counts)}")
-                    if len(unique_mkts) >= 1:
-                        order_hint = results.get('params', {}).get('markets') or []
-                        ordered = []
-                        seen = set()
-                        for m in order_hint:
-                            if m in unique_mkts and m not in seen:
-                                ordered.append(m); seen.add(m)
-                        for m in sorted(unique_mkts):
-                            if m not in seen:
-                                ordered.append(m)
-
-                        for mk in ordered:
-                            # Header with inline PDF download if available
-                            try:
-                                import glob
-                                col_h, col_btn = st.columns([8, 2])
-                                with col_h:
-                                    st.markdown(f"### 📍 {mk}")
-                                with col_btn:
-                                    # Generate PDF button for this market with fresh tracked links
-                                    if st.button(f"📄 Generate PDF", key=f"market_pdf_{mk}_btn"):
-                                        with st.spinner(f"🔗 Generating PDF with fresh tracking links for {mk}..."):
-                                            try:
-                                                # Filter jobs for this market
-                                                market_df = df[df['meta.market'] == mk].copy()
-                                                
-                                                if not market_df.empty:
-                                                    # Create fresh tracked links for PDF
-                                                    from link_tracker import LinkTracker
-                                                    if LinkTracker:
-                                                        link_tracker = LinkTracker()
-                                                        if link_tracker.is_available:
-                                                            # Generate new tracked URLs for PDF
-                                                            url_mapping = {}
-                                                            for _, job in market_df.iterrows():
-                                                                original_url = (
-                                                                    job.get('source.indeed_url', '') or 
-                                                                    job.get('source.google_url', '') or 
-                                                                    job.get('source.apply_url', '')
-                                                                )
-                                                                job_id = job.get('id.job', '')
-                                                                
-                                                                if original_url and len(original_url) > 10 and job_id:
-                                                                    try:
-                                                                        # Get environment variables for tracking
-                                                                        # Get candidate info from DataFrame metadata (same source as PDF)
-                                                                        coach_username = coach.username
-                                                                        candidate_name = job.get('meta.candidate_name', '') if 'meta.candidate_name' in job else ''
-                                                                        candidate_id = job.get('meta.candidate_id', '') if 'meta.candidate_id' in job else ''
-                                                                        
-                                                                        # Prepare tags for Short.io
-                                                                        tags = [f"coach:{coach_username}", f"market:{mk}", "pdf_generation"]
-                                                                        if candidate_id:
-                                                                            tags.append(f"candidate:{candidate_id}")
-                                                                        if candidate_name:
-                                                                            tags.append(f"agent:{candidate_name.replace(' ', '-')}")
-                                                                        
-                                                                        job_title = job.get('source.title', f"Job {job_id[:8]}")
-                                                                        tracked_url = link_tracker.create_short_link(
-                                                                            original_url,
-                                                                            title=f"{mk} - {job_title}",
-                                                                            tags=tags
-                                                                        )
-                                                                        
-                                                                        if tracked_url and tracked_url != original_url:
-                                                                            url_mapping[job_id] = tracked_url
-                                                                    except Exception as e:
-                                                                        print(f"Link generation failed for {job_id[:8]}: {e}")
-                                                            
-                                                            # Apply new tracked URLs to market DataFrame
-                                                            if url_mapping:
-                                                                for job_id, tracked_url in url_mapping.items():
-                                                                    mask = market_df['id.job'] == job_id
-                                                                    market_df.loc[mask, 'meta.tracked_url'] = tracked_url
-                                                                st.success(f"✅ Generated {len(url_mapping)} fresh tracking links")
-                                                    
-                                                    # Generate PDF for this market
-                                                    if hasattr(pipeline, '_generate_pdf'):
-                                                        pdf_path = pipeline._generate_pdf(market_df, mk, None)
-                                                        if pdf_path and hasattr(pipeline, 'get_pdf_bytes'):
-                                                            pdf_bytes = pipeline.get_pdf_bytes(pdf_path)
-                                                            if pdf_bytes:
-                                                                st.download_button(
-                                                                    label=f"📄 Download {mk} PDF",
-                                                                    data=pdf_bytes,
-                                                                    file_name=f"FreeWorld_Jobs_{mk}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                                                                    mime="application/pdf",
-                                                                    key=f"download_{mk}_pdf",
-                                                                    use_container_width=True
-                                                                )
-                                                                st.success(f"✅ PDF generated for {mk} with fresh tracking links!")
-                                                            else:
-                                                                st.error("Failed to read PDF bytes")
-                                                        else:
-                                                            st.error("PDF generation failed")
-                                                    else:
-                                                        st.error("PDF generation not available")
-                                                else:
-                                                    st.warning(f"No jobs found for {mk}")
-                                            except Exception as e:
-                                                st.error(f"PDF generation error: {e}")
-                            except Exception:
-                                st.markdown(f"### 📍 {mk}")
-                            mdf = df[df['meta.market'] == mk]
-                            # Filter for quality jobs using standardized logic
-                            mdf_inc = filter_quality_jobs(mdf)
-
-                            # (Per-market PDF generation flow removed; using inline download link if file exists)
-
-                            # Included table
-                            cols_pref = ['source.title', 'source.company', 'ai.summary', 'ai.match', 'ai.route_type', 'ai.fair_chance', 'source.indeed_url']
-                            cols_show = [c for c in cols_pref if c in mdf_inc.columns]
-                            st.dataframe(mdf_inc[cols_show] if cols_show else mdf_inc, width='stretch')
-
-                            # Per-market metrics using standardized calculation
-                            try:
-                                quality_metrics = calculate_search_metrics(mdf_inc)
-                                inc_count = len(mdf_inc)
-                                total_count = len(mdf)
-                                
-                                colA, colB, colC, colD = st.columns(4)
-                                with colA:
-                                    st.metric("Quality Jobs Found", inc_count)
-                                with colB:
-                                    st.metric("Total Jobs Analyzed", total_count)
-                                with colC:
-                                    st.metric("Excellent Matches", quality_metrics['good'])
-                                with colD:
-                                    st.metric("Possible Fits", quality_metrics['so_so'])
-                                colE, colF = st.columns(2)
-                                with colE:
-                                    st.metric("Local Routes", quality_metrics['local'])
-                                with colF:
-                                    st.metric("OTR Routes", quality_metrics['otr'])
-                            except Exception:
-                                pass
-
-                            # Full results for market
-                            with st.expander(f"🔎 Full Results — {mk}", expanded=False):
-                                st.dataframe(mdf, width='stretch', height=480)
-                            st.markdown("---")
-            except Exception:
-                pass
-            
-                        
-            # Removed legacy Sync Options UI (pipeline handles syncing)
-        elif df.empty:
-            st.markdown("""
-            <div class="job-results-container">
-                <h3 style="color: hsl(240, 3.8%, 46.1%);">No jobs found in this search</h3>
-                <p>Try adjusting your search parameters or selecting a different location.</p>
-            </div>
-            """, unsafe_allow_html=True)
-        elif not metadata.get('success', False):
-            st.markdown(f"""
-            <div class="job-results-container" style="border-left: 4px solid #EF4444;">
-                <h3 style="color: #DC2626;">Search Failed</h3>
-                <p>{metadata.get('error', 'Unknown error occurred during the search.')}</p>
-            </div>
-            """, unsafe_allow_html=True)
+        # (Removed large persistent results section - original results now persist properly)
     
     # (Removed bottom Pipeline Analytics — consolidated at top of Search Results)
 
