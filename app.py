@@ -5499,7 +5499,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
         elif search_type in ['indeed', 'indeed_fresh']:
             # Indeed searches (with or without memory) 
             # Clear any previous results first since we're running a new search
-            for key in ['memory_search_df', 'memory_search_metadata', 'memory_search_params']:
+            for key in ['memory_search_df', 'memory_search_metadata', 'memory_search_params', 'indeed_pdf_bytes', 'indeed_pdf_filename']:
                 if hasattr(st.session_state, key):
                     delattr(st.session_state, key)
             # Keep last_results for persistence across tab navigation
@@ -5730,16 +5730,23 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                             show_prepared_for=st.session_state.get('tab_show_prepared_for', True)
                         )
                         if pdf_bytes:
-                            st.download_button(
-
-                                label="📥 Download PDF",
-                                data=pdf_bytes,
-                                file_name=f"freeworld_jobs_{str(market_name).replace(' ', '_')}.pdf",
-                                mime="application/pdf",
-                                use_container_width=True
-                            )
+                            # Store PDF bytes in session state so download button persists
+                            st.session_state.indeed_pdf_bytes = pdf_bytes
+                            st.session_state.indeed_pdf_filename = f"freeworld_jobs_{str(market_name).replace(' ', '_')}.pdf"
+                            st.success("✅ PDF generated successfully!")
                         else:
                             st.error("PDF generation failed")
+                
+                # Show PDF download button if PDF has been generated (persistent across page refreshes)
+                if hasattr(st.session_state, 'indeed_pdf_bytes') and st.session_state.indeed_pdf_bytes:
+                    st.download_button(
+                        label="📥 Download PDF",
+                        data=st.session_state.indeed_pdf_bytes,
+                        file_name=st.session_state.indeed_pdf_filename,
+                        mime="application/pdf",
+                        use_container_width=True,
+                        key="indeed_persistent_pdf_download"
+                    )
 
                 # Record search in coach's usage stats
                 coach_manager.record_search(
