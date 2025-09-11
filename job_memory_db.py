@@ -17,6 +17,7 @@ class JobMemoryDB:
     def __init__(self):
         """Initialize Supabase connection"""
         self.supabase = None
+        self._connection_healthy = False
         self._init_supabase()
     
     def _init_supabase(self):
@@ -27,6 +28,7 @@ class JobMemoryDB:
             self.supabase = get_client()
             
             if self.supabase:
+                self._connection_healthy = True
                 print("✅ Supabase job memory database connected via centralized client")
                 return
                 
@@ -72,12 +74,45 @@ class JobMemoryDB:
                 return
             
             self.supabase: Client = create_client(supabase_url, supabase_key)
+            self._connection_healthy = True
             print("✅ Supabase job memory database connected via direct client")
             
         except ImportError:
             print("⚠️ Supabase not installed - pip install supabase")
         except Exception as e:
             print(f"⚠️ Supabase connection failed: {e}")
+    
+    def _check_and_repair_connection(self) -> bool:
+        """Check if connection is healthy and reconnect if needed"""
+        if not self.supabase:
+            logger.warning("Supabase client not initialized, attempting to reconnect...")
+            self._init_supabase()
+            return self._connection_healthy
+            
+        # Quick health check - try a simple query
+        try:
+            # Test connection with a lightweight query
+            result = self.supabase.table('jobs').select('id').limit(1).execute()
+            self._connection_healthy = True
+            return True
+        except Exception as e:
+            logger.warning(f"Supabase connection unhealthy ({e}), attempting to reconnect...")
+            self._connection_healthy = False
+            
+            # Try to reconnect
+            try:
+                self._init_supabase()
+                if self.supabase:
+                    # Test the new connection
+                    result = self.supabase.table('jobs').select('id').limit(1).execute()
+                    self._connection_healthy = True
+                    logger.info("✅ Supabase connection restored")
+                    return True
+            except Exception as reconnect_error:
+                logger.error(f"Failed to reconnect to Supabase: {reconnect_error}")
+                self._connection_healthy = False
+                
+        return False
     
     def _clean_nan_values(self, value):
         """Convert NaN values to appropriate defaults for JSON serialization"""
@@ -395,7 +430,12 @@ class JobMemoryDB:
         Returns:
             Dict mapping job_id to job data for known jobs
         """
-        if not self.supabase or not job_ids:
+        if not job_ids:
+            return {}
+            
+        # Check and repair connection if needed
+        if not self._check_and_repair_connection():
+            logger.error("❌ Supabase connection failed and could not be repaired")
             return {}
             
         try:
@@ -467,6 +507,45 @@ class JobMemoryDB:
             return memory_dict
             
         except Exception as e:
+            # Handle IDNA and other connection-related errors
+            if 'idna' in str(e).lower() or 'connection' in str(e).lower() or 'network' in str(e).lower():
+                logger.warning(f"Connection-related error in check_job_memory: {e}")
+                self._connection_healthy = False
+                if self._check_and_repair_connection():
+                    logger.info("Retrying check_job_memory after connection repair...")
+                    try:
+                        # Retry once with repaired connection
+                        cutoff_time = datetime.now() - timedelta(hours=hours)
+                        cutoff_str = cutoff_time.isoformat()
+                        result = self.supabase.table('jobs').select('*').in_(
+                            'job_id', job_ids
+                        ).gte('classified_at', cutoff_str).execute()
+                        
+                        if result.data:
+                            memory_dict = {}
+                            for job in result.data:
+                                memory_dict[job['job_id']] = {
+                                    'job_id': job['job_id'], 
+                                    'title': job['title'],
+                                    'company': job['company'],
+                                    'location': job['location'],
+                                    'description': job['description'],
+                                    'match_level': job['match_level'],
+                                    'ai_reason': job.get('ai_reason', ''),
+                                    'ai_summary': job.get('ai_summary', ''),
+                                    'fair_chance': job.get('fair_chance', 'no_requirements_mentioned'),
+                                    'endorsements': job.get('endorsements', 'none_required'),
+                                    'route_type': job.get('route_type', ''),
+                                    'market': job['market'],
+                                    'query': job.get('search_query', ''),
+                                    'search_query': job.get('search_query', '')
+                                }
+                            logger.info(f"Found {len(memory_dict)} jobs in memory database out of {len(job_ids)} checked (after reconnection)")
+                            return memory_dict
+                        return {}
+                    except Exception as retry_error:
+                        logger.error(f"Retry failed after connection repair in check_job_memory: {retry_error}")
+                        
             logger.error(f"Error checking job memory: {e}")
             return {}
     
@@ -485,8 +564,9 @@ class JobMemoryDB:
         Returns:
             List of job dictionaries matching the criteria, ordered by freshness
         """
-        if not self.supabase:
-            logger.error("❌ Supabase not initialized")
+        # Check and repair connection if needed
+        if not self._check_and_repair_connection():
+            logger.error("❌ Supabase connection failed and could not be repaired")
             return []
             
         try:
@@ -538,6 +618,53 @@ class JobMemoryDB:
                 return []
                 
         except Exception as e:
+            # Handle IDNA and other connection-related errors by attempting reconnection
+            if 'idna' in str(e).lower() or 'connection' in str(e).lower() or 'network' in str(e).lower():
+                logger.warning(f"Connection-related error detected: {e}")
+                self._connection_healthy = False
+                if self._check_and_repair_connection():
+                    logger.info("Retrying query after connection repair...")
+                    # Retry once with the repaired connection
+                    try:
+                        # Recalculate cutoff and rebuild query
+                        cutoff_time = datetime.now() - timedelta(hours=hours)
+                        cutoff_str = cutoff_time.isoformat()
+                        
+                        if text_search:
+                            query = self.supabase.table('jobs').select('*').gte('created_at', cutoff_str)
+                            if search_terms and search_terms.strip():
+                                terms = search_terms.strip().lower()
+                                query = query.or_(
+                                    f'title.ilike.%{terms}%,'
+                                    f'description.ilike.%{terms}%,'
+                                    f'normalized_title.ilike.%{terms}%'
+                                )
+                        else:
+                            query = self.supabase.table('jobs').select('*').in_(
+                                'match_level', ['good', 'so-so']
+                            ).gte('created_at', cutoff_str)
+                        
+                        if location and location.strip():
+                            location_clean = location.strip().lower()
+                            query = query.or_(
+                                f'location.ilike.%{location_clean}%,'
+                                f'normalized_location.ilike.%{location_clean}%,'
+                                f'market.ilike.%{location_clean}%'
+                            )
+                            
+                        query = query.order('created_at', desc=True).limit(limit)
+                        result = query.execute()
+                        
+                        if result.data:
+                            search_type = "text search" if text_search else "quality jobs"
+                            logger.info(f"Found {len(result.data)} {search_type} in '{location}' (last {hours}h) after reconnection")
+                            return result.data
+                        else:
+                            return []
+                            
+                    except Exception as retry_error:
+                        logger.error(f"Retry failed after connection repair: {retry_error}")
+                        
             logger.error(f"Error searching jobs in memory database: {e}")
             return []
 
