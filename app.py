@@ -3876,11 +3876,23 @@ def main():
                             # If no ai.match, use all jobs
                             included_df = df.copy()
                         
-                        # Sort by quality then date
+                        # Sort by quality then date (use available date columns)
                         if 'ai.match' in included_df.columns:
                             quality_order = {'good': 0, 'so-so': 1, 'bad': 2}
                             included_df['_quality_sort'] = included_df['ai.match'].map(quality_order).fillna(3)
-                            included_df = included_df.sort_values(['_quality_sort', 'sys.scraped_at'], ascending=[True, False])
+                            
+                            # Find available date column for secondary sort
+                            date_cols = ['sys.scraped_at', 'source.posted_date', 'sys.created_at', 'sys.updated_at']
+                            date_col = None
+                            for col in date_cols:
+                                if col in included_df.columns:
+                                    date_col = col
+                                    break
+                            
+                            if date_col:
+                                included_df = included_df.sort_values(['_quality_sort', date_col], ascending=[True, False])
+                            else:
+                                included_df = included_df.sort_values('_quality_sort', ascending=True)
                             included_df = included_df.drop('_quality_sort', axis=1)
                         
                         # Determine market name
@@ -5442,11 +5454,23 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         # If no ai.match, use all jobs
                         included_df = df.copy()
                     
-                    # Sort by quality then date
+                    # Sort by quality then date (use available date columns)
                     if 'ai.match' in included_df.columns:
                         quality_order = {'good': 0, 'so-so': 1, 'bad': 2}
                         included_df['_quality_sort'] = included_df['ai.match'].map(quality_order).fillna(3)
-                        included_df = included_df.sort_values(['_quality_sort', 'sys.scraped_at'], ascending=[True, False])
+                        
+                        # Find available date column for secondary sort
+                        date_cols = ['sys.scraped_at', 'source.posted_date', 'sys.created_at', 'sys.updated_at']
+                        date_col = None
+                        for col in date_cols:
+                            if col in included_df.columns:
+                                date_col = col
+                                break
+                        
+                        if date_col:
+                            included_df = included_df.sort_values(['_quality_sort', date_col], ascending=[True, False])
+                        else:
+                            included_df = included_df.sort_values('_quality_sort', ascending=True)
                         included_df = included_df.drop('_quality_sort', axis=1)
                     
                     # Determine market name
