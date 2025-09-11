@@ -823,28 +823,32 @@ def transform_ai_classification(df: pd.DataFrame, ai_results: Dict[str, Dict], j
     """
     def apply_ai_result(job_id: str) -> Dict[str, Any]:
         """Apply AI result for a specific job"""
-        # Only apply AI classification to jobs that were actually sent for classification
-        if job_ids_classified is not None and job_id not in job_ids_classified:
-            # This job was not sent for AI classification - use sensible defaults instead of None
+        # Check if this job has already been classified (memory jobs, etc.)
+        current_row = df[df['id.job'] == job_id].iloc[0] if not df[df['id.job'] == job_id].empty else None
+        if current_row is not None and current_row.get('ai.match') and str(current_row.get('ai.match')).strip():
+            # Job already has classification - preserve existing values
             return {
-                'ai.match': 'error',
-                'ai.reason': 'Not classified in this run',
+                'ai.match': current_row.get('ai.match', ''),
+                'ai.reason': current_row.get('ai.reason', ''),
+                'ai.summary': current_row.get('ai.summary', ''),
+                'ai.normalized_location': current_row.get('ai.normalized_location', ''),
+                'ai.fair_chance': current_row.get('ai.fair_chance', 'no_requirements_mentioned'),
+                'ai.endorsements': current_row.get('ai.endorsements', 'none_required'),
+                'ai.route_type': current_row.get('ai.route_type', '')
+            }
+        
+        if job_id not in ai_results:
+            # Job was eligible for classification but AI didn't return a result
+            # This could be due to API errors, filtering during AI processing, etc.
+            # Use neutral defaults that won't break routing
+            return {
+                'ai.match': '',  # Empty = not classified
+                'ai.reason': '',
                 'ai.summary': '',
                 'ai.normalized_location': '',
                 'ai.fair_chance': 'no_requirements_mentioned',
                 'ai.endorsements': 'none_required',
-                'ai.route_type': 'Unknown'
-            }
-        
-        if job_id not in ai_results:
-            return {
-                'ai.match': 'error',
-                'ai.reason': 'Missing from AI response',
-                'ai.summary': 'Job not classified by AI',
-                'ai.normalized_location': '',
-                'ai.fair_chance': 'no_requirements_mentioned',
-                'ai.endorsements': 'none_required',
-                'ai.route_type': 'Unknown'
+                'ai.route_type': ''
             }
         
         result = ai_results[job_id]

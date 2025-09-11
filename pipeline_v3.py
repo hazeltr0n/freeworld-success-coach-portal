@@ -1400,8 +1400,8 @@ class FreeWorldPipelineV3:
             # Convert results to lookup dictionary
             ai_lookup = {result['job_id']: result for result in ai_results}
             
-            # Apply AI results only to jobs that were classified
-            df = transform_ai_classification(df, ai_lookup, job_ids_classified=set(job['job_id'] for job in jobs_for_ai))
+            # Apply AI results to all jobs (those not classified will get appropriate defaults)
+            df = transform_ai_classification(df, ai_lookup, job_ids_classified=None)
             
             # Count classification results
             fresh_results = df[df['sys.is_fresh_job'] == True]['ai.match'].value_counts()
