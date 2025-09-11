@@ -40,25 +40,44 @@ def convert_csv_to_pipeline_format(csv_path: str, output_dir: str = "csv_pipelin
         # Convert to pipeline-compatible format
         pipeline_df = pd.DataFrame()
         
-        # Map Outscraper fields to pipeline expected fields
-        pipeline_df['job_id'] = market_df['viewJobLink'].apply(lambda x: str(hash(x))[-8:] if pd.notna(x) else '')
-        pipeline_df['title'] = market_df['title'].fillna('')
-        pipeline_df['company'] = market_df['company'].fillna('')
-        pipeline_df['location'] = market_df['formattedLocation'].fillna('')
-        pipeline_df['description'] = market_df['snippet'].fillna('')
-        pipeline_df['apply_url'] = market_df['viewJobLink'].fillna('')
-        pipeline_df['indeed_url'] = market_df['viewJobLink'].fillna('')  # Same as apply_url for Indeed
+        # Map fields to pipeline expected format - handle both raw and classified CSV formats
+        # Check if this is a pre-classified CSV (has canonical schema columns)
+        if 'source.title' in market_df.columns:
+            # Pre-classified CSV format 
+            pipeline_df['job_id'] = market_df['id.job'].fillna('')
+            pipeline_df['title'] = market_df['source.title'].fillna('')
+            pipeline_df['company'] = market_df['source.company'].fillna('')
+            pipeline_df['location'] = market_df['source.location_raw'].fillna('')
+            pipeline_df['description'] = market_df['source.description_raw'].fillna('')
+            pipeline_df['apply_url'] = market_df['source.url'].fillna('')
+            pipeline_df['indeed_url'] = market_df['source.url'].fillna('')
+        else:
+            # Raw outscraper CSV format
+            pipeline_df['job_id'] = market_df['viewJobLink'].apply(lambda x: str(hash(x))[-8:] if pd.notna(x) else '')
+            pipeline_df['title'] = market_df['title'].fillna('')
+            pipeline_df['company'] = market_df['company'].fillna('')
+            pipeline_df['location'] = market_df['formattedLocation'].fillna('')
+            pipeline_df['description'] = market_df['snippet'].fillna('')
+            pipeline_df['apply_url'] = market_df['viewJobLink'].fillna('')
+            pipeline_df['indeed_url'] = market_df['viewJobLink'].fillna('')
         
-        # Process salary
+        # Process salary - handle different input formats
         salary_parts = []
         for _, row in market_df.iterrows():
             try:
-                min_sal = float(row.get('salarySnippet_baseSalary_range_min', 0)) if pd.notna(row.get('salarySnippet_baseSalary_range_min')) else None
-                max_sal = float(row.get('salarySnippet_baseSalary_range_max', 0)) if pd.notna(row.get('salarySnippet_baseSalary_range_max')) else None
-                unit = str(row.get('salarySnippet_baseSalary_unitOfWork', 'year')).lower() if pd.notna(row.get('salarySnippet_baseSalary_unitOfWork')) else 'year'
-                
-                if min_sal and max_sal:
-                    salary_parts.append(f"${min_sal:,.0f} - ${max_sal:,.0f} per {unit}")
+                # Try processed salary fields first (from classified CSV)
+                if 'source.salary_raw' in market_df.columns and pd.notna(row.get('source.salary_raw')):
+                    salary_parts.append(str(row['source.salary_raw']))
+                # Fallback to outscraper format
+                elif 'salarySnippet_baseSalary_range_min' in market_df.columns:
+                    min_sal = float(row.get('salarySnippet_baseSalary_range_min', 0)) if pd.notna(row.get('salarySnippet_baseSalary_range_min')) else None
+                    max_sal = float(row.get('salarySnippet_baseSalary_range_max', 0)) if pd.notna(row.get('salarySnippet_baseSalary_range_max')) else None
+                    unit = str(row.get('salarySnippet_baseSalary_unitOfWork', 'year')).lower() if pd.notna(row.get('salarySnippet_baseSalary_unitOfWork')) else 'year'
+                    
+                    if min_sal and max_sal:
+                        salary_parts.append(f"${min_sal:,.0f} - ${max_sal:,.0f} per {unit}")
+                    else:
+                        salary_parts.append('')
                 else:
                     salary_parts.append('')
             except (ValueError, TypeError):
@@ -71,8 +90,12 @@ def convert_csv_to_pipeline_format(csv_path: str, output_dir: str = "csv_pipelin
         pipeline_df['scraped_at'] = datetime.now().isoformat()
         pipeline_df['market'] = market
         
-        # Convert timestamps
-        if 'pubDate' in market_df.columns:
+        # Convert timestamps - handle different formats
+        if 'source.posted_date' in market_df.columns:
+            # Pre-classified CSV format
+            pipeline_df['posted_date'] = market_df['source.posted_date'].fillna('')
+        elif 'pubDate' in market_df.columns:
+            # Raw outscraper format  
             pipeline_df['posted_date'] = pd.to_datetime(market_df['pubDate'], unit='ms', errors='coerce').dt.strftime('%Y-%m-%d')
         else:
             pipeline_df['posted_date'] = ''
@@ -94,7 +117,7 @@ def convert_csv_to_pipeline_format(csv_path: str, output_dir: str = "csv_pipelin
     return market_files
 
 def run_pipeline_on_markets(market_files: dict, max_jobs_per_market: int = None, 
-                           sample_markets: list = None, use_classification: bool = True):
+                           sample_markets: list = None, use_classification: bool = False):
     """Run Pipeline v3 on each market's CSV file"""
     
     from pipeline_v3 import FreeWorldPipelineV3
