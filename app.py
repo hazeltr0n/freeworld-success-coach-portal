@@ -3638,6 +3638,7 @@ def main():
                 elif search_type_tab == 'indeed':
                     params.update({
                         'memory_only': False,
+                        'generate_pdf': True,  # Enable PDF generation for Indeed + Memory searches
                         'search_sources': {'indeed': True, 'google': False},
                         'search_strategy': 'memory_first'
                     })
@@ -3645,6 +3646,7 @@ def main():
                     params.update({
                         'memory_only': False,
                         'force_fresh': True,
+                        'generate_pdf': True,  # Enable PDF generation for Indeed Fresh searches
                         'search_sources': {'indeed': True, 'google': False},
                         'search_strategy': 'fresh_only'
                     })
