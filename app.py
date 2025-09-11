@@ -4242,14 +4242,6 @@ def main():
                     
                     if not df.empty:
                         st.balloons()
-                else:
-                    # If metadata says failed but we have rows, still show them for debugging
-                    if isinstance(df, pd.DataFrame) and not df.empty:
-                        st.warning("⚠️ Metadata reported failure, but results contain rows. Showing data.")
-                        display_df = df.copy().reset_index(drop=True)
-                        st.dataframe(display_df, width="stretch", height=420, hide_index=True)
-                    else:
-                        st.error(f"❌ Search failed: {metadata.get('error', 'Unknown error')}")
         else:
             # Show persistent results if they exist, otherwise show placeholder
             if 'last_results' in st.session_state:
