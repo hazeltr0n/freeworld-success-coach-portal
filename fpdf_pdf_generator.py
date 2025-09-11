@@ -919,9 +919,12 @@ def generate_fpdf_job_cards(jobs_df, output_path, market="Unknown", coach_name:"
             sample_candidate = jobs_df['meta.candidate_name'].iloc[0]
             print(f"   DataFrame meta.candidate_name: '{sample_candidate}' (empty={not sample_candidate})")
     
-    # Extract names for "Generated for" message  
-    agent_first_name = candidate_name.split()[0] if candidate_name and candidate_name.split() else ""
-    coach_first_name = coach_name.split()[0] if coach_name and coach_name.split() else ""
+    # Extract names for "Generated for" message - ensure strings and handle NaN values
+    candidate_name_str = str(candidate_name) if candidate_name not in ['', None] and not (isinstance(candidate_name, float) and pd.isna(candidate_name)) else ""
+    coach_name_str = str(coach_name) if coach_name not in ['', None] and not (isinstance(coach_name, float) and pd.isna(coach_name)) else ""
+    
+    agent_first_name = candidate_name_str.split()[0] if candidate_name_str and candidate_name_str.split() else ""
+    coach_first_name = coach_name_str.split()[0] if coach_name_str and coach_name_str.split() else ""
     print(f"   🏷️  Agent first name: '{agent_first_name}' (empty={not agent_first_name})")
     print(f"   🏷️  Coach first name: '{coach_first_name}' (empty={not coach_first_name})")
     print(f"   🔍  Original coach_name: '{coach_name}'")
