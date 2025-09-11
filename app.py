@@ -3618,7 +3618,6 @@ def main():
                     'mode': search_mode_tab,
                     'search_terms': search_terms_tab,
                     'push_to_airtable': False,
-                    'generate_pdf': False,
                     'search_radius': search_radius_tab,
                     'force_fresh_classification': force_fresh_classification_tab if 'force_fresh_classification_tab' in locals() else False,
                     'coach_name': coach.full_name,
@@ -3761,6 +3760,11 @@ def main():
                         if candidate_id or candidate_name:
                             params['candidate_id'] = candidate_id
                             params['candidate_name'] = candidate_name
+                        
+                        # Clear any previous tab-based PDF state when starting new search
+                        pdf_keys_to_clear = [key for key in st.session_state.keys() if key.startswith('tab_pdf_bytes_') or key.startswith('tab_pdf_filename_')]
+                        for key in pdf_keys_to_clear:
+                            del st.session_state[key]
                         
                         with st.spinner(search_messages.get(search_type_tab, "Searching...")):
                             df, metadata = pipeline.run_pipeline(params)
@@ -3951,6 +3955,71 @@ def main():
                                                 st.metric("OTR Routes", quality_metrics['otr'])
                                         except Exception:
                                             pass
+
+                                        # PDF Generation section for this market (if PDF generation is enabled)
+                                        if enable_pdf_generation_tab:
+                                            col_pdf_market, _ = st.columns([1, 3])
+                                            with col_pdf_market:
+                                                if st.button("📄 Generate PDF", key=f"generate_pdf_market_{mk}"):
+                                                    try:
+                                                        # Apply PDF filters to the market data
+                                                        filtered_df = mdf_inc.copy()
+                                                        
+                                                        # Apply route filter
+                                                        if pdf_route_type_filter_tab != "All":
+                                                            route_col = 'ai.route_type'
+                                                            if route_col in filtered_df.columns:
+                                                                if pdf_route_type_filter_tab == "Local":
+                                                                    filtered_df = filtered_df[filtered_df[route_col].str.lower() == 'local']
+                                                                elif pdf_route_type_filter_tab == "OTR":
+                                                                    filtered_df = filtered_df[filtered_df[route_col].str.lower().isin(['otr', 'regional'])]
+
+                                                        # Apply fair chance filter
+                                                        if pdf_fair_chance_only_tab:
+                                                            fair_col = 'ai.fair_chance'
+                                                            if fair_col in filtered_df.columns:
+                                                                filtered_df = filtered_df[filtered_df[fair_col].str.contains('fair_chance', case=False, na=False)]
+                                                        
+                                                        # Apply job limit
+                                                        if max_jobs_pdf_tab != "All":
+                                                            limit = int(max_jobs_pdf_tab)
+                                                            filtered_df = filtered_df.head(limit)
+                                                        
+                                                        if len(filtered_df) > 0:
+                                                            # Generate PDF for this market
+                                                            pdf_bytes = pipeline.generate_pdf_from_canonical(
+                                                                filtered_df,
+                                                                market_name=mk,
+                                                                coach_name=coach.full_name,
+                                                                coach_username=coach.username,
+                                                                candidate_name=st.session_state.get('candidate_name', ''),
+                                                                candidate_id=st.session_state.get('candidate_id', ''),
+                                                                show_prepared_for=show_prepared_for_tab
+                                                            )
+                                                            if pdf_bytes:
+                                                                # Store PDF bytes in session state for persistent download
+                                                                st.session_state[f'tab_pdf_bytes_{mk}'] = pdf_bytes
+                                                                st.session_state[f'tab_pdf_filename_{mk}'] = f"freeworld_jobs_{mk.replace(' ', '_')}.pdf"
+                                                                st.success("✅ PDF generated successfully!")
+                                                            else:
+                                                                st.error("PDF generation failed")
+                                                        else:
+                                                            st.warning("No jobs match the PDF filters")
+                                                    except Exception as e:
+                                                        st.error(f"PDF generation error: {e}")
+                                            
+                                            # Show persistent PDF download button if PDF has been generated
+                                            pdf_key = f'tab_pdf_bytes_{mk}'
+                                            filename_key = f'tab_pdf_filename_{mk}'
+                                            if hasattr(st.session_state, pdf_key) and getattr(st.session_state, pdf_key):
+                                                st.download_button(
+                                                    label="📥 Download PDF",
+                                                    data=getattr(st.session_state, pdf_key),
+                                                    file_name=getattr(st.session_state, filename_key, f"freeworld_jobs_{mk.replace(' ', '_')}.pdf"),
+                                                    mime="application/pdf",
+                                                    use_container_width=True,
+                                                    key=f"download_pdf_market_{mk}"
+                                                )
 
                                         # Full results for this market
                                         with st.expander(f"🔎 Full Results — {mk}", expanded=False):
