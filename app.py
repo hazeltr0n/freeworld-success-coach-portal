@@ -3877,6 +3877,23 @@ def main():
                         except Exception:
                             pass
 
+                    # Pipeline-generated PDF download (global, outside market loop)
+                    pdf_path = metadata.get('pdf_path')
+                    if pdf_path:
+                        try:
+                            pdf_bytes = pipeline.get_pdf_bytes(pdf_path) if hasattr(pipeline, 'get_pdf_bytes') else None
+                            if pdf_bytes:
+                                st.download_button(
+                                    label="📄 Download PDF Report",
+                                    data=pdf_bytes,
+                                    file_name=os.path.basename(pdf_path),
+                                    mime="application/pdf",
+                                    use_container_width=True,
+                                    key="global_pipeline_pdf_download"
+                                )
+                        except Exception:
+                            st.caption("PDF unavailable")
+
 
                     # Per-market sections with visibility fixes
                     try:
