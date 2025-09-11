@@ -3821,9 +3821,9 @@ def main():
                     'portal_link_data': None   # Will be populated if portal link is generated
                 }
                 
-                # Display results (fallback to DataFrame presence)
+                # Use exact same results display as Memory Only searches
                 if (isinstance(df, pd.DataFrame) and not df.empty) or (metadata and metadata.get('success', False)):
-                    # Compute quality jobs across all markets for the success message
+                    # Compute quality jobs for success message
                     try:
                         ai_series = df.get('ai.match')
                         if ai_series is not None:
@@ -3835,161 +3835,76 @@ def main():
                     except Exception:
                         _q = metadata.get('quality_jobs', 0)
                     st.success(f"✅ Search completed! Found {_q} quality jobs")
-                    
-                    # Multi-market metrics display
-                    st.markdown("### 📊 Search Results Analytics")
-                    try:
-                        # Global combined metrics computed from DataFrame (ALL markets)
-                        ai_series = df.get('ai.match')
-                        route_series = df.get('ai.route_type')
-                        ai_good = int((ai_series == 'good').sum()) if ai_series is not None else 0
-                        ai_soso = int((ai_series == 'so-so').sum()) if ai_series is not None else 0
-                        quality_jobs = ai_good + ai_soso
-                        total_jobs = int(len(df))
-                        local_routes = int((route_series == 'Local').sum()) if route_series is not None else 0
+                
+                    # Display results table inline (quality-first ordering) + on-demand PDF  
+                    # Using standardized quality filtering - SAME AS MEMORY ONLY
+                    quality_df = filter_quality_jobs(df)
+                    debug_dataframe_info(df, f"{search_type_tab.title()} Search - All Jobs")
+                    debug_dataframe_info(quality_df, f"{search_type_tab.title()} Search - Quality Jobs")
+                    show_all_rows = st.checkbox("Show all rows (no filters)", value=False, key=f"{search_type_tab}_show_all_rows")
+                    display_df = (df if show_all_rows else quality_df).copy().reset_index(drop=True)
+                    st.dataframe(display_df, width="stretch", height=420, hide_index=True)
 
-                        c1, c2, c3, c4, c5 = st.columns(5)
-                        with c1:
-                            st.metric("Quality Jobs Found", quality_jobs)
-                        with c2:
-                            st.metric("Total Jobs Analyzed", total_jobs)
-                        with c3:
-                            st.metric("Excellent Matches", ai_good)
-                        with c4:
-                            st.metric("Possible Fits", ai_soso)
-                        with c5:
-                            st.metric("Local Routes", local_routes)
+                    # Generate PDF button - SAME AS MEMORY ONLY
+                    col_pdf, _ = st.columns([1, 3])
+                    with col_pdf:
+                        if st.button("📄 Generate PDF", key=f"{search_type_tab}_generate_pdf_btn"):
+                            # Get coach from session state
+                            coach = st.session_state.get('current_coach')
+                            
+                            # Determine market name for title; prefer single meta.market
+                            market_name = 'Multiple Markets'
+                            try:
+                                if 'meta.market' in quality_df.columns:
+                                    mkts = [m for m in quality_df['meta.market'].dropna().unique().tolist() if str(m).strip()]
+                                    if len(mkts) == 1:
+                                        market_name = mkts[0]
+                                    elif len(mkts) == 0:
+                                        market_name = params.get('location') or 'Market'
+                                else:
+                                    market_name = params.get('location') or 'Market'
+                            except Exception:
+                                market_name = params.get('location') or 'Market'
 
-                    except Exception:
-                        pass
+                            # Apply reasonable default limit since sidebar PDF options are disabled
+                            limited_quality_df = quality_df.head(50)  # Default to 50 jobs for PDF
 
-                    # Parquet download
-                    parquet_path = metadata.get('parquet_path')
-                    if parquet_path:
-                        try:
-                            pq_bytes = pipeline.get_parquet_bytes(parquet_path) if hasattr(pipeline, 'get_parquet_bytes') else None
-                            if pq_bytes:
-                                st.download_button(
-                                    label="📦 Download Parquet (Complete Results)",
-                                    data=pq_bytes,
-                                    file_name=os.path.basename(parquet_path),
-                                    mime="application/octet-stream",
-                                    use_container_width=True
+                            # Add coach and candidate info to DataFrame so it travels with the data
+                            pdf_df = limited_quality_df.copy()
+                            if len(pdf_df) > 0 and coach:
+                                pdf_df['meta.coach_name'] = coach.full_name
+                                pdf_df['meta.coach_username'] = coach.username
+                                # Use same source as HTML (text input values, not just session state)
+                                pdf_df['meta.candidate_name'] = candidate_name_tab if 'candidate_name_tab' in locals() else st.session_state.get('candidate_name', '')
+                                pdf_df['meta.candidate_id'] = candidate_id_tab if 'candidate_id_tab' in locals() else st.session_state.get('candidate_id', '')
+                            
+                            if coach:
+                                pdf_bytes = pipeline.generate_pdf_from_canonical(
+                                    pdf_df,
+                                    market_name=market_name,
+                                    coach_name=coach.full_name,
+                                    coach_username=coach.username,
+                                    candidate_name=candidate_name_tab if 'candidate_name_tab' in locals() else st.session_state.get('candidate_name', ''),
+                                    candidate_id=candidate_id_tab if 'candidate_id_tab' in locals() else st.session_state.get('candidate_id', ''),
+                                    show_prepared_for=st.session_state.get('tab_show_prepared_for', True)
                                 )
-                        except Exception:
-                            pass
+                                if pdf_bytes:
+                                    st.download_button(
+                                        label="📥 Download PDF",
+                                        data=pdf_bytes,
+                                        file_name=f"freeworld_jobs_{str(market_name).replace(' ', '_')}.pdf",
+                                        mime="application/pdf",
+                                        use_container_width=True
+                                    )
+                                else:
+                                    st.error("PDF generation failed")
+                            else:
+                                st.error("Coach information not available for PDF generation")
 
-                    # Pipeline-generated PDF download (global, outside market loop)
-                    pdf_path = metadata.get('pdf_path')
-                    if pdf_path:
-                        try:
-                            pdf_bytes = pipeline.get_pdf_bytes(pdf_path) if hasattr(pipeline, 'get_pdf_bytes') else None
-                            if pdf_bytes:
-                                st.download_button(
-                                    label="📄 Download PDF Report",
-                                    data=pdf_bytes,
-                                    file_name=os.path.basename(pdf_path),
-                                    mime="application/pdf",
-                                    use_container_width=True,
-                                    key="global_pipeline_pdf_download"
-                                )
-                        except Exception:
-                            st.caption("PDF unavailable")
-
-
-                    # Per-market sections with visibility fixes
-                    try:
-                        if 'meta.market' in df.columns:
-                            unique_mkts = [m for m in df['meta.market'].dropna().unique().tolist() if str(m).strip() != '' ]
-                            if len(unique_mkts) >= 1:
-                                # Show market count indicator to help debug missing markets
-                                st.info(f"📊 **{len(unique_mkts)} markets found**: {', '.join(unique_mkts)}")
-                                
-                                # Simplified market ordering - just sort them alphabetically
-                                ordered = sorted(unique_mkts, key=lambda s: s.lower())
-                                
-
-                                for mk in ordered:
-                                    try:  # Wrap each market section to prevent one market from breaking others
-                                        # Market header with PDF generation
-                                        st.markdown("---")
-                                        col_h, col_btn = st.columns([8, 2])
-                                        with col_h:
-                                            st.markdown(f"## 📍 **{mk}**")
-                                            st.caption(f"Jobs found in {mk}")
-                                        with col_btn:
-                                            # Download link to pipeline-generated PDF (includes all markets)
-                                            if metadata.get('pdf_path'):
-                                                try:
-                                                    pdf_bytes = pipeline.get_pdf_bytes(metadata['pdf_path'])
-                                                    if pdf_bytes:
-                                                        st.download_button(
-                                                            label="📄 Download PDF",
-                                                            data=pdf_bytes,
-                                                            file_name="freeworld_jobs_report.pdf",
-                                                            mime="application/pdf",
-                                                            key=f"download_pipeline_pdf_{mk}",
-                                                            use_container_width=True
-                                                        )
-                                                except Exception:
-                                                    st.caption("PDF unavailable")
-
-                                        # Market-specific dataframe
-                                        mdf = df[df['meta.market'] == mk]
-                                        
-                                        # Filter for quality jobs using standardized logic
-                                        debug_dataframe_info(mdf, f"Market {mk} - All Jobs")
-                                        mdf_inc = filter_quality_jobs(mdf)
-                                        debug_dataframe_info(mdf_inc, f"Market {mk} - Quality Jobs")
-
-                                        # Market job table with height constraint to prevent viewport overflow
-                                        cols_pref = ['source.title', 'source.company', 'ai.summary', 'ai.match', 'ai.route_type', 'ai.fair_chance', 'source.indeed_url']
-                                        cols_show = [c for c in cols_pref if c in mdf_inc.columns]
-                                        st.dataframe(
-                                            mdf_inc[cols_show] if cols_show else mdf_inc, 
-                                            use_container_width=True, 
-                                            height=400  # Limit height to ensure all markets are visible
-                                        )
-
-                                        # Per-market metrics using standardized calculation
-                                        try:
-                                            total_metrics = calculate_search_metrics(mdf)
-                                            quality_metrics = calculate_search_metrics(mdf_inc)
-                                            inc_count = len(mdf_inc)
-                                            total_count = len(mdf)
-                                            
-                                            colA, colB, colC, colD = st.columns(4)
-                                            with colA:
-                                                st.metric("Quality Jobs Found", inc_count)
-                                            with colB:
-                                                st.metric("Total Jobs Analyzed", total_count)
-                                            with colC:
-                                                st.metric("Excellent Matches", quality_metrics['good'])
-                                            with colD:
-                                                st.metric("Possible Fits", quality_metrics['so_so'])
-                                            colE, colF = st.columns(2)
-                                            with colE:
-                                                st.metric("Local Routes", quality_metrics['local'])
-                                            with colF:
-                                                st.metric("OTR Routes", quality_metrics['otr'])
-                                        except Exception:
-                                            pass
-
-
-                                        # Full results for this market
-                                        with st.expander(f"🔎 Full Results — {mk}", expanded=False):
-                                            st.dataframe(mdf, use_container_width=True, height=480)
-
-                                    except Exception as e:
-                                        st.error(f"❌ Error displaying {mk} market: {str(e)}")
-                                    
-                                    st.markdown("---")
-                    except Exception:
-                        pass
-                    
-                    # CSV download removed per new UI
-                    
-                    # (Removed top-level PDF download; PDFs are per-market)
+                    if not df.empty:
+                        st.balloons()
+                else:
+                    st.error(f"❌ Search failed: {metadata.get('error', 'Unknown error')}")
                     
                     # HTML Preview if enabled (but NOT for Indeed searches)
                     if show_html_preview_tab and jobs_dataframe_to_dicts and render_jobs_html and not df.empty and search_type_tab not in ['indeed_fresh', 'indeed']:
