@@ -3821,90 +3821,126 @@ def main():
                     'portal_link_data': None   # Will be populated if portal link is generated
                 }
                 
-                # Use exact same results display as Memory Only searches
-                if (isinstance(df, pd.DataFrame) and not df.empty) or (metadata and metadata.get('success', False)):
-                    # Compute quality jobs for success message
-                    try:
-                        ai_series = df.get('ai.match')
-                        if ai_series is not None:
-                            _q = int((ai_series == 'good').sum() + (ai_series == 'so-so').sum())
-                        elif 'route.final_status' in df.columns:
-                            _q = int(df['route.final_status'].astype(str).str.startswith('included').sum())
+                # Unified results display for ALL search modes
+                if isinstance(df, pd.DataFrame) and not df.empty:
+                    # 1. SUMMARY SECTION - Route counts and quality counts
+                    st.markdown("### 📊 Search Results Summary")
+                    
+                    # Calculate quality metrics
+                    total_jobs = len(df)
+                    quality_jobs = 0
+                    good_jobs = 0
+                    soso_jobs = 0
+                    bad_jobs = 0
+                    
+                    if 'ai.match' in df.columns:
+                        good_jobs = int((df['ai.match'] == 'good').sum())
+                        soso_jobs = int((df['ai.match'] == 'so-so').sum())
+                        bad_jobs = int((df['ai.match'] == 'bad').sum())
+                        quality_jobs = good_jobs + soso_jobs
+                    
+                    # Calculate route counts
+                    route_counts = {}
+                    if 'ai.route_type' in df.columns:
+                        route_counts = df['ai.route_type'].value_counts().to_dict()
+                    
+                    # Display summary metrics
+                    col1, col2, col3, col4 = st.columns(4)
+                    with col1:
+                        st.metric("Total Jobs", total_jobs)
+                    with col2:
+                        st.metric("Quality Jobs", quality_jobs)
+                    with col3:
+                        st.metric("Good Jobs", good_jobs)
+                    with col4:
+                        st.metric("So-so Jobs", soso_jobs)
+                    
+                    if route_counts:
+                        st.markdown("**Route Distribution:**")
+                        route_cols = st.columns(len(route_counts))
+                        for i, (route, count) in enumerate(route_counts.items()):
+                            with route_cols[i]:
+                                st.metric(str(route), count)
+                    
+                    st.markdown("---")
+                    
+                    # 2. PDF DOWNLOAD BUTTON - Always generate PDF with all included jobs
+                    coach = st.session_state.get('current_coach')
+                    if coach:
+                        # Filter for included jobs (properly sorted)
+                        included_df = df[df.get('route.final_status', '').astype(str).str.startswith('included')].copy()
+                        if included_df.empty:
+                            # If no route.final_status, use quality jobs
+                            included_df = df[df.get('ai.match', '').isin(['good', 'so-so'])].copy()
+                        if included_df.empty:
+                            # If no ai.match, use all jobs
+                            included_df = df.copy()
+                        
+                        # Sort by quality then date
+                        if 'ai.match' in included_df.columns:
+                            quality_order = {'good': 0, 'so-so': 1, 'bad': 2}
+                            included_df['_quality_sort'] = included_df['ai.match'].map(quality_order).fillna(3)
+                            included_df = included_df.sort_values(['_quality_sort', 'sys.scraped_at'], ascending=[True, False])
+                            included_df = included_df.drop('_quality_sort', axis=1)
+                        
+                        # Determine market name
+                        market_name = 'Multiple Markets'
+                        if 'meta.market' in df.columns:
+                            markets = [m for m in df['meta.market'].dropna().unique() if str(m).strip()]
+                            if len(markets) == 1:
+                                market_name = str(markets[0])
+                        
+                        # Generate PDF
+                        pdf_bytes = pipeline.generate_pdf_from_canonical(
+                            included_df,
+                            market_name=market_name,
+                            coach_name=coach.full_name,
+                            coach_username=coach.username,
+                            candidate_name=st.session_state.get('candidate_name', ''),
+                            candidate_id=st.session_state.get('candidate_id', ''),
+                            show_prepared_for=st.session_state.get('tab_show_prepared_for', True)
+                        )
+                        
+                        if pdf_bytes:
+                            st.download_button(
+                                label=f"📥 Download PDF ({len(included_df)} jobs)",
+                                data=pdf_bytes,
+                                file_name=f"FreeWorld_Jobs_{market_name.replace(' ', '_')}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                                mime="application/pdf",
+                                use_container_width=True,
+                                key=f"{search_type_tab}_pdf_download"
+                            )
                         else:
-                            _q = len(df)
-                    except Exception:
-                        _q = metadata.get('quality_jobs', 0)
-                    st.success(f"✅ Search completed! Found {_q} quality jobs")
-                
-                    # Display results table inline (quality-first ordering) + on-demand PDF  
-                    # Using standardized quality filtering - SAME AS MEMORY ONLY
-                    quality_df = filter_quality_jobs(df)
-                    debug_dataframe_info(df, f"{search_type_tab.title()} Search - All Jobs")
-                    debug_dataframe_info(quality_df, f"{search_type_tab.title()} Search - Quality Jobs")
-                    show_all_rows = st.checkbox("Show all rows (no filters)", value=False, key=f"{search_type_tab}_show_all_rows")
-                    display_df = (df if show_all_rows else quality_df).copy().reset_index(drop=True)
-                    st.dataframe(display_df, width="stretch", height=420, hide_index=True)
-
-                    # Generate PDF button - SAME AS MEMORY ONLY
-                    col_pdf, _ = st.columns([1, 3])
-                    with col_pdf:
-                        if st.button("📄 Generate PDF", key=f"{search_type_tab}_generate_pdf_btn"):
-                            # Get coach from session state
-                            coach = st.session_state.get('current_coach')
-                            
-                            # Determine market name for title; prefer single meta.market
-                            market_name = 'Multiple Markets'
-                            try:
-                                if 'meta.market' in quality_df.columns:
-                                    mkts = [m for m in quality_df['meta.market'].dropna().unique().tolist() if str(m).strip()]
-                                    if len(mkts) == 1:
-                                        market_name = mkts[0]
-                                    elif len(mkts) == 0:
-                                        market_name = params.get('location') or 'Market'
-                                else:
-                                    market_name = params.get('location') or 'Market'
-                            except Exception:
-                                market_name = params.get('location') or 'Market'
-
-                            # Apply reasonable default limit since sidebar PDF options are disabled
-                            limited_quality_df = quality_df.head(50)  # Default to 50 jobs for PDF
-
-                            # Add coach and candidate info to DataFrame so it travels with the data
-                            pdf_df = limited_quality_df.copy()
-                            if len(pdf_df) > 0 and coach:
-                                pdf_df['meta.coach_name'] = coach.full_name
-                                pdf_df['meta.coach_username'] = coach.username
-                                # Use same source as HTML (text input values, not just session state)
-                                pdf_df['meta.candidate_name'] = candidate_name_tab if 'candidate_name_tab' in locals() else st.session_state.get('candidate_name', '')
-                                pdf_df['meta.candidate_id'] = candidate_id_tab if 'candidate_id_tab' in locals() else st.session_state.get('candidate_id', '')
-                            
-                            if coach:
-                                pdf_bytes = pipeline.generate_pdf_from_canonical(
-                                    pdf_df,
-                                    market_name=market_name,
-                                    coach_name=coach.full_name,
-                                    coach_username=coach.username,
-                                    candidate_name=candidate_name_tab if 'candidate_name_tab' in locals() else st.session_state.get('candidate_name', ''),
-                                    candidate_id=candidate_id_tab if 'candidate_id_tab' in locals() else st.session_state.get('candidate_id', ''),
-                                    show_prepared_for=st.session_state.get('tab_show_prepared_for', True)
-                                )
-                                if pdf_bytes:
-                                    st.download_button(
-                                        label="📥 Download PDF",
-                                        data=pdf_bytes,
-                                        file_name=f"freeworld_jobs_{str(market_name).replace(' ', '_')}.pdf",
-                                        mime="application/pdf",
-                                        use_container_width=True
-                                    )
-                                else:
-                                    st.error("PDF generation failed")
-                            else:
-                                st.error("Coach information not available for PDF generation")
-
+                            st.error("PDF generation failed")
+                    else:
+                        st.error("Coach information not available for PDF generation")
+                    
+                    st.markdown("---")
+                    
+                    # 3. QUALITY JOBS DATAFRAME DISPLAY
+                    st.markdown("### 🎯 Quality Jobs")
+                    quality_df = df[df.get('ai.match', '').isin(['good', 'so-so'])].copy()
+                    if quality_df.empty:
+                        quality_df = df.copy()
+                    
+                    # Display columns for quality jobs
+                    display_cols = ['source.title', 'source.company', 'ai.summary', 'ai.match', 'ai.route_type', 'source.location_raw']
+                    available_cols = [col for col in display_cols if col in quality_df.columns]
+                    if available_cols:
+                        quality_display = quality_df[available_cols].copy().reset_index(drop=True)
+                        st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
+                    else:
+                        st.dataframe(quality_df.reset_index(drop=True), width="stretch", height=400, hide_index=True)
+                    
+                    # 4. COLLAPSIBLE FULL DATAFRAME
+                    with st.expander(f"🔍 All Processed Jobs ({total_jobs} total)", expanded=False):
+                        st.dataframe(df.reset_index(drop=True), width="stretch", height=500, hide_index=True)
+                    
                     if not df.empty:
                         st.balloons()
+                        
                 else:
-                    st.error(f"❌ Search failed: {metadata.get('error', 'Unknown error')}")
+                    st.error(f"❌ Search failed: {metadata.get('error', 'Unknown error') if metadata else 'No data returned'}")
                     
                     # HTML Preview if enabled (but NOT for Indeed searches)
                     if show_html_preview_tab and jobs_dataframe_to_dicts and render_jobs_html and not df.empty and search_type_tab not in ['indeed_fresh', 'indeed']:
@@ -5353,66 +5389,119 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                     except Exception as e:
                         st.error(f"HTML preview error: {e}")
                 
-                # Display results table inline (quality-first ordering) + on-demand PDF  
-                # Using standardized quality filtering
-                quality_df = filter_quality_jobs(df)
-                debug_dataframe_info(df, "Memory Only - All Jobs")
-                debug_dataframe_info(quality_df, "Memory Only - Quality Jobs")
-                show_all_rows = st.checkbox("Show all rows (no filters)", value=False, key="mem_show_all_rows")
-                display_df = (df if show_all_rows else quality_df).copy().reset_index(drop=True)
-                st.dataframe(display_df, width="stretch", height=420, hide_index=True)
-
-                # Generate PDF button (pulls market/coach/candidate from DF + context)
-                col_pdf, _ = st.columns([1, 3])
-                with col_pdf:
-                    if st.button("📄 Generate PDF", key="mem_generate_pdf_btn"):
-                        # Determine market name for title; prefer single meta.market
-                        market_name = 'Multiple Markets'
-                        try:
-                            if 'meta.market' in quality_df.columns:
-                                mkts = [m for m in quality_df['meta.market'].dropna().unique().tolist() if str(m).strip()]
-                                if len(mkts) == 1:
-                                    market_name = mkts[0]
-                                elif len(mkts) == 0:
-                                    market_name = params.get('location') or 'Market'
-                            else:
-                                market_name = params.get('location') or 'Market'
-                        except Exception:
-                            market_name = params.get('location') or 'Market'
-
-                        # Apply reasonable default limit since sidebar PDF options are disabled
-                        limited_quality_df = quality_df.head(50)  # Default to 50 jobs for PDF
-
-                        # Add coach and candidate info to DataFrame so it travels with the data
-                        pdf_df = limited_quality_df.copy()
-                        if len(pdf_df) > 0:
-                            pdf_df['meta.coach_name'] = coach.full_name
-                            pdf_df['meta.coach_username'] = coach.username
-                            # Use same source as HTML (text input values, not just session state)
-                            pdf_df['meta.candidate_name'] = candidate_name_tab if 'candidate_name_tab' in locals() else st.session_state.get('candidate_name', '')
-                            pdf_df['meta.candidate_id'] = candidate_id_tab if 'candidate_id_tab' in locals() else st.session_state.get('candidate_id', '')
-                        
-                        pdf_bytes = pipeline.generate_pdf_from_canonical(
-                            pdf_df,
-                            market_name=market_name,
-                            coach_name=coach.full_name,
-                            coach_username=coach.username,
-                            candidate_name=candidate_name_tab if 'candidate_name_tab' in locals() else st.session_state.get('candidate_name', ''),
-                            candidate_id=candidate_id_tab if 'candidate_id_tab' in locals() else st.session_state.get('candidate_id', ''),
-                            show_prepared_for=st.session_state.get('tab_show_prepared_for', True)
+                # Unified results display for Memory Only searches
+                # 1. SUMMARY SECTION - Route counts and quality counts
+                st.markdown("### 📊 Search Results Summary")
+                
+                # Calculate quality metrics
+                total_jobs = len(df)
+                quality_jobs = 0
+                good_jobs = 0
+                soso_jobs = 0
+                bad_jobs = 0
+                
+                if 'ai.match' in df.columns:
+                    good_jobs = int((df['ai.match'] == 'good').sum())
+                    soso_jobs = int((df['ai.match'] == 'so-so').sum())
+                    bad_jobs = int((df['ai.match'] == 'bad').sum())
+                    quality_jobs = good_jobs + soso_jobs
+                
+                # Calculate route counts
+                route_counts = {}
+                if 'ai.route_type' in df.columns:
+                    route_counts = df['ai.route_type'].value_counts().to_dict()
+                
+                # Display summary metrics
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Total Jobs", total_jobs)
+                with col2:
+                    st.metric("Quality Jobs", quality_jobs)
+                with col3:
+                    st.metric("Good Jobs", good_jobs)
+                with col4:
+                    st.metric("So-so Jobs", soso_jobs)
+                
+                if route_counts:
+                    st.markdown("**Route Distribution:**")
+                    route_cols = st.columns(len(route_counts))
+                    for i, (route, count) in enumerate(route_counts.items()):
+                        with route_cols[i]:
+                            st.metric(str(route), count)
+                
+                st.markdown("---")
+                
+                # 2. PDF DOWNLOAD BUTTON - Always generate PDF with all included jobs
+                if coach:
+                    # Filter for included jobs (properly sorted)
+                    included_df = df[df.get('route.final_status', '').astype(str).str.startswith('included')].copy()
+                    if included_df.empty:
+                        # If no route.final_status, use quality jobs
+                        included_df = df[df.get('ai.match', '').isin(['good', 'so-so'])].copy()
+                    if included_df.empty:
+                        # If no ai.match, use all jobs
+                        included_df = df.copy()
+                    
+                    # Sort by quality then date
+                    if 'ai.match' in included_df.columns:
+                        quality_order = {'good': 0, 'so-so': 1, 'bad': 2}
+                        included_df['_quality_sort'] = included_df['ai.match'].map(quality_order).fillna(3)
+                        included_df = included_df.sort_values(['_quality_sort', 'sys.scraped_at'], ascending=[True, False])
+                        included_df = included_df.drop('_quality_sort', axis=1)
+                    
+                    # Determine market name
+                    market_name = 'Multiple Markets'
+                    if 'meta.market' in df.columns:
+                        markets = [m for m in df['meta.market'].dropna().unique() if str(m).strip()]
+                        if len(markets) == 1:
+                            market_name = str(markets[0])
+                    
+                    # Generate PDF
+                    pdf_bytes = pipeline.generate_pdf_from_canonical(
+                        included_df,
+                        market_name=market_name,
+                        coach_name=coach.full_name,
+                        coach_username=coach.username,
+                        candidate_name=st.session_state.get('candidate_name', ''),
+                        candidate_id=st.session_state.get('candidate_id', ''),
+                        show_prepared_for=st.session_state.get('tab_show_prepared_for', True)
+                    )
+                    
+                    if pdf_bytes:
+                        st.download_button(
+                            label=f"📥 Download PDF ({len(included_df)} jobs)",
+                            data=pdf_bytes,
+                            file_name=f"FreeWorld_Jobs_{market_name.replace(' ', '_')}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                            mime="application/pdf",
+                            use_container_width=True,
+                            key="memory_pdf_download"
                         )
-                        if pdf_bytes:
-                            st.download_button(
-
-                                label="📥 Download PDF",
-                                data=pdf_bytes,
-                                file_name=f"freeworld_jobs_{str(market_name).replace(' ', '_')}.pdf",
-                                mime="application/pdf",
-                                use_container_width=True
-                            )
-                        else:
-                            st.error("PDF generation failed")
-
+                    else:
+                        st.error("PDF generation failed")
+                else:
+                    st.error("Coach information not available for PDF generation")
+                
+                st.markdown("---")
+                
+                # 3. QUALITY JOBS DATAFRAME DISPLAY
+                st.markdown("### 🎯 Quality Jobs")
+                quality_df = df[df.get('ai.match', '').isin(['good', 'so-so'])].copy()
+                if quality_df.empty:
+                    quality_df = df.copy()
+                
+                # Display columns for quality jobs
+                display_cols = ['source.title', 'source.company', 'ai.summary', 'ai.match', 'ai.route_type', 'source.location_raw']
+                available_cols = [col for col in display_cols if col in quality_df.columns]
+                if available_cols:
+                    quality_display = quality_df[available_cols].copy().reset_index(drop=True)
+                    st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
+                else:
+                    st.dataframe(quality_df.reset_index(drop=True), width="stretch", height=400, hide_index=True)
+                
+                # 4. COLLAPSIBLE FULL DATAFRAME
+                with st.expander(f"🔍 All Processed Jobs ({total_jobs} total)", expanded=False):
+                    st.dataframe(df.reset_index(drop=True), width="stretch", height=500, hide_index=True)
+                
                 if not df.empty:
                     st.balloons()
             else:
