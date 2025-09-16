@@ -577,13 +577,26 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
         end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=lookback_days)
         
-        clicks_result = client.table('click_events').select(
-            'clicked_at, candidate_id, candidate_name, coach, market, route, match, fair, short_id'
-        ).in_('candidate_id', agent_uuids).gte(
-            'clicked_at', start_date.isoformat()
-        ).lte(
-            'clicked_at', end_date.isoformat()
-        ).execute()
+        # Query each agent's clicks individually to avoid batch query limits
+        all_clicks = []
+        
+        for agent_uuid in agent_uuids:
+            agent_clicks = client.table('click_events').select(
+                'clicked_at, candidate_id, candidate_name, coach, market, route, match, fair, short_id'
+            ).eq('candidate_id', agent_uuid).gte(
+                'clicked_at', start_date.isoformat()
+            ).lte(
+                'clicked_at', end_date.isoformat()
+            ).execute()
+            
+            all_clicks.extend(agent_clicks.data or [])
+        
+        # Create a mock result object for compatibility
+        class MockResult:
+            def __init__(self, data):
+                self.data = data
+        
+        clicks_result = MockResult(all_clicks)
         
         # Step 4: Build click stats lookup by agent_uuid
         click_stats = {}
