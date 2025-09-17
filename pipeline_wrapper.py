@@ -465,9 +465,12 @@ class StreamlitPipelineWrapper:
                 return combined_df, combined_meta
 
             # Check if this is a memory-only search - use direct Python call for performance
-            if params.get('memory_only', False):
+            if params.get('memory_only', False) and not params.get('ui_memory_search', False):
                 print(f"🐌 Using OLD memory-only path - force_link_generation={params.get('force_link_generation', False)}")
                 return self._run_memory_only_pipeline(params)
+            elif params.get('memory_only', False) and params.get('ui_memory_search', False):
+                print(f"🚀 Using NEW memory path for UI search - ui_memory_search={params.get('ui_memory_search', False)}")
+                # Continue to use the normal pipeline path which supports HTML preview and portal links
             
             # For all other searches, use subprocess to terminal script
             # Build command for terminal_job_search.py - use same Python as current process

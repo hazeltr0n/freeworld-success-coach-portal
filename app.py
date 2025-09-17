@@ -5217,7 +5217,8 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
             with st.spinner(f"💾 Searching memory only for jobs in {display_location}..."):
                 try:
                     with contextlib.redirect_stdout(log_buffer), contextlib.redirect_stderr(log_buffer):
-                        # DO NOT set ui_direct=True for memory searches - let it use dedicated memory path
+                        # Add UI flag to distinguish UI memory searches from programmatic ones
+                        params['ui_memory_search'] = True  # Enable new path with HTML preview/portal links
                         df, metadata = pipeline.run_pipeline(params)
                         
                         # Add coach and candidate info to ALL jobs in DataFrame (for link tracking and PDF)
@@ -5362,7 +5363,6 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         )
                 
                 # HTML Preview if enabled (memory searches should work)  
-                st.write(f"🔍 Debug: show_html_preview_tab={show_html_preview_tab}, jobs_dataframe_to_dicts={jobs_dataframe_to_dicts is not None}, render_jobs_html={render_jobs_html is not None}, df.empty={df.empty}")
                 if show_html_preview_tab and jobs_dataframe_to_dicts and render_jobs_html and not df.empty:
                     try:
                         st.markdown("### 👁️ HTML Preview")
@@ -5403,7 +5403,6 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         st.error(f"HTML preview error: {e}")
                 
                 # Portal Link Generation if enabled
-                st.write(f"🔍 Debug: generate_portal_link_tab={generate_portal_link_tab}, candidate_id='{candidate_id}', candidate_name='{candidate_name}'")
                 if generate_portal_link_tab and candidate_id and candidate_name:
                     try:
                         st.markdown("### 🔗 Custom Job Portal Link")
