@@ -3948,13 +3948,134 @@ def main():
                     with st.expander(f"🔍 All Processed Jobs ({total_jobs} total)", expanded=False):
                         st.dataframe(df.reset_index(drop=True), width="stretch", height=500, hide_index=True)
                     
+                    # HTML Preview if enabled (but NOT for Indeed searches)
+                    if show_html_preview_tab and jobs_dataframe_to_dicts and render_jobs_html and not df.empty and search_type_tab not in ['indeed_fresh', 'indeed']:
+                        try:
+                            st.markdown("### 👁️ HTML Preview")
+                            
+                            # IMPORTANT: Use the same processing as PDF to include tracked URLs
+                            from free_agent_system import update_job_tracking_for_agent
+                            agent_params = {
+                                'location': final_location_tab,
+                                'agent_name': candidate_name_tab,
+                                'agent_uuid': candidate_id_tab,
+                                'coach_username': get_current_coach_name(),
+                                'show_prepared_for': st.session_state.get('tab_show_prepared_for', True)
+                            }
+                            
+                            # Apply same filtering as PDF
+                            filtered_df = df
+                            if pdf_fair_chance_only_tab and 'ai.fair_chance_employer' in filtered_df.columns:
+                                filtered_df = filtered_df[filtered_df['ai.fair_chance_employer'] == True]
+                            if max_jobs_pdf_tab != "All":
+                                filtered_df = filtered_df.head(max_jobs_pdf_tab)
+                            
+                            # Process DataFrame the same way PDF does
+                            processed_df = update_job_tracking_for_agent(filtered_df, agent_params)
+                            jobs = jobs_dataframe_to_dicts(processed_df)
+                            
+                            html = render_jobs_html(jobs, agent_params)
+                            phone_html = wrap_html_in_phone_screen(html)
+                            
+                            # Store HTML preview data in session state for persistence
+                            if 'last_results' in st.session_state:
+                                st.session_state.last_results['html_preview_data'] = {
+                                    'agent_params': agent_params,
+                                    'phone_html': phone_html,
+                                    'job_count': len(jobs)
+                                }
+                            
+                            st.components.v1.html(phone_html, height=900, scrolling=False)
+                        except Exception as e:
+                            st.error(f"HTML preview error: {e}")
+                    
+                    # Portal Link Generation if enabled (but NOT for any Indeed searches)
+                    if generate_portal_link_tab and search_type_tab not in ['indeed_fresh', 'indeed']:
+                        try:
+                            st.markdown("### 🔗 Custom Job Portal Link")
+                            
+                            # Use ALL current search form parameters (exactly like the pipeline params)
+                            portal_config = {
+                                # Base parameters from search form
+                                'mode': search_mode_tab,
+                                'search_terms': search_terms_tab,
+                                'search_radius': search_radius_tab,
+                                'force_fresh_classification': force_fresh_classification_tab if 'force_fresh_classification_tab' in locals() else False,
+                                'route_filter': pdf_route_type_filter_tab,
+                                'no_experience': no_experience_tab,
+                                'fair_chance_only': pdf_fair_chance_only_tab,
+                                'max_jobs': max_jobs_pdf_tab if max_jobs_pdf_tab != "All" else 50,
+                                
+                                # Location details
+                                'location': final_location_tab,
+                                'location_type': location_type_tab,
+                                
+                                # Search type specific parameters
+                                'search_type': search_type_tab,
+                                'memory_hours': int(memory_time_period_tab.replace('h','') or 72) if search_type_tab == 'memory' else 72,
+                                
+                                # PDF/Filter parameters (use the form values directly)
+                                'max_jobs': max_jobs_pdf_tab if max_jobs_pdf_tab != "All" else 50,
+                                'route_type_filter': pdf_route_type_filter_tab,  # Pipeline expects route_type_filter
+                                'match_quality_filter': pdf_match_quality_filter_tab,
+                                'include_memory_jobs': pdf_include_memory_jobs_tab,
+                                'fair_chance_only': pdf_fair_chance_only_tab,
+                                'no_experience': no_experience_tab,
+                                
+                                # Location type specific parameters
+                                'selected_market': selected_market_tab if location_type_tab == "Select Market" else None,
+                                'custom_location': custom_location_tab if location_type_tab == "Custom Location" else None,
+                            }
+
+                            # Add Free Agent info if provided
+                            if candidate_id_tab and candidate_name_tab:
+                                portal_config.update({
+                                    'agent_uuid': candidate_id_tab,
+                                    'agent_name': candidate_name_tab,
+                                    'coach_username': get_current_coach_name(),
+                                })
+                                
+                                # Generate portal link
+                                from free_agent_system import generate_agent_url
+                                full_portal_url = generate_agent_url(
+                                    agent_uuid=candidate_id_tab.strip(),
+                                    agent_name=candidate_name_tab.strip(),
+                                    location=final_location_tab,
+                                    search_config=portal_config,
+                                    coach_username=get_current_coach_name()
+                                )
+                                
+                                # Create Short.io link
+                                from link_tracker import create_short_link
+                                tags = f"coach:{get_current_coach_name()},market:{final_location_tab},route:{pdf_route_type_filter_tab},mode:{search_type_tab}"
+                                shortened_url = create_short_link(full_portal_url, tags)
+                                
+                                if shortened_url:
+                                    st.success(f"✅ Portal link created for {candidate_name_tab}!")
+                                    st.code(shortened_url, language=None)
+                                    
+                                    # Store portal link data
+                                    st.session_state.last_results['portal_link_data'] = {
+                                        'agent_params': {
+                                            'agent_uuid': candidate_id_tab,
+                                            'agent_name': candidate_name_tab,
+                                            'location': final_location_tab
+                                        },
+                                        'shortened_url': shortened_url,
+                                        'portal_config': portal_config
+                                    }
+                                else:
+                                    st.error("Failed to create portal link")
+                            else:
+                                st.warning("⚠️ Please provide Free Agent ID and Name to generate a portal link")
+                        except Exception as e:
+                            st.error(f"Portal link generation error: {e}")
+                    
                     if not df.empty:
                         st.balloons()
                         
                 else:
                     st.error(f"❌ Search failed: {metadata.get('error', 'Unknown error') if metadata else 'No data returned'}")
-                    
-                    # HTML Preview if enabled (but NOT for Indeed searches)
                     if show_html_preview_tab and jobs_dataframe_to_dicts and render_jobs_html and not df.empty and search_type_tab not in ['indeed_fresh', 'indeed']:
                         try:
                             st.markdown("### 👁️ HTML Preview")
@@ -5332,7 +5453,6 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                     pass
             
             # Store results in session state (same as Indeed button, with HTML/portal data)
-            st.write(f"🔍 MEMORY SEARCH COMPLETE: About to process results and check display conditions")
             st.session_state.last_results = {
                 'df': df,
                 'metadata': metadata,
@@ -5345,7 +5465,6 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
             }
             
             # Show results (fallback to DataFrame presence)
-            st.write(f"🔍 RESULTS CHECK: df type={type(df)}, df.empty={getattr(df, 'empty', 'N/A')}, metadata.success={metadata.get('success', False)}")
             if (isinstance(df, pd.DataFrame) and not df.empty) or metadata.get('success', False):
                 st.success(f"✅ Memory search completed! Found {metadata.get('quality_jobs', 0)} quality jobs from memory")
                 
@@ -5364,7 +5483,6 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         )
                 
                 # HTML Preview if enabled (memory searches should work)  
-                st.write(f"🔍 Debug: show_html_preview_tab={show_html_preview_tab}, jobs_dataframe_to_dicts={jobs_dataframe_to_dicts is not None}, render_jobs_html={render_jobs_html is not None}, df.empty={df.empty}")
                 if show_html_preview_tab and jobs_dataframe_to_dicts and render_jobs_html and not df.empty:
                     try:
                         st.markdown("### 👁️ HTML Preview")
