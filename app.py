@@ -5362,6 +5362,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         )
                 
                 # HTML Preview if enabled (memory searches should work)  
+                st.write(f"🔍 Debug: show_html_preview_tab={show_html_preview_tab}, jobs_dataframe_to_dicts={jobs_dataframe_to_dicts is not None}, render_jobs_html={render_jobs_html is not None}, df.empty={df.empty}")
                 if show_html_preview_tab and jobs_dataframe_to_dicts and render_jobs_html and not df.empty:
                     try:
                         st.markdown("### 👁️ HTML Preview")
@@ -5369,8 +5370,8 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         from free_agent_system import update_job_tracking_for_agent
                         agent_params = {
                             'location': preview_location,
-                            'agent_name': candidate_name_tab,
-                            'agent_uuid': candidate_id_tab,
+                            'agent_name': candidate_name,
+                            'agent_uuid': candidate_id,
                             'coach_username': get_current_coach_name(),
                             'show_prepared_for': st.session_state.get('tab_show_prepared_for', True)
                         }
@@ -5379,8 +5380,8 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         filtered_df = df
                         
                         # Apply max jobs limit only (Supabase already handled filtering)
-                        if max_jobs_pdf_tab != "All":
-                            filtered_df = filtered_df.head(max_jobs_pdf_tab)
+                        if max_jobs != "All":
+                            filtered_df = filtered_df.head(max_jobs)
                         
                         # Process DataFrame the same way PDF does
                         processed_df = update_job_tracking_for_agent(filtered_df, agent_params)
@@ -5402,28 +5403,29 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         st.error(f"HTML preview error: {e}")
                 
                 # Portal Link Generation if enabled
-                if generate_portal_link_tab and candidate_id_tab and candidate_name_tab:
+                st.write(f"🔍 Debug: generate_portal_link_tab={generate_portal_link_tab}, candidate_id='{candidate_id}', candidate_name='{candidate_name}'")
+                if generate_portal_link_tab and candidate_id and candidate_name:
                     try:
                         st.markdown("### 🔗 Custom Job Portal Link")
                         
-                        # Use current search parameters for portal config
+                        # Use current search parameters for portal config (from params that were already built)
                         portal_config = {
-                            'mode': search_mode,
-                            'search_terms': search_terms,
-                            'search_radius': search_radius,
-                            'force_fresh_classification': force_fresh_classification,
-                            'route_filter': route_filter,
-                            'no_experience': no_experience,
-                            'fair_chance_only': fair_chance_only,
-                            'max_jobs': max_jobs,
-                            'memory_hours': _mem_hours
+                            'mode': params.get('mode', search_mode),
+                            'search_terms': params.get('search_terms', search_terms),
+                            'search_radius': params.get('search_radius', search_radius),
+                            'force_fresh_classification': params.get('force_fresh_classification', force_fresh_classification),
+                            'route_filter': params.get('route_filter', route_filter),
+                            'no_experience': params.get('no_experience', no_experience),
+                            'fair_chance_only': params.get('fair_chance_only', fair_chance_only),
+                            'max_jobs': params.get('max_jobs', max_jobs),
+                            'memory_hours': params.get('memory_hours', _mem_hours)
                         }
                         
                         # Generate portal link
                         from free_agent_system import generate_agent_url
                         full_portal_url = generate_agent_url(
-                            agent_uuid=candidate_id_tab.strip(),
-                            agent_name=candidate_name_tab.strip(),
+                            agent_uuid=candidate_id.strip(),
+                            agent_name=candidate_name.strip(),
                             location=preview_location,
                             search_config=portal_config,
                             coach_username=get_current_coach_name()
@@ -5441,8 +5443,8 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                             # Store portal link data in session state
                             st.session_state.last_results['portal_link_data'] = {
                                 'agent_params': {
-                                    'agent_uuid': candidate_id_tab,
-                                    'agent_name': candidate_name_tab,
+                                    'agent_uuid': candidate_id,
+                                    'agent_name': candidate_name,
                                     'location': preview_location
                                 },
                                 'shortened_url': shortened_url,
