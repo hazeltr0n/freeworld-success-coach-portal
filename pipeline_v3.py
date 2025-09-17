@@ -1035,8 +1035,8 @@ class FreeWorldPipelineV3:
                     pass
         
         # Transform and merge data from all sources
-        indeed_df = transform_ingest_outscraper(fresh_jobs, self.run_id) if fresh_jobs else build_empty_df()
-        google_df = transform_ingest_google(google_jobs, self.run_id) if google_jobs else build_empty_df()
+        indeed_df = transform_ingest_outscraper(fresh_jobs, self.run_id, query_location) if fresh_jobs else build_empty_df()
+        google_df = transform_ingest_google(google_jobs, self.run_id, query_location) if google_jobs else build_empty_df()
         memory_df = transform_ingest_memory(memory_jobs, self.run_id) if memory_jobs else build_empty_df()
         
         # Include any pre-loaded memory rows from Smart Credit
