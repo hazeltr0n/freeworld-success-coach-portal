@@ -127,7 +127,7 @@ def main(argv: List[str]) -> int:
     pipe = FreeWorldPipelineV3()
 
     print("📥 Ingesting…")
-    df_ing = transform_ingest_outscraper(raw_rows, pipe.run_id) if raw_rows else ensure_schema(pd.DataFrame())
+    df_ing = transform_ingest_outscraper(raw_rows, pipe.run_id, '') if raw_rows else ensure_schema(pd.DataFrame())
     print(f"✅ Ingested: {len(df_ing)} rows")
 
     print("🧹 Normalizing…")

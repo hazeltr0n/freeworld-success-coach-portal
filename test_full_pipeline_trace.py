@@ -73,7 +73,7 @@ def test_full_pipeline():
     from canonical_transforms import transform_ingest_outscraper
     
     run_id = "test_full_trace"
-    df_canonical = transform_ingest_outscraper(raw_rows, run_id)
+    df_canonical = transform_ingest_outscraper(raw_rows, run_id, '')
     
     print(f"✅ Canonical transform: {len(df_canonical)} rows")
     

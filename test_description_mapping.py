@@ -75,7 +75,7 @@ def test_description_mapping():
     
     # Transform to canonical format
     run_id = "test_123"
-    df_canonical = transform_ingest_outscraper(raw_rows, run_id)
+    df_canonical = transform_ingest_outscraper(raw_rows, run_id, '')
     
     print(f"✅ Canonical transform complete: {len(df_canonical)} rows")
     
