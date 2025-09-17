@@ -5332,6 +5332,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                     pass
             
             # Store results in session state (same as Indeed button, with HTML/portal data)
+            st.write(f"🔍 MEMORY SEARCH COMPLETE: About to process results and check display conditions")
             st.session_state.last_results = {
                 'df': df,
                 'metadata': metadata,
@@ -5344,6 +5345,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
             }
             
             # Show results (fallback to DataFrame presence)
+            st.write(f"🔍 RESULTS CHECK: df type={type(df)}, df.empty={getattr(df, 'empty', 'N/A')}, metadata.success={metadata.get('success', False)}")
             if (isinstance(df, pd.DataFrame) and not df.empty) or metadata.get('success', False):
                 st.success(f"✅ Memory search completed! Found {metadata.get('quality_jobs', 0)} quality jobs from memory")
                 
