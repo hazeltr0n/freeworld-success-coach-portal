@@ -46,7 +46,7 @@ class JobClassifier:
                     "multiple"
                 ]}
             },
-            "required": ["job_id", "match", "reason", "summary", "normalized_location", "fair_chance", "endorsements"]
+            "required": ["job_id", "match", "reason", "summary", "fair_chance", "endorsements"]
         }
     
     def _retry_request(self, do_req, max_retries=5, base=0.5, cap=30.0):
@@ -236,14 +236,7 @@ Return your results as a JSON object with a "job_classifications" array like thi
 - "Hazmat endorsement required" → endorsements: "hazmat"
 - "No special endorsements needed" → endorsements: "none_required"
 
-**LOCATION TRANSLATION:**
-If the job location is in a non-English language, translate it to English and normalize to standard US format.
-Examples:
-- "アメリカ合衆国 Nevada, ボールダー・シティ" → normalized_location: "Boulder City, NV"
-- "カリフォルニア州ロサンゼルス" → normalized_location: "Los Angeles, CA"
-- "Texas, Houston" → normalized_location: "Houston, TX"
-- Always use standard US state abbreviations (CA, TX, NV, etc.)
-- Format: "City, STATE" or "City, County, STATE" for clarity
+**NOTE:** Location normalization is handled by the pipeline, focus on job quality and requirements assessment.
 """
 
         # Lean JSON Schema for speed - minimal properties
@@ -637,14 +630,7 @@ Return your results as a JSON object with a "job_classifications" array like thi
 - "Hazmat endorsement required" → endorsements: "hazmat"
 - "No special endorsements needed" → endorsements: "none_required"
 
-**LOCATION TRANSLATION:**
-If the job location is in a non-English language, translate it to English and normalize to standard US format.
-Examples:
-- "アメリカ合衆国 Nevada, ボールダー・シティ" → normalized_location: "Boulder City, NV"
-- "カリフォルニア州ロサンゼルス" → normalized_location: "Los Angeles, CA"
-- "Texas, Houston" → normalized_location: "Houston, TX"
-- Always use standard US state abbreviations (CA, TX, NV, etc.)
-- Format: "City, STATE" or "City, County, STATE" for clarity
+**NOTE:** Location normalization is handled by the pipeline, focus on job quality and requirements assessment.
 """
         # Use shared schema object for prompt caching
         schema = self.CLASSIFICATION_SCHEMA
@@ -690,7 +676,7 @@ Job Description:
                         'match': job_result.get('match', 'error'),
                         'reason': job_result.get('reason', 'No reason provided'),
                         'summary': job_result.get('summary', 'No summary provided'),
-                        'normalized_location': job_result.get('normalized_location', ''),
+                        'normalized_location': job_result.get('normalized_location', job_data.get('location', '')),
                         'route_type': 'Unknown',
                         'fair_chance': job_result.get('fair_chance', 'no_requirements_mentioned'),
                         'endorsements': job_result.get('endorsements', 'none_required'),
@@ -1097,14 +1083,7 @@ Return your results as a JSON object with a "job_classifications" array like thi
 - "Hazmat endorsement required" → endorsements: "hazmat"
 - "No special endorsements needed" → endorsements: "none_required"
 
-**LOCATION TRANSLATION:**
-If the job location is in a non-English language, translate it to English and normalize to standard US format.
-Examples:
-- "アメリカ合衆国 Nevada, ボールダー・シティ" → normalized_location: "Boulder City, NV"
-- "カリフォルニア州ロサンゼルス" → normalized_location: "Los Angeles, CA"
-- "Texas, Houston" → normalized_location: "Houston, TX"
-- Always use standard US state abbreviations (CA, TX, NV, etc.)
-- Format: "City, STATE" or "City, County, STATE" for clarity
+**NOTE:** Location normalization is handled by the pipeline, focus on job quality and requirements assessment.
 """
         """
         Fast async classification with 6 NON-NEGOTIABLE GUARDS to prevent job loss
