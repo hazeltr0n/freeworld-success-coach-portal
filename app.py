@@ -5361,8 +5361,8 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                             use_container_width=True
                         )
                 
-                # HTML Preview if enabled (but NOT for Indeed searches)  
-                if show_html_preview_tab and jobs_dataframe_to_dicts and render_jobs_html and not df.empty and search_type not in ['indeed_fresh', 'indeed']:
+                # HTML Preview if enabled (memory searches should work)  
+                if show_html_preview_tab and jobs_dataframe_to_dicts and render_jobs_html and not df.empty:
                     try:
                         st.markdown("### 👁️ HTML Preview")
                         # IMPORTANT: Use the same processing as PDF to include tracked URLs
@@ -5400,6 +5400,58 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         st.components.v1.html(phone_html, height=900, scrolling=False)
                     except Exception as e:
                         st.error(f"HTML preview error: {e}")
+                
+                # Portal Link Generation if enabled
+                if generate_portal_link_tab and candidate_id_tab and candidate_name_tab:
+                    try:
+                        st.markdown("### 🔗 Custom Job Portal Link")
+                        
+                        # Use current search parameters for portal config
+                        portal_config = {
+                            'mode': search_mode,
+                            'search_terms': search_terms,
+                            'search_radius': search_radius,
+                            'force_fresh_classification': force_fresh_classification,
+                            'route_filter': route_filter,
+                            'no_experience': no_experience,
+                            'fair_chance_only': fair_chance_only,
+                            'max_jobs': max_jobs,
+                            'memory_hours': _mem_hours
+                        }
+                        
+                        # Generate portal link
+                        from free_agent_system import generate_agent_url
+                        full_portal_url = generate_agent_url(
+                            agent_uuid=candidate_id_tab.strip(),
+                            agent_name=candidate_name_tab.strip(),
+                            location=preview_location,
+                            search_config=portal_config,
+                            coach_username=get_current_coach_name()
+                        )
+                        
+                        # Create Short.io link
+                        from link_tracker import create_short_link
+                        tags = f"coach:{get_current_coach_name()},market:{preview_location},route:{route_filter},mode:memory"
+                        shortened_url = create_short_link(full_portal_url, tags)
+                        
+                        if shortened_url:
+                            st.success(f"✅ Portal link created!")
+                            st.code(shortened_url, language=None)
+                            
+                            # Store portal link data in session state
+                            st.session_state.last_results['portal_link_data'] = {
+                                'agent_params': {
+                                    'agent_uuid': candidate_id_tab,
+                                    'agent_name': candidate_name_tab,
+                                    'location': preview_location
+                                },
+                                'shortened_url': shortened_url,
+                                'portal_config': portal_config
+                            }
+                        else:
+                            st.error("Failed to create portal link")
+                    except Exception as e:
+                        st.error(f"Portal link generation error: {e}")
                 
                 # Unified results display for Memory Only searches
                 # 1. SUMMARY SECTION - Route counts and quality counts
@@ -5688,8 +5740,8 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                     _q = metadata.get('quality_jobs', 0)
                 st.success(f"✅ Search completed! Found {_q} quality jobs")
                 
-                # HTML Preview if enabled (but NOT for Indeed searches)  
-                if show_html_preview_tab and jobs_dataframe_to_dicts and render_jobs_html and not df.empty and search_type not in ['indeed_fresh', 'indeed']:
+                # HTML Preview if enabled (should work for non-Indeed searches)  
+                if show_html_preview_tab and jobs_dataframe_to_dicts and render_jobs_html and not df.empty:
                     try:
                         st.markdown("### 👁️ HTML Preview")
                         # IMPORTANT: Use the same processing as PDF to include tracked URLs
