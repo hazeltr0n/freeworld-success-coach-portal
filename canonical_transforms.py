@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Tuple, Any
 from jobs_schema import (
     ensure_schema, generate_job_id, COLUMN_REGISTRY, FIELD_POLICIES
 )
+from location_normalizer import LocationNormalizer
 
 # ==============================================================================
 # SALARY PROCESSING HELPERS
@@ -75,7 +76,7 @@ def _extract_salary_fields(salary_snippet) -> Dict[str, Any]:
 # STAGE 1: INGESTION TRANSFORMS
 # ==============================================================================
 
-def transform_ingest_outscraper(raw_data: List[Dict], run_id: str) -> pd.DataFrame:
+def transform_ingest_outscraper(raw_data: List[Dict], run_id: str, search_location: str = '') -> pd.DataFrame:
     """
     Convert raw Outscraper API data to canonical DataFrame format
     
@@ -145,6 +146,14 @@ def transform_ingest_outscraper(raw_data: List[Dict], run_id: str) -> pd.DataFra
             print(f"    ❌ Missing {api_field} (would map to {canonical_field})")
     print(f"    Total mappings: {mapped_count}/{len(source_mapping)}")
     
+    # Apply location normalization for foreign language locations
+    if search_location and 'source.location_raw' in df.columns:
+        normalizer = LocationNormalizer()
+        original_count = len(df)
+        normalized_count = normalizer.process_dataframe_locations(df, 'source.location_raw', search_location)
+        if normalized_count > 0:
+            print(f"📍 Normalized {normalized_count}/{original_count} foreign language locations using search location '{search_location}'")
+    
     # Apply schema enforcement AFTER field mapping
     df = ensure_schema(df)
     
@@ -191,7 +200,7 @@ def transform_ingest_outscraper(raw_data: List[Dict], run_id: str) -> pd.DataFra
         'sys.version': '3.0',
     })
 
-def transform_ingest_google(raw_data: List[Dict], run_id: str) -> pd.DataFrame:
+def transform_ingest_google(raw_data: List[Dict], run_id: str, search_location: str = '') -> pd.DataFrame:
     """
     Convert raw Google Jobs API data to canonical DataFrame format
     
@@ -323,6 +332,14 @@ def transform_ingest_google(raw_data: List[Dict], run_id: str) -> pd.DataFrame:
         else:
             print(f"    ❌ Missing {google_field} (would map to {canonical_field})")
     print(f"    Total mappings: {mapped_count}/{len(google_mapping)}")
+    
+    # Apply location normalization for foreign language locations
+    if search_location and 'source.location_raw' in df.columns:
+        normalizer = LocationNormalizer()
+        original_count = len(df)
+        normalized_count = normalizer.process_dataframe_locations(df, 'source.location_raw', search_location)
+        if normalized_count > 0:
+            print(f"📍 Normalized {normalized_count}/{original_count} foreign language locations using search location '{search_location}'")
     
     # Apply schema enforcement AFTER field mapping
     df = ensure_schema(df)

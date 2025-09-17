@@ -6319,7 +6319,9 @@ def show_combined_batches_and_scheduling_page(coach):
                     pipe = FreeWorldPipelineV3()
                     # Ingest
                     st.info("📥 Ingesting…")
-                    df_ing = transform_ingest_outscraper(raw_rows, pipe.run_id) if raw_rows else ensure_schema(pd.DataFrame())
+                    # Use chosen market as search location for foreign language normalization
+                    search_location = MARKET_TO_LOCATION.get(chosen_market, chosen_market)
+                    df_ing = transform_ingest_outscraper(raw_rows, pipe.run_id, search_location) if raw_rows else ensure_schema(pd.DataFrame())
                     st.success(f"✅ Ingested: {len(df_ing)} rows")
                     # Apply stages 2-6 using pipeline helpers
                     st.info("🧹 Normalizing…")

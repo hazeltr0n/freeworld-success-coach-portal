@@ -162,7 +162,9 @@ def main(argv: List[str]) -> int:
     pipe = FreeWorldPipelineV3()
 
     print("📥 Ingesting…")
-    df_ing = transform_ingest_outscraper(raw_rows, pipe.run_id) if raw_rows else ensure_schema(pd.DataFrame())
+    # Use fallback market as search location for foreign language normalization
+    search_location = MARKET_TO_LOCATION.get(args.fallback_market, args.fallback_market)
+    df_ing = transform_ingest_outscraper(raw_rows, pipe.run_id, search_location) if raw_rows else ensure_schema(pd.DataFrame())
     print(f"✅ Ingested: {len(df_ing)} rows")
 
     print("🧹 Normalizing…")
