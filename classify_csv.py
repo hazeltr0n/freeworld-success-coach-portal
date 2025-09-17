@@ -214,6 +214,9 @@ def main(argv: List[str]) -> int:
     print("🧭 Deriving route types and routing…")
     df_route = pipe._stage5_5_route_rules(df_ai)
     df_final = pipe._stage6_routing(df_route, 'both')
+    
+    # Apply final schema enforcement to set route.final_status for quality jobs
+    df_final = ensure_schema(df_final)
 
     # Summary
     total = len(df_final)

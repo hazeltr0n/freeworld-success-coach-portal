@@ -6422,6 +6422,9 @@ def show_combined_batches_and_scheduling_page(coach):
                     df_route = pipe._stage5_5_route_rules(df_ai)
                     df_final = pipe._stage6_routing(df_route, 'both')
                     
+                    # Apply final schema enforcement to set route.final_status for quality jobs
+                    df_final = ensure_schema(df_final)
+                    
                     # Debug: Check final status after routing
                     if 'route.final_status' in df_final.columns:
                         final_status_counts = df_final['route.final_status'].value_counts().to_dict()
