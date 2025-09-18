@@ -2213,8 +2213,8 @@ def show_free_agent_management_page(coach):
                 width="small"
             ),
             'Max Jobs': st.column_config.SelectboxColumn(
-                "Max Jobs",
-                help="Maximum jobs in search results",  # Includes "All" option
+                "Maximum Jobs",
+                help="Maximum jobs in search results - includes All option",
                 width="small", 
                 options=[15, 25, 50, 100, "All"],
                 required=True
