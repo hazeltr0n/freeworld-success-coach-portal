@@ -108,11 +108,9 @@ def generate_agent_url(agent_uuid: str, params: Dict[str, Any]) -> str:
             base_url = "https://fwcareertest.streamlit.app"  # QA environment
             print(f"🧪 QA Environment detected - using QA portal URL: {base_url}")
         else:
-            # TEMPORARY: Force QA portal for this deployment until detection works
-            base_url = "https://fwcareertest.streamlit.app"  # Force QA for this repo
-            print(f"🧪 FORCED QA Environment - using QA portal URL: {base_url}")
-            # Production URL would be:  
-            # base_url = "https://fwcareercoach.streamlit.app"  # Production environment
+            # Production environment
+            base_url = "https://fwcareercoach.streamlit.app"  # Production environment
+            print(f"✅ Production Environment - using production portal URL: {base_url}")
         
         print(f"🔍 Environment debug: current_dir='{current_dir}', repo_name='{repo_name}', is_qa_portal={is_qa_portal}")
             
@@ -126,7 +124,7 @@ def generate_agent_url(agent_uuid: str, params: Dict[str, Any]) -> str:
             base_url = "http://localhost:8501"
             
     except Exception:
-        base_url = "https://fwcareertest.streamlit.app"  # Fallback to QA for this repo
+        base_url = "https://fwcareercoach.streamlit.app"  # Fallback to production
 
     # Generate URL pointing to agent_job_feed with encoded config
     return f"{base_url}/agent_job_feed?config={encoded_config}"

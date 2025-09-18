@@ -1,9 +1,9 @@
 
 """
-FreeWorld Success Coach Portal - QA/STAGING ENVIRONMENT  
+FreeWorld Success Coach Portal - Production Environment
 Complete fresh start to bypass Streamlit Cloud import caching
-DEPLOYMENT VERSION: September 17, 2025 - Fix portal links and dropdown cache - CACHE BUST
-CACHE_BUSTER_ID: portal_links_dropdown_fix_v2
+DEPLOYMENT VERSION: September 18, 2025 - Full feature deployment from QA
+CACHE_BUSTER_ID: production_full_qa_deploy_v1
 """
 
 # === IMPORTS ===
@@ -43,12 +43,7 @@ if 'cache_version' not in st.session_state or st.session_state.cache_version != 
     st.session_state.cache_version = current_version
     print(f"📝 Version updated: {current_version} (caches preserved)")
 
-# Add QA environment banner at the very top
-st.markdown("""
-<div style="background-color: #FF6B6B; color: white; padding: 10px; text-align: center; font-weight: bold; margin-bottom: 20px;">
-    🧪 QA/STAGING ENVIRONMENT - This is a test version for safely testing changes before production
-</div>
-""", unsafe_allow_html=True)
+# Production environment - all QA features deployed
 
 # === IMPORTS CONTINUED ===
 from app_utils import (
@@ -4181,8 +4176,8 @@ def main():
                             
                             encoded_config = encode_agent_params(agent_params)
 
-                            # Create portal URL - use QA environment and correct format
-                            base_url = "https://fwcareertest.streamlit.app"  # QA portal URL  
+                            # Create portal URL - production environment
+                            base_url = "https://fwcareercoach.streamlit.app"  # Production portal URL
                             portal_url = f"{base_url}/agent_job_feed?config={encoded_config}"  # Use same format as free_agent_system.py
                             
                             # Add candidate_id parameter if available
