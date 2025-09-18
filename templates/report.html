@@ -380,13 +380,11 @@
         coach: coach
       };
 
-      // Send feedback to Supabase edge function  
+      // Send feedback to Supabase edge function (no auth required - handled server-side)
       fetch('https://yqbdltothngundojuebk.supabase.co/functions/v1/job-feedback', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxYmRsdG90aG5ndW5kb2p1ZWJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjYwOTIzNzYsImV4cCI6MjA0MTY2ODM3Nn0.LqzBPm3E4z7i31E5FN5L8UINrmyiJP3FwzF2i4YVKGo',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlxYmRsdG90aG5ndW5kb2p1ZWJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjYwOTIzNzYsImV4cCI6MjA0MTY2ODM3Nn0.LqzBPm3E4z7i31E5FN5L8UINrmyiJP3FwzF2i4YVKGo'
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(feedbackData)
       })
