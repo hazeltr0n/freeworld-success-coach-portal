@@ -703,8 +703,18 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
         cutoff_time = datetime.utcnow() - timedelta(hours=hours)
         print(f"🔍 Instant memory search: location='{location}', market='{market}', hours={hours}")
         
+        # Get reported job URLs to exclude them
+        reported_jobs_result = client.table('job_feedback').select('job_url').execute()
+        reported_urls = {job['job_url'] for job in (reported_jobs_result.data or [])}
+        print(f"🚫 Excluding {len(reported_urls)} reported jobs from memory search")
+        
         # Direct Supabase query - no pipeline needed!
         query = client.table('jobs').select('*')
+        
+        # Exclude reported jobs (if any exist)
+        if reported_urls:
+            # Supabase doesn't have NOT IN, so we'll filter after retrieval
+            pass  # We'll filter these out after getting results
         
         # Location filter
         query = query.ilike('location', f'%{location}%')
@@ -723,7 +733,15 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
         result = query.execute()
         jobs = result.data or []
         
-        print(f"📦 Found {len(jobs)} quality jobs in Supabase memory")
+        # Filter out reported jobs
+        if reported_urls:
+            jobs_before = len(jobs)
+            jobs = [job for job in jobs if job.get('apply_url') not in reported_urls]
+            jobs_filtered = jobs_before - len(jobs)
+            if jobs_filtered > 0:
+                print(f"🚫 Filtered out {jobs_filtered} reported jobs")
+        
+        print(f"📦 Found {len(jobs)} quality jobs in Supabase memory (after feedback filtering)")
         
         # EXPORT CSV FIRST - before any link generation bullshit
         if jobs:

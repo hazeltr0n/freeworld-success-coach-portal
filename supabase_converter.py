@@ -259,6 +259,15 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
             .gte('created_at', cutoff_date)
         )
         
+        # Get reported job URLs to exclude them
+        try:
+            reported_jobs_result = supabase_client.table('job_feedback').select('job_url').execute()
+            reported_urls = {job['job_url'] for job in (reported_jobs_result.data or [])}
+            print(f"🚫 Excluding {len(reported_urls)} reported jobs from memory search")
+        except Exception as e:
+            print(f"⚠️ Could not fetch reported jobs (table may not exist yet): {e}")
+            reported_urls = set()
+        
         # Apply agent-specific filters at Supabase level for efficiency
         if agent_params:
             # Fair chance filter
@@ -300,12 +309,21 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
             .execute()
         )
         
-        print(f"📦 Found {len(response.data)} memory jobs in Supabase")
+        # Filter out reported jobs
+        jobs_data = response.data or []
+        if reported_urls:
+            jobs_before = len(jobs_data)
+            jobs_data = [job for job in jobs_data if job.get('apply_url') not in reported_urls]
+            jobs_filtered = jobs_before - len(jobs_data)
+            if jobs_filtered > 0:
+                print(f"🚫 Filtered out {jobs_filtered} reported jobs")
+        
+        print(f"📦 Found {len(jobs_data)} memory jobs in Supabase (after feedback filtering)")
         
         # Debug: Show actual route_type values in the returned data
-        if agent_params and agent_params.get('route_type_filter') and len(response.data) > 0:
+        if agent_params and agent_params.get('route_type_filter') and len(jobs_data) > 0:
             route_types_found = {}
-            for job in response.data[:10]:  # Check first 10 jobs
+            for job in jobs_data[:10]:  # Check first 10 jobs
                 rt = job.get('route_type')
                 rt_key = f"'{rt}'" if rt is not None else 'null'
                 route_types_found[rt_key] = route_types_found.get(rt_key, 0) + 1
@@ -343,7 +361,7 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
             print(f"🤝 Fair chance jobs in top 10: {fair_chance_count}")
         
         # Convert to canonical DataFrame with full context
-        canonical_df = supabase_to_canonical_df(response.data, agent_params, search_params)
+        canonical_df = supabase_to_canonical_df(jobs_data, agent_params, search_params)
         
         return canonical_df
         
