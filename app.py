@@ -2,23 +2,29 @@
 """
 FreeWorld Success Coach Portal - QA/STAGING ENVIRONMENT  
 Complete fresh start to bypass Streamlit Cloud import caching
-DEPLOYMENT VERSION: September 10, 2025 - Fixed PDF show_prepared_for checkbox parameter - CACHE BUST
-CACHE_BUSTER_ID: pdf_prepared_for_fix_34ad03b
+DEPLOYMENT VERSION: September 17, 2025 - Fix portal links and dropdown cache - CACHE BUST
+CACHE_BUSTER_ID: portal_links_dropdown_fix_v2
 """
 
 # === IMPORTS ===
-# AGGRESSIVE CACHE BUST - Import cache buster to force rebuild
-from CACHE_BUSTER import CACHE_BUST_VERSION, FORCE_REBUILD_TOKEN
+# AGGRESSIVE CACHE BUST - Force rebuild to fix deployment issues
+import time
+CACHE_BUST_VERSION = f"v{int(time.time())}"
 print(f"🔥 FORCE REBUILD ACTIVE: {CACHE_BUST_VERSION}")
 
 import streamlit as st
 
-# === PRODUCTION FIX: DISABLE AGGRESSIVE CACHE CLEARING ===
-# This was breaking Supabase connections and auth state on every session
-# Only clear caches when explicitly requested via URL parameter
+# === CACHE CLEARING FOR DEPLOYMENT ISSUES ===
+# Clear caches on restart to fix Streamlit Cloud deployment issues
+if st.query_params.get("clear_cache") == "true" or not st.session_state.get("_deployment_cache_cleared"):
+    st.cache_data.clear()
+    st.cache_resource.clear()
+    st.session_state["_deployment_cache_cleared"] = True
+    print("🔥 Deployment caches cleared - forcing fresh start")
+
 if not st.session_state.get("_startup_initialized"):
     st.session_state["_startup_initialized"] = True
-    print("🚀 App startup completed - preserving connections and cache")
+    print("🚀 App startup completed")
 
 # === CACHE BUSTER ===
 # Clear all Streamlit caches on app startup to ensure fresh deployment
