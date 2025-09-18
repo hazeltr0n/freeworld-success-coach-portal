@@ -2216,7 +2216,7 @@ def show_free_agent_management_page(coach):
                 "Max Jobs",
                 help="Maximum jobs in search results",
                 width="small", 
-                options=[15, 25, 50, 100],
+                options=[15, 25, 50, 100, "All"],
                 required=True
             ),
             'Match Level': st.column_config.SelectboxColumn(
@@ -2308,7 +2308,7 @@ def show_free_agent_management_page(coach):
                         'location': str(edited['Market']),
                         'route_filter': str(edited['Route']), 
                         'fair_chance_only': bool(edited['Fair Chance']),
-                        'max_jobs': int(edited['Max Jobs']),
+                        'max_jobs': edited['Max Jobs'] if edited['Max Jobs'] == "All" else int(edited['Max Jobs']),
                         'match_level': str(edited['Match Level'])
                     })
                     
