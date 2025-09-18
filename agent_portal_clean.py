@@ -83,6 +83,11 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
             # Pass agent_params as-is - don't override show_prepared_for
             agent_params_with_prepared = {**agent_params}
             
+            # Debug: Show what's in agent_params for prepared message
+            print(f"🔍 AGENT_PARAMS DEBUG: show_prepared_for = {agent_params_with_prepared.get('show_prepared_for')}")
+            print(f"🔍 AGENT_PARAMS DEBUG: agent_name = {agent_params_with_prepared.get('agent_name')}")
+            print(f"🔍 AGENT_PARAMS DEBUG: coach_username = {agent_params_with_prepared.get('coach_username')}")
+            
             html = render_jobs_html(jobs, agent_params_with_prepared, fragment=True)
             
             print(f"🎯 CLEAN AGENT PORTAL: HTML generated successfully ({len(html)} chars)")
