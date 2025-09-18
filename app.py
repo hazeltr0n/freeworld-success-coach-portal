@@ -4049,9 +4049,10 @@ def main():
                                 )
                                 
                                 # Create Short.io link
-                                from link_tracker import create_short_link
-                                tags = f"coach:{get_current_coach_name()},market:{final_location_tab},route:{pdf_route_type_filter_tab},mode:{search_type_tab}"
-                                shortened_url = create_short_link(full_portal_url, tags)
+                                from link_tracker import LinkTracker
+                                link_tracker = LinkTracker()
+                                tags = [f"coach:{get_current_coach_name()}", f"market:{final_location_tab}", f"route:{pdf_route_type_filter_tab}", f"mode:{search_type_tab}"]
+                                shortened_url = link_tracker.create_short_link(full_portal_url, title="Portal Link", tags=tags)
                                 
                                 if shortened_url:
                                     st.success(f"✅ Portal link created for {candidate_name_tab}!")
@@ -5558,9 +5559,10 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         )
                         
                         # Create Short.io link
-                        from link_tracker import create_short_link
-                        tags = f"coach:{get_current_coach_name()},market:{preview_location},route:{route_filter},mode:memory"
-                        shortened_url = create_short_link(full_portal_url, tags)
+                        from link_tracker import LinkTracker
+                        link_tracker = LinkTracker()
+                        tags = [f"coach:{get_current_coach_name()}", f"market:{preview_location}", f"route:{route_filter}", f"mode:memory"]
+                        shortened_url = link_tracker.create_short_link(full_portal_url, title="Portal Link", tags=tags)
                         
                         if shortened_url:
                             st.success(f"✅ Portal link created!")
