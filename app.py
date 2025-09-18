@@ -3319,7 +3319,7 @@ def main():
                 default_index = pdf_options.index(default_pdf_limit)
             
             max_jobs_pdf_tab = st.selectbox(
-                "📊 Maximum jobs in PDF:",
+                "📊 Maximum jobs:",
                 options=pdf_options,
                 index=default_index,
                 help=f"Auto-set to {default_pdf_limit} based on '{search_mode_display_tab}' selection"
