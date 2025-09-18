@@ -89,9 +89,9 @@
 
         <!-- Apply Button -->
         <footer class="job-footer">
-            <a href="{{ job.apply_url | default('#') }}" 
-               class="apply-button" 
-               target="_blank" 
+            <a href="{{ job.apply_url | default('#') }}"
+               class="apply-button"
+               target="_blank"
                rel="noopener noreferrer"
                {% if job.job_id %}data-job-id="{{ job.job_id }}"{% endif %}
                {% if job.candidate_id %}data-candidate-id="{{ job.candidate_id }}"{% endif %}>
@@ -140,7 +140,7 @@
             align-items: unset;
             justify-content: unset;
         }
-        
+
         .job-card {
             max-width: none;
             width: 100%;

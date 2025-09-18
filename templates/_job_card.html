@@ -73,9 +73,31 @@
         <p class="short-url">Apply link unavailable</p>
       {% endif %}
       <div class="footer-row">
-        <button class="feedback-button" onclick="reportJob('{{ job.apply_url }}', '{{ job.title }}', '{{ job.company }}')">
-          ⚠️ Report Issue
-        </button>
+        <!-- Job Feedback System -->
+        <div class="job-feedback">
+          <button class="feedback-button" onclick="toggleFeedback('{{ job.job_id | default(loop.index) }}')">
+            💬 Tell us about this job
+            <span class="arrow" id="arrow-{{ job.job_id | default(loop.index) }}">▼</span>
+          </button>
+
+          <div class="feedback-options" id="feedback-{{ job.job_id | default(loop.index) }}" style="display: none;">
+            <button class="feedback-option negative" onclick="submitFeedback('{{ job.job_id | default(loop.index) }}', '{{ job.candidate_id | default('unknown') }}', 'job_expired')">
+              ⏰ Job expired
+            </button>
+            <button class="feedback-option negative" onclick="submitFeedback('{{ job.job_id | default(loop.index) }}', '{{ job.candidate_id | default('unknown') }}', 'requires_experience')">
+              📚 Requires experience
+            </button>
+            <button class="feedback-option negative" onclick="submitFeedback('{{ job.job_id | default(loop.index) }}', '{{ job.candidate_id | default('unknown') }}', 'not_fair_chance_friendly')">
+              🚫 Not fair chance friendly
+            </button>
+            <button class="feedback-option positive" onclick="submitFeedback('{{ job.job_id | default(loop.index) }}', '{{ job.candidate_id | default('unknown') }}', 'i_like_this_job')">
+              ❤️ I like this job
+            </button>
+            <button class="feedback-option positive" onclick="submitFeedback('{{ job.job_id | default(loop.index) }}', '{{ job.candidate_id | default('unknown') }}', 'i_applied_to_this_job')">
+              ✅ I applied to this job
+            </button>
+          </div>
+        </div>
         <p class="page-counter">Job {{ idx }} of {{ ofn }}</p>
       </div>
     </div>
