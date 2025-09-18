@@ -46,6 +46,7 @@ def encode_agent_params(params: Dict[str, Any]) -> str:
         'max_jobs': params.get('max_jobs', 25),  # 15/25/50/100
         'match_quality_filter': match_value,  # Use modern parameter name
         'coach_username': params.get('coach_username', ''),
+        'show_prepared_for': params.get('show_prepared_for', True),  # Include prepared message setting
     }
     
     json_str = json.dumps(param_map, separators=(',', ':'))
@@ -67,7 +68,7 @@ def decode_agent_params(encoded: str) -> Dict[str, Any]:
             'max_jobs': 25,
             'match_level': 'good and so-so',
             'coach_username': '',
-            'show_prepared_for': False,  # Default to False when decoding fails
+            'show_prepared_for': True,  # Default to True when decoding fails
         }
 
 def generate_agent_url(agent_uuid: str, params: Dict[str, Any]) -> str:
