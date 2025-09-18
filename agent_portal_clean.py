@@ -72,9 +72,11 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
             
             # 4. Apply max_jobs limit from agent params
             max_jobs = agent_params.get('max_jobs', 25)  # Default to 25 if not specified
-            if max_jobs and len(processed_df) > max_jobs:
+            if max_jobs and max_jobs != "All" and isinstance(max_jobs, int) and len(processed_df) > max_jobs:
                 processed_df = processed_df.head(max_jobs)
                 print(f"🎯 CLEAN AGENT PORTAL: Limited to {max_jobs} jobs per agent settings")
+            elif max_jobs == "All":
+                print(f"🎯 CLEAN AGENT PORTAL: Showing all {len(processed_df)} jobs (no limit)")
             
             jobs = jobs_dataframe_to_dicts(processed_df)
             
@@ -159,9 +161,11 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
                 
                 # 4. Apply max_jobs limit from agent params
                 max_jobs = agent_params.get('max_jobs', 25)  # Default to 25 if not specified
-                if max_jobs and len(processed_df) > max_jobs:
+                if max_jobs and max_jobs != "All" and isinstance(max_jobs, int) and len(processed_df) > max_jobs:
                     processed_df = processed_df.head(max_jobs)
                     print(f"🎯 CLEAN AGENT PORTAL: Limited to {max_jobs} jobs per agent settings")
+                elif max_jobs == "All":
+                    print(f"🎯 CLEAN AGENT PORTAL: Showing all {len(processed_df)} jobs (no limit)")
                 
                 jobs = jobs_dataframe_to_dicts(processed_df)
                 
