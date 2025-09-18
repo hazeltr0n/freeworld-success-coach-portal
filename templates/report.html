@@ -363,6 +363,9 @@
         return;
       }
 
+      // Get the button element that was clicked
+      const button = event.target;
+
       // Get agent info from URL params
       const urlParams = new URLSearchParams(window.location.search);
       const candidateId = urlParams.get('agent_uuid') || 'unknown';
@@ -380,7 +383,7 @@
         coach: coach
       };
 
-      // Send feedback to Supabase edge function (no auth required - handled server-side)
+      // Send feedback to Supabase edge function (no auth required - JWT verification disabled)
       fetch('https://yqbdltothngundojuebk.supabase.co/functions/v1/job-feedback', {
         method: 'POST',
         headers: {
@@ -393,7 +396,7 @@
         if (data.success) {
           alert('Thank you for the feedback! We will remove this job from future searches.');
           // Hide the job card
-          event.target.closest('.page-container').style.display = 'none';
+          button.closest('.page-container').style.display = 'none';
         } else {
           alert('Error submitting feedback: ' + data.message);
         }
