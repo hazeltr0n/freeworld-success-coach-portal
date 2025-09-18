@@ -43,7 +43,11 @@ def prepare_pdf_data(job_row):
         'route_type': job_row.get('ai.route_type', 'Unknown'),
         'fair_chance': job_row.get('ai.fair_chance', ''),
         'endorsements': job_row.get('ai.endorsements', 'none_required'),
-        
+
+        # Career pathway fields (new schema)
+        'career_pathway': job_row.get('ai.career_pathway', ''),
+        'training_provided': job_row.get('ai.training_provided', False),
+
         # URLs - priority order
         'apply_url': (
             job_row.get('meta.tracked_url') or 
@@ -473,6 +477,55 @@ class FreeWorldJobCardFPDF(FPDF):
                 self.set_text_color(255, 255, 255)  # White text for contrast
                 self.set_xy(current_x, badge_row_y)
                 self.cell(fair_chance_width, 24, fair_chance_text, fill=True)
+                current_x += fair_chance_width + 8  # 8pt gap between badges
+
+        # Career Pathway Badge (new feature)
+        career_pathway = pdf_data.get('career_pathway', '')
+        training_provided = pdf_data.get('training_provided', False)
+
+        if career_pathway and career_pathway not in ['', 'unknown', 'general_warehouse', 'no_pathway']:
+            # Import badge factory for pathway badges
+            from branded_badge_system import BadgeFactory
+
+            # Set font first to get accurate text width measurement
+            self._set_font('B', 12)
+
+            # Create pathway badge with appropriate styling
+            if career_pathway == 'dock_to_driver':
+                pathway_text = "DOCK TO DRIVER"
+                self.set_fill_color(*self.fw_freedom_green)  # Green for excellent pathways
+                self.set_text_color(*self.fw_midnight)
+            elif career_pathway == 'internal_cdl_training':
+                pathway_text = "CDL TRAINING PROVIDED"
+                self.set_fill_color(*self.fw_freedom_green)  # Green for excellent pathways
+                self.set_text_color(*self.fw_midnight)
+            elif career_pathway == 'warehouse_to_driver':
+                pathway_text = "WAREHOUSE TO DRIVER"
+                self.set_fill_color(*self.fw_freedom_green)  # Green for good pathways
+                self.set_text_color(*self.fw_midnight)
+            elif career_pathway == 'logistics_progression':
+                pathway_text = "LOGISTICS CAREER PATH"
+                self.set_fill_color(*self.fw_visionary_violet)  # Purple for possible pathways
+                self.set_text_color(*self.fw_midnight)
+            elif career_pathway == 'non_cdl_driving':
+                pathway_text = "NON-CDL DRIVING"
+                self.set_fill_color(*self.fw_visionary_violet)  # Purple for possible pathways
+                self.set_text_color(*self.fw_midnight)
+            elif career_pathway == 'stepping_stone':
+                pathway_text = "STEPPING STONE"
+                self.set_fill_color(255, 204, 0)  # Yellow for conditional pathways
+                self.set_text_color(*self.fw_midnight)
+            else:
+                pathway_text = career_pathway.replace('_', ' ').upper()
+                self.set_fill_color(244, 244, 244)  # Grey for default
+                self.set_text_color(*self.fw_midnight)
+
+            pathway_width = self.get_string_width(pathway_text) + 24
+
+            # Ensure badge doesn't overflow content area
+            if current_x + pathway_width <= content_x + content_width:
+                self.set_xy(current_x, badge_row_y)
+                self.cell(pathway_width, 24, pathway_text, fill=True)
         
         y += 24
         

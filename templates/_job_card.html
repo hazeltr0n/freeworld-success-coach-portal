@@ -15,6 +15,25 @@
       {% if job.fair_chance %}
         <span class="badge fair-chance">Fair Chance Employer</span>
       {% endif %}
+
+      <!-- Career Pathway Badge -->
+      {% if job.career_pathway and job.career_pathway not in ['', 'unknown', 'general_warehouse', 'no_pathway'] %}
+        {% if job.career_pathway == 'dock_to_driver' %}
+          <span class="badge pathway-excellent">DOCK TO DRIVER</span>
+        {% elif job.career_pathway == 'internal_cdl_training' %}
+          <span class="badge pathway-excellent">CDL TRAINING PROVIDED</span>
+        {% elif job.career_pathway == 'warehouse_to_driver' %}
+          <span class="badge pathway-good">WAREHOUSE TO DRIVER</span>
+        {% elif job.career_pathway == 'logistics_progression' %}
+          <span class="badge pathway-possible">LOGISTICS CAREER PATH</span>
+        {% elif job.career_pathway == 'non_cdl_driving' %}
+          <span class="badge pathway-possible">NON-CDL DRIVING</span>
+        {% elif job.career_pathway == 'stepping_stone' %}
+          <span class="badge pathway-conditional">STEPPING STONE</span>
+        {% else %}
+          <span class="badge pathway-default">{{ job.career_pathway | replace('_', ' ') | upper }}</span>
+        {% endif %}
+      {% endif %}
     </div>
 
     <!-- Metadata -->

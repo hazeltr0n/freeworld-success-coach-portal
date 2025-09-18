@@ -33,6 +33,57 @@ body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-seri
 .job-title { font-size: 18px; font-weight: 700; }
 .badge { font-size: 12px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--rule); }
 .badge.neutral { background: #f6f7f8; }
+
+/* Pathway Badge Styles */
+.pathway-badge {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: none;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 6px;
+}
+
+.pathway-excellent {
+  background: rgb(205, 249, 92); /* FW Freedom Green */
+  color: rgb(25, 25, 49); /* FW Midnight */
+}
+
+.pathway-good {
+  background: rgb(205, 249, 92); /* FW Freedom Green */
+  color: rgb(25, 25, 49); /* FW Midnight */
+}
+
+.pathway-possible {
+  background: rgb(197, 199, 228); /* FW Visionary Violet (lighter) */
+  color: rgb(25, 25, 49); /* FW Midnight */
+}
+
+.pathway-conditional {
+  background: rgb(255, 204, 0); /* Yellow */
+  color: rgb(25, 25, 49); /* FW Midnight */
+}
+
+.pathway-default {
+  background: rgb(244, 244, 244); /* FW Horizon Grey */
+  color: rgb(25, 25, 49); /* FW Midnight */
+}
+
+/* Badge Container for layout */
+.badge-container {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+/* Existing match badge compatibility */
+.match-badge, .badge.excellent-match, .badge.possible-fit, .badge.fair-chance {
+  display: inline-block;
+}
 .subline { margin-top: 6px; color: #444; font-size: 14px; display: flex; gap: 8px; align-items: center; }
 .dot { color: #999; }
 
