@@ -46,6 +46,7 @@ class FreeWorldBadge(Flowable):
             "fair_chance": (FW_FREEDOM_GREEN, FW_MIDNIGHT),  # Green bg, dark text
             "conditional": (Color(1, 0.8, 0), FW_MIDNIGHT),  # Yellow bg, dark text
             "salary": (FW_ROOTS, FW_WHITE),  # Teal bg, white text
+            "pathway": (FW_VISIONARY_VIOLET, FW_MIDNIGHT),  # Purple bg for pathways
             "default": (FW_HORIZON_GREY, FW_MIDNIGHT),  # Gray bg, dark text
         }
         return color_map.get(self.badge_type, color_map["default"])
@@ -149,6 +150,21 @@ class BadgeFactory:
             return FreeWorldBadge("ANNUAL SALARY", "salary")
         else:
             return FreeWorldBadge("PERFORMANCE PAY", "salary")
+
+    @staticmethod
+    def create_pathway_badge(pathway_value):
+        """Create career pathway badge"""
+        badge_map = {
+            "dock_to_driver": FreeWorldBadge("DOCK TO DRIVER", "excellent"),
+            "internal_cdl_training": FreeWorldBadge("CDL TRAINING PROVIDED", "excellent"),
+            "warehouse_to_driver": FreeWorldBadge("WAREHOUSE TO DRIVER", "good"),
+            "logistics_progression": FreeWorldBadge("LOGISTICS CAREER PATH", "possible"),
+            "non_cdl_driving": FreeWorldBadge("NON-CDL DRIVING", "possible"),
+            "general_warehouse": FreeWorldBadge("WAREHOUSE OPPORTUNITY", "default"),
+            "stepping_stone": FreeWorldBadge("STEPPING STONE", "conditional"),
+            "no_pathway": FreeWorldBadge("LIMITED ADVANCEMENT", "warning")
+        }
+        return badge_map.get(pathway_value, FreeWorldBadge("PATHWAY UNKNOWN", "default"))
     
     @staticmethod
     def create_context_badges(reason, summary=""):

@@ -35,18 +35,19 @@ class JobClassifier:
                 "summary": {"type": "string", "maxLength": 1000},
                 "normalized_location": {"type": "string", "maxLength": 100},
                 "fair_chance": {"type": "string", "enum": ["fair_chance_employer", "background_check_required", "clean_record_required", "no_requirements_mentioned"]},
-                "endorsements": {"type": "string", "enum": [
-                    "none_required",
-                    "hazmat",
-                    "tanker",
-                    "passenger",
-                    "school_bus",
-                    "double_triple",
-                    "x - hazmat/tanker combo",
-                    "multiple"
-                ]}
+                "career_pathway": {"type": "string", "enum": [
+                    "dock_to_driver",
+                    "internal_cdl_training",
+                    "warehouse_to_driver",
+                    "logistics_progression",
+                    "non_cdl_driving",
+                    "general_warehouse",
+                    "stepping_stone",
+                    "no_pathway"
+                ]},
+                "training_provided": {"type": "boolean"}
             },
-            "required": ["job_id", "match", "reason", "summary", "fair_chance", "endorsements"]
+            "required": ["job_id", "match", "reason", "summary", "fair_chance", "career_pathway", "training_provided"]
         }
     
     def _retry_request(self, do_req, max_retries=5, base=0.5, cap=30.0):
@@ -137,31 +138,30 @@ Job Description:
             print(f"⚠️ Batch {batch_num}: Skipped {len(skipped_jobs)} malformed jobs")
 
         system_prompt = """
-FreeWorld is a non-profit that helps Americans with low incomes get living wage jobs in the trucking industry.
-We send them to trucking school where they earn a CDL-A, which qualifies them to drive CDL-B jobs as well. They are trained on air brakes, combination vehicles (pulling trailers), and manual transmissions. Many have endorsements such as Hazmat, Airbrakes, Passenger, and Tanker. FreeWorld helps candidates obtain these endorsements if needed.
-Most have no previous professional driving experience, no personal vehicle, and limited access to professional equipment. Many have criminal records — ranging from misdemeanors to older or non-violent felonies. Our candidates know how to operate tractor-trailers, and are ready to work.
-
-We want to help connect them to jobs they have a strong chance of getting if they show up prepared, knowledgeable, and ready to demonstrate their skills in a road test. Assume they are ready to work — but must be hired into a role that does not require prior CDL driving experience or their own equipment.
+FreeWorld is a non-profit that helps Americans with low incomes find career pathway jobs that lead to living wage opportunities in transportation and logistics.
+Our candidates are looking for entry-level positions that provide clear advancement opportunities, especially pathways to CDL driving careers. Many have limited work experience, criminal backgrounds, and need employers who provide training and career development.
+We focus on connecting candidates to jobs that offer genuine career growth potential - from warehouse/dock work to driving, from non-CDL delivery to CDL opportunities, and logistics roles that provide industry experience.
 
 **CLASSIFICATION PRIORITY SYSTEM:**
 
-1. **RELEVANCE IS KING**: CDL driving jobs are the top priority. A CDL job with no experience requirements is always GOOD. CDL B OR A, just fine. DO NOT EXCLUDE CDL-B, or CLASS B CDL JOBS!
+1. **CAREER PATHWAY POTENTIAL**: Jobs with clear advancement paths are top priority
+2. **TRAINING PROVIDED**: Jobs that offer CDL training, skills development, or advancement opportunities
+3. **ENTRY-LEVEL FRIENDLY**: Jobs that hire candidates with limited experience or criminal backgrounds
 
-2. **EXPERIENCE REQUIREMENTS** (the main filter) Good/So-So/Bad:
-Jobs should be classified as **so-so** if they:
-- Prefer experience but do not require it (unless there's a strong signal actively seeking new drivers)
-- Are non-CDL jobs or explicitly state "No CDL required" - these are backup options but not ideal for CDL holders
-- Have unclear requirements or mixed signals about experience needs
-- Are delivery/warehouse jobs that don't utilize CDL training
+**PATHWAY CATEGORIES:**
+- **dock_to_driver**: Warehouse/dock positions with explicit CDL training or driver advancement
+- **internal_cdl_training**: Companies offering paid CDL training programs
+- **warehouse_to_driver**: General warehouse roles at transportation companies with driver pathways
+- **logistics_progression**: Dispatcher, coordinator roles that lead to management opportunities
+- **non_cdl_driving**: Delivery, local driving that doesn't require CDL but provides driving experience
+- **general_warehouse**: Standard warehouse work at logistics companies (stepping stone potential)
+- **stepping_stone**: Other roles that provide industry experience and advancement potential
 
 Jobs should be classified as **good** if they:
-- Explicitly welcome new CDL drivers or state "no experience required"
-- Provide training
-- Are CDL-required positions that actively recruit entry-level drivers
-- Have clear entry-level pathways
-
-Jobs should be classified as **bad** if they:
-- Require ANY amount of truck driving experience. Our candidates know how to drive and hold CDLs, but they have no CDL or driving work history AT ALL
+- Explicitly offer CDL training or driver pathways
+- Provide clear advancement opportunities
+- Are entry-level friendly with training provided
+- Welcome candidates with criminal backgrounds
 
 3. **AUTOMATIC DISQUALIFIERS**:
    - Owner-operator/1099 (must own truck/trailer) → BAD
@@ -530,31 +530,30 @@ Return your results as a JSON object with a "job_classifications" array like thi
         # Single job per request for proper work queue
         # Use the good system prompt with explicit field mapping
         system_prompt = """
-FreeWorld is a non-profit that helps Americans with low incomes get living wage jobs in the trucking industry.
-We send them to trucking school where they earn a CDL-A, which qualifies them to drive CDL-B jobs as well. They are trained on air brakes, combination vehicles (pulling trailers), and manual transmissions. Many have endorsements such as Hazmat, Airbrakes, Passenger, and Tanker. FreeWorld helps candidates obtain these endorsements if needed.
-Most have no previous professional driving experience, no personal vehicle, and limited access to professional equipment. Many have criminal records — ranging from misdemeanors to older or non-violent felonies. Our candidates know how to operate tractor-trailers, and are ready to work.
-
-We want to help connect them to jobs they have a strong chance of getting if they show up prepared, knowledgeable, and ready to demonstrate their skills in a road test. Assume they are ready to work — but must be hired into a role that does not require prior CDL driving experience or their own equipment.
+FreeWorld is a non-profit that helps Americans with low incomes find career pathway jobs that lead to living wage opportunities in transportation and logistics.
+Our candidates are looking for entry-level positions that provide clear advancement opportunities, especially pathways to CDL driving careers. Many have limited work experience, criminal backgrounds, and need employers who provide training and career development.
+We focus on connecting candidates to jobs that offer genuine career growth potential - from warehouse/dock work to driving, from non-CDL delivery to CDL opportunities, and logistics roles that provide industry experience.
 
 **CLASSIFICATION PRIORITY SYSTEM:**
 
-1. **RELEVANCE IS KING**: CDL driving jobs are the top priority. A CDL job with no experience requirements is always GOOD. CDL B OR A, just fine. DO NOT EXCLUDE CDL-B, or CLASS B CDL JOBS!
+1. **CAREER PATHWAY POTENTIAL**: Jobs with clear advancement paths are top priority
+2. **TRAINING PROVIDED**: Jobs that offer CDL training, skills development, or advancement opportunities
+3. **ENTRY-LEVEL FRIENDLY**: Jobs that hire candidates with limited experience or criminal backgrounds
 
-2. **EXPERIENCE REQUIREMENTS** (the main filter) Good/So-So/Bad:
-Jobs should be classified as **so-so** if they:
-- Prefer experience but do not require it (unless there's a strong signal actively seeking new drivers)
-- Are non-CDL jobs or explicitly state "No CDL required" - these are backup options but not ideal for CDL holders
-- Have unclear requirements or mixed signals about experience needs
-- Are delivery/warehouse jobs that don't utilize CDL training
+**PATHWAY CATEGORIES:**
+- **dock_to_driver**: Warehouse/dock positions with explicit CDL training or driver advancement
+- **internal_cdl_training**: Companies offering paid CDL training programs
+- **warehouse_to_driver**: General warehouse roles at transportation companies with driver pathways
+- **logistics_progression**: Dispatcher, coordinator roles that lead to management opportunities
+- **non_cdl_driving**: Delivery, local driving that doesn't require CDL but provides driving experience
+- **general_warehouse**: Standard warehouse work at logistics companies (stepping stone potential)
+- **stepping_stone**: Other roles that provide industry experience and advancement potential
 
 Jobs should be classified as **good** if they:
-- Explicitly welcome new CDL drivers or state "no experience required"
-- Provide training
-- Are CDL-required positions that actively recruit entry-level drivers
-- Have clear entry-level pathways
-
-Jobs should be classified as **bad** if they:
-- Require ANY amount of truck driving experience, even one day. Our candidates know how to drive and hold CDLs, but they have no CDL or driving work history AT ALL
+- Explicitly offer CDL training or driver pathways
+- Provide clear advancement opportunities
+- Are entry-level friendly with training provided
+- Welcome candidates with criminal backgrounds
 
 3. **AUTOMATIC DISQUALIFIERS**:
    - Owner-operator/1099 (must own truck/trailer) → BAD
@@ -983,31 +982,30 @@ Job Description:
         # Define the system prompt here for the async method  
         # Use the good system prompt with explicit field mapping (same as line 137)
         system_prompt = """
-FreeWorld is a non-profit that helps Americans with low incomes get living wage jobs in the trucking industry.
-We send them to trucking school where they earn a CDL-A, which qualifies them to drive CDL-B jobs as well. They are trained on air brakes, combination vehicles (pulling trailers), and manual transmissions. Many have endorsements such as Hazmat, Airbrakes, Passenger, and Tanker. FreeWorld helps candidates obtain these endorsements if needed.
-Most have no previous professional driving experience, no personal vehicle, and limited access to professional equipment. Many have criminal records — ranging from misdemeanors to older or non-violent felonies. Our candidates know how to operate tractor-trailers, and are ready to work.
-
-We want to help connect them to jobs they have a strong chance of getting if they show up prepared, knowledgeable, and ready to demonstrate their skills in a road test. Assume they are ready to work — but must be hired into a role that does not require prior CDL driving experience or their own equipment.
+FreeWorld is a non-profit that helps Americans with low incomes find career pathway jobs that lead to living wage opportunities in transportation and logistics.
+Our candidates are looking for entry-level positions that provide clear advancement opportunities, especially pathways to CDL driving careers. Many have limited work experience, criminal backgrounds, and need employers who provide training and career development.
+We focus on connecting candidates to jobs that offer genuine career growth potential - from warehouse/dock work to driving, from non-CDL delivery to CDL opportunities, and logistics roles that provide industry experience.
 
 **CLASSIFICATION PRIORITY SYSTEM:**
 
-1. **RELEVANCE IS KING**: CDL driving jobs are the top priority. A CDL job with no experience requirements is always GOOD. CDL B OR A, just fine. DO NOT EXCLUDE CDL-B, or CLASS B CDL JOBS!
+1. **CAREER PATHWAY POTENTIAL**: Jobs with clear advancement paths are top priority
+2. **TRAINING PROVIDED**: Jobs that offer CDL training, skills development, or advancement opportunities
+3. **ENTRY-LEVEL FRIENDLY**: Jobs that hire candidates with limited experience or criminal backgrounds
 
-2. **EXPERIENCE REQUIREMENTS** (the main filter) Good/So-So/Bad:
-Jobs should be classified as **so-so** if they:
-- Prefer experience but do not require it (unless there's a strong signal actively seeking new drivers)
-- Are non-CDL jobs or explicitly state "No CDL required" - these are backup options but not ideal for CDL holders
-- Have unclear requirements or mixed signals about experience needs
-- Are delivery/warehouse jobs that don't utilize CDL training
+**PATHWAY CATEGORIES:**
+- **dock_to_driver**: Warehouse/dock positions with explicit CDL training or driver advancement
+- **internal_cdl_training**: Companies offering paid CDL training programs
+- **warehouse_to_driver**: General warehouse roles at transportation companies with driver pathways
+- **logistics_progression**: Dispatcher, coordinator roles that lead to management opportunities
+- **non_cdl_driving**: Delivery, local driving that doesn't require CDL but provides driving experience
+- **general_warehouse**: Standard warehouse work at logistics companies (stepping stone potential)
+- **stepping_stone**: Other roles that provide industry experience and advancement potential
 
 Jobs should be classified as **good** if they:
-- Explicitly welcome new CDL drivers or state "no experience required"
-- Provide training
-- Are CDL-required positions that actively recruit entry-level drivers
-- Have clear entry-level pathways
-
-Jobs should be classified as **bad** if they:
-- Require ANY amount of truck driving experience, even one day. Our candidates know how to drive and hold CDLs, but they have no CDL or driving work history AT ALL
+- Explicitly offer CDL training or driver pathways
+- Provide clear advancement opportunities
+- Are entry-level friendly with training provided
+- Welcome candidates with criminal backgrounds
 
 3. **AUTOMATIC DISQUALIFIERS**:
    - Owner-operator/1099 (must own truck/trailer) → BAD
