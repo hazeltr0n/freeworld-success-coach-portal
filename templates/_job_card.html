@@ -53,7 +53,12 @@
       {% else %}
         <p class="short-url">Apply link unavailable</p>
       {% endif %}
-      <p class="page-counter">Job {{ idx }} of {{ ofn }}</p>
+      <div class="footer-row">
+        <button class="feedback-button" onclick="reportJob('{{ job.apply_url }}', '{{ job.title }}', '{{ job.company }}')">
+          ⚠️ Report Issue
+        </button>
+        <p class="page-counter">Job {{ idx }} of {{ ofn }}</p>
+      </div>
     </div>
   </div>
 </div>
