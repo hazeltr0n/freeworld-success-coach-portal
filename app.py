@@ -2314,7 +2314,7 @@ def show_free_agent_management_page(coach):
                         'location': str(edited['Market']),
                         'route_filter': str(edited['Route']), 
                         'fair_chance_only': bool(edited['Fair Chance']),
-                        'max_jobs': edited['Max Jobs'] if edited['Max Jobs'] == "All" else int(edited['Max Jobs']),
+                        'max_jobs': edited['Max Jobs'] if str(edited['Max Jobs']) == "All" else int(edited['Max Jobs']),
                         'match_level': str(edited['Match Level'])
                     })
                     
@@ -2437,7 +2437,7 @@ def show_free_agent_management_page(coach):
                             'location': edited_row['Market'],
                             'route_filter': route_value,  # Use normalized lowercase value
                             'fair_chance_only': bool(edited_row['Fair Chance']),
-                            'max_jobs': int(edited_row['Max Jobs']),
+                            'max_jobs': edited_row['Max Jobs'] if str(edited_row['Max Jobs']) == "All" else int(edited_row['Max Jobs']),
                             'match_level': edited_row['Match Level'],
                             'coach_username': coach.username  # Ensure coach username is included
                         })
