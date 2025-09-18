@@ -4037,12 +4037,15 @@ def main():
                                 
                                 # Generate portal link
                                 from free_agent_system import generate_agent_url
+                                # Add agent info to portal config
+                                portal_config.update({
+                                    'agent_name': candidate_name_tab.strip(),
+                                    'location': final_location_tab,
+                                    'coach_username': get_current_coach_name()
+                                })
                                 full_portal_url = generate_agent_url(
                                     agent_uuid=candidate_id_tab.strip(),
-                                    agent_name=candidate_name_tab.strip(),
-                                    location=final_location_tab,
-                                    search_config=portal_config,
-                                    coach_username=get_current_coach_name()
+                                    params=portal_config
                                 )
                                 
                                 # Create Short.io link
@@ -5543,12 +5546,15 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         
                         # Generate portal link
                         from free_agent_system import generate_agent_url
+                        # Add agent info to portal config
+                        portal_config.update({
+                            'agent_name': candidate_name.strip(),
+                            'location': preview_location,
+                            'coach_username': get_current_coach_name()
+                        })
                         full_portal_url = generate_agent_url(
                             agent_uuid=candidate_id.strip(),
-                            agent_name=candidate_name.strip(),
-                            location=preview_location,
-                            search_config=portal_config,
-                            coach_username=get_current_coach_name()
+                            params=portal_config
                         )
                         
                         # Create Short.io link
