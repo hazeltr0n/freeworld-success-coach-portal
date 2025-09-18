@@ -4010,7 +4010,8 @@ def main():
                                 'route_filter': pdf_route_type_filter_tab,
                                 'no_experience': no_experience_tab,
                                 'fair_chance_only': pdf_fair_chance_only_tab,
-                                'max_jobs': max_jobs_pdf_tab if max_jobs_pdf_tab != "All" else 50,
+                                'max_jobs': max_jobs_pdf_tab,  # Keep "All" as-is, don't cap to 50
+                                'show_prepared_for': show_prepared_for_tab,  # Include prepared message setting
                                 
                                 # Location details
                                 'location': final_location_tab,
@@ -4021,7 +4022,6 @@ def main():
                                 'memory_hours': int(memory_time_period_tab.replace('h','') or 72) if search_type_tab == 'memory' else 72,
                                 
                                 # PDF/Filter parameters (use the form values directly)
-                                'max_jobs': max_jobs_pdf_tab if max_jobs_pdf_tab != "All" else 50,
                                 'route_type_filter': pdf_route_type_filter_tab,  # Pipeline expects route_type_filter
                                 'match_quality_filter': pdf_match_quality_filter_tab,
                                 'include_memory_jobs': pdf_include_memory_jobs_tab,
@@ -5557,7 +5557,8 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         portal_config.update({
                             'agent_name': candidate_name.strip(),
                             'location': preview_location,
-                            'coach_username': get_current_coach_name()
+                            'coach_username': get_current_coach_name(),
+                            'show_prepared_for': st.session_state.get('tab_show_prepared_for', True)  # Include prepared message setting
                         })
                         full_portal_url = generate_agent_url(
                             agent_uuid=candidate_id.strip(),
