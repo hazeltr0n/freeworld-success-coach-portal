@@ -1,10 +1,25 @@
-# Environment files with secrets
+# FreeWorld Job Scraper - Git Ignore
+# Keep sensitive files out of GitHub
+
+# Secrets and environment - CRITICAL SECURITY
+.streamlit/secrets.toml
+.streamlit/secrets*.toml
+streamlit_secrets.txt
+streamlit_secrets*.txt
 .env
 .env.local
 .env.development
 .env.test
 .env.production
-.streamlit/secrets.toml
+*.env
+*secrets*
+*secret*
+
+# Generated outputs
+FreeWorld_Jobs/
+*.csv
+*.pdf
+*.parquet
 
 # Python
 __pycache__/
