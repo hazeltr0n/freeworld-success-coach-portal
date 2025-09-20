@@ -92,7 +92,7 @@ class JobMemoryDB:
         # Quick health check - try a simple query
         try:
             # Test connection with a lightweight query
-            result = self.supabase.table('jobs').select('id').limit(1).execute()
+            result = self.supabase.table('jobs').select('job_id').limit(1).execute()
             self._connection_healthy = True
             return True
         except Exception as e:
@@ -104,7 +104,7 @@ class JobMemoryDB:
                 self._init_supabase()
                 if self.supabase:
                     # Test the new connection
-                    result = self.supabase.table('jobs').select('id').limit(1).execute()
+                    result = self.supabase.table('jobs').select('job_id').limit(1).execute()
                     self._connection_healthy = True
                     logger.info("✅ Supabase connection restored")
                     return True

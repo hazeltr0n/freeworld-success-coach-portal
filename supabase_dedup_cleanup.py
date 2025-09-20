@@ -157,7 +157,7 @@ def remove_duplicate_jobs(supabase, job_ids_to_remove: List[str], dry_run: bool 
             batch = job_ids_to_remove[i:i + batch_size]
             
             # Delete batch
-            result = supabase.table('jobs').delete().in_('id', batch).execute()
+            result = supabase.table('jobs').delete().in_('job_id', batch).execute()
             
             if result.data:
                 batch_count = len(result.data)
