@@ -3652,7 +3652,7 @@ def main():
             )
         with col2:
             st.markdown("### 🚀 Search Options")
-            # Row 1: Memory Only
+            # Search Options: Memory Only and Indeed Fresh Only side by side
             col3_1, col3_2 = st.columns(2)
             with col3_1:
                 memory_clicked_tab = st.button(
@@ -3662,11 +3662,6 @@ def main():
                     width='stretch'
                 )
             with col3_2:
-                # Empty column where Indeed + Memory button was
-                pass
-            # Row 2: Fresh and Google
-            col3_3, col3_4 = st.columns(2)
-            with col3_3:
                 # Check fresh scraping permission
                 _can_fresh = check_coach_permission('can_pull_fresh_jobs')
                 indeed_fresh_clicked_tab = st.button(
@@ -3676,9 +3671,6 @@ def main():
                     width='stretch',
                     disabled=not _can_fresh
                 )
-            with col3_4:
-                # Google ordering removed from Job Search page
-                pass
         
         # Brief permission hints under buttons
         try:
