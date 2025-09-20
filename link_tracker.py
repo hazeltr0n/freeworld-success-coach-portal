@@ -220,7 +220,7 @@ class LinkTracker:
             supabase_url = f"{functions_base}/click-redirect-lite?{_up.urlencode(q)}"
 
             self.logger.info(f"Generated Supabase edge function URL: {supabase_url}")
-            
+
             # Now shorten the edge function URL with Short.io for clean links
             if self.api_key:
                 try:
@@ -250,7 +250,7 @@ class LinkTracker:
                         "candidate_id": candidate_id,
                     })
                     return supabase_url
-            
+
             # Edge-only path
             self._notify_zapier("link_created", {
                 "mode": "supabase-edge",
@@ -283,7 +283,84 @@ class LinkTracker:
             "tags": tags or [],
         })
         return short or original_url
-    
+
+    def generate_edge_function_url(self, target_url: str, candidate_id: Optional[str] = None,
+                                 tags: Optional[list] = None) -> str:
+        """
+        Generate edge function URL for click tracking (separate from Short.io link creation)
+        Used for hyperlinking Short.io display text to actual tracking URLs
+
+        Args:
+            target_url: The URL to redirect to after tracking
+            candidate_id: Agent UUID for tracking
+            tags: Tags for context (coach, market, route, etc.)
+
+        Returns:
+            Edge function URL for click tracking
+        """
+        import urllib.parse as _up
+        raw = os.getenv('SUPABASE_URL', 'https://project.supabase.co')
+        try:
+            pu = _up.urlparse(raw)
+            host = pu.netloc or ''
+            # Extract project ref from host (prefix before .supabase.*)
+            ref = host.split('.')[0] if host else ''
+            tld = '.'.join(host.split('.')[1:]) if host else 'supabase.co'
+            # Build functions base (works for supabase.co and supabase.in)
+            functions_host = f"{ref}.functions.{tld}" if ref else 'project.functions.supabase.co'
+            functions_base = f"{pu.scheme or 'https'}://{functions_host}"
+        except Exception:
+            functions_base = 'https://project.functions.supabase.co'
+
+        # Build query string safely (URL-encode target + attribution params)
+        q: Dict[str, Any] = {"target": target_url}
+
+        # Add candidate_id - edge function will lookup more data from agent_profiles
+        parsed_tags = self._parse_tags_dict(tags)
+        if candidate_id:
+            q["candidate_id"] = candidate_id
+        elif parsed_tags.get('candidate_id'):
+            q["candidate_id"] = parsed_tags['candidate_id']
+
+        # Pass through additional attribution fields if present
+        if parsed_tags.get('candidate_name'):
+            q['candidate_name'] = parsed_tags['candidate_name']
+
+        for key in ("coach", "market", "route", "match", "fair"):
+            if parsed_tags.get(key) is not None and parsed_tags.get(key) != "":
+                q[key] = parsed_tags[key]
+
+        edge_function_url = f"{functions_base}/click-redirect-lite?{_up.urlencode(q)}"
+        self.logger.info(f"Generated edge function URL for hyperlinking: {edge_function_url}")
+        return edge_function_url
+
+    def create_clickable_link(self, display_url: str, target_url: str, candidate_id: Optional[str] = None,
+                            tags: Optional[list] = None, link_text: Optional[str] = None) -> str:
+        """
+        Create HTML link with Short.io display text but edge function href for tracking
+
+        Args:
+            display_url: Short.io URL to show as text (e.g., "https://freeworldjobs.short.gy/abc123")
+            target_url: Actual URL to redirect to after tracking
+            candidate_id: Agent UUID for tracking
+            tags: Tags for context
+            link_text: Optional custom text (defaults to display_url)
+
+        Returns:
+            HTML <a> tag with Short.io display text and edge function href
+        """
+        # Generate edge function URL for actual clicking
+        edge_url = self.generate_edge_function_url(target_url, candidate_id, tags)
+
+        # Use display_url as link text unless custom text provided
+        text = link_text or display_url
+
+        # Create HTML link
+        html_link = f'<a href="{edge_url}" target="_blank">{text}</a>'
+
+        self.logger.info(f"Created clickable link: display='{text}' href='{edge_url[:100]}...'")
+        return html_link
+
     def _create_shortio_link_internal(self, original_url: str, title: Optional[str] = None, 
                                     tags: Optional[list] = None, expires_hours: int = 0) -> Optional[str]:
         """Internal method to create Short.io links"""

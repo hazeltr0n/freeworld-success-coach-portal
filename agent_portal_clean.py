@@ -78,7 +78,7 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
             elif max_jobs == "All":
                 print(f"🎯 CLEAN AGENT PORTAL: Showing all {len(processed_df)} jobs (no limit)")
             
-            jobs = jobs_dataframe_to_dicts(processed_df)
+            jobs = jobs_dataframe_to_dicts(processed_df, candidate_id=agent_params.get('agent_uuid'))
             
             # Pass agent_params as-is - don't override show_prepared_for
             agent_params_with_prepared = {**agent_params}
@@ -167,7 +167,7 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
                 elif max_jobs == "All":
                     print(f"🎯 CLEAN AGENT PORTAL: Showing all {len(processed_df)} jobs (no limit)")
                 
-                jobs = jobs_dataframe_to_dicts(processed_df)
+                jobs = jobs_dataframe_to_dicts(processed_df, candidate_id=agent_params.get('agent_uuid'))
                 
                 # Pass agent_params as-is - don't override show_prepared_for
                 agent_params_with_prepared = {**agent_params}

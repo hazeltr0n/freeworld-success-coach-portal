@@ -40,7 +40,7 @@ def _encode_asset_base64(path: Path) -> str:
     except Exception:
         return ""
 
-def jobs_dataframe_to_dicts(df) -> List[Dict]:
+def jobs_dataframe_to_dicts(df, candidate_id: str = None) -> List[Dict]:
     def _sanitize_html(val: str) -> str:
         try:
             s = _html.unescape(str(val or ''))
@@ -159,6 +159,37 @@ def jobs_dataframe_to_dicts(df) -> List[Dict]:
         apply_url = tracked or source_url or clean_url
         display_link = apply_url
 
+        # Generate edge function URL for click tracking in PDFs
+        tracking_url = apply_url  # Default to same as apply_url
+        if apply_url and candidate_id:
+            try:
+                from link_tracker import LinkTracker
+                tracker = LinkTracker()
+
+                # Extract metadata for tracking
+                job_match = r.get('ai.match', 'unknown')
+                job_route = r.get('ai.route_type', 'unknown')
+                job_fair = 'true' if r.get('ai.fair_chance') else 'false'
+
+                tags = [
+                    f"candidate:{candidate_id}",
+                    f"match:{job_match}",
+                    f"route:{job_route}",
+                    f"fair:{job_fair}",
+                    "type:job_application"
+                ]
+
+                # Generate edge function URL for tracking
+                tracking_url = tracker.generate_edge_function_url(
+                    target_url=apply_url,
+                    candidate_id=candidate_id,
+                    tags=tags
+                )
+                print(f"🔍 PDF Job {job_id}: Generated tracking URL for {apply_url[:50]}...")
+            except Exception as e:
+                print(f"⚠️ Failed to generate tracking URL for job {job_id}: {e}")
+                tracking_url = apply_url
+
         # Logic for match badge
         if ai_match == 'good':
             match_badge = 'Excellent Match'
@@ -180,8 +211,8 @@ def jobs_dataframe_to_dicts(df) -> List[Dict]:
             "description": description_summary,
             "description_summary": description_summary,
             "description_full": description_full,
-            "apply_url": apply_url,
-            "display_link": display_link,
+            "apply_url": tracking_url,  # Use tracking URL for actual clicks
+            "display_link": display_link,  # Keep Short.io link for display
             # "salary": salary,  # Removed per request
         })
     return rows

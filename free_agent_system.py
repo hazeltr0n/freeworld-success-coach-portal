@@ -365,42 +365,60 @@ def get_location_for_pipeline(market: str) -> str:
 def save_agent_profile(coach_username: str, agent_data: Dict) -> Tuple[bool, str]:
     """Save agent profile to Supabase ONLY - no session state fallback"""
     try:
-        # Generate custom URL for the agent using Short.io
+        # Generate static Short.io link for display purposes (created once)
         if 'custom_url' not in agent_data or not agent_data['custom_url']:
             agent_uuid = agent_data.get('agent_uuid', '')
             if agent_uuid:
-                # Generate the long URL first
-                long_url = generate_agent_url(agent_uuid, agent_data)
-                
-                # Try to shorten with Short.io for portal visit tracking
+                # Create a static Short.io link for display purposes
+                # This will be used as display text but hyperlinked to edge function URLs
                 try:
-                    from link_tracker import LinkTracker
-                    tracker = LinkTracker()
-                    
-                    if hasattr(tracker, 'create_short_link'):
-                        # Tags for portal visit analytics
-                        portal_tags = [
-                            f"coach:{coach_username}",
-                            f"candidate:{agent_uuid}",  # CRITICAL: Agent UUID for tracking
-                            f"agent:{agent_data.get('agent_name', 'Unknown').replace(' ', '-')}",
-                            f"market:{agent_data.get('location', 'Unknown')}",
-                            "type:portal_access"
-                        ]
-                        
-                        short_url = tracker.create_short_link(
-                            long_url, 
-                            title=f"Job Feed - {agent_data.get('agent_name', 'Agent')}", 
-                            tags=portal_tags
-                        )
-                        agent_data['custom_url'] = short_url
-                        print(f"✅ Created Short.io portal link: {short_url}")
+                    import os
+                    import requests
+
+                    # Try to create a static Short.io link using the API directly
+                    api_key = os.getenv('SHORT_API_KEY', '') or os.getenv('SHORT_IO_API_KEY', '')
+                    domain = os.getenv('SHORT_DOMAIN', 'freeworldjobs.short.gy')
+
+                    if api_key:
+                        # Create a static short link that points to a placeholder
+                        # This is just for display - actual clicks will go through edge function
+                        placeholder_url = f"https://freeworld.org/agent/{agent_uuid}"
+
+                        payload = {
+                            "originalURL": placeholder_url,
+                            "domain": domain,
+                            "allowDuplicates": False,
+                            "title": f"Jobs for {agent_data.get('agent_name', 'Agent')}"
+                        }
+
+                        headers = {
+                            'authorization': api_key,
+                            'Content-Type': 'application/json'
+                        }
+
+                        response = requests.post("https://api.short.io/links", json=payload, headers=headers)
+
+                        if response.status_code == 200:
+                            data = response.json()
+                            static_short_url = data.get('shortURL')
+                            agent_data['custom_url'] = static_short_url
+                            print(f"✅ Created static Short.io link: {static_short_url}")
+                        else:
+                            # Fallback: create a predictable short URL format
+                            short_id = agent_uuid[:8]  # Use first 8 chars of UUID
+                            agent_data['custom_url'] = f"https://{domain}/{short_id}"
+                            print(f"⚠️ Short.io API failed, using predictable format: {agent_data['custom_url']}")
                     else:
-                        agent_data['custom_url'] = long_url
-                        print(f"⚠️ Short.io not available, using long URL")
-                        
+                        # No API key, use predictable format
+                        short_id = agent_uuid[:8]
+                        agent_data['custom_url'] = f"https://freeworldjobs.short.gy/{short_id}"
+                        print(f"⚠️ No Short.io API key, using predictable format: {agent_data['custom_url']}")
+
                 except Exception as e:
-                    agent_data['custom_url'] = long_url
-                    print(f"⚠️ Short.io failed ({e}), using long URL")
+                    # Fallback: create a predictable short URL format
+                    short_id = agent_uuid[:8]
+                    agent_data['custom_url'] = f"https://freeworldjobs.short.gy/{short_id}"
+                    print(f"⚠️ Short.io creation failed ({e}), using predictable format: {agent_data['custom_url']}")
         
         # Save to Supabase - REQUIRED, no fallbacks
         from supabase_utils import save_agent_profile_to_supabase

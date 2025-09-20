@@ -527,12 +527,78 @@ def create_secure_portal_link(base_url: str, agent_uuid: str, agent_data: dict =
     return url
 
 def generate_dynamic_portal_link(agent_data: dict) -> str:
-    """Generate a dynamic portal link based on current agent search preferences"""
-    from free_agent_system import generate_agent_url
+    """Get the agent's existing static Short.io link from the database"""
     agent_uuid = agent_data.get('agent_uuid', '')
     if not agent_uuid:
         return "Missing UUID - Cannot generate secure link"
-    return generate_agent_url(agent_uuid, agent_data)
+
+    # First try to get the existing custom_url from the agent_data
+    existing_custom_url = agent_data.get('custom_url', '')
+    if existing_custom_url:
+        return existing_custom_url
+
+    # If not in agent_data, fetch from database
+    try:
+        from supabase_utils import get_client
+        client = get_client()
+        if client:
+            result = client.table('agent_profiles').select('custom_url').eq('agent_uuid', agent_uuid).maybeSingle().execute()
+            if result.data and result.data.get('custom_url'):
+                return result.data['custom_url']
+    except Exception as e:
+        print(f"⚠️ Could not fetch custom_url from database: {e}")
+
+    # Fallback: generate predictable short link format if no custom_url exists
+    short_id = agent_uuid[:8]
+    return f"https://freeworldjobs.short.gy/{short_id}"
+
+def generate_tracked_portal_link(agent_data: dict) -> str:
+    """Generate Short.io link that points to edge function for portal click tracking"""
+    from free_agent_system import generate_agent_url
+    from link_tracker import LinkTracker
+
+    agent_uuid = agent_data.get('agent_uuid', '')
+    if not agent_uuid:
+        return "Missing UUID"
+
+    try:
+        # Generate the actual portal URL to redirect to
+        actual_portal_url = generate_agent_url(agent_uuid, agent_data)
+
+        # Create edge function URL that will track the click and redirect
+        tracker = LinkTracker()
+        agent_name = agent_data.get('agent_name', 'Unknown')
+        coach_username = agent_data.get('coach_username', '')
+
+        tags = [
+            f"coach:{coach_username}",
+            f"candidate:{agent_uuid}",
+            f"agent:{agent_name.replace(' ', '-')}",
+            f"market:{agent_data.get('location', 'Unknown')}",
+            "type:portal_access"
+        ]
+
+        # Generate edge function URL
+        edge_function_url = tracker.generate_edge_function_url(
+            target_url=actual_portal_url,
+            candidate_id=agent_uuid,
+            tags=tags
+        )
+
+        # Create Short.io link that points to the edge function
+        tracked_shortio_link = tracker.create_short_link(
+            edge_function_url,
+            title=f"Portal - {agent_name}",
+            tags=tags,
+            candidate_id=agent_uuid
+        )
+
+        return tracked_shortio_link or edge_function_url
+
+    except Exception as e:
+        print(f"⚠️ Error creating tracked portal link: {e}")
+        # Fallback to static Short.io link
+        return generate_dynamic_portal_link(agent_data)
 
 # Page config (already set at file top). Compute an icon for later use if needed.
 page_icon = "🚛"
@@ -1773,8 +1839,16 @@ def show_free_agent_management_page(coach):
                                     f"market:{agent_data['location'].lower().replace(' ', '_')}",
                                     "type:portal_access"
                                 ]
-                                
-                                shortened_url = link_tracker.create_short_link(full_portal_url, title=f"Portal - {agent_data['agent_name']}", tags=portal_tags, candidate_id=agent_data['agent_uuid'])
+
+                                # Generate edge function URL for tracking
+                                edge_function_url = link_tracker.generate_edge_function_url(
+                                    target_url=full_portal_url,
+                                    candidate_id=agent_data['agent_uuid'],
+                                    tags=portal_tags
+                                )
+
+                                # Create Short.io link that points to edge function
+                                shortened_url = link_tracker.create_short_link(edge_function_url, title=f"Portal - {agent_data['agent_name']}", tags=portal_tags, candidate_id=agent_data['agent_uuid'])
                                 agent_data['portal_url'] = shortened_url
                                 st.write(f"🔗 Generated portal link: {shortened_url}")
                                 
@@ -2156,7 +2230,7 @@ def show_free_agent_management_page(coach):
                 'City': agent.get('agent_city', ''),
                 'State': agent.get('agent_state', ''),
                 'Created': agent.get('created_at', '')[:10] if agent.get('created_at') else '',
-                'Portal Link': dynamic_portal_url,
+                'Portal Link': generate_tracked_portal_link(agent),
                 'Admin Portal': agent.get('admin_portal_url', ''),
                 'Restore' if not is_active else 'Delete': False,  # Checkbox for restore/deletion
                 # Hidden fields for updates
@@ -2239,9 +2313,9 @@ def show_free_agent_management_page(coach):
                 disabled=True,
                 width="small"
             ),
-            'Portal Link': st.column_config.LinkColumn(
+            'Portal Link': st.column_config.TextColumn(
                 "Portal Link",
-                help="Job portal link for free agent",
+                help="Job portal link for free agent (clickable)",
                 disabled=True,
                 width="medium"
             ),
@@ -2531,36 +2605,17 @@ def show_free_agent_management_page(coach):
                             }
                             print(f"🔍 DEBUG: Agent parameters being passed: {debug_params}")
                             
-                            # Generate secure portal URL with current table filter values
-                            print(f"🔗 Regenerating link for {agent_name} with filters: Market={updated_agent['location']}, Route={updated_agent['route_filter']}, Fair Chance={updated_agent['fair_chance_only']}")
-                            full_portal_url = generate_dynamic_portal_link(updated_agent)
-                            print(f"🔗 Generated full URL: {full_portal_url[:100]}...")
-                            
-                            # Create new Short.io link
-                            from link_tracker import LinkTracker
-                            link_tracker = LinkTracker()
-                            
-                            # Check if LinkTracker is properly configured
-                            if not hasattr(link_tracker, 'is_available') or not link_tracker.is_available:
-                                raise Exception("LinkTracker not available - check Short.io API configuration")
-                            
-                            portal_tags = [
-                                f"coach:{coach.username}",
-                                f"candidate:{updated_agent['agent_uuid']}",
-                                f"market:{updated_agent['location'].lower().replace(' ', '_')}",
-                                f"route:{updated_agent['route_filter'].lower().replace(' ', '_')}",
-                                "type:portal_access"
-                            ]
-                            print(f"🔗 Creating Short.io link with tags: {portal_tags}")
-                            
-                            shortened_url = link_tracker.create_short_link(full_portal_url, title=f"Portal - {agent_name}", tags=portal_tags, candidate_id=updated_agent['agent_uuid'])
-                            print(f"🔗 Got shortened URL: {shortened_url}")
-                            
-                            if not shortened_url or shortened_url == full_portal_url:
-                                raise Exception("Short.io returned empty or same URL - possible API limit reached")
-                            
-                            # Update agent with new URL (updated_agent already has current table filter values)
-                            updated_agent['portal_url'] = shortened_url
+                            # Preserve existing Short.io link, only update underlying portal configuration
+                            print(f"🔗 Updating portal config for {agent_name} with filters: Market={updated_agent['location']}, Route={updated_agent['route_filter']}, Fair Chance={updated_agent['fair_chance_only']}")
+
+                            # Get the existing custom_url from original agent data
+                            existing_custom_url = getattr(original_agent, 'get', lambda x,d: d)('custom_url', '')
+                            if existing_custom_url:
+                                updated_agent['custom_url'] = existing_custom_url
+                                print(f"✅ Preserved existing Short.io link: {existing_custom_url}")
+                            else:
+                                # If no custom_url exists, this will trigger creation in save_agent_profile
+                                print(f"⚠️ No existing Short.io link found, will create new one")
                             
                             success, message = save_agent_profile(coach.username, updated_agent)
                             if success:
@@ -2656,7 +2711,7 @@ def _render_jobs_html_cached(df_json: str, agent_params_json: str) -> str:
     
     # IMPORTANT: Use the same processing as PDF to include tracked URLs
     processed_df = update_job_tracking_for_agent(df, agent_params)
-    jobs = jobs_dataframe_to_dicts(processed_df)
+    jobs = jobs_dataframe_to_dicts(processed_df, candidate_id=agent_params.get('agent_uuid'))
     
     return render_jobs_html(jobs, agent_params)
 
@@ -4052,7 +4107,7 @@ def main():
                             
                             # Process DataFrame the same way PDF does
                             processed_df = update_job_tracking_for_agent(filtered_df, agent_params)
-                            jobs = jobs_dataframe_to_dicts(processed_df)
+                            jobs = jobs_dataframe_to_dicts(processed_df, candidate_id=agent_params.get('agent_uuid'))
                             
                             html = render_jobs_html(jobs, agent_params)
                             phone_html = wrap_html_in_phone_screen(html)
@@ -4128,11 +4183,20 @@ def main():
                                     params=portal_config
                                 )
                                 
-                                # Create Short.io link
+                                # Create tracked Short.io link with edge function
                                 from link_tracker import LinkTracker
                                 link_tracker = LinkTracker()
-                                tags = [f"coach:{get_current_coach_name()}", f"market:{final_location_tab}", f"route:{pdf_route_type_filter_tab}", f"mode:{search_type_tab}"]
-                                shortened_url = link_tracker.create_short_link(full_portal_url, title="Portal Link", tags=tags)
+                                tags = [f"coach:{get_current_coach_name()}", f"market:{final_location_tab}", f"route:{pdf_route_type_filter_tab}", f"mode:{search_type_tab}", f"candidate:{candidate_id_tab}", "type:portal_access"]
+
+                                # Generate edge function URL for tracking
+                                edge_function_url = link_tracker.generate_edge_function_url(
+                                    target_url=full_portal_url,
+                                    candidate_id=candidate_id_tab,
+                                    tags=tags
+                                )
+
+                                # Create Short.io link that points to edge function
+                                shortened_url = link_tracker.create_short_link(edge_function_url, title="Portal Link", tags=tags, candidate_id=candidate_id_tab)
                                 
                                 if shortened_url:
                                     st.success(f"✅ Portal link created for {candidate_name_tab}!")
@@ -4187,7 +4251,7 @@ def main():
                             
                             # Process DataFrame the same way PDF does
                             processed_df = update_job_tracking_for_agent(filtered_df, agent_params)
-                            jobs = jobs_dataframe_to_dicts(processed_df)
+                            jobs = jobs_dataframe_to_dicts(processed_df, candidate_id=agent_params.get('agent_uuid'))
                             
                             html = render_jobs_html(jobs, agent_params)
                             phone_html = wrap_html_in_phone_screen(html)
@@ -5589,7 +5653,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         
                         # Process DataFrame the same way PDF does
                         processed_df = update_job_tracking_for_agent(filtered_df, agent_params)
-                        jobs = jobs_dataframe_to_dicts(processed_df)
+                        jobs = jobs_dataframe_to_dicts(processed_df, candidate_id=agent_params.get('agent_uuid'))
                         
                         html = render_jobs_html(jobs, agent_params)
                         phone_html = wrap_html_in_phone_screen(html)
@@ -5639,11 +5703,20 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                             params=portal_config
                         )
                         
-                        # Create Short.io link
+                        # Create tracked Short.io link with edge function
                         from link_tracker import LinkTracker
                         link_tracker = LinkTracker()
-                        tags = [f"coach:{get_current_coach_name()}", f"market:{preview_location}", f"route:{route_filter}", f"mode:memory"]
-                        shortened_url = link_tracker.create_short_link(full_portal_url, title="Portal Link", tags=tags)
+                        tags = [f"coach:{get_current_coach_name()}", f"market:{preview_location}", f"route:{route_filter}", f"mode:memory", f"candidate:{candidate_id}", "type:portal_access"]
+
+                        # Generate edge function URL for tracking
+                        edge_function_url = link_tracker.generate_edge_function_url(
+                            target_url=full_portal_url,
+                            candidate_id=candidate_id,
+                            tags=tags
+                        )
+
+                        # Create Short.io link that points to edge function
+                        shortened_url = link_tracker.create_short_link(edge_function_url, title="Portal Link", tags=tags, candidate_id=candidate_id)
                         
                         if shortened_url:
                             st.success(f"✅ Portal link created!")
@@ -5974,7 +6047,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         
                         # Process DataFrame the same way PDF does
                         processed_df = update_job_tracking_for_agent(filtered_df, agent_params)
-                        jobs = jobs_dataframe_to_dicts(processed_df)
+                        jobs = jobs_dataframe_to_dicts(processed_df, candidate_id=agent_params.get('agent_uuid'))
                         
                         html = render_jobs_html(jobs, agent_params)
                         phone_html = wrap_html_in_phone_screen(html)
