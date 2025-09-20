@@ -677,7 +677,7 @@ Job Description:
                         'match': job_result.get('match', 'error'),
                         'reason': job_result.get('reason', 'No reason provided'),
                         'summary': job_result.get('summary', 'No summary provided'),
-                        'normalized_location': job_result.get('normalized_location', job_data.get('location', '')),
+                        'normalized_location': job_result.get('normalized_location', ''),
                         'route_type': 'Unknown',
                         'fair_chance': job_result.get('fair_chance', 'no_requirements_mentioned'),
                         'endorsements': job_result.get('endorsements', 'none_required'),
