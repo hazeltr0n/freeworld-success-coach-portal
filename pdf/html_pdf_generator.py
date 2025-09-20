@@ -173,6 +173,7 @@ def jobs_dataframe_to_dicts(df, candidate_id: str = None) -> List[Dict]:
 
                 tags = [
                     f"candidate:{candidate_id}",
+                    f"job_id:{job_id}",
                     f"match:{job_match}",
                     f"route:{job_route}",
                     f"fair:{job_fair}",
@@ -213,6 +214,9 @@ def jobs_dataframe_to_dicts(df, candidate_id: str = None) -> List[Dict]:
             "description_full": description_full,
             "apply_url": tracking_url,  # Use tracking URL for actual clicks
             "display_link": display_link,  # Keep Short.io link for display
+            # Fields needed for feedback system (job_id for template, candidate_id for fallback)
+            "job_id": job_id,
+            "candidate_id": candidate_id or 'unknown',
             # "salary": salary,  # Removed per request
         })
     return rows

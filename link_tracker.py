@@ -217,7 +217,7 @@ class LinkTracker:
             if parsed_tags.get('candidate_name'):
                 q['candidate_name'] = parsed_tags['candidate_name']
 
-            for key in ("coach", "market", "route", "match", "fair"):
+            for key in ("coach", "market", "route", "match", "fair", "job_id"):
                 if parsed_tags.get(key) is not None and parsed_tags.get(key) != "":
                     q[key] = parsed_tags[key]
 
@@ -331,7 +331,7 @@ class LinkTracker:
         if parsed_tags.get('candidate_name'):
             q['candidate_name'] = parsed_tags['candidate_name']
 
-        for key in ("coach", "market", "route", "match", "fair"):
+        for key in ("coach", "market", "route", "match", "fair", "job_id"):
             if parsed_tags.get(key) is not None and parsed_tags.get(key) != "":
                 q[key] = parsed_tags[key]
 
