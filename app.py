@@ -2279,58 +2279,137 @@ def show_free_agent_management_page(coach):
         )
 
         
-        # Check for changes and update database
-        if not edited_df.equals(df):
-            st.info("💾 Changes detected - updating database...")
-            
-            # Find changed rows
-            changed_rows = []
-            for idx in range(len(edited_df)):
-                original = df.iloc[idx]
-                edited = edited_df.iloc[idx]
-                
-                # Check if editable fields changed
-                editable_fields = ['Market', 'Route', 'Fair Chance', 'Max Jobs', 'Match Level']
-                if not all(original[field] == edited[field] for field in editable_fields):
-                    changed_rows.append((idx, original, edited))
-            
-            if changed_rows:
-                success_count = 0
-                error_count = 0
-                
-                for idx, original, edited in changed_rows:
-                    # Update the agent data
-                    agent_uuid = original['_agent_uuid']
-                    original_agent = original['_original_data']
-                    
-                    # Create updated agent data
-                    updated_agent = original_agent.copy()
-                    updated_agent.update({
-                        'location': str(edited['Market']),
-                        'route_filter': str(edited['Route']), 
-                        'fair_chance_only': bool(edited['Fair Chance']),
-                        'max_jobs': edited['Max Jobs'] if str(edited['Max Jobs']) == "All" else int(edited['Max Jobs']),
-                        'match_level': str(edited['Match Level'])
-                    })
-                    
-                    # Note: Portal link regeneration only happens with "Regenerate All Portal Links" button
-                    st.info(f"📝 Updated parameters for {edited['Free Agent Name']} - use 'Regenerate All Portal Links' to update portal URLs")
-                    
-                    # Save to database
-                    success, message = save_agent_profile(coach.username, updated_agent)
-                    if success:
-                        success_count += 1
-                    else:
-                        error_count += 1
-                        st.error(f"❌ Failed to update {edited['Free Agent Name']}: {message}")
-                
-                if success_count > 0:
-                    st.success(f"✅ Successfully updated {success_count} agent(s)")
-                if error_count > 0:
-                    st.error(f"❌ Failed to update {error_count} agent(s)")
-                
-                # Refresh the page to show updated data
-                if success_count > 0:
+        # Use session state to track when we need to save changes
+        # Initialize session state for tracking edits
+        if 'agent_table_last_saved' not in st.session_state:
+            st.session_state.agent_table_last_saved = {}
+
+        # Create a stable hash of the current dataframe state for comparison
+        def get_editable_data_hash(df_row):
+            """Get hash of just the editable fields for comparison"""
+            editable_fields = ['Market', 'Route', 'Fair Chance', 'Max Jobs', 'Match Level']
+            return hash(tuple(str(df_row[field]) for field in editable_fields))
+
+        # Initialize with current state on first load to avoid false positives
+        if not st.session_state.agent_table_last_saved and len(df) > 0:
+            for idx in range(len(df)):
+                agent_uuid = df.iloc[idx]['_agent_uuid']
+                st.session_state.agent_table_last_saved[agent_uuid] = get_editable_data_hash(df.iloc[idx])
+
+        # Check for changes and update database (but don't automatically rerun)
+        current_state = {}
+        changes_detected = False
+
+        for idx in range(len(edited_df)):
+            agent_uuid = edited_df.iloc[idx]['_agent_uuid']
+            current_hash = get_editable_data_hash(edited_df.iloc[idx])
+            current_state[agent_uuid] = current_hash
+
+            # Check if this agent's data has changed since last save
+            if agent_uuid not in st.session_state.agent_table_last_saved or \
+               st.session_state.agent_table_last_saved[agent_uuid] != current_hash:
+                changes_detected = True
+
+        # Save changes button (instead of auto-save on every edit)
+        if changes_detected:
+            st.warning("⚠️ You have unsaved changes")
+            col1, col2 = st.columns([1, 3])
+            with col1:
+                if st.button("💾 Save Changes", type="primary"):
+                    # Find changed rows
+                    changed_rows = []
+                    for idx in range(len(edited_df)):
+                        original = df.iloc[idx]
+                        edited = edited_df.iloc[idx]
+                        agent_uuid = edited['_agent_uuid']
+
+                        # Check if this specific agent changed
+                        current_hash = get_editable_data_hash(edited)
+                        if agent_uuid not in st.session_state.agent_table_last_saved or \
+                           st.session_state.agent_table_last_saved[agent_uuid] != current_hash:
+                            changed_rows.append((idx, original, edited))
+
+                    if changed_rows:
+                        success_count = 0
+                        error_count = 0
+
+                        for idx, original, edited in changed_rows:
+                            # Update the agent data
+                            agent_uuid = original['_agent_uuid']
+                            original_agent = original['_original_data']
+
+                            # Create updated agent data
+                            updated_agent = original_agent.copy()
+                            updated_agent.update({
+                                'location': str(edited['Market']),
+                                'route_filter': str(edited['Route']),
+                                'fair_chance_only': bool(edited['Fair Chance']),
+                                'max_jobs': edited['Max Jobs'] if str(edited['Max Jobs']) == "All" else int(edited['Max Jobs']),
+                                'match_level': str(edited['Match Level'])
+                            })
+
+                            # Save to database
+                            success, message = save_agent_profile(coach.username, updated_agent)
+                            if success:
+                                success_count += 1
+                                # Update the saved state hash
+                                st.session_state.agent_table_last_saved[agent_uuid] = get_editable_data_hash(edited)
+                                # Show detailed success message for debugging
+                                st.info(f"✅ Saved changes for {edited['Free Agent Name']}: Market={edited['Market']}, Route={edited['Route']}, Fair Chance={edited['Fair Chance']}, Max Jobs={edited['Max Jobs']}, Match Level={edited['Match Level']}")
+                            else:
+                                error_count += 1
+                                st.error(f"❌ Failed to update {edited['Free Agent Name']}: {message}")
+                                # Show original values for comparison in case of failure
+                                st.error(f"🔍 Original values - Market: {original_agent.get('location')}, Route: {original_agent.get('route_filter')}, Fair Chance: {original_agent.get('fair_chance_only')}, Max Jobs: {original_agent.get('max_jobs')}, Match Level: {original_agent.get('match_level')}")
+
+                        if success_count > 0:
+                            st.success(f"✅ Successfully updated {success_count} agent(s)")
+
+                            # Verify changes were actually saved by re-reading from database
+                            with st.expander("🔍 Verify Database Changes", expanded=False):
+                                try:
+                                    verification_agents = load_agent_profiles(coach.username)
+                                    for idx, original, edited in changed_rows:
+                                        agent_uuid = original['_agent_uuid']
+                                        agent_name = edited['Free Agent Name']
+
+                                        # Find the agent in the verification data
+                                        saved_agent = None
+                                        for agent in verification_agents:
+                                            if agent.get('agent_uuid') == agent_uuid:
+                                                saved_agent = agent
+                                                break
+
+                                        if saved_agent:
+                                            saved_config = saved_agent.get('search_config', {})
+                                            st.write(f"**{agent_name}**:")
+                                            st.write(f"  - Market: {saved_config.get('location', 'N/A')} (expected: {edited['Market']})")
+                                            st.write(f"  - Route: {saved_config.get('route_filter', 'N/A')} (expected: {edited['Route']})")
+                                            st.write(f"  - Fair Chance: {saved_config.get('fair_chance_only', 'N/A')} (expected: {edited['Fair Chance']})")
+                                            st.write(f"  - Max Jobs: {saved_config.get('max_jobs', 'N/A')} (expected: {edited['Max Jobs']})")
+                                            st.write(f"  - Match Level: {saved_config.get('match_level', 'N/A')} (expected: {edited['Match Level']})")
+                                        else:
+                                            st.error(f"⚠️ Could not find {agent_name} in database verification")
+                                except Exception as e:
+                                    st.error(f"❌ Verification failed: {e}")
+
+                            st.info("💡 Use 'Regenerate All Portal Links' to update portal URLs with new settings")
+
+                            # Clear any cached agent data to force fresh load on next page visit
+                            if 'agent_profiles' in st.session_state:
+                                del st.session_state['agent_profiles']
+                                st.info("🔄 Cleared agent cache to ensure fresh data loads")
+
+                        if error_count > 0:
+                            st.error(f"❌ Failed to update {error_count} agent(s)")
+
+                        # Only rerun if we had successful saves AND no errors
+                        if success_count > 0 and error_count == 0:
+                            st.rerun()
+            with col2:
+                if st.button("↩️ Discard Changes"):
+                    # Reset by clearing session state and rerunning
+                    st.session_state.agent_table_last_saved = {}
                     st.rerun()
         
         # Handle bulk deletions

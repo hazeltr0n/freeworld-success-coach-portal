@@ -574,8 +574,8 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
         
         # Step 3: Get all click events for these agents in ONE query
         from datetime import datetime, timedelta, timezone
-        end_date = datetime.now(timezone.utc)
-        start_date = end_date - timedelta(days=lookback_days)
+        end_date = datetime.now(timezone.utc) + timedelta(minutes=5)  # Add 5-minute buffer for recent clicks
+        start_date = end_date - timedelta(days=lookback_days, minutes=5)  # Adjust start_date accordingly
         
         # Query each agent's clicks individually to avoid batch query limits
         all_clicks = []
@@ -585,8 +585,6 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
                 'clicked_at, candidate_id, candidate_name, coach, market, route, match, fair, short_id'
             ).eq('candidate_id', agent_uuid).gte(
                 'clicked_at', start_date.isoformat()
-            ).lte(
-                'clicked_at', end_date.isoformat()
             ).execute()
             
             all_clicks.extend(agent_clicks.data or [])
@@ -613,9 +611,17 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
             click_stats[agent_uuid]['total'] += 1
             
             # Check if this is a recent click (last 7 days)
-            clicked_at = click.get('clicked_at', '')
-            if clicked_at > recent_cutoff.isoformat():
-                click_stats[agent_uuid]['recent'] += 1
+            clicked_at_str = click.get('clicked_at', '')
+            if clicked_at_str:
+                try:
+                    # Parse the timestamp and compare properly
+                    from datetime import datetime
+                    clicked_at = datetime.fromisoformat(clicked_at_str.replace('Z', '+00:00'))
+                    if clicked_at > recent_cutoff:
+                        click_stats[agent_uuid]['recent'] += 1
+                except (ValueError, TypeError):
+                    # If date parsing fails, skip this click for recent stats
+                    pass
         
         # Step 5: Combine profiles with their click stats
         profiles = []
