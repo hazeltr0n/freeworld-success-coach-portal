@@ -1960,6 +1960,36 @@ def show_free_agent_management_page(coach):
                     key="manual_experience",
                     help="Experience level filter"
                 )
+
+            # Career Pathway Preferences (only for pathway classifier)
+            manual_classifier_type = st.selectbox(
+                "Job Classification Type",
+                ["CDL Traditional", "Career Pathways"],
+                index=0,
+                key="manual_classifier_type",
+                help="CDL Traditional: Focus on experienced CDL driving jobs\nCareer Pathways: Include warehouse-to-driver, dock-to-driver, and training opportunities"
+            )
+
+            if manual_classifier_type == "Career Pathways":
+                pathway_options = [
+                    ("dock_to_driver", "Dock to Driver"),
+                    ("internal_cdl_training", "CDL Training Programs"),
+                    ("warehouse_to_driver", "Warehouse to Driver"),
+                    ("logistics_progression", "Logistics Career Progression"),
+                    ("non_cdl_driving", "Non-CDL Driving"),
+                    ("general_warehouse", "General Warehouse"),
+                    ("construction_apprentice", "Construction Apprentice"),
+                    ("stepping_stone", "Career Stepping Stone")
+                ]
+
+                manual_pathway_preferences = st.multiselect(
+                    "Career Pathway Preferences",
+                    options=[opt[0] for opt in pathway_options],
+                    format_func=lambda x: next(opt[1] for opt in pathway_options if opt[0] == x),
+                    default=[],
+                    key="manual_pathway_preferences",
+                    help="Select preferred career pathways (leave empty for all pathways)"
+                )
         
         # Add Manual Agent Button
         if st.button("➕ Add Manual Agent", key="add_manual_agent_btn", type="primary"):
@@ -1973,6 +2003,9 @@ def show_free_agent_management_page(coach):
                         generated_uuid = manual_agent_uuid.strip()
                     
                     # Create agent profile
+                    classifier_type_value = "cdl" if manual_classifier_type == "CDL Traditional" else "pathway"
+                    pathway_prefs = manual_pathway_preferences if manual_classifier_type == "Career Pathways" else []
+
                     agent_data = {
                         'agent_uuid': generated_uuid,
                         'agent_name': manual_agent_name.strip(),
@@ -1984,6 +2017,8 @@ def show_free_agent_management_page(coach):
                         'fair_chance_only': manual_fair_chance,
                         'max_jobs': manual_max_jobs,
                         'experience_level': manual_experience,
+                        'classifier_type': classifier_type_value,
+                        'pathway_preferences': pathway_prefs,
                         'coach_username': coach.username,
                         'created_at': datetime.now(timezone.utc).isoformat()
                     }
@@ -2042,16 +2077,20 @@ def show_free_agent_management_page(coach):
         st.markdown("""
         Upload a CSV to bulk add Free Agents. Expected columns (case-insensitive):
         - **agent_name** (required) - Full name of Free Agent
-        - **agent_email** (optional) - Email address  
+        - **agent_email** (optional) - Email address
         - **agent_uuid** (optional; auto-generated if missing) - Unique identifier
         - **agent_city** (optional) - City location
-        - **agent_state** (optional) - State location  
+        - **agent_state** (optional) - State location
         - **location** or **market** (defaults to 'Houston') - Search location
         - **route_filter** (both/local/otr; defaults to 'both') - Route preference
         - **fair_chance_only** (true/false; defaults to false) - Fair chance filter
         - **max_jobs** (15/25/50/100; defaults to 25) - Job limit per search
         - **experience_level** (both/entry/experienced; defaults to 'both') - Experience filter
-        
+        - **classifier_type** (cdl/pathway; defaults to 'cdl') - Job classification type
+        - **pathway_preferences** (comma-separated list; optional) - Career pathway filters for pathway classifier
+
+        **Pathway Options**: dock_to_driver, internal_cdl_training, warehouse_to_driver, logistics_progression, non_cdl_driving, general_warehouse, construction_apprentice, stepping_stone
+
         ✅ **Security**: Portal links are automatically generated with secure token authentication
         ✅ **Compatibility**: Full alignment with Airtable sync and Supabase schema
         """)
@@ -2099,6 +2138,26 @@ def show_free_agent_management_page(coach):
                                 max_jobs = 25
                             exp = str(_get(row, ["experience_level", "experience"]).strip().lower() or "both")
 
+                            # Classifier type and pathway preferences
+                            classifier_type = str(_get(row, ["classifier_type", "job_type"]).strip().lower() or "cdl")
+                            classifier_type = classifier_type if classifier_type in ['cdl', 'pathway'] else 'cdl'
+
+                            # Parse pathway preferences (comma-separated list)
+                            pathway_prefs_raw = str(_get(row, ["pathway_preferences", "pathways"]).strip())
+                            pathway_prefs = []
+                            if pathway_prefs_raw and classifier_type == 'pathway':
+                                # Valid pathway options
+                                valid_pathways = {
+                                    'dock_to_driver', 'internal_cdl_training', 'warehouse_to_driver',
+                                    'logistics_progression', 'non_cdl_driving', 'general_warehouse',
+                                    'construction_apprentice', 'stepping_stone'
+                                }
+                                # Split by comma and validate each pathway
+                                for p in pathway_prefs_raw.split(','):
+                                    p_clean = p.strip().lower()
+                                    if p_clean in valid_pathways:
+                                        pathway_prefs.append(p_clean)
+
                             agent_data = {
                                 'agent_uuid': agent_uuid,
                                 'agent_name': name,
@@ -2111,6 +2170,8 @@ def show_free_agent_management_page(coach):
                                 'fair_chance_only': fair,
                                 'max_jobs': max_jobs if max_jobs in [15, 25, 50, 100] else 25,
                                 'experience_level': exp if exp in ['both', 'entry', 'experienced'] else 'both',
+                                'classifier_type': classifier_type,
+                                'pathway_preferences': pathway_prefs,
                                 'coach_username': coach.username,
                                 'created_at': datetime.now(timezone.utc).isoformat()
                             }
@@ -3439,6 +3500,30 @@ def main():
             )
             # Convert display to internal value
             classifier_type_value_tab = "cdl" if classifier_type_tab == "CDL Traditional" else "pathway"
+
+            # Pathway preferences (only show when Career Pathways is selected)
+            pathway_preferences_tab = []
+            if classifier_type_tab == "Career Pathways":
+                pathway_options = [
+                    ("dock_to_driver", "Dock to Driver"),
+                    ("internal_cdl_training", "CDL Training Programs"),
+                    ("warehouse_to_driver", "Warehouse to Driver"),
+                    ("logistics_progression", "Logistics Career Progression"),
+                    ("non_cdl_driving", "Non-CDL Driving"),
+                    ("general_warehouse", "General Warehouse"),
+                    ("construction_apprentice", "Construction Apprentice"),
+                    ("stepping_stone", "Career Stepping Stone")
+                ]
+
+                pathway_preferences_tab = st.multiselect(
+                    "🛤️ Career Pathway Filter:",
+                    options=[opt[0] for opt in pathway_options],
+                    format_func=lambda x: next(opt[1] for opt in pathway_options if opt[0] == x),
+                    default=[],
+                    key="tab_pathway_preferences",
+                    help="Filter jobs by specific career pathways (leave empty for all pathways)"
+                )
+
             exact_location_tab = st.checkbox(
                 "📍 Use exact location only",
                 value=False,
@@ -3766,6 +3851,7 @@ def main():
                     'push_to_airtable': False,
                     'search_radius': search_radius_tab,
                     'classifier_type': classifier_type_value_tab,
+                    'pathway_preferences': pathway_preferences_tab,
                     'force_fresh_classification': force_fresh_classification_tab if 'force_fresh_classification_tab' in locals() else False,
                     'coach_name': coach.full_name,
                     'coach_username': coach.username,
