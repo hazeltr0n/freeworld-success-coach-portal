@@ -555,7 +555,7 @@ def main():
         print(f"🔍 AGENT PORTAL DEBUG: max_jobs = {agent_params.get('max_jobs')}")
         
         pipeline_params = {
-            'memory_only': False,  # Use Indeed + Memory search (will hit bypass threshold)
+            'memory_only': True,  # Use memory-only search (fast, no API costs)
             'generate_pdf': False,
             'generate_csv': False,
             'location': market_label,
@@ -571,8 +571,8 @@ def main():
             'candidate_name': agent_params.get('agent_name', ''),
             'candidate_id': agent_params.get('agent_uuid', ''),
             'ui_direct': True,  # use in-process pipeline path
-            'search_sources': {'indeed': True, 'google': False},  # Indeed + Memory
-            'search_strategy': 'memory_first'  # Check memory first, use bypass if threshold hit
+            'search_sources': {'indeed': False, 'google': False},  # Memory only
+            'search_strategy': 'memory_first'  # Memory-only search strategy
         }
 
         df, metadata = pipeline.run_pipeline(pipeline_params)

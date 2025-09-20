@@ -3480,12 +3480,8 @@ def main():
                     key="tab_pdf_match_quality_filter"
                 )
             with col3:
-                pdf_include_memory_jobs_tab = st.checkbox(
-                    "🧠 Include memory jobs",
-                    value=True,
-                    help="Include recent jobs from memory database in PDF output",
-                    key="tab_pdf_include_memory_jobs"
-                )
+                # Include memory jobs checkbox removed - no longer needed
+                pass
             
             # Row 3: Fair Chance Only, HTML Preview, and Portal Link
             col_fair, col_preview, col_portal = st.columns(3)
@@ -3545,7 +3541,7 @@ def main():
             max_jobs_pdf_tab = 50
             pdf_route_type_filter_tab = ['Local', 'OTR', 'Unknown']
             pdf_match_quality_filter_tab = ['good', 'so-so']
-            pdf_include_memory_jobs_tab = True
+            # pdf_include_memory_jobs_tab removed - no longer needed
             pdf_fair_chance_only_tab = False
             show_html_preview_tab = False
             generate_portal_link_tab = False
@@ -3656,28 +3652,23 @@ def main():
             )
         with col2:
             st.markdown("### 🚀 Search Options")
-            # Row 1: Memory and Indeed+Memory
+            # Row 1: Memory Only
             col3_1, col3_2 = st.columns(2)
             with col3_1:
                 memory_clicked_tab = st.button(
-                    "💾 Memory Only", 
+                    "💾 Memory Only",
                     help="Search cached jobs - instant results, no API costs",
                     key="tab_memory_search_btn",
                     width='stretch'
                 )
             with col3_2:
-                # Disable fresh scraping if coach lacks permission
-                _can_fresh = check_coach_permission('can_pull_fresh_jobs')
-                indeed_clicked_tab = st.button(
-                    "🔍 Indeed + Memory",
-                    help="Fresh Indeed scrape plus memory jobs",
-                    key="tab_indeed_search_btn",
-                    width='stretch',
-                    disabled=not _can_fresh
-                )
+                # Empty column where Indeed + Memory button was
+                pass
             # Row 2: Fresh and Google
             col3_3, col3_4 = st.columns(2)
             with col3_3:
+                # Check fresh scraping permission
+                _can_fresh = check_coach_permission('can_pull_fresh_jobs')
                 indeed_fresh_clicked_tab = st.button(
                     "🔍 Indeed Fresh Only",
                     help="Search Indeed API only, bypass memory cache",
@@ -3717,8 +3708,7 @@ def main():
         search_type_tab = None
         if memory_clicked_tab:
             search_type_tab = 'memory'
-        elif indeed_clicked_tab:
-            search_type_tab = 'indeed'
+        # Indeed + Memory search mode removed
         elif indeed_fresh_clicked_tab:
             search_type_tab = 'indeed_fresh'
         # Google ordering removed from Job Search page
@@ -3770,13 +3760,7 @@ def main():
                         'search_strategy': 'memory_first'
                         # DO NOT set ui_direct=True - let memory searches use dedicated memory path
                     })
-                elif search_type_tab == 'indeed':
-                    params.update({
-                        'memory_only': False,
-                        'generate_pdf': True,  # Enable PDF generation for Indeed + Memory searches
-                        'search_sources': {'indeed': True, 'google': False},
-                        'search_strategy': 'memory_first'
-                    })
+                # Indeed + Memory search type removed
                 elif search_type_tab == 'indeed_fresh':
                     params.update({
                         'memory_only': False,
@@ -3824,7 +3808,7 @@ def main():
 
                     search_messages = {
                         'memory': f"💾 Searching memory only for jobs in {display_location_tab}...",
-                        'indeed': f"🔍 Searching Indeed + Memory for jobs in {display_location_tab}...",
+                        # 'indeed' search mode removed
                         'indeed_fresh': f"🔍 Searching fresh Indeed jobs in {display_location_tab}..."
                     }
 
@@ -4153,7 +4137,7 @@ def main():
                                 # PDF/Filter parameters (use the form values directly)
                                 'route_type_filter': pdf_route_type_filter_tab,  # Pipeline expects route_type_filter
                                 'match_quality_filter': pdf_match_quality_filter_tab,
-                                'include_memory_jobs': pdf_include_memory_jobs_tab,
+                                # 'include_memory_jobs' parameter removed
                                 'fair_chance_only': pdf_fair_chance_only_tab,
                                 'no_experience': no_experience_tab,
                                 
@@ -4293,7 +4277,7 @@ def main():
                                 'max_jobs': max_jobs_pdf_tab if max_jobs_pdf_tab != "All" else 50,
                                 'route_type_filter': pdf_route_type_filter_tab,  # Pipeline expects route_type_filter
                                 'match_quality_filter': pdf_match_quality_filter_tab,
-                                'include_memory_jobs': pdf_include_memory_jobs_tab,
+                                # 'include_memory_jobs' parameter removed
                                 'fair_chance_only': pdf_fair_chance_only_tab,
                                 'no_experience': no_experience_tab,
                                 
