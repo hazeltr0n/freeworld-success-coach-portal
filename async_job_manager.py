@@ -114,7 +114,13 @@ class AsyncJobManager:
                 print(f"❌ Job {job_id} not found in database")
                 return False
 
-            # Delete the job
+            # CRITICAL FIX: Delete related notifications first to avoid foreign key constraint error
+            print(f"🔗 Checking for related notifications for job {job_id}")
+            notifications_result = self.supabase_client.table('coach_notifications').delete().eq('async_job_id', job_id).execute()
+            if notifications_result.data:
+                print(f"🗑️ Deleted {len(notifications_result.data)} related notifications")
+
+            # Now delete the job
             result = self.supabase_client.table('async_job_queue').delete().eq('id', job_id).execute()
             print(f"✅ Successfully deleted job {job_id}")
             return True
