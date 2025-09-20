@@ -2222,6 +2222,8 @@ def show_free_agent_management_page(coach):
                 'Free Agent Name': agent.get('agent_name', 'Unknown'),
                 f'Total Clicks ({current_lookback}d)': stats['total_clicks'],
                 'Recent (7d)': stats['recent_clicks'],
+                'Applications': agent.get('total_applications', 0),
+                'Last Applied': agent.get('last_application_at', '')[:10] if agent.get('last_application_at') else '',
                 'Market': agent.get('location', 'Houston'),
                 'Route': agent.get('route_filter', 'both'),
                 'Fair Chance': agent.get('fair_chance_only', False),
@@ -2244,7 +2246,7 @@ def show_free_agent_management_page(coach):
         df = pd.DataFrame(agent_data)
         # Reorder columns to prioritize metrics next to name 
         desired_order = [
-            'Status', 'Free Agent Name', f'Total Clicks ({current_lookback}d)', 'Recent (7d)',
+            'Status', 'Free Agent Name', f'Total Clicks ({current_lookback}d)', 'Recent (7d)', 'Applications', 'Last Applied',
             'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Match Level', 'City', 'State', 'Created',
             'Portal Link', 'Admin Portal', 'Delete', 'Restore', '_agent_uuid', '_created_at', '_original_data', '_is_active'
         ]
@@ -2310,6 +2312,18 @@ def show_free_agent_management_page(coach):
             'Recent (7d)': st.column_config.NumberColumn(
                 "Recent (7d)",
                 help="Clicks in last 7 days",
+                disabled=True,
+                width="small"
+            ),
+            'Applications': st.column_config.NumberColumn(
+                "Applications",
+                help="Total job applications submitted via feedback",
+                disabled=True,
+                width="small"
+            ),
+            'Last Applied': st.column_config.DateColumn(
+                "Last Applied",
+                help="Date of most recent job application",
                 disabled=True,
                 width="small"
             ),

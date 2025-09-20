@@ -734,6 +734,16 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
         
         # Quality filter (only good/so-so jobs)
         query = query.in_('match_level', ['good', 'so-so'])
+
+        # Enhanced feedback filtering
+        # Exclude permanently flagged jobs
+        query = query.eq('job_flagged', False)
+
+        # Exclude jobs with recent expired feedback (72 hours)
+        expired_cutoff = datetime.utcnow() - timedelta(hours=72)
+        # Use OR logic: include jobs that either have no expired feedback timestamp
+        # OR have expired feedback older than 72 hours
+        # Note: We'll filter this after retrieval since Supabase OR logic is complex
         
         # Execute query
         result = query.execute()
@@ -746,6 +756,34 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
             jobs_filtered = jobs_before - len(jobs)
             if jobs_filtered > 0:
                 print(f"🚫 Filtered out {jobs_filtered} reported jobs")
+
+        # Filter out jobs with recent expired feedback (72-hour expiry)
+        jobs_before_expired = len(jobs)
+        expired_cutoff = datetime.utcnow() - timedelta(hours=72)
+
+        def should_include_job(job):
+            # Always include jobs with no expired feedback
+            if not job.get('feedback_expired_links') or job.get('feedback_expired_links') == 0:
+                return True
+
+            # Include jobs where expired feedback is older than 72 hours
+            last_expired = job.get('last_expired_feedback_at')
+            if not last_expired:
+                return True  # No timestamp means old feedback
+
+            try:
+                from dateutil import parser
+                last_expired_dt = parser.parse(last_expired)
+                # Include if the last expired feedback is older than 72 hours
+                return last_expired_dt < expired_cutoff
+            except:
+                # If parsing fails, include the job (benefit of doubt)
+                return True
+
+        jobs = [job for job in jobs if should_include_job(job)]
+        expired_filtered = jobs_before_expired - len(jobs)
+        if expired_filtered > 0:
+            print(f"⏰ Filtered out {expired_filtered} jobs with recent expired feedback")
         
         print(f"📦 Found {len(jobs)} quality jobs in Supabase memory (after feedback filtering)")
         
