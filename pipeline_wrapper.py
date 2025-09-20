@@ -73,7 +73,7 @@ class StreamlitPipelineWrapper:
     
     def estimate_cost(self, mode: str, num_locations: int = 1) -> Dict[str, float]:
         costs = {"test": 0.013, "mini": 0.065, "sample": 0.13, "medium": 0.33, "large": 0.65, "full": 1.30}
-        job_limits = {"test": 100, "mini": 50, "sample": 100, "medium": 250, "large": 500, "full": 1000}
+        job_limits = {"test": 10, "mini": 50, "sample": 100, "medium": 250, "large": 500, "full": 1000}
         cost = costs.get(mode, 0.13)
         job_limit = job_limits.get(mode, 100)
         return {
@@ -247,7 +247,7 @@ class StreamlitPipelineWrapper:
 
             # Map search mode to max_jobs
             mode = params.get('mode', 'sample')
-            max_jobs_map = {'test': 25, 'mini': 50, 'sample': 100, 'medium': 250, 'large': 500, 'full': 1000}
+            max_jobs_map = {'test': 10, 'mini': 50, 'sample': 100, 'medium': 250, 'large': 500, 'full': 1000}
             max_jobs = params.get('max_jobs', max_jobs_map.get(mode, 100))
 
             combined_df = pd.DataFrame() if pd else None
@@ -416,7 +416,7 @@ class StreamlitPipelineWrapper:
 
                 # Mode mapping
                 mode = params.get('mode', 'sample')
-                job_limits = {"test": 100, "mini": 50, "sample": 100, "medium": 250, "large": 500, "full": 1000}
+                job_limits = {"test": 10, "mini": 50, "sample": 100, "medium": 250, "large": 500, "full": 1000}
                 mode_info = {"mode": mode, "limit": job_limits.get(mode, 100)}
 
                 # Respect memory-only mode in UI direct path
