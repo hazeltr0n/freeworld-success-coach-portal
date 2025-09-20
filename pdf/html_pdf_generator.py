@@ -152,10 +152,11 @@ def jobs_dataframe_to_dicts(df, candidate_id: str = None) -> List[Dict]:
         source_url = _clean_text(r.get('source.url', ''))
         clean_url = _clean_text(r.get('clean_apply_url', ''))
         
-        # DEBUG: Print URL fields to identify why long URLs still showing
-        job_id = r.get('id.job', 'unknown')[:8]
-        print(f"🔍 HTML Job {job_id}: tracked='{tracked}', source='{source_url[:60]}...', clean='{clean_url[:60] if clean_url else 'None'}...'")
-        
+        # Use full job_id for database matching (not truncated)
+        job_id = r.get('id.job', 'unknown')
+        job_id_display = job_id[:8] if job_id != 'unknown' else 'unknown'
+        print(f"🔍 HTML Job {job_id_display}: tracked='{tracked}', source='{source_url[:60]}...', clean='{clean_url[:60] if clean_url else 'None'}...'")
+
         apply_url = tracked or source_url or clean_url
         display_link = apply_url
 
