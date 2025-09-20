@@ -523,21 +523,9 @@ class StreamlitPipelineWrapper:
                     # Pass the market name directly - let the terminal script handle conversion
                     cmd.extend(['--market', market])
             
-            # Add mode parameter - use max_jobs if specified, otherwise use provided mode
-            if 'max_jobs' in params:
-                max_jobs = params['max_jobs']
-                if max_jobs <= 25:
-                    cmd.extend(['--mode', 'test'])
-                elif max_jobs <= 100:
-                    cmd.extend(['--mode', 'sample']) 
-                elif max_jobs <= 250:
-                    cmd.extend(['--mode', 'medium'])
-                elif max_jobs <= 500:
-                    cmd.extend(['--mode', 'large'])
-                else:
-                    cmd.extend(['--mode', 'full'])
-            else:
-                cmd.extend(['--mode', params.get('mode', 'sample')])
+            # CRITICAL FIX: Always use the 'mode' parameter for scraping quantity
+            # max_jobs is for PDF/display filtering only, not for API scraping limits
+            cmd.extend(['--mode', params.get('mode', 'sample')])
             
             if params.get('search_terms', 'CDL driver') != 'CDL driver':
                 cmd.extend(['--terms', params.get('search_terms')])
