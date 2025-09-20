@@ -5295,41 +5295,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
     #     show_system_testing_page(coach)
     #     return
     
-    # Display notifications for async job completions
-    try:
-        from async_job_manager import AsyncJobManager
-        async_manager = AsyncJobManager()
-        notifications = async_manager.get_coach_notifications(coach.username, limit=5)
-        
-        unread_notifications = [n for n in notifications if not n.is_read]
-        if unread_notifications:
-            st.sidebar.markdown("### 🔔 Notifications")
-            for notif in unread_notifications[:3]:  # Show max 3 in sidebar
-                if notif.type == 'search_complete':
-                    with st.sidebar:
-                        st.success(notif.message)
-                        if st.button(f"✓ Mark Read", key=f"notif_{notif.id}"):
-                            async_manager.mark_notification_read(notif.id)
-                            st.rerun()
-                elif notif.type == 'error':
-                    with st.sidebar:
-                        st.error(notif.message)
-                        if st.button(f"✓ Mark Read", key=f"notif_{notif.id}"):
-                            async_manager.mark_notification_read(notif.id)
-                            st.rerun()
-                elif notif.type == 'search_submitted':
-                    with st.sidebar:
-                        st.info(notif.message)
-                        if st.button(f"✓ Mark Read", key=f"notif_{notif.id}"):
-                            async_manager.mark_notification_read(notif.id)
-                            st.rerun()
-            
-            if len(unread_notifications) > 3:
-                st.sidebar.caption(f"... and {len(unread_notifications) - 3} more")
-            st.sidebar.markdown("---")
-    except Exception as e:
-        # Silently handle notification errors to not break main app
-        pass
+    # Coach notifications removed - no longer needed
     
     # Removed obsolete sidebar code - all functionality moved to main tab interface
     # Set default values for removed sidebar variables  
