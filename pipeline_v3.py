@@ -677,8 +677,9 @@ class FreeWorldPipelineV3:
         try:
             # STAGE 1: INGESTION
             canonical_df = self._stage1_ingestion(
-                canonical_df, location, mode_info, search_terms, 
+                canonical_df, location, mode_info, search_terms,
                 route_filter, force_fresh, force_memory_only,
+                classifier_type=classifier_type,
                 radius=radius,
                 no_experience=no_experience,
                 search_sources=search_sources,
@@ -818,14 +819,15 @@ class FreeWorldPipelineV3:
             return url
     
     def _stage1_ingestion(
-        self, 
-        df: pd.DataFrame, 
-        location: str, 
+        self,
+        df: pd.DataFrame,
+        location: str,
         mode_info: Dict[str, Any],
         search_terms: str,
         route_filter: str,
         force_fresh: bool,
         force_memory_only: bool,
+        classifier_type: str = "cdl",
         radius: int = 50,
         no_experience: bool = True,
         search_sources: Dict[str, bool] = None,
