@@ -235,12 +235,10 @@ Jobs should be classified as **good** if they:
 - Explicitly offer CDL training or driver pathways
 - Provide clear advancement opportunities
 - Are entry-level friendly with training provided
-- Welcome candidates with criminal backgrounds
 
 3. **AUTOMATIC DISQUALIFIERS**:
    - Owner-operator/1099 (must own truck/trailer) → BAD
    - School bus driving → BAD
-   - Requires "no felonies AND no misdemeanors" combined → BAD
    - Requires non-CDL certifications or licenses (except CDL endorsements) → BAD
    - Professional licenses required (nursing, electrician, plumbing, etc.) → BAD
    - Industry-specific certifications required (forklift, OSHA, safety certs) → BAD
@@ -694,12 +692,10 @@ Jobs should be classified as **good** if they:
 - Explicitly offer CDL training or driver pathways
 - Provide clear advancement opportunities
 - Are entry-level friendly with training provided
-- Welcome candidates with criminal backgrounds
 
 3. **AUTOMATIC DISQUALIFIERS**:
    - Owner-operator/1099 (must own truck/trailer) → BAD
    - School bus driving → BAD
-   - Requires "no felonies AND no misdemeanors" combined → BAD
    - Requires non-CDL certifications or licenses (except CDL endorsements) → BAD
    - Professional licenses required (nursing, electrician, plumbing, etc.) → BAD
    - Industry-specific certifications required (forklift, OSHA, safety certs) → BAD
