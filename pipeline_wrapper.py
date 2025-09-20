@@ -98,7 +98,8 @@ class StreamlitPipelineWrapper:
         generate_csv: bool = True,
         force_memory_only: bool = False,
         mode_info: Dict = None,
-        show_prepared_for: bool = True
+        show_prepared_for: bool = True,
+        classifier_type: str = "cdl"
     ) -> Dict[str, Any]:
         """Complete pipeline with force_memory_only support - calls pipeline_v3 directly"""
         try:
@@ -124,7 +125,8 @@ class StreamlitPipelineWrapper:
                 generate_csv=generate_csv,
                 force_memory_only=force_memory_only,
                 mode_info=mode_info or {'mode': 'sample', 'limit': max_jobs},
-                show_prepared_for=show_prepared_for
+                show_prepared_for=show_prepared_for,
+                classifier_type=classifier_type
             )
             
             return results
@@ -465,7 +467,8 @@ class StreamlitPipelineWrapper:
                         coach_username=params.get('coach_username', ''),
                         candidate_name=params.get('candidate_name', ''),
                         candidate_id=params.get('candidate_id', ''),
-                        show_prepared_for=params.get('show_prepared_for', True)
+                        show_prepared_for=params.get('show_prepared_for', True),
+                        classifier_type=params.get('classifier_type', 'cdl')
                     )
 
                     df_part = results.get('jobs_df') if isinstance(results, dict) else (pd.DataFrame() if pd else None)

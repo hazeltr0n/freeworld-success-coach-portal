@@ -35,6 +35,7 @@ except ImportError:
 try:
     from job_scraper import FreeWorldJobScraper
     from job_classifier import JobClassifier
+    from pathway_classifier import PathwayClassifier
     from job_memory_db import JobMemoryDB
     from cost_calculator import CostCalculator
     from simple_bypass_system import SimpleBypassSystem
@@ -56,6 +57,7 @@ except ImportError:
     # Fallback imports for Streamlit Cloud (all files in same directory)
     from job_scraper import FreeWorldJobScraper
     from job_classifier import JobClassifier
+    from pathway_classifier import PathwayClassifier
     from job_memory_db import JobMemoryDB
     from cost_calculator import CostCalculator
     from simple_bypass_system import SimpleBypassSystem
@@ -97,7 +99,8 @@ class FreeWorldPipelineV3:
         
         # Initialize all existing modules (preserve functionality)
         self.scraper = FreeWorldJobScraper()
-        self.classifier = JobClassifier()
+        self.cdl_classifier = JobClassifier()
+        self.pathway_classifier = PathwayClassifier()
         self.memory_db = JobMemoryDB()
         # Airtable upload disabled: pipeline only writes to Supabase (memory store)
         self.bypass_system = SimpleBypassSystem()
@@ -629,7 +632,8 @@ class FreeWorldPipelineV3:
         coach_username: str = "",
         candidate_name: str = "",
         candidate_id: str = "",
-        show_prepared_for: bool = True
+        show_prepared_for: bool = True,
+        classifier_type: str = "cdl"
     ) -> Dict[str, Any]:
         """
         Execute complete pipeline with single canonical DataFrame
@@ -688,6 +692,10 @@ class FreeWorldPipelineV3:
                 canonical_df.to_csv(ingestion_csv, index=False)
                 print(f"💾 Safety export: {len(canonical_df)} jobs saved to {os.path.basename(ingestion_csv)}")
             
+            # STAGE 1.5: UPDATE JOB IDS WITH CLASSIFIER TYPE
+            canonical_df = self._update_job_ids_for_classifier(canonical_df, classifier_type)
+            self._checkpoint_data(canonical_df, "01_5_job_ids")
+
             # STAGE 2: NORMALIZATION
             canonical_df = self._stage2_normalization(canonical_df)
             self._checkpoint_data(canonical_df, "02_normalization")
@@ -701,7 +709,7 @@ class FreeWorldPipelineV3:
             self._checkpoint_data(canonical_df, "04_deduplication")
             
             # STAGE 5: AI CLASSIFICATION
-            canonical_df = self._stage5_ai_classification(canonical_df, force_fresh_classification)
+            canonical_df = self._stage5_ai_classification(canonical_df, force_fresh_classification, classifier_type)
             self._checkpoint_data(canonical_df, "05_classification")
             
             # SAFETY: Export CSV after classification - CRITICAL for paid jobs!
@@ -1019,7 +1027,7 @@ class FreeWorldPipelineV3:
         # This saves API costs by reusing existing classifications, but jobs are still "fresh"
         memory_lookup = {}
         if all_fresh_jobs:
-            job_ids = [self._generate_job_id_from_raw(job) for job in all_fresh_jobs]
+            job_ids = [self._generate_job_id_from_raw(job, classifier_type) for job in all_fresh_jobs]
             memory_lookup = self.memory_db.check_job_memory(job_ids, hours=72)
 
             if memory_lookup:
@@ -1287,7 +1295,7 @@ class FreeWorldPipelineV3:
         
         return df_clean
     
-    def _stage5_ai_classification(self, df: pd.DataFrame, force_fresh_classification: bool = False) -> pd.DataFrame:
+    def _stage5_ai_classification(self, df: pd.DataFrame, force_fresh_classification: bool = False, classifier_type: str = "cdl") -> pd.DataFrame:
         """Stage 5: AI classification of jobs"""
         
         print("🤖 STAGE 5: AI CLASSIFICATION")
@@ -1395,9 +1403,17 @@ class FreeWorldPipelineV3:
                     print(f"    ⚠️  WARNING: Job description is empty/null!")
                 print()  # Add blank line between jobs
         
-        # Run AI classification (using optimized async classifier)
+        # Run AI classification (using selected classifier)
         try:
-            ai_results = self.classifier.classify_jobs_in_batches(jobs_for_ai)
+            # Select classifier based on classifier_type parameter
+            if classifier_type == "pathway":
+                selected_classifier = self.pathway_classifier
+                print(f"🎯 Using Pathway Classifier for career pathway jobs")
+            else:
+                selected_classifier = self.cdl_classifier
+                print(f"🎯 Using CDL Classifier for traditional CDL jobs")
+
+            ai_results = selected_classifier.classify_jobs_in_batches(jobs_for_ai)
             
             # Convert results to lookup dictionary
             ai_lookup = {result['job_id']: result for result in ai_results}
@@ -2069,16 +2085,48 @@ class FreeWorldPipelineV3:
             traceback.print_exc()
             return None
     
-    def _generate_job_id_from_raw(self, raw_job: Dict[str, Any]) -> str:
-        """Generate job ID from raw job data"""
+    def _update_job_ids_for_classifier(self, df: pd.DataFrame, classifier_type: str) -> pd.DataFrame:
+        """Update job IDs to include classifier type suffix"""
+        if df.empty:
+            return df
+
+        print(f"🆔 STAGE 1.5: UPDATING JOB IDS FOR CLASSIFIER ({classifier_type.upper()})")
+
+        # Update job IDs with classifier suffix
+        updated_ids = []
+        for _, row in df.iterrows():
+            current_id = str(row.get('id.job', ''))
+
+            # Only update if the ID doesn't already have a classifier suffix
+            if current_id and not (current_id.endswith('_cdl') or current_id.endswith('_pathway')):
+                if classifier_type == "pathway":
+                    new_id = f"{current_id}_pathway"
+                else:
+                    new_id = f"{current_id}_cdl"
+                updated_ids.append(new_id)
+            else:
+                updated_ids.append(current_id)
+
+        df['id.job'] = updated_ids
+        print(f"✅ Updated {len(updated_ids)} job IDs with classifier type suffix")
+        return df
+
+    def _generate_job_id_from_raw(self, raw_job: Dict[str, Any], classifier_type: str = "cdl") -> str:
+        """Generate job ID from raw job data with classifier type suffix"""
         # Handle both Outscraper and Indeed field names
         company = str(raw_job.get('company_name') or raw_job.get('company', '')).lower().strip()
         location = str(raw_job.get('location') or raw_job.get('formattedLocation', '')).lower().strip()
         title = str(raw_job.get('job_title') or raw_job.get('title', '')).lower().strip()
-        
+
         content = f"{company}|{location}|{title}"
         import hashlib
-        return hashlib.md5(content.encode()).hexdigest()
+        base_hash = hashlib.md5(content.encode()).hexdigest()
+
+        # Add classifier type suffix to distinguish jobs classified by different systems
+        if classifier_type == "pathway":
+            return f"{base_hash}_pathway"
+        else:
+            return f"{base_hash}_cdl"
     
     def _checkpoint_data(self, df: pd.DataFrame, stage: str) -> None:
         """Save checkpoint data for debugging"""

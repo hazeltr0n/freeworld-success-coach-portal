@@ -192,13 +192,36 @@ def jobs_dataframe_to_dicts(df, candidate_id: str = None) -> List[Dict]:
                 print(f"⚠️ Failed to generate tracking URL for job {job_id}: {e}")
                 tracking_url = apply_url
 
-        # Logic for match badge
+        # Logic for match badge and career pathway badges
+        match_badge = ''
+        career_pathway_badge = ''
+
+        # Standard CDL match badges
         if ai_match == 'good':
             match_badge = 'Excellent Match'
         elif ai_match == 'so-so':
             match_badge = 'Possible Fit'
-        else:
-            match_badge = '' # Don't show a badge for 'bad' or 'unknown'
+
+        # Career pathway badges (no emojis, same style as existing badges)
+        career_pathway = r.get('ai.career_pathway', '')
+        training_provided = r.get('ai.training_provided', False)
+
+        if career_pathway and career_pathway != 'no_pathway':
+            pathway_badge_map = {
+                'dock_to_driver': 'Dock to Driver',
+                'internal_cdl_training': 'CDL Training',
+                'warehouse_to_driver': 'Warehouse to Driver',
+                'logistics_progression': 'Logistics Career',
+                'non_cdl_driving': 'Non-CDL Driving',
+                'general_warehouse': 'Warehouse Work',
+                'construction_apprentice': 'Construction Apprentice',
+                'stepping_stone': 'Career Step'
+            }
+            career_pathway_badge = pathway_badge_map.get(career_pathway, '')
+
+        # Add training badge if training is provided
+        if training_provided and not career_pathway_badge:
+            career_pathway_badge = 'Training Provided'
 
         rows.append({
             "title": title,
@@ -208,6 +231,7 @@ def jobs_dataframe_to_dicts(df, candidate_id: str = None) -> List[Dict]:
             "location": location_fallback,
             "route_type": route_type,
             "match_badge": match_badge,
+            "career_pathway_badge": career_pathway_badge,
             "fair_chance": bool(fair_chance),
             # Backwards compatibility key 'description' holds the summary
             "description": description_summary,

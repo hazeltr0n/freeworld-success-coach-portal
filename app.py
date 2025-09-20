@@ -3352,9 +3352,9 @@ def main():
         # COMPACT Search Parameters Section
         st.header("🎯 Search Parameters")
         
-        # Single Row: Location Type, Target Markets, Job Quantity, Search Terms, and Search Radius
+        # Single Row: Location Type, Target Markets, Job Quantity, Search Terms, Search Radius, and Classifier Type
         with st.container():
-            col1, col2, col3, col4, col5 = st.columns([1, 3, 1.5, 1.5, 1])
+            col1, col2, col3, col4, col5, col6 = st.columns([1, 3, 1.5, 1.5, 1, 1.5])
         
         with col1:
             location_options_tab = ["Select Market"]
@@ -3428,6 +3428,17 @@ def main():
                 help="Search radius in miles from target location",
                 key="tab_search_radius"
             )
+
+        with col6:
+            classifier_type_tab = st.selectbox(
+                "🧠 Job Type:",
+                ["CDL Traditional", "Career Pathways"],
+                index=0,  # default to CDL Traditional
+                help="CDL Traditional: Focus on experienced CDL driving jobs\nCareer Pathways: Include warehouse-to-driver, dock-to-driver, and training opportunities",
+                key="tab_classifier_type"
+            )
+            # Convert display to internal value
+            classifier_type_value_tab = "cdl" if classifier_type_tab == "CDL Traditional" else "pathway"
             exact_location_tab = st.checkbox(
                 "📍 Use exact location only",
                 value=False,
@@ -3754,6 +3765,7 @@ def main():
                     'search_terms': search_terms_tab,
                     'push_to_airtable': False,
                     'search_radius': search_radius_tab,
+                    'classifier_type': classifier_type_value_tab,
                     'force_fresh_classification': force_fresh_classification_tab if 'force_fresh_classification_tab' in locals() else False,
                     'coach_name': coach.full_name,
                     'coach_username': coach.username,
@@ -5380,9 +5392,10 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                 'route_filter': route_filter,
                 'search_terms': search_terms,
                 'push_to_airtable': push_to_airtable,
-                'generate_pdf': enable_pdf_generation_tab,  # Use PDF toggle value  
+                'generate_pdf': enable_pdf_generation_tab,  # Use PDF toggle value
                 'generate_csv': False,  # UI memory-only: no CSV during search
                 'search_radius': search_radius,
+                'classifier_type': 'cdl',  # Default to CDL for sidebar memory search
                 'no_experience': no_experience,
                 'force_fresh': False,  # Never force fresh for memory-only
                 'force_fresh_classification': force_fresh_classification,
@@ -5840,6 +5853,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                 'push_to_airtable': push_to_airtable,
                 'generate_pdf': enable_pdf_generation_tab,  # Use PDF toggle value
                 'search_radius': search_radius,
+                'classifier_type': 'cdl',  # Default to CDL for sidebar search
                 'no_experience': no_experience,
                 'force_fresh': is_fresh_only,  # Force fresh for indeed_fresh, regular behavior for indeed
                 'force_fresh_classification': force_fresh_classification,
