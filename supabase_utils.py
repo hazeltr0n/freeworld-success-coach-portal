@@ -680,9 +680,10 @@ def _format_agent_profile(row: Dict) -> Dict:
     return profile
 
 
-def instant_memory_search(location: str, search_terms: str = "", hours: int = 72, 
+def instant_memory_search(location: str, search_terms: str = "", hours: int = 72,
                          coach_username: Optional[str] = None, market: Optional[str] = None,
-                         agent_uuid: Optional[str] = None, agent_name: Optional[str] = None) -> List[Dict]:
+                         agent_uuid: Optional[str] = None, agent_name: Optional[str] = None,
+                         pathway_preferences: Optional[List[str]] = None) -> List[Dict]:
     """Ultra-fast memory search using clean deduplicated data from Supabase.
     
     This function bypasses the full pipeline for memory-only searches, providing
@@ -694,6 +695,9 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
         hours: How many hours back to search (default 72)
         coach_username: Coach username for link generation
         market: Market filter (crucial for R1 deduplication)
+        agent_uuid: Agent UUID for tracking
+        agent_name: Agent name for tracking
+        pathway_preferences: List of career pathways to filter by (e.g., ['cdl_pathway', 'dock_to_driver'])
         
     Returns:
         List of job dictionaries ready for display/export
@@ -744,7 +748,12 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
         # Use OR logic: include jobs that either have no expired feedback timestamp
         # OR have expired feedback older than 72 hours
         # Note: We'll filter this after retrieval since Supabase OR logic is complex
-        
+
+        # Career pathway filtering
+        if pathway_preferences:
+            print(f"🛤️ Filtering by pathway preferences: {pathway_preferences}")
+            query = query.in_('career_pathway', pathway_preferences)
+
         # Execute query
         result = query.execute()
         jobs = result.data or []

@@ -851,7 +851,9 @@ def transform_ai_classification(df: pd.DataFrame, ai_results: Dict[str, Dict], j
                 'ai.normalized_location': current_row.get('ai.normalized_location', ''),
                 'ai.fair_chance': current_row.get('ai.fair_chance', 'no_requirements_mentioned'),
                 'ai.endorsements': current_row.get('ai.endorsements', 'none_required'),
-                'ai.route_type': current_row.get('ai.route_type', '')
+                'ai.route_type': current_row.get('ai.route_type', ''),
+                'ai.career_pathway': current_row.get('ai.career_pathway', 'cdl_pathway'),
+                'ai.training_provided': current_row.get('ai.training_provided', False)
             }
         
         if job_id not in ai_results:
@@ -865,11 +867,13 @@ def transform_ai_classification(df: pd.DataFrame, ai_results: Dict[str, Dict], j
                 'ai.normalized_location': '',
                 'ai.fair_chance': 'no_requirements_mentioned',
                 'ai.endorsements': 'none_required',
-                'ai.route_type': ''
+                'ai.route_type': '',
+                'ai.career_pathway': 'cdl_pathway',  # Default to CDL pathway
+                'ai.training_provided': False
             }
         
         result = ai_results[job_id]
-        return {
+        ai_result = {
             'ai.match': result.get('match', 'error'),
             'ai.reason': result.get('reason', 'No reason provided'),
             'ai.summary': result.get('summary', 'No summary provided'),
@@ -878,12 +882,27 @@ def transform_ai_classification(df: pd.DataFrame, ai_results: Dict[str, Dict], j
             'ai.endorsements': result.get('endorsements', 'none_required'),
             'ai.route_type': result.get('route_type', 'Unknown')
         }
+
+        # Handle career pathway fields (from pathway classifier)
+        if 'career_pathway' in result:
+            ai_result['ai.career_pathway'] = result.get('career_pathway', 'no_pathway')
+        else:
+            # For CDL jobs, set career_pathway to 'cdl_pathway'
+            ai_result['ai.career_pathway'] = 'cdl_pathway'
+
+        if 'training_provided' in result:
+            ai_result['ai.training_provided'] = result.get('training_provided', False)
+        else:
+            # Default for CDL jobs
+            ai_result['ai.training_provided'] = False
+
+        return ai_result
     
     # Apply AI results
     ai_fields = {}
     classification_data = df['id.job'].apply(apply_ai_result)
     
-    for field in ['ai.match', 'ai.reason', 'ai.summary', 'ai.normalized_location', 'ai.fair_chance', 'ai.endorsements', 'ai.route_type']:
+    for field in ['ai.match', 'ai.reason', 'ai.summary', 'ai.normalized_location', 'ai.fair_chance', 'ai.endorsements', 'ai.route_type', 'ai.career_pathway', 'ai.training_provided']:
         ai_fields[field] = classification_data.apply(lambda x: x[field])
     
     # Set classification metadata

@@ -100,11 +100,17 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
             print(f"🎯 CLEAN AGENT PORTAL: Running instant_memory_search for location: {location}")
             print(f"🎯 AGENT FILTER DEBUG: Using route_filter='{agent_params.get('route_filter')}', fair_chance_only={agent_params.get('fair_chance_only')}, max_jobs={agent_params.get('max_jobs')}")
 
+            # Extract pathway preferences from agent params
+            pathway_preferences = agent_params.get('pathway_preferences', [])
+
+            print(f"🛤️ CLEAN AGENT PORTAL: Agent pathway preferences: {pathway_preferences}")
+
             # Run direct memory search with feedback filtering
             jobs_list = instant_memory_search(
                 location=location,
                 hours=168,  # 7 days lookback
-                market=location  # Use location as market
+                market=location,  # Use location as market
+                pathway_preferences=pathway_preferences
             )
 
             if jobs_list:
