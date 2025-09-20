@@ -17,10 +17,11 @@ class LinkTracker:
     def __init__(self, domain: str = "freeworldjobs.short.gy"):
         """
         Initialize LinkTracker with Short.io API credentials
-        
+
         Args:
             domain: Short.io domain to use for shortened links
         """
+        import os  # Local import to avoid shadowing issues
         self.api_key = os.getenv('SHORT_API_KEY', '') or os.getenv('SHORT_IO_API_KEY', '')
         self.base_url = "https://api.short.io"
         self.statistics_base_url = "https://statistics.short.io"
@@ -73,8 +74,9 @@ class LinkTracker:
         self.analytics_dashboard = None
         
         # Skip analytics dashboard in web environments (no tkinter support)
-        if ('STREAMLIT_SERVER_PORT' in os.environ or 
-            'DYNO' in os.environ or 
+        import os  # Local import to avoid shadowing issues
+        if ('STREAMLIT_SERVER_PORT' in os.environ or
+            'DYNO' in os.environ or
             '/mount/src/' in os.getcwd()):
             self.logger.info("Web environment detected - skipping analytics dashboard")
             return
@@ -100,6 +102,7 @@ class LinkTracker:
             self.supabase = None
 
         # Optional Zapier webhook for link events
+        import os  # Local import to avoid shadowing issues
         self.zapier_webhook_url = os.getenv('ZAPIER_WEBHOOK_URL', '').strip()
 
     def _notify_zapier(self, event: str, payload: Dict[str, Any]) -> None:
@@ -650,7 +653,6 @@ def test_link_tracker():
     print("Testing LinkTracker...")
     
     # Test Short.io functionality
-    import os
     os.environ['USE_SUPABASE_EDGE_FUNCTION'] = 'false'
     tracker_shortio = LinkTracker()
     
