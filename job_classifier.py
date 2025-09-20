@@ -35,6 +35,8 @@ class JobClassifier:
                 "summary": {"type": "string", "maxLength": 1000},
                 "normalized_location": {"type": "string", "maxLength": 100},
                 "fair_chance": {"type": "string", "enum": ["fair_chance_employer", "background_check_required", "clean_record_required", "no_requirements_mentioned"]},
+                "endorsements": {"type": "string", "enum": ["none_required", "hazmat", "passenger", "school_bus", "tanker", "double_triple"]},
+                "route_type": {"type": "string", "enum": ["Local", "Regional", "OTR", "Unknown"]},
                 "career_pathway": {"type": "string", "enum": [
                     "dock_to_driver",
                     "internal_cdl_training",
@@ -47,7 +49,7 @@ class JobClassifier:
                 ]},
                 "training_provided": {"type": "boolean"}
             },
-            "required": ["job_id", "match", "reason", "summary", "fair_chance", "career_pathway", "training_provided"]
+            "required": ["job_id", "match", "reason", "summary", "normalized_location", "fair_chance", "endorsements", "route_type", "career_pathway", "training_provided"]
         }
     
     def _retry_request(self, do_req, max_retries=5, base=0.5, cap=30.0):

@@ -55,8 +55,6 @@ def prepare_pdf_data(job_row):
         ),
         'tracked_url': job_row.get('meta.tracked_url', ''),
         
-        # Salary info
-        'salary': job_row.get('norm.salary_display', ''),
         
         # Identifiers
         'job_id': job_row.get('id.job', 'unknown'),
