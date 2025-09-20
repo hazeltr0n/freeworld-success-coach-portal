@@ -89,46 +89,75 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
             return html
             
         else:
-            print(f"🎯 CLEAN AGENT PORTAL: No memory_search_df found, running memory search pipeline...")
-            
-            # Run the EXACT same memory search pipeline as the main app (lines 5077-5156 in app.py)
-            if 'pipeline' not in st.session_state:
-                from pipeline_wrapper import StreamlitPipelineWrapper
-                st.session_state.pipeline = StreamlitPipelineWrapper()
-            
-            pipeline = st.session_state.pipeline
+            print(f"🎯 CLEAN AGENT PORTAL: No memory_search_df found, running direct memory search with feedback filtering...")
+
+            # Use DIRECT instant_memory_search to get proper feedback filtering
+            # This ensures expired jobs are properly excluded
+            from supabase_utils import instant_memory_search
+
             location = agent_params.get('location', 'Houston')
-            
-            # Use agent parameters for the memory search
-            params = {
-                'mode': 'sample',
-                'route_type_filter': [agent_params.get('route_type_filter', agent_params.get('route_filter', 'both'))],  # Support both modern and legacy parameter names
-                'match_quality_filter': agent_params.get('match_quality_filter', agent_params.get('match_level', 'good and so-so')).split(' and ') if isinstance(agent_params.get('match_quality_filter', agent_params.get('match_level', 'good and so-so')), str) else agent_params.get('match_quality_filter', ['good', 'so-so']),  # Support both parameter formats
-                'fair_chance_only': agent_params.get('fair_chance_only', False),  # Agent's fair chance preference
-                'max_jobs': agent_params.get('max_jobs', 25),  # Agent's max jobs limit
-                'search_terms': '',
-                'push_to_airtable': False,
-                'generate_pdf': False,
-                'generate_csv': False,
-                'search_radius': 50,
-                'no_experience': False,
-                'force_fresh': False,
-                'force_fresh_classification': False,
-                'memory_only': True,  # FORCE memory-only mode
-                'memory_hours': 168,  # 7 days lookback (was 72h = 3 days!)
-                'candidate_id': agent_params.get('agent_uuid', ''),
-                'candidate_name': agent_params.get('agent_name', ''),
-                'search_sources': {'indeed': False, 'google': False},  # Memory only
-                'search_strategy': 'memory_first',
-                'location': location
-            }
-            
+
+            print(f"🎯 CLEAN AGENT PORTAL: Running instant_memory_search for location: {location}")
             print(f"🎯 AGENT FILTER DEBUG: Using route_filter='{agent_params.get('route_filter')}', fair_chance_only={agent_params.get('fair_chance_only')}, max_jobs={agent_params.get('max_jobs')}")
-            
-            print(f"🎯 CLEAN AGENT PORTAL: Running memory search for location: {location}")
-            
-            # Run pipeline (same as main app)
-            df, metadata = pipeline.run_pipeline(params)
+
+            # Run direct memory search with feedback filtering
+            jobs_list = instant_memory_search(
+                location=location,
+                hours=168,  # 7 days lookback
+                market=location  # Use location as market
+            )
+
+            if jobs_list:
+                # Convert list of dicts back to DataFrame
+                import pandas as pd
+                df = pd.DataFrame(jobs_list)
+
+                print(f"🎯 CLEAN AGENT PORTAL: instant_memory_search found {len(df)} jobs (after feedback filtering)")
+
+                # Convert to canonical schema for pipeline compatibility
+                canonical_df = pd.DataFrame()
+
+                for _, row in df.iterrows():
+                    canonical_row = {
+                        # Source fields
+                        'source.title': row.get('job_title', ''),
+                        'source.company': row.get('company', ''),
+                        'source.url': row.get('apply_url', ''),
+                        'source.description': row.get('job_description', ''),
+                        'source.location': row.get('location', ''),
+
+                        # System metadata
+                        'sys.scraped_at': row.get('created_at', ''),
+                        'sys.is_fresh_job': False,  # From memory
+
+                        # AI classification
+                        'ai.match': row.get('match_level', 'good'),
+                        'ai.summary': row.get('summary', ''),
+                        'ai.route_type': row.get('route_type', 'Unknown'),
+                        'ai.fair_chance': row.get('fair_chance', False),
+
+                        # ID fields
+                        'id.job': row.get('job_id', 'unknown'),
+
+                        # Processed fields for compatibility
+                        'norm.title': row.get('job_title', ''),
+                        'norm.company': row.get('company', ''),
+                        'norm.location': row.get('location', ''),
+                        'norm.city': '',
+                        'norm.state': '',
+
+                        # Tracking fields
+                        'meta.tracked_url': row.get('tracked_url', ''),
+                    }
+                    canonical_df = pd.concat([canonical_df, pd.DataFrame([canonical_row])], ignore_index=True)
+
+                df = canonical_df
+                metadata = {'success': True, 'source': 'instant_memory_search_with_feedback_filtering'}
+
+            else:
+                print(f"🎯 CLEAN AGENT PORTAL: instant_memory_search returned no jobs")
+                df = pd.DataFrame()
+                metadata = {'success': False, 'error': 'No jobs found in memory with feedback filtering'}
             
             if metadata.get('success', False) and df is not None and not df.empty:
                 # Store in session state exactly like main app does (line 5199)

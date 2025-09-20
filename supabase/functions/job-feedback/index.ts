@@ -61,176 +61,107 @@ serve(async (req) => {
       console.log(`Setting permanent flag for ${feedback_type} feedback`)
 
       // Permanent negative feedback - set job_flagged = true
-      let updateError = null
-
-      // First try: Match by apply_url
-      const { error: error1 } = await supabase
-        .from('jobs')
-        .update({ job_flagged: true })
-        .eq('apply_url', job_url)
-
-      if (error1) {
-        console.log(`Direct apply_url match failed: ${error1.message}`)
-        // Second try: Match by tracked_url
-        const { error: error2 } = await supabase
+      // Use job_id for matching instead of URL matching
+      if (job_id) {
+        const { error: updateError } = await supabase
           .from('jobs')
           .update({ job_flagged: true })
-          .eq('tracked_url', job_url)
+          .eq('job_id', job_id)
 
-        if (error2) {
-          console.log(`tracked_url match also failed: ${error2.message}`)
-          updateError = error2
+        if (updateError) {
+          console.error('Error flagging job by job_id:', updateError)
         } else {
-          console.log(`Successfully flagged job by tracked_url`)
+          console.log(`Successfully flagged job by job_id: ${job_id}`)
         }
       } else {
-        console.log(`Successfully flagged job by apply_url`)
-      }
-
-      if (updateError) {
-        console.error('Error flagging job:', updateError)
+        console.error('No job_id provided for permanent negative feedback')
       }
 
     } else if (temporaryNegativeTypes.includes(feedback_type)) {
       console.log(`Incrementing expired counter for ${feedback_type} feedback`)
 
       // Temporary negative feedback - get current value, increment, and update
-      let jobUpdated = false
-
-      // First try: Match by apply_url
-      try {
-        const { data: jobData, error: fetchError } = await supabase
-          .from('jobs')
-          .select('feedback_expired_links')
-          .eq('apply_url', job_url)
-          .single()
-
-        if (!fetchError && jobData) {
-          const currentCount = jobData.feedback_expired_links || 0
-          const { error: updateError1 } = await supabase
-            .from('jobs')
-            .update({
-              feedback_expired_links: currentCount + 1,
-              last_expired_feedback_at: new Date().toISOString()
-            })
-            .eq('apply_url', job_url)
-
-          if (!updateError1) {
-            console.log(`Successfully incremented expired counter by apply_url`)
-            jobUpdated = true
-          } else {
-            console.log(`Apply URL update failed: ${updateError1.message}`)
-          }
-        }
-      } catch (error: any) {
-        console.log(`Apply URL lookup failed: ${error.message}`)
-      }
-
-      // Second try: Match by tracked_url if first attempt failed
-      if (!jobUpdated) {
+      // Use job_id for matching instead of URL matching
+      if (job_id) {
         try {
+          console.log(`Looking up job with job_id: ${job_id}`)
           const { data: jobData, error: fetchError } = await supabase
             .from('jobs')
             .select('feedback_expired_links')
-            .eq('tracked_url', job_url)
-            .single()
+            .eq('job_id', job_id)
 
-          if (!fetchError && jobData) {
-            const currentCount = jobData.feedback_expired_links || 0
-            const { error: updateError2 } = await supabase
+          console.log(`Lookup result: data=${JSON.stringify(jobData)}, error=${JSON.stringify(fetchError)}`)
+
+          if (!fetchError && jobData && jobData.length > 0) {
+            const currentCount = jobData[0].feedback_expired_links || 0
+            console.log(`Current expired count: ${currentCount}, incrementing to ${currentCount + 1}`)
+
+            const { error: updateError } = await supabase
               .from('jobs')
               .update({
                 feedback_expired_links: currentCount + 1,
                 last_expired_feedback_at: new Date().toISOString()
               })
-              .eq('tracked_url', job_url)
+              .eq('job_id', job_id)
 
-            if (!updateError2) {
-              console.log(`Successfully incremented expired counter by tracked_url`)
-              jobUpdated = true
+            if (!updateError) {
+              console.log(`✅ Successfully incremented expired counter by job_id: ${job_id}`)
             } else {
-              console.log(`Tracked URL update failed: ${updateError2.message}`)
+              console.error(`❌ Job ID update failed: ${updateError.message}`)
             }
+          } else if (fetchError) {
+            console.error(`❌ Job ID lookup failed: ${fetchError.message}`)
           } else {
-            console.log(`Tracked URL lookup failed: ${fetchError?.message}`)
+            console.error(`❌ No job found with job_id: ${job_id}`)
           }
         } catch (error: any) {
-          console.log(`Tracked URL lookup failed: ${error.message}`)
+          console.error(`❌ Job ID lookup exception: ${error.message}`)
         }
-      }
-
-      if (!jobUpdated) {
-        console.error('Error incrementing expired counter: No matching job found')
+      } else {
+        console.error('❌ No job_id provided for temporary negative feedback')
       }
 
     } else if (positiveTypes.includes(feedback_type)) {
       console.log(`Incrementing likes counter for ${feedback_type} feedback`)
 
       // Positive feedback - get current value, increment, and update
-      let jobUpdated = false
-
-      // First try: Match by apply_url
-      try {
-        const { data: jobData, error: fetchError } = await supabase
-          .from('jobs')
-          .select('feedback_likes')
-          .eq('apply_url', job_url)
-          .single()
-
-        if (!fetchError && jobData) {
-          const currentCount = jobData.feedback_likes || 0
-          const { error: updateError1 } = await supabase
-            .from('jobs')
-            .update({
-              feedback_likes: currentCount + 1
-            })
-            .eq('apply_url', job_url)
-
-          if (!updateError1) {
-            console.log(`Successfully incremented likes by apply_url`)
-            jobUpdated = true
-          } else {
-            console.log(`Apply URL likes update failed: ${updateError1.message}`)
-          }
-        }
-      } catch (error: any) {
-        console.log(`Apply URL likes lookup failed: ${error.message}`)
-      }
-
-      // Second try: Match by tracked_url if first attempt failed
-      if (!jobUpdated) {
+      // Use job_id for matching instead of URL matching
+      if (job_id) {
         try {
+          console.log(`Looking up job for likes with job_id: ${job_id}`)
           const { data: jobData, error: fetchError } = await supabase
             .from('jobs')
             .select('feedback_likes')
-            .eq('tracked_url', job_url)
-            .single()
+            .eq('job_id', job_id)
 
-          if (!fetchError && jobData) {
-            const currentCount = jobData.feedback_likes || 0
-            const { error: updateError2 } = await supabase
+          console.log(`Likes lookup result: data=${JSON.stringify(jobData)}, error=${JSON.stringify(fetchError)}`)
+
+          if (!fetchError && jobData && jobData.length > 0) {
+            const currentCount = jobData[0].feedback_likes || 0
+            console.log(`Current likes count: ${currentCount}, incrementing to ${currentCount + 1}`)
+
+            const { error: updateError } = await supabase
               .from('jobs')
               .update({
                 feedback_likes: currentCount + 1
               })
-              .eq('tracked_url', job_url)
+              .eq('job_id', job_id)
 
-            if (!updateError2) {
-              console.log(`Successfully incremented likes by tracked_url`)
-              jobUpdated = true
+            if (!updateError) {
+              console.log(`✅ Successfully incremented likes by job_id: ${job_id}`)
             } else {
-              console.log(`Tracked URL likes update failed: ${updateError2.message}`)
+              console.error(`❌ Job ID likes update failed: ${updateError.message}`)
             }
+          } else if (fetchError) {
+            console.error(`❌ Job ID likes lookup failed: ${fetchError.message}`)
           } else {
-            console.log(`Tracked URL likes lookup failed: ${fetchError?.message}`)
+            console.error(`❌ No job found for likes with job_id: ${job_id}`)
           }
         } catch (error: any) {
-          console.log(`Tracked URL likes lookup failed: ${error.message}`)
+          console.error(`❌ Job ID likes lookup exception: ${error.message}`)
         }
-      }
-
-      if (!jobUpdated) {
-        console.error('Error incrementing likes: No matching job found')
+      } else {
+        console.error('❌ No job_id provided for positive feedback')
       }
 
       // For "i_applied_to_this_job", also increment agent's application counter
