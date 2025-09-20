@@ -1,0 +1,50 @@
+8c85618 2025-09-18 CRITICAL FIX: Root cause of NaN values in route.final_status causing startswith() errors
+a267553 2025-09-18 Fix Clean Portal Error: 'float' object has no attribute 'startswith'
+21cf9e7 2025-09-18 Critical production fixes: AI classification schema and database errors
+803e698 2025-09-18 Production deployment: Convert QA portal to production coach portal
+b2e7a3e 2025-09-17 Fix portal link generation function calls - use correct generate_agent_url signature
+026f355 2025-09-17 Remove AI location normalization to fix classification conflicts - pipeline now handles location normalization
+9a50aba 2025-09-17 Move HTML preview and portal links to success section - FIXED THE BUG
+525bb12 2025-09-17 Add debug output to trace memory search results display
+0c53b85 2025-09-17 Revert routing changes - debug old memory path
+43af49b 2025-09-17 Revert "Route UI memory searches through new path with HTML preview and portal links"
+05cc1e1 2025-09-17 Route UI memory searches through new path with HTML preview and portal links
+b30a370 2025-09-17 Add debug output and fix variable scope issues in memory search
+611a577 2025-09-17 Fix HTML preview and portal link generation for memory-only searches
+cd590e9 2025-09-17 Fix CSV pipeline route.final_status assignment for Supabase storage
+3e1d507 2025-09-17 Fix function signature mismatches for transform_ingest_outscraper
+9bd1a17 2025-09-17 Add location normalizer for foreign language job locations
+2cb42d8 2025-09-16 Fix link tracking click aggregation bug - resolve 1000-row query limit
+46acdc5 2025-09-11 Fix KeyError for missing sys.scraped_at column in PDF sorting
+699599b 2025-09-11 Create unified results display for all search modes
+d34b67c 2025-09-11 Fix syntax error - remove orphaned else clause
+a785b44 2025-09-11 Use exact same results display for all search types - copy Memory Only display
+96d988f 2025-09-11 Fix PDF generation for Indeed tab searches - add explicit generate_pdf=True
+a70663f 2025-09-11 Fix PDF generation AttributeError and remove broken Generate PDF buttons
+e4a3d2b 2025-09-11 Fix missing PDF download buttons for Indeed tab-based searches
+90cde4e 2025-09-11 Fix PDF button implementation for tab-based Indeed searches
+6a3fae3 2025-09-11 Fix IDNA codec errors and improve Supabase connection reliability
+93fc286 2025-09-11 Fix AI classification pipeline to eliminate job classification errors
+6d4138f 2025-09-11 Fix CSV classification processing issues
+27f0375 2025-09-11 Fix PDF download button persistence for Indeed searches
+0ca66a2 2025-09-10 Fix PDF generation for Indeed fresh-only searches and improve result persistence
+ed118cf 2025-09-10 Fix additional bare except blocks in UI backup files
+d8b36b8 2025-09-10 Fix bare except blocks in medium priority UI and utility files
+7338e97 2025-09-10 Fix bare except blocks in high-priority analytics and processing files
+2ad60d2 2025-09-10 Fix critical bare except blocks for improved debugging
+461019c 2025-09-10 Remove defensive fair_chance fallback - let pipeline fail if data missing
+822a2b0 2025-09-10 Fix root cause of fair_chance None values and ensure proper defaults
+23093b2 2025-09-10 Fix multiple critical issues with custom location searches
+e6b5287 2025-09-10 Fix custom location search running dual searches (Lufkin + Houston)
+abbf6b2 2025-09-10 Fix PDF generation error: 'NoneType' object has no attribute 'lower'
+18a720f 2025-09-10 Fix PyArrow serialization error with sys.version and other string columns
+9683a76 2025-09-10 Fix PDF download button missing for Indeed fresh and Indeed+memory searches
+fc4b93a 2025-09-10 AGGRESSIVE CACHE BUST: Force Streamlit Cloud rebuild for PDF fix
+34ad03b 2025-09-10 Fix PDF show_prepared_for parameter not respecting checkbox state
+8a5b2a9 2025-09-09 Remove debug output to clean up logs and reduce session errors
+48ef544 2025-09-09 Add debug output to trace prepared message conditional logic
+818cc82 2025-09-09 Add debug output for show_prepared_for and prevent UI direct path collision with memory-only
+25d000f 2025-09-09 Fix memory-only search: prevent UI direct path from running duplicate PDFs
+7dba6ce 2025-09-09 Remove unused _generate_pdf_output method - eliminate PDF generation confusion
+8321abc 2025-09-09 Remove PDF fallback in memory search - use only _generate_pdf method
+d5f7121 2025-09-09 FINAL ENVIRONMENT VARIABLE FIX: Pass show_prepared_for through subprocess

@@ -218,45 +218,52 @@ class JobMemoryDB:
                         return 'Inland Empire'
                     return s
 
+                # Convert all values to strings as expected by RPC function
+                def safe_str(val):
+                    """Convert value to string, handling None/empty cases"""
+                    if val is None or val == '':
+                        return ''
+                    return str(val)
+
                 record = {
-                    # Core job information (exact Supabase schema) - use canonical fields
-                    'job_id': job.get('id.job', job.get('job_id', '')),
-                    'job_title': job.get('source.title', job.get('job_title', '')),
-                    'company': job.get('source.company', job.get('company', '')),
-                    'location': job.get('source.location_raw', job.get('location', '')),
-                    'job_description': job.get('source.description_raw', job.get('job_description', ''))[:5000],
-                    'apply_url': job.get('source.indeed_url', job.get('apply_url', '')),
-                    'salary': job.get('source.salary_raw', job.get('salary', '')),
-                    
-                    # AI Classification results (use extracted values)
-                    'match_level': match,
-                    'match_reason': reason,
-                    'summary': summary,
-                    'fair_chance': job.get('ai.fair_chance', job.get('fair_chance', 'unknown')),
-                    'endorsements': job.get('ai.endorsements', job.get('endorsements', 'unknown')),
-                    'route_type': job.get('ai.route_type', job.get('route_type', '')),
-                    
-                    # Organization and tracking
-                    'market': _sanitize_market(job.get('meta.market', job.get('market', ''))),
-                    'tracked_url': job.get('meta.tracked_url', job.get('tracked_url', '')),
-                    
-                    # Recall context fields (new)
-                    'indeed_job_url': job.get('source.indeed_url', job.get('indeed_job_url', '')),
-                    'search_query': job.get('meta.query', job.get('search_query', '')),
-                    'source': job.get('id.source', job.get('source', 'outscraper')),
-                    'filter_reason': job.get('route.final_status', job.get('filter_reason', '')),
-                    
-                    # System metadata
-                    'classification_source': job.get('classification_source', 'ai_classification'),
+                    # Core job information (all TEXT as per RPC function)
+                    'job_id': safe_str(job.get('id.job', job.get('job_id', ''))),
+                    'job_title': safe_str(job.get('source.title', job.get('job_title', ''))),
+                    'company': safe_str(job.get('source.company', job.get('company', ''))),
+                    'location': safe_str(job.get('source.location_raw', job.get('location', ''))),
+                    'job_description': safe_str(job.get('source.description_raw', job.get('job_description', '')))[:5000],
+                    'apply_url': safe_str(job.get('source.indeed_url', job.get('apply_url', ''))),
+                    'salary': safe_str(job.get('source.salary_raw', job.get('salary', ''))),
+
+                    # AI Classification results (all TEXT)
+                    'match_level': safe_str(match),
+                    'match_reason': safe_str(reason),
+                    'summary': safe_str(summary),
+                    'fair_chance': safe_str(job.get('ai.fair_chance', job.get('fair_chance', 'unknown'))),
+                    'endorsements': safe_str(job.get('ai.endorsements', job.get('endorsements', 'unknown'))),
+                    'route_type': safe_str(job.get('ai.route_type', job.get('route_type', ''))),
+
+                    # Organization and tracking (all TEXT)
+                    'market': safe_str(_sanitize_market(job.get('meta.market', job.get('market', '')))),
+                    'tracked_url': safe_str(job.get('meta.tracked_url', job.get('tracked_url', ''))),
+
+                    # Recall context fields (all TEXT)
+                    'indeed_job_url': safe_str(job.get('source.indeed_url', job.get('indeed_job_url', ''))),
+                    'search_query': safe_str(job.get('meta.query', job.get('search_query', ''))),
+                    'source': safe_str(job.get('id.source', job.get('source', 'outscraper'))),
+                    'filter_reason': safe_str(job.get('route.final_status', job.get('filter_reason', ''))),
+
+                    # System metadata (all TEXT)
+                    'classification_source': safe_str(job.get('classification_source', 'ai_classification')),
                     'classified_at': datetime.now().isoformat(),
                     'created_at': datetime.now().isoformat(),
                     'updated_at': datetime.now().isoformat(),
-                    
-                    # Deduplication fields for database-level deduplication
-                    'rules_duplicate_r1': job.get('rules.duplicate_r1', ''),
-                    'rules_duplicate_r2': job.get('rules.duplicate_r2', ''),
-                    'clean_apply_url': job.get('clean_apply_url', ''),
-                    'job_id_hash': job.get('sys.hash', '')
+
+                    # Deduplication fields (all TEXT) - these are critical for the RPC function
+                    'rules_duplicate_r1': safe_str(job.get('rules.duplicate_r1', '')),
+                    'rules_duplicate_r2': safe_str(job.get('rules.duplicate_r2', '')),
+                    'clean_apply_url': safe_str(job.get('clean_apply_url', '')),
+                    'job_id_hash': safe_str(job.get('sys.hash', ''))
                 }
                 
                 if record['job_id']:  # Only store if we have a job_id
@@ -294,7 +301,6 @@ class JobMemoryDB:
                 logger.warning(f"Database deduplication failed, falling back to upsert: {rpc_error}")
 
                 # Fallback to upsert since job_id is primary key and may have duplicates
-                # This will update existing records or insert new ones
                 result = self.supabase.table('jobs').upsert(records).execute()
 
                 if result.data:
