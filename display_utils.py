@@ -17,6 +17,8 @@ def get_quality_display_columns():
         'source.location',        # Location (geographic relevance)
         'ai.route_type',          # Route Type (Local/Regional/OTR)
         'ai.match',              # Match Quality (good/so-so/bad)
+        'ai.career_pathway',     # Career Pathway (e.g., cdl_pathway, dock_to_driver)
+        'ai.training_provided',  # Training Provided (boolean)
         'ai.fair_chance',        # Fair Chance Employer (boolean)
         'ai.summary',            # Job Description Summary
         'meta.tracked_url'       # Apply Link (for testing)
@@ -31,24 +33,21 @@ def get_full_dataframe_columns():
     """
     return [
         # Testing & Debug Priority (leftmost)
-        'route.final_status',     # Final routing decision
         'ai.match',              # Quality classification
         'ai.route_type',         # Route classification
+        'ai.career_pathway',     # Career pathway classification
+        'ai.training_provided',  # Training provided flag
         'sys.is_fresh_job',      # Fresh vs memory
-        'route.filter_reason',   # Why filtered (if applicable)
 
         # Core Job Info (center)
         'source.title',          # Job title
         'source.company',        # Company
         'source.location',       # Location
-        'ai.summary',           # AI summary
         'ai.fair_chance',       # Fair chance status
+        'ai.summary',           # AI summary
 
-        # Metadata & URLs (rightmost)
-        'meta.tracked_url',      # Tracking URL
-        'source.url',           # Original URL
-        'sys.scraped_at',       # When scraped
-        'sys.run_id'            # Pipeline run ID
+        # URLs (rightmost)
+        'meta.tracked_url'       # Tracking URL
     ]
 
 def filter_available_columns(columns, dataframe):

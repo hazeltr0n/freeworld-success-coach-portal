@@ -4672,9 +4672,12 @@ def main():
                     st.markdown("*Results persist until you run a new search*")
                     
                     # Show results using the same logic as immediate results
-                    quality_df = filter_quality_jobs(df)
+                    from display_utils import get_quality_display_dataframe, get_full_display_dataframe
                     show_all_rows = st.checkbox("Show all rows (no filters)", value=False, key="persistent_show_all_rows")
-                    display_df = (df if show_all_rows or quality_df.empty else quality_df).copy().reset_index(drop=True)
+                    if show_all_rows:
+                        display_df = get_full_display_dataframe(df)
+                    else:
+                        display_df = get_quality_display_dataframe(df)
                     st.dataframe(display_df, width="stretch", height=420, hide_index=True)
                     
                     # Add on-demand PDF generation for persistent results
@@ -6129,7 +6132,11 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                 debug_dataframe_info(df, "Indeed Fresh Only - All Jobs")
                 debug_dataframe_info(quality_df, "Indeed Fresh Only - Quality Jobs")
                 show_all_rows_indeed = st.checkbox("Show all rows (no filters)", value=False, key="indeed_show_all_rows_main")
-                display_df = (df if show_all_rows_indeed or quality_df.empty else quality_df).copy().reset_index(drop=True)
+                from display_utils import get_quality_display_dataframe, get_full_display_dataframe
+                if show_all_rows_indeed:
+                    display_df = get_full_display_dataframe(df)
+                else:
+                    display_df = get_quality_display_dataframe(df)
                 st.dataframe(display_df, width="stretch", height=420, hide_index=True)
 
                 col_pdf2, _ = st.columns([1, 3])
@@ -6202,7 +6209,8 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
             else:
                 if isinstance(df, pd.DataFrame) and not df.empty:
                     st.warning("⚠️ Metadata reported failure, but results contain rows. Showing data.")
-                    display_df = df.copy().reset_index(drop=True)
+                    from display_utils import get_quality_display_dataframe
+                    display_df = get_quality_display_dataframe(df)
                     st.dataframe(display_df, width="stretch", height=420, hide_index=True)
                 else:
                     st.error(f"❌ Search failed: {metadata.get('error', 'Unknown error')}")
@@ -7111,7 +7119,7 @@ def show_combined_batches_and_scheduling_page(coach):
                                                 mdf_inc = mdf
 
                                             # Preferred columns similar to job search
-                                            cols_pref = ['source.title', 'source.company', 'ai.summary', 'ai.match', 'ai.route_type', 'ai.fair_chance', 'source.indeed_url']
+                                            cols_pref = ['source.title', 'source.company', 'ai.match', 'ai.route_type', 'ai.career_pathway', 'ai.training_provided', 'ai.fair_chance', 'ai.summary', 'source.indeed_url']
                                             cols_show = [c for c in cols_pref if c in mdf_inc.columns]
                                             st.dataframe(mdf_inc[cols_show] if cols_show else mdf_inc, use_container_width=True, height=360)
 

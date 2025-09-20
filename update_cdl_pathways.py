@@ -20,11 +20,10 @@ def update_cdl_jobs():
 
         print("🔄 Updating CDL jobs with career_pathway = 'cdl_pathway'...")
 
-        # Update all jobs that don't have career_pathway set (NULL or empty)
-        # to have career_pathway = 'cdl_pathway'
+        # Update all jobs that have career_pathway = 'cdl' to 'cdl_pathway'
         result = client.table('jobs').update({
             'career_pathway': 'cdl_pathway'
-        }).or_('career_pathway.is.null,career_pathway.eq.').execute()
+        }).eq('career_pathway', 'cdl').execute()
 
         if result.data:
             updated_count = len(result.data)
