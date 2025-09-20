@@ -104,13 +104,24 @@ class AsyncJobManager:
     def delete_job(self, job_id: int) -> bool:
         """Delete a job from the queue"""
         if not self.supabase_client:
+            print(f"❌ Supabase client not available for deleting job {job_id}")
             return False
-            
+
         try:
-            self.supabase_client.table('async_job_queue').delete().eq('id', job_id).execute()
+            # First check if job exists
+            existing = self.supabase_client.table('async_job_queue').select('id').eq('id', job_id).execute()
+            if not existing.data:
+                print(f"❌ Job {job_id} not found in database")
+                return False
+
+            # Delete the job
+            result = self.supabase_client.table('async_job_queue').delete().eq('id', job_id).execute()
+            print(f"✅ Successfully deleted job {job_id}")
             return True
         except Exception as e:
-            print(f"Error deleting job {job_id}: {e}")
+            print(f"❌ Error deleting job {job_id}: {str(e)}")
+            import traceback
+            print(f"Full traceback: {traceback.format_exc()}")
             return False
     
     def submit_google_search(self, search_params: Dict, coach_username: str) -> AsyncJob:
