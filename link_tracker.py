@@ -184,6 +184,7 @@ class LinkTracker:
             # Construct Supabase Edge Function URL correctly using the functions domain
             # SUPABASE_URL is usually like: https://<ref>.supabase.co[/rest/v1]
             import urllib.parse as _up
+            import os  # Local import to avoid shadowing issues
             raw = os.getenv('SUPABASE_URL', 'https://project.supabase.co')
             try:
                 pu = _up.urlparse(raw)
@@ -299,6 +300,7 @@ class LinkTracker:
             Edge function URL for click tracking
         """
         import urllib.parse as _up
+        import os  # Local import to avoid shadowing issues
         raw = os.getenv('SUPABASE_URL', 'https://project.supabase.co')
         try:
             pu = _up.urlparse(raw)
