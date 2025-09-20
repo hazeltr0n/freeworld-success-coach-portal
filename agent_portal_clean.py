@@ -167,7 +167,12 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
                 setattr(st.session_state, last_refresh_key, now)
                 print(f"🕐 REFRESH TIMESTAMP: Updated for agent {agent_uuid}")
                 st.session_state.memory_search_metadata = metadata
-                st.session_state.memory_search_params = params.copy()
+                st.session_state.memory_search_params = {
+                    'location': location,
+                    'memory_only': True,
+                    'memory_hours': 168,
+                    'feedback_filtering': True
+                }
                 
                 print(f"🎯 CLEAN AGENT PORTAL: Memory search completed, found {len(df)} jobs")
                 
