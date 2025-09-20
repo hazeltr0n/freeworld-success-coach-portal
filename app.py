@@ -6285,114 +6285,215 @@ def show_combined_batches_and_scheduling_page(coach):
             st.markdown("### 🚀 Batch Job Scheduler")
             st.markdown("Create async Google/Indeed jobs with the same search parameters as main search")
             
-            # Simple batch creation form
-            with st.expander("➕ Create New Batch Job", expanded=True):
+            # Enhanced batch creation form matching main search page
+            with st.expander("➕ Create New Indeed Batch Schedule", expanded=True):
+                st.caption("Schedule Indeed searches to run automatically on selected days. Uses the same parameters as the main search page.")
+
                 with st.form("batch_scheduler"):
-                    col1, col2, col3 = st.columns([2, 1, 1])
-                    
+                    # Row 1: Location and Search Parameters (matches main search layout)
+                    col1, col2, col3, col4 = st.columns([1.5, 1.5, 1, 1])
+
                     with col1:
-                        batch_search_terms = st.text_input("🔍 Search Terms", 
-                                                         value="CDL Driver No Experience",
-                                                         help="Job search keywords")
-                        
-                        batch_location_type = st.selectbox("📍 Location Type", 
-                                                         ["Select Market", "Custom Location"])
-                        
-                        if batch_location_type == "Select Market":
-                            batch_markets = st.multiselect("Markets", 
-                                                          ["Houston", "Dallas", "Bay Area", "Stockton", "Denver", "Las Vegas", "Newark", "Phoenix", "Trenton", "Inland Empire"],
-                                                          default=["Houston"])
-                        else:
-                            batch_custom_location = st.text_input("Custom Location", 
-                                                                placeholder="e.g., Austin TX, 90210")
-                    
+                        batch_location_type = st.selectbox(
+                            "📍 Location Type:",
+                            ["Select Market", "Custom Location"],
+                            help="Choose how to specify the search location"
+                        )
+
                     with col2:
-                        batch_source = st.selectbox("Source", ["Google Jobs", "Indeed"])
-                        batch_job_limit = st.selectbox("Job Limit", [100, 250, 500, 1000], index=1)
-                    
+                        if batch_location_type == "Select Market":
+                            # Get markets from pipeline (same as main search)
+                            try:
+                                from pipeline_wrapper import StreamlitPipelineWrapper
+                                pipeline = StreamlitPipelineWrapper()
+                                markets = pipeline.get_markets()
+                                batch_selected_market = st.selectbox(
+                                    "Target Market:",
+                                    markets,
+                                    help="Select a market to search"
+                                )
+                                batch_location = pipeline.get_market_location(batch_selected_market) if batch_selected_market else "Houston, TX"
+                            except Exception as e:
+                                st.error(f"Could not load markets: {e}")
+                                batch_selected_market = "Houston"
+                                batch_location = "Houston, TX"
+                        else:
+                            batch_custom_location = st.text_input(
+                                "Enter ZIP code, city, or state:",
+                                placeholder="e.g., 90210, Austin TX, California",
+                                help="Enter any US location - ZIP code, city name, or state"
+                            )
+                            batch_location = batch_custom_location.strip() if batch_custom_location else "Houston, TX"
+
                     with col3:
-                        batch_search_radius = st.selectbox("Search Radius (miles)", [10, 25, 50, 100], index=2)
-                        batch_frequency = st.selectbox("Frequency", ["Once", "Daily", "Weekly"])
-                        if batch_frequency == "Weekly":
-                            batch_days = st.multiselect("Days", 
-                                                       ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-                                                       default=["Mon", "Wed", "Fri"])
-                        batch_time = st.time_input("Run Time (Central Time)", 
-                                                 value=pd.Timestamp("02:00").time(),
-                                                 help="Time in Central Time Zone (CT/CST)")
-                        
-                    # Additional Parameters Row  
-                    col4, col5, col6 = st.columns(3)
+                        # Use same job limits as main search
+                        job_limit_options = ["10 jobs", "50 jobs", "100 jobs", "250 jobs", "500 jobs"]
+                        if check_coach_permission('can_access_full_mode'):
+                            job_limit_options.append("1000 jobs")
+
+                        batch_job_quantity = st.selectbox(
+                            "📊 Job Quantity:",
+                            job_limit_options,
+                            index=2,  # default to 100 jobs
+                            help="Number of jobs to analyze and classify"
+                        )
+                        # Map display to actual numbers
+                        job_quantity_map = {"10 jobs": 10, "50 jobs": 50, "100 jobs": 100, "250 jobs": 250, "500 jobs": 500, "1000 jobs": 1000}
+                        batch_job_limit = job_quantity_map[batch_job_quantity]
+
                     with col4:
-                        pass  # Reserved for future options
-                    with col5:
-                        pass  # Reserved for future options
-                    with col6:
-                        batch_force_fresh = st.checkbox("🔄 Force fresh classification", value=False,
-                                                      help="Bypass AI classification cache")
+                        batch_search_terms = st.text_input(
+                            "🔍 Search Terms:",
+                            value="CDL Driver No Experience",
+                            help="Job search keywords. Use commas for multiple terms"
+                        )
+
+                    # Row 2: Search Filters (matches main search)
+                    col1, col2, col3, col4 = st.columns(4)
+
+                    with col1:
+                        batch_search_radius = st.selectbox(
+                            "📏 Search Radius:",
+                            [25, 50, 100],
+                            index=1,  # default to 50
+                            help="Search radius in miles from target location"
+                        )
+
+                    with col2:
+                        batch_exact_location = st.checkbox(
+                            "📍 Use exact location only",
+                            value=False,
+                            help="Search only the specified city (radius=0)"
+                        )
+                        if batch_exact_location:
+                            batch_search_radius = 0
+
+                    with col3:
+                        batch_no_experience = st.checkbox(
+                            "📋 Indeed No Experience Filter",
+                            value=True,
+                            help="Filter for entry-level jobs on Indeed"
+                        )
+
+                    with col4:
+                        batch_force_fresh = st.checkbox(
+                            "🔄 Force fresh classification",
+                            value=False,
+                            help="Bypass AI classification cache"
+                        )
+
+                    # Row 3: Scheduling Options
+                    st.markdown("### 🗓️ Schedule Settings")
+                    col1, col2, col3 = st.columns([1, 1, 2])
+
+                    with col1:
+                        batch_frequency = st.selectbox(
+                            "Frequency:",
+                            ["Once", "Daily", "Weekly"],
+                            index=2,  # default to Weekly
+                            help="How often to run this search"
+                        )
+
+                    with col2:
+                        batch_time = st.time_input(
+                            "Run Time (Central):",
+                            value=pd.Timestamp("02:00").time(),
+                            help="Time in Central Time Zone (CT/CST)"
+                        )
+
+                    with col3:
+                        if batch_frequency == "Weekly":
+                            st.write("**Days of Week to Run:**")
+                            # Better UI for day selection with columns
+                            day_cols = st.columns(7)
+                            batch_days = []
+                            days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+                            default_days = ["Mon", "Wed", "Fri"]
+
+                            for i, day in enumerate(days):
+                                with day_cols[i]:
+                                    if st.checkbox(day, value=day in default_days, key=f"batch_day_{day}"):
+                                        batch_days.append(day)
+                        else:
+                            batch_days = []
                     
                     # Submit buttons
                     col_save, col_run = st.columns(2)
                     with col_save:
-                        submitted = st.form_submit_button("💾 Save for Later", use_container_width=True)
+                        submitted = st.form_submit_button("💾 Save for Later", width='stretch')
                     with col_run:
-                        run_now = st.form_submit_button("🚀 Run Now", use_container_width=True, type="secondary")
+                        run_now = st.form_submit_button("🚀 Run Now", width='stretch', type="secondary")
                     
                     if submitted or run_now:
                         try:
                             from async_job_manager import AsyncJobManager
                             manager = AsyncJobManager()
-                            
-                            # Determine location
-                            if batch_location_type == "Select Market":
-                                # Map display names to proper location names
-                                location_mapping = {"Las Vegas": "Las Vegas"}  # Ensure Las Vegas stays as Las Vegas
-                                mapped_markets = [location_mapping.get(market, market) for market in batch_markets]
-                                location = ", ".join(mapped_markets) if mapped_markets else "Houston"
-                            else:
-                                location = batch_custom_location or "Houston, TX"
-                            
-                            # Create job parameters compatible with AsyncJobManager (simplified format)
+
+                            # Validate inputs
+                            if not batch_search_terms.strip():
+                                st.error("❌ Please enter search terms")
+                                st.stop()
+
+                            if batch_location_type == "Custom Location" and not batch_custom_location.strip():
+                                st.error("❌ Please enter a custom location")
+                                st.stop()
+
+                            if batch_frequency == "Weekly" and not batch_days:
+                                st.error("❌ Please select at least one day for weekly schedule")
+                                st.stop()
+
+                            # Create comprehensive job parameters matching main search page
                             search_params = {
-                                # Core parameters expected by AsyncJobManager
-                                'search_terms': batch_search_terms,
-                                'location': location,
+                                # Core search parameters
+                                'search_terms': batch_search_terms.strip(),
+                                'location': batch_location,
                                 'limit': batch_job_limit,
-                                
-                                # Extended parameters for future pipeline compatibility
+
+                                # Search filters (same as main search)
+                                'search_radius': batch_search_radius,
+                                'no_experience': batch_no_experience,
+                                'force_fresh_classification': batch_force_fresh,
+
+                                # Pipeline parameters
                                 'coach_username': coach.username,
                                 'coach_name': coach.full_name,
-                                'mode': {100: 'sample', 250: 'medium', 500: 'large', 1000: 'full'}.get(batch_job_limit, 'sample'),
-                                'search_radius': batch_search_radius,
-                                'force_fresh_classification': batch_force_fresh,
-                                
+                                'mode': {10: 'test', 50: 'mini', 100: 'sample', 250: 'medium', 500: 'large', 1000: 'full'}.get(batch_job_limit, 'sample'),
+
                                 # Scheduling metadata
                                 'frequency': batch_frequency,
                                 'scheduled_time': batch_time.strftime('%H:%M'),
-                                'scheduled_days': batch_days if batch_frequency == "Weekly" and 'batch_days' in locals() else None,
+                                'scheduled_days': batch_days if batch_frequency == "Weekly" else None,
                                 'run_immediately': run_now,
-                                'source_type': batch_source,
-                                
-                                # Location metadata
+
+                                # Location metadata for tracking
                                 'location_type': batch_location_type,
-                                'selected_markets': batch_markets if batch_location_type == "Select Market" else None,
-                                'custom_location': batch_custom_location if batch_location_type == "Custom Location" else None
+                                'selected_market': batch_selected_market if batch_location_type == "Select Market" else None,
+                                'custom_location': batch_custom_location if batch_location_type == "Custom Location" else None,
+
+                                # Additional flags
+                                'exact_location': batch_exact_location,
+                                'source_type': 'Indeed'  # Focus on Indeed only
                             }
-                            
-                            # Submit the job
-                            if batch_source == "Google Jobs":
-                                job = manager.submit_google_search(search_params, coach.username)
-                                if run_now:
-                                    st.success(f"🚀 Google Jobs batch submitted and running! Job ID: {job.id}")
-                                else:
-                                    st.success(f"💾 Google Jobs batch saved for later! Job ID: {job.id}")
+
+                            # Submit Indeed batch job
+                            job = manager.submit_indeed_search(search_params, coach.username)
+
+                            # Success message with details
+                            if run_now:
+                                st.success(f"🚀 Indeed batch submitted and running!")
+                                st.info(f"📋 Job ID: {job.id}")
+                                st.info(f"📍 Location: {batch_location}")
+                                st.info(f"🔍 Terms: {batch_search_terms}")
+                                st.info(f"📊 Job Limit: {batch_job_limit}")
                             else:
-                                job = manager.submit_indeed_search(search_params, coach.username)
-                                if run_now:
-                                    st.success(f"🚀 Indeed batch submitted and running! Job ID: {job.id}")
-                                else:
-                                    st.success(f"💾 Indeed batch saved for later! Job ID: {job.id}")
-                            
+                                st.success(f"💾 Indeed batch scheduled successfully!")
+                                st.info(f"📋 Job ID: {job.id}")
+                                st.info(f"📍 Location: {batch_location}")
+                                st.info(f"📅 Schedule: {batch_frequency}")
+                                if batch_frequency == "Weekly":
+                                    st.info(f"🗓️ Days: {', '.join(batch_days)}")
+                                st.info(f"⏰ Time: {batch_time.strftime('%H:%M')} Central")
+
                             st.rerun()  # Refresh to show the job in table
                             
                         except Exception as e:

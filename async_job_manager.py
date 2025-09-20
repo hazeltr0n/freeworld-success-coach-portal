@@ -218,7 +218,7 @@ class AsyncJobManager:
                 'search_radius': search_params.get('search_radius', 50),
                 'force_fresh': True,  # Force fresh Indeed search
                 'force_fresh_classification': search_params.get('force_fresh_classification', False),
-                'no_experience': False,
+                'no_experience': search_params.get('no_experience', True),  # Use form value or default to True
                 'memory_only': False,  # We want fresh Indeed data
                 'search_sources': {'indeed': True, 'google': False},  # Indeed only
                 'search_strategy': 'fresh_first',
