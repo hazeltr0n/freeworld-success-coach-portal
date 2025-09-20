@@ -539,11 +539,6 @@ class FreeWorldJobCardFPDF(FPDF):
         self._set_font('', 10)
         metadata_items = []
         
-        # Add salary if available
-        salary_text = self._get_conditional_salary_text(job)
-        if salary_text:
-            metadata_items.append(f"Salary: {salary_text}")
-            
         # Add location (moved above route type)
         location = self._sanitize_text(pdf_data['location'])
         if location:
@@ -799,11 +794,6 @@ class FreeWorldJobCardFPDF(FPDF):
         counter_text = f"Job {job_number or 1} of {total_jobs or 1}"
         self.cell(content_width, 10, counter_text, align='C')
     
-    def _get_conditional_salary_text(self, job):
-        """Get salary text if available"""
-        pdf_data = prepare_pdf_data(job)
-        return pdf_data['salary'] if pdf_data['salary'] else ""
-        
     def _get_fair_chance_text(self, job):
         """Get fair chance policy text"""
         pdf_data = prepare_pdf_data(job)
