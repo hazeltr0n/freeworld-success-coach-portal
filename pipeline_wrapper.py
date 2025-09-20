@@ -199,6 +199,33 @@ class StreamlitPipelineWrapper:
                 except Exception:
                     pass
                 return df
+
+            def _load_latest_stage99_parquet() -> Any:
+                """Load the most recent stage 99 complete parquet file.
+                This contains the clean, canonical DataFrame from the pipeline
+                without schema mixing issues from CSV aggregation.
+                """
+                import glob
+                parquet_dir = os.path.join(self.parent_dir, 'FreeWorld_Jobs', 'parquet')
+                if not os.path.isdir(parquet_dir):
+                    return pd.DataFrame()
+
+                # Find all stage 99 complete parquet files
+                candidates = glob.glob(os.path.join(parquet_dir, '*_99_complete.parquet'))
+                if not candidates:
+                    return pd.DataFrame()
+
+                # Get the newest one by modification time
+                newest = max(candidates, key=os.path.getmtime)
+
+                try:
+                    df = pd.read_parquet(newest)
+                    print(f"📦 Loaded {len(df)} jobs from stage 99 parquet: {os.path.basename(newest)}")
+                    return df
+                except Exception as e:
+                    print(f"⚠️ Could not read stage 99 parquet {newest}: {e}")
+                    return pd.DataFrame()
+
             # Determine all locations to search (markets or a single custom location)
             # CRITICAL: When custom location is specified, do not add any other locations
             markets = params.get('markets') or []
@@ -283,12 +310,21 @@ class StreamlitPipelineWrapper:
             if combined_df is None:
                 combined_df = pd.DataFrame() if pd else None
 
-            # CSV fallback only if absolutely no jobs returned
+            # Stage 99 parquet fallback only if absolutely no jobs returned
             if combined_df.empty:
                 try:
-                    combined_df = _load_recent_market_csvs(locations_to_run, minutes=max(60, int(params.get('memory_hours', 72)) * 60 // 60))
-                except Exception:
-                    pass
+                    combined_df = _load_latest_stage99_parquet()
+                    if not combined_df.empty:
+                        print(f"✅ Successfully loaded {len(combined_df)} jobs from stage 99 parquet fallback")
+                    else:
+                        print("⚠️ No stage 99 parquet found or empty - falling back to CSV aggregation")
+                        combined_df = _load_recent_market_csvs(locations_to_run, minutes=max(60, int(params.get('memory_hours', 72)) * 60 // 60))
+                except Exception as e:
+                    print(f"⚠️ Stage 99 parquet fallback failed: {e} - falling back to CSV aggregation")
+                    try:
+                        combined_df = _load_recent_market_csvs(locations_to_run, minutes=max(60, int(params.get('memory_hours', 72)) * 60 // 60))
+                    except Exception:
+                        pass
 
             # Extract efficiency metrics from collected pipeline results
             memory_efficiency = 100.0  # Default for memory search
@@ -826,16 +862,46 @@ class StreamlitPipelineWrapper:
                 except Exception:
                     pass
 
-                for p in all_csvs:
+                # First try to load from stage 99 parquet (clean canonical data)
+                def _load_latest_stage99_parquet_main() -> Any:
+                    """Load the most recent stage 99 complete parquet file."""
+                    import glob
+                    parquet_dir = os.path.join(self.parent_dir, 'FreeWorld_Jobs', 'parquet')
+                    if not os.path.isdir(parquet_dir):
+                        return pd.DataFrame()
+
+                    candidates = glob.glob(os.path.join(parquet_dir, '*_99_complete.parquet'))
+                    if not candidates:
+                        return pd.DataFrame()
+
+                    newest = max(candidates, key=os.path.getmtime)
                     try:
-                        if p and os.path.exists(p):
-                            loaded.append(pd.read_csv(p))
+                        df = pd.read_parquet(newest)
+                        print(f"📦 Loaded {len(df)} jobs from stage 99 parquet: {os.path.basename(newest)}")
+                        return df
                     except Exception as e:
-                        print(f"⚠️ Could not read CSV {p}: {e}")
-                if loaded:
-                    df = pd.concat(loaded, ignore_index=True)
-                    total_jobs = len(df)
-                print(f"📊 Loaded {total_jobs} jobs from {len(loaded)} CSV file(s)")
+                        print(f"⚠️ Could not read stage 99 parquet {newest}: {e}")
+                        return pd.DataFrame()
+
+                # Try stage 99 parquet first
+                df = _load_latest_stage99_parquet_main()
+
+                # Only fall back to CSV aggregation if parquet loading failed
+                if df.empty:
+                    print("⚠️ Stage 99 parquet empty or failed - falling back to CSV aggregation")
+
+                    for p in all_csvs:
+                        try:
+                            if p and os.path.exists(p):
+                                loaded.append(pd.read_csv(p))
+                        except Exception as e:
+                            print(f"⚠️ Could not read CSV {p}: {e}")
+                    if loaded:
+                        df = pd.concat(loaded, ignore_index=True)
+                        total_jobs = len(df)
+                        print(f"📊 Loaded {total_jobs} jobs from {len(loaded)} CSV file(s)")
+                else:
+                    print(f"✅ Successfully loaded {len(df)} jobs from stage 99 parquet - skipping CSV aggregation")
                 try:
                     if 'meta.market' in df.columns:
                         market_counts = df['meta.market'].value_counts().to_dict()
