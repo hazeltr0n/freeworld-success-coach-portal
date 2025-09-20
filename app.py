@@ -2282,6 +2282,10 @@ def show_free_agent_management_page(coach):
             is_active = agent.get('is_active', True)
             status = "🟢 Active" if is_active else "👻 Deleted"
             
+            # Format pathway preferences for display
+            pathway_prefs = agent.get('pathway_preferences', [])
+            pathway_display = ', '.join(pathway_prefs) if pathway_prefs else 'All'
+
             agent_row = {
                 'Status': status,
                 'Free Agent Name': agent.get('agent_name', 'Unknown'),
@@ -2294,6 +2298,8 @@ def show_free_agent_management_page(coach):
                 'Fair Chance': agent.get('fair_chance_only', False),
                 'Max Jobs': agent.get('max_jobs', 25),
                 'Match Level': agent.get('match_level', 'good and so-so'),
+                'Job Type': agent.get('classifier_type', 'cdl').upper(),
+                'Career Pathways': pathway_display,
                 'City': agent.get('agent_city', ''),
                 'State': agent.get('agent_state', ''),
                 'Created': agent.get('created_at', '')[:10] if agent.get('created_at') else '',
@@ -2309,10 +2315,10 @@ def show_free_agent_management_page(coach):
             agent_data.append(agent_row)
         
         df = pd.DataFrame(agent_data)
-        # Reorder columns to prioritize metrics next to name 
+        # Reorder columns to prioritize metrics next to name
         desired_order = [
             'Status', 'Free Agent Name', f'Total Clicks ({current_lookback}d)', 'Recent (7d)', 'Applications', 'Last Applied',
-            'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Match Level', 'City', 'State', 'Created',
+            'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Match Level', 'Job Type', 'Career Pathways', 'City', 'State', 'Created',
             'Portal Link', 'Admin Portal', 'Delete', 'Restore', '_agent_uuid', '_created_at', '_original_data', '_is_active'
         ]
         df = df[[c for c in desired_order if c in df.columns]]
@@ -2367,6 +2373,19 @@ def show_free_agent_management_page(coach):
                 width="small",
                 options=["good", "so-so", "good and so-so", "all"],
                 required=True
+            ),
+            'Job Type': st.column_config.SelectboxColumn(
+                "Job Type",
+                help="Job classification type (CDL Traditional vs Career Pathways)",
+                width="small",
+                options=["CDL", "PATHWAY"],
+                required=True
+            ),
+            'Career Pathways': st.column_config.TextColumn(
+                "Career Pathways",
+                help="Preferred career pathways (comma-separated) - only applies to Pathway job type",
+                width="medium",
+                disabled=True  # Read-only for now, can be made editable later
             ),
             f'Total Clicks ({current_lookback}d)': st.column_config.NumberColumn(
                 f"Total Clicks ({current_lookback}d)",
@@ -2440,7 +2459,7 @@ def show_free_agent_management_page(coach):
         # Create a stable hash of the current dataframe state for comparison
         def get_editable_data_hash(df_row):
             """Get hash of just the editable fields for comparison"""
-            editable_fields = ['Market', 'Route', 'Fair Chance', 'Max Jobs', 'Match Level']
+            editable_fields = ['Market', 'Route', 'Fair Chance', 'Max Jobs', 'Match Level', 'Job Type']
             return hash(tuple(str(df_row[field]) for field in editable_fields))
 
         # Initialize with current state on first load to avoid false positives
@@ -2493,12 +2512,17 @@ def show_free_agent_management_page(coach):
 
                             # Create updated agent data
                             updated_agent = original_agent.copy()
+                            # Convert Job Type back to internal format
+                            classifier_type = 'cdl' if str(edited['Job Type']).upper() == 'CDL' else 'pathway'
+
                             updated_agent.update({
                                 'location': str(edited['Market']),
                                 'route_filter': str(edited['Route']),
                                 'fair_chance_only': bool(edited['Fair Chance']),
                                 'max_jobs': edited['Max Jobs'] if str(edited['Max Jobs']) == "All" else int(edited['Max Jobs']),
-                                'match_level': str(edited['Match Level'])
+                                'match_level': str(edited['Match Level']),
+                                'classifier_type': classifier_type,
+                                'pathway_preferences': original_agent.get('pathway_preferences', [])  # Keep existing pathway preferences
                             })
 
                             # Save to database
@@ -2508,7 +2532,7 @@ def show_free_agent_management_page(coach):
                                 # Update the saved state hash
                                 st.session_state.agent_table_last_saved[agent_uuid] = get_editable_data_hash(edited)
                                 # Show detailed success message for debugging
-                                st.info(f"✅ Saved changes for {edited['Free Agent Name']}: Market={edited['Market']}, Route={edited['Route']}, Fair Chance={edited['Fair Chance']}, Max Jobs={edited['Max Jobs']}, Match Level={edited['Match Level']}")
+                                st.info(f"✅ Saved changes for {edited['Free Agent Name']}: Market={edited['Market']}, Route={edited['Route']}, Fair Chance={edited['Fair Chance']}, Max Jobs={edited['Max Jobs']}, Match Level={edited['Match Level']}, Job Type={edited['Job Type']}")
                             else:
                                 error_count += 1
                                 st.error(f"❌ Failed to update {edited['Free Agent Name']}: {message}")
