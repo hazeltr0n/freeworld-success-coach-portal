@@ -3501,29 +3501,6 @@ def main():
             # Convert display to internal value
             classifier_type_value_tab = "cdl" if classifier_type_tab == "CDL Traditional" else "pathway"
 
-            # Pathway preferences (only show when Career Pathways is selected)
-            pathway_preferences_tab = []
-            if classifier_type_tab == "Career Pathways":
-                pathway_options = [
-                    ("dock_to_driver", "Dock to Driver"),
-                    ("internal_cdl_training", "CDL Training Programs"),
-                    ("warehouse_to_driver", "Warehouse to Driver"),
-                    ("logistics_progression", "Logistics Career Progression"),
-                    ("non_cdl_driving", "Non-CDL Driving"),
-                    ("general_warehouse", "General Warehouse"),
-                    ("construction_apprentice", "Construction Apprentice"),
-                    ("stepping_stone", "Career Stepping Stone")
-                ]
-
-                pathway_preferences_tab = st.multiselect(
-                    "🛤️ Career Pathway Filter:",
-                    options=[opt[0] for opt in pathway_options],
-                    format_func=lambda x: next(opt[1] for opt in pathway_options if opt[0] == x),
-                    default=[],
-                    key="tab_pathway_preferences",
-                    help="Filter jobs by specific career pathways (leave empty for all pathways)"
-                )
-
             exact_location_tab = st.checkbox(
                 "📍 Use exact location only",
                 value=False,
@@ -3575,7 +3552,7 @@ def main():
                 # No key = always follows search mode default
             )
             
-            # Row 2: Route Types and Job Quality Levels  
+            # Row 2: Route Types, Job Quality Levels, and Pathway Filter
             col1, col2, col3 = st.columns(3)
             with col1:
                 pdf_route_type_filter_tab = st.multiselect(
@@ -3594,8 +3571,29 @@ def main():
                     key="tab_pdf_match_quality_filter"
                 )
             with col3:
-                # Include memory jobs checkbox removed - no longer needed
-                pass
+                # Pathway preferences filter (only show when Career Pathways classifier is selected)
+                if classifier_type_tab == "Career Pathways":
+                    pathway_options = [
+                        ("dock_to_driver", "Dock to Driver"),
+                        ("internal_cdl_training", "CDL Training Programs"),
+                        ("warehouse_to_driver", "Warehouse to Driver"),
+                        ("logistics_progression", "Logistics Career Progression"),
+                        ("non_cdl_driving", "Non-CDL Driving"),
+                        ("general_warehouse", "General Warehouse"),
+                        ("construction_apprentice", "Construction Apprentice"),
+                        ("stepping_stone", "Career Stepping Stone")
+                    ]
+
+                    pathway_preferences_tab = st.multiselect(
+                        "🛤️ Career pathways:",
+                        options=[opt[0] for opt in pathway_options],
+                        format_func=lambda x: next(opt[1] for opt in pathway_options if opt[0] == x),
+                        default=[],
+                        key="tab_pathway_preferences",
+                        help="Filter jobs by specific career pathways (leave empty for all pathways)"
+                    )
+                else:
+                    pathway_preferences_tab = []
             
             # Row 3: Fair Chance Only, HTML Preview, and Portal Link
             col_fair, col_preview, col_portal = st.columns(3)
@@ -3851,7 +3849,6 @@ def main():
                     'push_to_airtable': False,
                     'search_radius': search_radius_tab,
                     'classifier_type': classifier_type_value_tab,
-                    'pathway_preferences': pathway_preferences_tab,
                     'force_fresh_classification': force_fresh_classification_tab if 'force_fresh_classification_tab' in locals() else False,
                     'coach_name': coach.full_name,
                     'coach_username': coach.username,
