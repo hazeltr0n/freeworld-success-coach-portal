@@ -1635,7 +1635,6 @@ class FreeWorldPipelineV3:
         if generate_pdf and len(exportable_df) > 0:
             print(f"🎯 Calling _generate_pdf with {len(exportable_df)} jobs")
             # Extract coach/candidate info from DataFrame or environment variables
-            import os
             if len(exportable_df) > 0:
                 coach_name = exportable_df.get('meta.coach_name', pd.Series()).iloc[0] if 'meta.coach_name' in exportable_df.columns else os.getenv('FREEWORLD_COACH_NAME', '')
                 coach_username = exportable_df.get('meta.coach_username', pd.Series()).iloc[0] if 'meta.coach_username' in exportable_df.columns else os.getenv('FREEWORLD_COACH_USERNAME', '')
