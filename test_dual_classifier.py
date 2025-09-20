@@ -14,7 +14,7 @@ import argparse
 # Add current directory to Python path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-def test_dual_classifier(location="Houston, TX", max_jobs=50, test_both=True):
+def test_dual_classifier(location="Houston", max_jobs=50, test_both=True):
     """
     Test both CDL and Pathway classifiers with Indeed fresh only searches
 
@@ -348,7 +348,7 @@ def main():
     """Main function with command line argument parsing"""
 
     parser = argparse.ArgumentParser(description='Test dual classification pipelines')
-    parser.add_argument('--location', default='Houston, TX', help='Search location')
+    parser.add_argument('--location', default='Houston', help='Search location')
     parser.add_argument('--max-jobs', type=int, default=50, help='Maximum jobs to process')
     parser.add_argument('--pathway-only', action='store_true', help='Test pathway classifier only')
     parser.add_argument('--verbose', action='store_true', help='Verbose output')
