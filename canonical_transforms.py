@@ -733,9 +733,9 @@ def transform_business_rules(df: pd.DataFrame, filter_settings: Dict[str, bool] 
         
         # Round 1: Company + Title + Market (market is vital ingredient!)
         r1_key = f"{company}|{title}|{market.lower()}"
-        
-        # Round 2: Company + Location (city-based deduplication - less aggressive)
-        r2_key = f"{company}|{location}"
+
+        # Round 2: Company + Market (same company, same market, any job title)
+        r2_key = f"{company}|{market.lower()}"
         
         return {
             'rules.duplicate_r1': hashlib.md5(r1_key.encode()).hexdigest()[:16],

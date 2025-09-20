@@ -49,7 +49,7 @@ COLUMN_REGISTRY = {
     'rules.experience_years_min': float, # Minimum years required
     'rules.is_spam_source': bool,     # Spam source detection
     'rules.duplicate_r1': str,        # Round 1 dedup key (company+title+market)
-    'rules.duplicate_r2': str,        # Round 2 dedup key (company+location)
+    'rules.duplicate_r2': str,        # Round 2 dedup key (company+market)
     'rules.collapse_group': str,      # Final dedup group assignment
     
     # === AI OUTPUTS (from classification APIs) ===

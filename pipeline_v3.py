@@ -1210,11 +1210,11 @@ class FreeWorldPipelineV3:
         else:
             print("⚠️  R1 deduplication disabled by filter settings")
         
-        # R2 Deduplication (company + location - less aggressive than market)
+        # R2 Deduplication (company + market - same company, same market, different titles)
         r2_dupes_removed = 0
         if filter_settings.get('r2_dedup', True):
             r2_groups = df.groupby('rules.duplicate_r2')
-            
+
             for group_key, group_df in r2_groups:
                 if len(group_df) > 1:
                     # Only dedupe if not already filtered by R1
@@ -1222,8 +1222,8 @@ class FreeWorldPipelineV3:
                     if len(unfiltered) > 1:
                         keep_idx = unfiltered.index[0]
                         dupe_indices = unfiltered.index[1:]
-                        
-                        df.loc[dupe_indices, 'route.final_status'] = 'filtered: R2 collapse (company+location)'
+
+                        df.loc[dupe_indices, 'route.final_status'] = 'filtered: R2 collapse (company+market)'
                         df.loc[dupe_indices, 'route.filtered'] = True
                         df.loc[dupe_indices, 'route.ready_for_ai'] = False  # Duplicates don't need classification
                         r2_dupes_removed += len(dupe_indices)
