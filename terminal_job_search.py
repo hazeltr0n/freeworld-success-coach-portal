@@ -293,37 +293,42 @@ class EnhancedTerminalJobSearch:
         medium_cost = self.calculator.estimate_search_cost(indeed_jobs=250)
         full_cost = self.calculator.estimate_search_cost(indeed_jobs=1000)
         
-        print(f"1. Test (100 jobs) - Quick test")
+        print(f"1. Test (10 jobs) - Quick test")
         print(f"   💰 Cost: ~${test_cost:.2f} per location")
-        
-        print(f"2. Sample (100 jobs) - Balanced search [DEFAULT]") 
+
+        print(f"2. Mini (50 jobs) - Small focused search")
         print(f"   💰 Cost: ~${sample_cost:.2f} per location")
-        
-        print(f"3. Medium (250 jobs) - Enhanced search")
+
+        print(f"3. Sample (100 jobs) - Balanced search [DEFAULT]")
+        print(f"   💰 Cost: ~${sample_cost:.2f} per location")
+
+        print(f"4. Medium (250 jobs) - Enhanced search")
         print(f"   💰 Cost: ~${sample_cost * 2.5:.2f} per location")
-        
-        print(f"4. Large (500 jobs) - Extensive search")
+
+        print(f"5. Large (500 jobs) - Extensive search")
         print(f"   💰 Cost: ~${sample_cost * 5:.2f} per location")
-        
-        print(f"5. Full (1000 jobs) - Comprehensive search")
+
+        print(f"6. Full (1000 jobs) - Comprehensive search")
         print(f"   💰 Cost: ~${full_cost:.2f} per location")
         
         while True:
             try:
-                choice = input("\nEnter mode (1-5) or press Enter for default: ").strip()
+                choice = input("\nEnter mode (1-6) or press Enter for default: ").strip()
                 
                 if choice == "1":
-                    return {"mode": "test", "limit": 50, "cost": test_cost}
-                elif choice == "2" or choice == "": 
+                    return {"mode": "test", "limit": 10, "cost": test_cost}
+                elif choice == "2":
+                    return {"mode": "mini", "limit": 50, "cost": sample_cost}
+                elif choice == "3" or choice == "":
                     return {"mode": "sample", "limit": 100, "cost": sample_cost}
-                elif choice == "3":
-                    return {"mode": "medium", "limit": 250, "cost": medium_cost}
                 elif choice == "4":
-                    return {"mode": "large", "limit": 500, "cost": sample_cost * 5}
+                    return {"mode": "medium", "limit": 250, "cost": medium_cost}
                 elif choice == "5":
+                    return {"mode": "large", "limit": 500, "cost": sample_cost * 5}
+                elif choice == "6":
                     return {"mode": "full", "limit": 1000, "cost": full_cost}
                 else:
-                    print("❌ Please enter 1, 2, 3, 4, or 5")
+                    print("❌ Please enter 1, 2, 3, 4, 5, or 6")
                     
             except ValueError:
                 print("❌ Please enter a valid number")
@@ -781,8 +786,9 @@ class EnhancedTerminalJobSearch:
         
         # Mode validation - minimum 50 jobs for meaningful results
         mode_configs = {
-            "test": {"mode": "test", "limit": 100},
-            "sample": {"mode": "sample", "limit": 100}, 
+            "test": {"mode": "test", "limit": 10},
+            "mini": {"mode": "mini", "limit": 50},
+            "sample": {"mode": "sample", "limit": 100},
             "medium": {"mode": "medium", "limit": 250},
             "large": {"mode": "large", "limit": 500},
             "full": {"mode": "full", "limit": 1000}
