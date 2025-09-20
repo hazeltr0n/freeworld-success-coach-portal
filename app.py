@@ -6256,7 +6256,7 @@ def show_combined_batches_and_scheduling_page(coach):
         async_manager = AsyncJobManager()
         
         # Create radio buttons for inner tabs (persistent navigation)
-        inner_tab_options = ["📦 Async Batches", "🗓️ Scheduled Searches", "📄 CSV Classification"]
+        inner_tab_options = ["📦 Async Batches", "📄 CSV Classification"]
         
         # Initialize session state for inner tab if not exists
         if 'inner_tab_index' not in st.session_state:
@@ -6495,114 +6495,6 @@ def show_combined_batches_and_scheduling_page(coach):
             st.markdown("### 📊 Scheduled Batches Table")
             show_simple_batch_table(coach)
         
-        elif selected_inner_tab == "🗓️ Scheduled Searches":
-            # Scheduled Searches content 
-            st.markdown("Manage your scheduled job searches and view their status.")
-            st.caption("Times below are Central Time (America/Chicago)")
-            
-            # Create new scheduled search - enhanced with Indeed async support
-            with st.expander("➕ Create New Scheduled Search"):
-                with st.form("new_scheduled_search"):
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        search_name = st.text_input("Search Name", placeholder="Dallas OTR Jobs")
-                        search_terms = st.text_input("Search Terms", value="CDL driver")
-                        location = st.text_input("Location", placeholder="Dallas, TX")
-                    
-                    with col2:
-                        sources = st.multiselect(
-                            "Sources to Search",
-                            ['google', 'indeed'],
-                            default=['google'],
-                            help="Both Google & Indeed run async batches in background"
-                        )
-                        
-                        schedule_type = st.selectbox("Frequency", ["Daily", "Weekly", "Once"])
-                        schedule_time = st.time_input("Run at (Central Time)", value=pd.Timestamp("02:00").time())
-                    
-                    if schedule_type == "Weekly":
-                        days = st.multiselect("Days of Week", 
-                            ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-                            default=["Monday", "Wednesday", "Friday"]
-                        )
-                    
-                    max_jobs = st.slider("Max Jobs per Search", 100, 1000, 500)
-                    
-                    # Advanced search options
-                    st.markdown("**Advanced Search Options**")
-                    col3, col4 = st.columns(2)
-                    
-                    with col3:
-                        search_radius = st.selectbox(
-                            "Search Radius (miles)", 
-                            [0, 25, 50, 100], 
-                            index=2,  # default to 50
-                            help="0 = Exact location only (faster), >0 = Include nearby cities"
-                        )
-                    
-                    with col4:
-                        exact_location_only = st.checkbox(
-                            "Use exact location only", 
-                            value=(search_radius == 0),
-                            help="Faster and more stable searches, but may return fewer jobs"
-                        )
-                    
-                    # Override radius if exact location is checked
-                    if exact_location_only:
-                        search_radius = 0
-                    
-                    col_btn1, col_btn2 = st.columns(2)
-                    with col_btn1:
-                        create_clicked = st.form_submit_button("Create Schedule", use_container_width=True)
-                    with col_btn2:
-                        execute_now = st.form_submit_button("🌙 Execute at Midnight", use_container_width=True, type="secondary")
-
-                    if create_clicked:
-                        st.success("Scheduled search created! (Note: Backend implementation in progress)")
-
-                    if execute_now:
-                        try:
-                            from async_job_manager import AsyncJobManager
-                            mgr = AsyncJobManager()
-                            submitted = []
-                            if 'google' in sources:
-                                params = {
-                                    'search_terms': search_terms,
-                                    'location': location,
-                                    'limit': max_jobs,
-                                    'radius': search_radius,
-                                    'exact_location': exact_location_only,
-                                    'coach_username': coach.username
-                                }
-                                job = mgr.submit_google_search(params, coach.username)
-                                submitted.append(('Google', job.id))
-                            if 'indeed' in sources:
-                                params = {
-                                    'search_terms': search_terms,
-                                    'location': location,
-                                    'limit': max_jobs,
-                                }
-                                job = mgr.submit_indeed_search(params, coach.username)
-                                submitted.append(('Indeed', job.id))
-                            if submitted:
-                                lines = "\n".join([f"• {src}: Batch #{jid}" for src, jid in submitted])
-                                st.success(f"Search submitted:\n{lines}")
-                                st.info("Track progress in the Async Batches tab.")
-                                st.rerun()
-                            else:
-                                st.info("No sources selected to execute.")
-                        except Exception as e:
-                            st.error(f"Execute error: {e}")
-            
-            # Show existing scheduled searches (placeholder)
-            st.subheader("Active Scheduled Searches")
-            st.info("📋 No scheduled searches configured yet. Backend implementation in progress.")
-            
-            # Show recent scheduled search history (placeholder)
-            st.subheader("Recent Scheduled Search History") 
-            st.info("📊 Search history will appear here once scheduling is active.")
-
         elif selected_inner_tab == "📄 CSV Classification":
             st.markdown("### 📄 Classify CSV (Outscraper → Pipeline)")
             st.caption("Drop an Outscraper CSV (Google or Indeed). We will map fields, classify with AI, and generate outputs. Markets are tracked as plain names (e.g., Dallas, Bay Area, Inland Empire). City,ST is used only for scraping — not here.")
@@ -7626,7 +7518,20 @@ def show_simple_batch_table(coach):
                             location_terms += "..."
                         st.write(location_terms)
                     with cols[5]:
-                        st.write(status)
+                        # Enhanced status display with more details
+                        if "Failed" in status and job.error_message:
+                            st.error(f"❌ Failed")
+                            with st.expander("Error Details", expanded=False):
+                                st.text(job.error_message)
+                        elif "Complete" in status:
+                            if job.result_count and job.result_count > 0:
+                                st.success(f"✅ Success ({job.result_count} jobs)")
+                            else:
+                                st.warning("⚠️ Completed (0 jobs)")
+                        elif "Running" in status:
+                            st.info("🔄 Running...")
+                        else:
+                            st.write(status)
                     with cols[6]:
                         st.write(f"{data['Total Jobs']}")
                     with cols[7]:

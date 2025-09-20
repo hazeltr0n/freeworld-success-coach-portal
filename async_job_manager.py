@@ -294,7 +294,47 @@ class AsyncJobManager:
             )
             
             raise e
-    
+
+    def store_scraped_jobs(self, df: pd.DataFrame, coach_username: str):
+        """Store scraped jobs to Supabase for analysis and tracking"""
+        if not self.supabase_client or df is None or df.empty:
+            return
+
+        records = []
+        for _, job_row in df.iterrows():
+            record = {
+                'job_hash': job_row.get('sys.hash'),
+                'source_platform': job_row.get('source.platform', 'indeed'),
+                'source_url': job_row.get('source.url'),
+                'title': job_row.get('source.title'),
+                'company': job_row.get('source.company'),
+                'location': job_row.get('source.location'),
+                'description': job_row.get('source.description'),
+                'salary': job_row.get('source.salary'),
+                'posted_date': job_row.get('source.posted_date'),
+                'scraped_at': job_row.get('sys.scraped_at'),
+                'coach_username': coach_username,
+                'ai_match': job_row.get('ai.match'),
+                'ai_summary': job_row.get('ai.summary'),
+                'ai_route_type': job_row.get('ai.route_type'),
+                'search_location': job_row.get('meta.location'),
+                'search_terms': job_row.get('meta.search_terms'),
+                'is_fresh_job': job_row.get('sys.is_fresh_job', True)
+            }
+            records.append(record)
+
+        try:
+            # Upload to Supabase table (adjust table name as needed)
+            result = self.supabase_client.table('scraped_jobs').upsert(
+                records,
+                on_conflict='job_hash'
+            ).execute()
+            print(f"✅ Successfully stored {len(records)} jobs to Supabase")
+            return result
+        except Exception as e:
+            print(f"❌ Failed to store jobs to Supabase: {e}")
+            raise e
+
     def check_job_status(self, job_id: int) -> Optional[AsyncJob]:
         """Check status of async job"""
         if not self.supabase_client:
