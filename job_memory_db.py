@@ -243,6 +243,10 @@ class JobMemoryDB:
                     'endorsements': safe_str(job.get('ai.endorsements', job.get('endorsements', 'unknown'))),
                     'route_type': safe_str(job.get('ai.route_type', job.get('route_type', ''))),
 
+                    # Career pathway fields (new for pathway classifier)
+                    'career_pathway': safe_str(job.get('ai.career_pathway', job.get('career_pathway', 'cdl_pathway'))),
+                    'training_provided': str(job.get('ai.training_provided', job.get('training_provided', False))).lower(),
+
                     # Organization and tracking (all TEXT)
                     'market': safe_str(_sanitize_market(job.get('meta.market', job.get('market', '')))),
                     'tracked_url': safe_str(job.get('meta.tracked_url', job.get('tracked_url', ''))),
