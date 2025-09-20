@@ -476,6 +476,7 @@ def airtable_find_candidates(query: str, by: str = "name", limit: int = 10):
                 "email": f.get("email") or f.get("Email") or "",
                 "city": f.get("city") or f.get("City") or "",
                 "state": f.get("state") or f.get("State") or "",
+                "admin_portal_url": f.get("Admin Portal Record") or f.get("admin_portal_url") or "",
             })
 
         return results[:limit]
@@ -1814,6 +1815,7 @@ def show_free_agent_management_page(coach):
                             'agent_email': chosen.get('email', ''),
                             'agent_city': chosen.get('city', ''),
                             'agent_state': chosen.get('state', ''),
+                            'admin_portal_url': chosen.get('admin_portal_url', ''),
                             'location': 'Houston',  # Default market
                             'route_filter': 'both',
                             'fair_chance_only': False,
@@ -2085,6 +2087,7 @@ def show_free_agent_management_page(coach):
                             agent_uuid = str(_get(row, ["agent_uuid", "uuid"]).strip()) or str(_uuid.uuid4())
                             city = str(_get(row, ["agent_city", "city"]).strip())
                             state = str(_get(row, ["agent_state", "state"]).strip())
+                            admin_portal_url = str(_get(row, ["admin_portal_url", "Admin Portal Record", "admin_portal"]).strip())
                             # Market/location policy: use market/plain for standard, custom stays exact if provided as custom later
                             market = str(_get(row, ["location", "market"]).strip()) or "Houston"
                             route_filter = str(_get(row, ["route_filter", "route"]).strip().lower() or "both")
@@ -2102,6 +2105,7 @@ def show_free_agent_management_page(coach):
                                 'agent_email': email,
                                 'agent_city': city,
                                 'agent_state': state,
+                                'admin_portal_url': admin_portal_url,
                                 'location': market,
                                 'route_filter': route_filter if route_filter in ['both', 'local', 'otr'] else 'both',
                                 'fair_chance_only': fair,
