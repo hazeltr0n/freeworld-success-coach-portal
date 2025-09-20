@@ -4056,22 +4056,15 @@ def main():
                     
                     # 3. QUALITY JOBS DATAFRAME DISPLAY
                     st.markdown("### 🎯 Quality Jobs")
-                    quality_df = df[df.get('ai.match', '').isin(['good', 'so-so'])].copy()
-                    if quality_df.empty:
-                        quality_df = df.copy()
-                    
-                    # Display columns for quality jobs
-                    display_cols = ['source.title', 'source.company', 'ai.summary', 'ai.match', 'ai.route_type', 'source.location_raw']
-                    available_cols = [col for col in display_cols if col in quality_df.columns]
-                    if available_cols:
-                        quality_display = quality_df[available_cols].copy().reset_index(drop=True)
-                        st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
-                    else:
-                        st.dataframe(quality_df.reset_index(drop=True), width="stretch", height=400, hide_index=True)
-                    
+                    from display_utils import get_quality_display_dataframe, get_full_display_dataframe
+
+                    quality_display = get_quality_display_dataframe(df)
+                    st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
+
                     # 4. COLLAPSIBLE FULL DATAFRAME
                     with st.expander(f"🔍 All Processed Jobs ({total_jobs} total)", expanded=False):
-                        st.dataframe(df.reset_index(drop=True), width="stretch", height=500, hide_index=True)
+                        full_display = get_full_display_dataframe(df)
+                        st.dataframe(full_display, width="stretch", height=500, hide_index=True)
                     
                     # HTML Preview if enabled (but NOT for Indeed searches)
                     if show_html_preview_tab and jobs_dataframe_to_dicts and render_jobs_html and not df.empty and search_type_tab not in ['indeed_fresh', 'indeed']:
@@ -4533,15 +4526,15 @@ def main():
                                     
                                     # Quality jobs for this market
                                     if not market_quality.empty:
-                                        market_display_cols = ['source.title', 'source.company', 'ai.summary', 'ai.match', 'ai.route_type', 'meta.tracked_url']
-                                        market_available_cols = [col for col in market_display_cols if col in market_quality.columns]
-                                        market_display_df = market_quality[market_available_cols].copy().reset_index(drop=True)
-                                        st.dataframe(market_display_df, width="stretch", height=300, hide_index=True)
-                                    
+                                        from display_utils import get_quality_display_dataframe, get_full_display_dataframe
+
+                                        market_quality_display = get_quality_display_dataframe(market_quality)
+                                        st.dataframe(market_quality_display, width="stretch", height=300, hide_index=True)
+
                                     # Collapsed full data for this market
                                     with st.expander(f"🔍 Full Data - {market} ({len(market_df)} total jobs)", expanded=False):
-                                        full_market_df = market_df.copy().reset_index(drop=True)
-                                        st.dataframe(full_market_df, width="stretch", height=400, hide_index=True)
+                                        market_full_display = get_full_display_dataframe(market_df)
+                                        st.dataframe(market_full_display, width="stretch", height=400, hide_index=True)
                                     
                                     st.markdown("---")
                         except Exception as e:
@@ -5801,22 +5794,15 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                 
                 # 3. QUALITY JOBS DATAFRAME DISPLAY
                 st.markdown("### 🎯 Quality Jobs")
-                quality_df = df[df.get('ai.match', '').isin(['good', 'so-so'])].copy()
-                if quality_df.empty:
-                    quality_df = df.copy()
-                
-                # Display columns for quality jobs
-                display_cols = ['source.title', 'source.company', 'ai.summary', 'ai.match', 'ai.route_type', 'source.location_raw']
-                available_cols = [col for col in display_cols if col in quality_df.columns]
-                if available_cols:
-                    quality_display = quality_df[available_cols].copy().reset_index(drop=True)
-                    st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
-                else:
-                    st.dataframe(quality_df.reset_index(drop=True), width="stretch", height=400, hide_index=True)
-                
+                from display_utils import get_quality_display_dataframe, get_full_display_dataframe
+
+                quality_display = get_quality_display_dataframe(df)
+                st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
+
                 # 4. COLLAPSIBLE FULL DATAFRAME
                 with st.expander(f"🔍 All Processed Jobs ({total_jobs} total)", expanded=False):
-                    st.dataframe(df.reset_index(drop=True), width="stretch", height=500, hide_index=True)
+                    full_display = get_full_display_dataframe(df)
+                    st.dataframe(full_display, width="stretch", height=500, hide_index=True)
                 
                 if not df.empty:
                     st.balloons()
@@ -5858,8 +5844,8 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                 'memory_only': not can_pull_fresh,  # Test accounts use memory only
                 'candidate_id': candidate_id.strip() if candidate_id else "",
                 'candidate_name': candidate_name.strip() if candidate_name else "",
-                'search_sources': {'indeed': True, 'google': False},  # Indeed + memory
-                'search_strategy': 'indeed_first'
+                'search_sources': {'indeed': True, 'google': False},  # Indeed API only
+                'search_strategy': 'fresh_only' if is_fresh_only else 'indeed_first'
             }
             
             

@@ -1015,11 +1015,12 @@ class FreeWorldPipelineV3:
         all_fresh_jobs = fresh_jobs + google_jobs
         print(f"🔄 Combined total: {len(all_fresh_jobs)} fresh jobs")
         
-        # Get memory jobs for all sources
-        if all_fresh_jobs:
+        # Get memory jobs for all sources (only if not forcing fresh)
+        memory_lookup = {}
+        if all_fresh_jobs and not force_fresh:
             job_ids = [self._generate_job_id_from_raw(job) for job in all_fresh_jobs]
             memory_lookup = self.memory_db.check_job_memory(job_ids, hours=72)
-            
+
             if memory_lookup:
                 memory_jobs = list(memory_lookup.values())
                 print(f"✅ Found {len(memory_jobs)} jobs in memory")
@@ -1033,6 +1034,8 @@ class FreeWorldPipelineV3:
                     print(f"   🔎 Memory classification breakdown: quality={total_quality} (good={good}, so-so={so_so}), bad={bad}")
                 except Exception:
                     pass
+        elif force_fresh and all_fresh_jobs:
+            print(f"🚫 Skipping memory lookup (force_fresh=True) - {len(all_fresh_jobs)} fresh jobs only")
         
         # Transform and merge data from all sources
         indeed_df = transform_ingest_outscraper(fresh_jobs, self.run_id, query_location) if fresh_jobs else build_empty_df()
