@@ -281,7 +281,7 @@ class JobMemoryDB:
             # Use batch insert with automatic deduplication
             try:
                 result = self.supabase.rpc('batch_insert_jobs_with_dedup', {'p_jobs_data': records}).execute()
-                
+
                 if result.data is not None:  # RPC returns count or error
                     count = result.data if isinstance(result.data, int) else len(records)
                     logger.info(f"✅ Stored {count} job classifications with deduplication in memory database")
@@ -289,14 +289,14 @@ class JobMemoryDB:
                 else:
                     logger.error("Failed to store job classifications with deduplication")
                     return False
-                    
+
             except Exception as rpc_error:
                 logger.warning(f"Database deduplication failed, falling back to upsert: {rpc_error}")
-                
+
                 # Fallback to upsert since job_id is primary key and may have duplicates
                 # This will update existing records or insert new ones
                 result = self.supabase.table('jobs').upsert(records).execute()
-                
+
                 if result.data:
                     logger.info(f"✅ Stored {len(result.data)} job classifications in memory database (fallback mode)")
                     return True
