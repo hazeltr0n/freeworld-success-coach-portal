@@ -274,17 +274,23 @@ def build_empty_df() -> pd.DataFrame:
 
 def ensure_schema(df: pd.DataFrame) -> pd.DataFrame:
     """Ensure DataFrame has all required columns with correct types"""
-    
-    # Add missing columns with defaults
+
+    # Identify missing columns and their default values
+    missing_cols = {}
     for col, dtype in COLUMN_REGISTRY.items():
         if col not in df.columns:
             if dtype == bool:
-                df[col] = False
+                missing_cols[col] = False
             elif dtype in [int, float]:
-                df[col] = None
+                missing_cols[col] = None
             else:
-                df[col] = ''
-    
+                missing_cols[col] = ''
+
+    # Add all missing columns at once using pd.concat to avoid fragmentation
+    if missing_cols:
+        missing_df = pd.DataFrame(missing_cols, index=df.index)
+        df = pd.concat([df, missing_df], axis=1)
+
     # Ensure column order matches registry (preserve existing data)
     df = df.reindex(columns=list(COLUMN_REGISTRY.keys()))
     

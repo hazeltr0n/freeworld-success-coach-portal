@@ -564,7 +564,11 @@ class StreamlitPipelineWrapper:
                 
             if params.get('force_fresh_classification'):
                 cmd.append('--force-fresh-classification')
-            
+
+            # Add classifier type parameter (cdl or pathway)
+            if params.get('classifier_type', 'cdl') != 'cdl':
+                cmd.extend(['--classifier-type', params.get('classifier_type')])
+
             # Set coach name in environment and preserve Python path
             env = os.environ.copy()
             if params.get('coach_name'):
