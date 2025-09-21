@@ -21,8 +21,8 @@ class FreeWorldJobScraper:
         self.hybrid_classifier = HybridMemoryClassifier()  # New hybrid system
         self.filters = JobFilters()
     
-    def search_indeed_jobs(self, indeed_url, limit=50, location=None, disable_optimization=False):
-        """Search Indeed using the constructed URL with cost optimization"""
+    def search_indeed_jobs(self, indeed_url_or_urls, limit=50, location=None, disable_optimization=False):
+        """Search Indeed using single URL or multiple URLs with cost optimization"""
         
         # Check for existing quality jobs to reduce scraping costs (unless disabled)
         existing_jobs = pd.DataFrame()
@@ -52,14 +52,22 @@ class FreeWorldJobScraper:
                         print(f"   🎯 No scraping needed! Using {existing_count} existing jobs")
                         return self._process_existing_airtable_jobs(existing_jobs)
         
+        # Handle multiple URLs or single URL
+        if isinstance(indeed_url_or_urls, list):
+            # Multiple URLs - pass as list directly to Outscraper API
+            query_urls = indeed_url_or_urls
+            print(f"🔍 Searching {len(indeed_url_or_urls)} Indeed queries for {actual_limit} jobs each...")
+        else:
+            # Single URL (backward compatibility)
+            query_urls = indeed_url_or_urls
+            print(f"🔍 Searching Indeed for {actual_limit} jobs...")
+
         url = "https://api.outscraper.cloud/indeed-search"
         params = {
-            'query': indeed_url,
+            'query': query_urls,  # Can be string or list - requests handles both
             'limit': actual_limit,
             'async': 'false'
         }
-        
-        print(f"🔍 Searching Indeed for {actual_limit} jobs...")
         
         response = requests.get(url, headers=self.headers, params=params)
         
@@ -86,9 +94,16 @@ class FreeWorldJobScraper:
                     return existing_jobs_list
                 return []
             
-            if data.get('data') and len(data['data'][0]) > 0:
-                jobs = data['data'][0]
-                print(f"✅ Found {len(jobs)} Indeed jobs (requested {actual_limit})")
+            if data.get('data') and len(data['data']) > 0:
+                # Handle multiple queries - flatten all results
+                all_jobs = []
+                for i, query_result in enumerate(data['data']):
+                    if isinstance(query_result, list):
+                        all_jobs.extend(query_result)
+                        print(f"   Query {i+1}: {len(query_result)} jobs")
+
+                jobs = all_jobs
+                print(f"✅ Found {len(jobs)} total Indeed jobs from {len(data['data'])} queries (requested {actual_limit} per query)")
                 if len(jobs) < actual_limit:
                     print(f"⚠️  API returned fewer jobs than requested ({len(jobs)} < {actual_limit})")
                     print("   This might be an API limit or search result limit")
@@ -514,8 +529,10 @@ class FreeWorldJobScraper:
             print("⏸️  Indeed search not enabled")
             return []
 
+        # Handle both single URL (indeed_url) and multiple URLs (indeed_urls)
+        indeed_queries = search_params.get('indeed_urls') or search_params.get('indeed_url')
         raw_jobs = self._fetch_raw_indeed_jobs(
-            search_params['indeed_url'], 
+            indeed_queries,
             mode_info['indeed_limit']
         )
         
@@ -526,16 +543,25 @@ class FreeWorldJobScraper:
         print(f"✅ Retrieved {len(raw_jobs)} raw jobs from Indeed")
         return raw_jobs
 
-    def _fetch_raw_indeed_jobs(self, indeed_url, limit):
+    def _fetch_raw_indeed_jobs(self, indeed_url_or_urls, limit):
         """Fetch raw job data from Indeed API without any processing"""
+
+        # Handle multiple URLs or single URL
+        if isinstance(indeed_url_or_urls, list):
+            # Multiple URLs - pass as list directly to Outscraper API
+            query_urls = indeed_url_or_urls
+            print(f"🔍 Fetching {limit} raw jobs from {len(indeed_url_or_urls)} Indeed queries...")
+        else:
+            # Single URL (backward compatibility)
+            query_urls = indeed_url_or_urls
+            print(f"🔍 Fetching {limit} raw jobs from Indeed API...")
+
         url = "https://api.outscraper.cloud/indeed-search"
         params = {
-            'query': indeed_url,
+            'query': query_urls,  # Can be string or list - requests handles both
             'limit': limit,
             'async': 'false'
         }
-        
-        print(f"🔍 Fetching {limit} raw jobs from Indeed API...")
         
         response = requests.get(url, headers=self.headers, params=params)
         
@@ -549,12 +575,19 @@ class FreeWorldJobScraper:
             print(f"❌ JSON parsing failed: {json_error}")
             return []
             
-        if not (data.get('data') and len(data['data'][0]) > 0):
+        if not (data.get('data') and len(data['data']) > 0):
             print("❌ No job data found in API response")
             return []
-            
-        jobs = data['data'][0]
-        print(f"✅ API returned {len(jobs)} raw jobs")
+
+        # Handle multiple queries - flatten all results
+        all_jobs = []
+        for i, query_result in enumerate(data['data']):
+            if isinstance(query_result, list):
+                all_jobs.extend(query_result)
+                print(f"   Raw Query {i+1}: {len(query_result)} jobs")
+
+        jobs = all_jobs
+        print(f"✅ API returned {len(jobs)} total raw jobs from {len(data['data'])} queries")
         
         # Return raw Indeed API data without any processing
         return jobs

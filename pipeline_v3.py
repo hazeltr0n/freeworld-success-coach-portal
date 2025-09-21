@@ -987,19 +987,26 @@ class FreeWorldPipelineV3:
         if effective_limit > 0 and search_sources.get('indeed', False):
             print(f"🔍 Searching Indeed API for {effective_limit} jobs...")
             try:
-                # Build Indeed URL for search
-                encoded_terms = search_terms.replace(' ', '+')
+                # Split search terms and create separate URLs for each term
+                search_terms_list = [term.strip() for term in search_terms.split(',') if term.strip()]
+                print(f"🔍 Creating {len(search_terms_list)} separate Indeed queries: {', '.join(search_terms_list)}")
+
                 encoded_location = query_location.replace(' ', '+').replace(',', '%2C')
-                indeed_url = f"https://www.indeed.com/jobs?q={encoded_terms}&l={encoded_location}&radius={int(radius)}"
-                if no_experience:
-                    # Add "no experience" search context. 'sc' param encoding retained from v2
-                    indeed_url += "&sc=0kf%3Aattr%28D7S5D%29%3B"
-                
+                indeed_urls = []
+
+                for term in search_terms_list:
+                    encoded_term = term.replace(' ', '+')
+                    indeed_url = f"https://www.indeed.com/jobs?q={encoded_term}&l={encoded_location}&radius={int(radius)}"
+                    if no_experience:
+                        # Add "no experience" search context
+                        indeed_url += "&sc=0kf%3Aattr%28D7S5D%29%3B"
+                    indeed_urls.append(indeed_url)
+
                 search_params = {
                     'location': query_location,
                     'search_terms': search_terms,
                     'search_indeed': True,  # Enable Indeed search
-                    'indeed_url': indeed_url,
+                    'indeed_urls': indeed_urls,  # Multiple URLs instead of single URL
                     'radius': radius,
                     'no_experience': no_experience
                 }
