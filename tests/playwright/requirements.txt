@@ -1,0 +1,36 @@
+# FreeWorld Success Coach Portal - Test Dependencies
+
+# Core testing framework
+pytest>=7.4.0
+pytest-html>=3.2.0
+pytest-xdist>=3.3.0
+
+# Browser automation
+playwright>=1.40.0
+
+# Environment and configuration
+python-dotenv>=1.0.0
+
+# HTTP requests for API testing
+requests>=2.31.0
+
+# Data manipulation and analysis
+pandas>=2.0.0
+
+# JSON handling and utilities
+jsonschema>=4.19.0
+
+# Date and time utilities
+python-dateutil>=2.8.0
+
+# Async support
+asyncio>=3.4.3
+
+# Logging and debugging
+colorlog>=6.7.0
+
+# Optional: For advanced reporting
+allure-pytest>=2.13.0
+
+# Optional: For performance testing
+pytest-benchmark>=4.0.0

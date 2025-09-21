@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.117" timestamp="2025-09-21T22:27:08.699792+00:00" hostname="codespaces-7d04bd"><testcase classname="" name="test_scheduled_search" time="0.000"><error message="collection failure">ImportError while importing test module '/workspaces/freeworld-success-coach-portal/tests/playwright/test_scheduled_search.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/usr/local/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_scheduled_search.py:10: in &lt;module&gt;
+    from conftest import (
+E   ImportError: cannot import name 'TestDataCollector' from 'conftest' (/workspaces/freeworld-success-coach-portal/tests/playwright/conftest.py)</error></testcase></testsuite></testsuites>

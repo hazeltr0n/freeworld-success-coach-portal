@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="6" failures="0" skipped="0" tests="6" time="135.573" timestamp="2025-09-21T22:24:48.174922+00:00" hostname="codespaces-7d04bd"><testcase classname="test_search_paths.TestSearchPaths" name="test_memory_only_cdl_traditional[chromium]" time="23.424"><error message="failed on setup with &quot;playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 10000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;iframe[title=\&quot;streamlitApp\&quot;]&quot;).content_frame.locator(&quot;text=\&quot;Search Parameters\&quot;&quot;) to be visible&quot;">conftest.py:80: in authenticated_admin_page
+    login_as_admin(page)
+conftest.py:119: in login_as_admin
+    iframe_locator.locator('text="Search Parameters"').wait_for(timeout=10000)
+/home/vscode/.local/lib/python3.11/site-packages/playwright/sync_api/_generated.py:17975: in wait_for
+    self._sync(self._impl_obj.wait_for(timeout=timeout, state=state))
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_locator.py:692: in wait_for
+    await self._frame.wait_for_selector(
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_frame.py:369: in wait_for_selector
+    await self._channel.send(
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_connection.py:558: in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E   playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 10000ms exceeded.
+E   Call log:
+E     - waiting for locator("iframe[title=\"streamlitApp\"]").content_frame.locator("text=\"Search Parameters\"") to be visible</error></testcase><testcase classname="test_search_paths.TestSearchPaths" name="test_memory_only_career_pathways[chromium]" time="22.388"><error message="failed on setup with &quot;playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 10000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;iframe[title=\&quot;streamlitApp\&quot;]&quot;).content_frame.locator(&quot;text=\&quot;Search Parameters\&quot;&quot;) to be visible&quot;">conftest.py:80: in authenticated_admin_page
+    login_as_admin(page)
+conftest.py:119: in login_as_admin
+    iframe_locator.locator('text="Search Parameters"').wait_for(timeout=10000)
+/home/vscode/.local/lib/python3.11/site-packages/playwright/sync_api/_generated.py:17975: in wait_for
+    self._sync(self._impl_obj.wait_for(timeout=timeout, state=state))
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_locator.py:692: in wait_for
+    await self._frame.wait_for_selector(
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_frame.py:369: in wait_for_selector
+    await self._channel.send(
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_connection.py:558: in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E   playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 10000ms exceeded.
+E   Call log:
+E     - waiting for locator("iframe[title=\"streamlitApp\"]").content_frame.locator("text=\"Search Parameters\"") to be visible</error></testcase><testcase classname="test_search_paths.TestSearchPaths" name="test_indeed_fresh_cdl_traditional[chromium]" time="22.624"><error message="failed on setup with &quot;playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 10000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;iframe[title=\&quot;streamlitApp\&quot;]&quot;).content_frame.locator(&quot;text=\&quot;Search Parameters\&quot;&quot;) to be visible&quot;">conftest.py:80: in authenticated_admin_page
+    login_as_admin(page)
+conftest.py:119: in login_as_admin
+    iframe_locator.locator('text="Search Parameters"').wait_for(timeout=10000)
+/home/vscode/.local/lib/python3.11/site-packages/playwright/sync_api/_generated.py:17975: in wait_for
+    self._sync(self._impl_obj.wait_for(timeout=timeout, state=state))
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_locator.py:692: in wait_for
+    await self._frame.wait_for_selector(
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_frame.py:369: in wait_for_selector
+    await self._channel.send(
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_connection.py:558: in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E   playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 10000ms exceeded.
+E   Call log:
+E     - waiting for locator("iframe[title=\"streamlitApp\"]").content_frame.locator("text=\"Search Parameters\"") to be visible</error></testcase><testcase classname="test_search_paths.TestSearchPaths" name="test_indeed_fresh_career_pathways[chromium]" time="22.051"><error message="failed on setup with &quot;playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 10000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;iframe[title=\&quot;streamlitApp\&quot;]&quot;).content_frame.locator(&quot;text=\&quot;Search Parameters\&quot;&quot;) to be visible&quot;">conftest.py:80: in authenticated_admin_page
+    login_as_admin(page)
+conftest.py:119: in login_as_admin
+    iframe_locator.locator('text="Search Parameters"').wait_for(timeout=10000)
+/home/vscode/.local/lib/python3.11/site-packages/playwright/sync_api/_generated.py:17975: in wait_for
+    self._sync(self._impl_obj.wait_for(timeout=timeout, state=state))
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_locator.py:692: in wait_for
+    await self._frame.wait_for_selector(
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_frame.py:369: in wait_for_selector
+    await self._channel.send(
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_connection.py:558: in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E   playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 10000ms exceeded.
+E   Call log:
+E     - waiting for locator("iframe[title=\"streamlitApp\"]").content_frame.locator("text=\"Search Parameters\"") to be visible</error></testcase><testcase classname="test_search_paths.TestSearchPaths" name="test_multiple_search_terms_indeed_fresh[chromium]" time="22.320"><error message="failed on setup with &quot;playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 10000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;iframe[title=\&quot;streamlitApp\&quot;]&quot;).content_frame.locator(&quot;text=\&quot;Search Parameters\&quot;&quot;) to be visible&quot;">conftest.py:80: in authenticated_admin_page
+    login_as_admin(page)
+conftest.py:119: in login_as_admin
+    iframe_locator.locator('text="Search Parameters"').wait_for(timeout=10000)
+/home/vscode/.local/lib/python3.11/site-packages/playwright/sync_api/_generated.py:17975: in wait_for
+    self._sync(self._impl_obj.wait_for(timeout=timeout, state=state))
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_locator.py:692: in wait_for
+    await self._frame.wait_for_selector(
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_frame.py:369: in wait_for_selector
+    await self._channel.send(
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_connection.py:558: in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E   playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 10000ms exceeded.
+E   Call log:
+E     - waiting for locator("iframe[title=\"streamlitApp\"]").content_frame.locator("text=\"Search Parameters\"") to be visible</error></testcase><testcase classname="test_search_paths.TestSearchPaths" name="test_filter_combinations[chromium]" time="21.872"><error message="failed on setup with &quot;playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 10000ms exceeded.&#10;Call log:&#10;  - waiting for locator(&quot;iframe[title=\&quot;streamlitApp\&quot;]&quot;).content_frame.locator(&quot;text=\&quot;Search Parameters\&quot;&quot;) to be visible&quot;">conftest.py:80: in authenticated_admin_page
+    login_as_admin(page)
+conftest.py:119: in login_as_admin
+    iframe_locator.locator('text="Search Parameters"').wait_for(timeout=10000)
+/home/vscode/.local/lib/python3.11/site-packages/playwright/sync_api/_generated.py:17975: in wait_for
+    self._sync(self._impl_obj.wait_for(timeout=timeout, state=state))
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_locator.py:692: in wait_for
+    await self._frame.wait_for_selector(
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_frame.py:369: in wait_for_selector
+    await self._channel.send(
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_connection.py:69: in send
+    return await self._connection.wrap_api_call(
+/home/vscode/.local/lib/python3.11/site-packages/playwright/_impl/_connection.py:558: in wrap_api_call
+    raise rewrite_error(error, f"{parsed_st['apiName']}: {error}") from None
+E   playwright._impl._errors.TimeoutError: Locator.wait_for: Timeout 10000ms exceeded.
+E   Call log:
+E     - waiting for locator("iframe[title=\"streamlitApp\"]").content_frame.locator("text=\"Search Parameters\"") to be visible</error></testcase></testsuite></testsuites>
