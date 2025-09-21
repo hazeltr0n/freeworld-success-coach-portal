@@ -60,6 +60,8 @@ COLUMN_REGISTRY = {
     'ai.fair_chance': str,            # Background check analysis
     'ai.endorsements': str,           # CDL endorsement requirements
     'ai.route_type': str,             # Local|OTR|Regional
+    'ai.career_pathway': str,         # Career pathway classification
+    'ai.training_provided': bool,     # Whether training is provided
     'ai.raw_response': str,           # Full API response (optional)
     
     # === ROUTING (pipeline state management) ===
