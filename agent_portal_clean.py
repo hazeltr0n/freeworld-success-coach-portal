@@ -115,7 +115,6 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
 
             if jobs_list:
                 # Convert list of dicts back to DataFrame
-                import pandas as pd
                 df = pd.DataFrame(jobs_list)
 
                 print(f"🎯 CLEAN AGENT PORTAL: instant_memory_search found {len(df)} jobs (after feedback filtering)")
