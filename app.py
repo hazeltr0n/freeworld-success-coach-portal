@@ -6617,8 +6617,10 @@ def show_combined_batches_and_scheduling_page(coach):
                 chosen_market = st.selectbox("Target Market (stored in meta.market)", standard_markets, index=1,
                                              help="Used when 'Choose one market' is selected, and as fallback for unmapped values.")
                 route_filter = st.selectbox("Route Filter", ["both", "local", "otr"], index=0)
+                classifier_type = st.selectbox("Classifier Type", ["cdl", "pathway"], index=0,
+                                             help="CDL: Traditional CDL driver jobs | Pathway: Career pathway opportunities")
             with colR:
-                st.caption("This path classifies CSV jobs and stores them to Supabase memory database with tracking URLs. No PDFs generated.")
+                st.caption("This path classifies CSV jobs and stores them to Supabase memory database with tracking URLs. No PDFs generated. Choose classifier type: CDL for driver jobs, Pathway for career progression analysis.")
                 if uploaded is not None and market_source == "Map from CSV column":
                     # Let the user pick the market column before running
                     default_idx = 0
@@ -6805,10 +6807,15 @@ def show_combined_batches_and_scheduling_page(coach):
                     st.info("🧼 Deduplicating…")
                     df_dedup = pipe._stage4_deduplication(df_rules)
                     st.success(f"✅ Deduped to {len(df_dedup)} rows")
-                    st.info("🤖 Classifying with AI…")
-                    df_ai = pipe._stage5_ai_classification(df_dedup, force_fresh_classification=True)
+                    classifier_emoji = "🎯" if classifier_type == "pathway" else "🚛"
+                    classifier_name = "Pathway Classifier" if classifier_type == "pathway" else "CDL Classifier"
+                    st.info(f"🤖 Classifying with AI using {classifier_emoji} {classifier_name}…")
+                    df_ai = pipe._stage5_ai_classification(df_dedup, force_fresh_classification=True, classifier_type=classifier_type)
                     try:
                         st.write("🔎 Match breakdown:", df_ai['ai.match'].value_counts().to_dict())
+                        if classifier_type == "pathway" and 'ai.career_pathway' in df_ai.columns:
+                            pathway_counts = df_ai['ai.career_pathway'].value_counts().to_dict()
+                            st.write("🎯 Career pathway breakdown:", pathway_counts)
                     except Exception:
                         pass
                     st.info("🧭 Deriving route types and routing…")
