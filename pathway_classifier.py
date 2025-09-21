@@ -236,15 +236,21 @@ Jobs should be classified as **good** if they:
 - Provide clear advancement opportunities
 - Are entry-level friendly with training provided
 
+Jobs should be classified as **so-so** if they:
+- Prefer experience but do not require it
+
+Jobs should be classified as **bad** if they:
+- Require ANY amount of truck driving experience. Our candidates know how to drive and hold CDLs, but they have no CDL or driving work history AT ALL
+- Mention any hard experience requirements that would disqualify entry-level candidates
+
 3. **AUTOMATIC DISQUALIFIERS**:
    - Owner-operator/1099 (must own truck/trailer) → BAD
    - School bus driving → BAD
-   - Requires non-CDL certifications or licenses (except CDL endorsements) → BAD
    - Professional licenses required (nursing, electrician, plumbing, etc.) → BAD
    - Industry-specific certifications required (forklift, OSHA, safety certs) → BAD
+   - ANY truck driving experience requirements (6 months, 1 year, 2+ years, etc.) → BAD
+   - Hard experience requirements for entry-level positions → BAD
 
-**ENDORSEMENT REQUIREMENTS:**
-FreeWorld candidates have CDL-A with basic training on air brakes, combination vehicles, and manual transmissions. ENDORSEMENTS ARE NOT A BARRIER. FreeWorld helps Free Agents get ANY endorsement they need to get work.
 
 IMPORTANT: For each job, you MUST create a detailed summary that is EXACTLY 6-8 sentences long.
 
@@ -693,12 +699,21 @@ Jobs should be classified as **good** if they:
 - Provide clear advancement opportunities
 - Are entry-level friendly with training provided
 
+Jobs should be classified as **so-so** if they:
+- Prefer experience but do not require it
+
+Jobs should be classified as **bad** if they:
+- Require ANY amount of truck driving experience. Our candidates know how to drive and hold CDLs, but they have no CDL or driving work history AT ALL
+- Mention any hard experience requirements that would disqualify entry-level candidates
+
 3. **AUTOMATIC DISQUALIFIERS**:
    - Owner-operator/1099 (must own truck/trailer) → BAD
    - School bus driving → BAD
    - Requires non-CDL certifications or licenses (except CDL endorsements) → BAD
    - Professional licenses required (nursing, electrician, plumbing, etc.) → BAD
    - Industry-specific certifications required (forklift, OSHA, safety certs) → BAD
+   - ANY truck driving experience requirements (6 months, 1 year, 2+ years, etc.) → BAD
+   - Hard experience requirements for entry-level positions → BAD
 
 **ENDORSEMENT REQUIREMENTS:**
 FreeWorld candidates have CDL-A with basic training on air brakes, combination vehicles, and manual transmissions. ENDORSEMENTS ARE NOT A BARRIER. FreeWorld helps Free Agents get ANY endorsement they need to get work.
