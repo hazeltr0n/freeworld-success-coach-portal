@@ -726,12 +726,10 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
             # Supabase doesn't have NOT IN, so we'll filter after retrieval
             pass  # We'll filter these out after getting results
         
-        # Location filter
-        query = query.ilike('location', f'%{location}%')
-        
-        # Market filter (crucial for R1 deduplication)
-        if market:
-            query = query.eq('market', market)
+        # Market filter (crucial for R1 deduplication) - use market field for consistent matching
+        # Use provided market parameter, otherwise fall back to location
+        market_value = market or location
+        query = query.eq('market', market_value)
         
         # Time filter
         query = query.gte('created_at', cutoff_time.isoformat())

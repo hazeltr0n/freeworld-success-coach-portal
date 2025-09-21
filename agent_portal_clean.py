@@ -97,6 +97,16 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
 
             location = agent_params.get('location', 'Houston')
 
+            # BACKWARDS COMPATIBILITY: Handle route_type_filter (new) vs route_filter (old)
+            if 'route_type_filter' in agent_params and 'route_filter' not in agent_params:
+                if agent_params['route_type_filter'] == 'both':
+                    agent_params['route_filter'] = ['Local', 'OTR', 'Unknown']
+                elif agent_params['route_type_filter'] == 'local':
+                    agent_params['route_filter'] = ['Local']
+                elif agent_params['route_type_filter'] == 'otr':
+                    agent_params['route_filter'] = ['OTR']
+                print(f"🔄 COMPATIBILITY: Mapped route_type_filter='{agent_params['route_type_filter']}' to route_filter={agent_params['route_filter']}")
+
             print(f"🎯 CLEAN AGENT PORTAL: Running instant_memory_search for location: {location}")
             print(f"🎯 AGENT FILTER DEBUG: Using route_filter='{agent_params.get('route_filter')}', fair_chance_only={agent_params.get('fair_chance_only')}, max_jobs={agent_params.get('max_jobs')}")
 
