@@ -3177,9 +3177,49 @@ def show_system_testing_page(coach):
     st.markdown("• Cost calculator tests")
     st.markdown("• Debug tools")
 
+def show_loan_calculator():
+    """Show the loan calculator portal"""
+    try:
+        from loan_calculator import generate_calculator_html
+
+        # Apply Streamlit CSS overrides (same as agent portal)
+        st.markdown("""
+        <style>
+        /* Remove Streamlit height constraints */
+        html, body, [data-testid="stAppViewContainer"], section.main,
+        [data-testid="block-container"] {
+          height: auto !important;
+          min-height: 100vh !important;
+          overflow: visible !important;
+        }
+        /* Make sure content flows naturally */
+        [data-testid="stVerticalBlock"] { overflow: visible !important; }
+        /* Remove default Streamlit padding */
+        [data-testid="stAppViewContainer"] { padding: 0 !important; }
+        .block-container { padding-top: 0 !important; margin-top: 0 !important; }
+        /* Hide Streamlit chrome */
+        #MainMenu, header, footer { display: none !important; }
+        [data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="stStatusWidget"] { display: none !important; }
+        .viewerBadge_link__wrapper, .viewerBadge_container__2QSsR { display: none !important; }
+        a[href^="https://streamlit.io"] { display: none !important; }
+        </style>
+        """, unsafe_allow_html=True)
+
+        # Use st.components.v1.html() with calculated height (same pattern as agent portal)
+        calculator_html = generate_calculator_html()
+        st.components.v1.html(calculator_html, height=1400, scrolling=True)
+
+    except ImportError as e:
+        st.error("❌ Loan calculator module not found")
+        st.markdown("The loan calculator feature is not available in this deployment.")
+        st.code(str(e))
+    except Exception as e:
+        st.error(f"❌ Error loading loan calculator: {str(e)}")
+        st.code(str(e))
+
 def main():
     """Main Streamlit application"""
-    
+
     # Check for public-facing agent portal link FIRST
     try:
         params = st.query_params
@@ -3187,12 +3227,19 @@ def main():
         agent_uuid_param = params.get("agent")
         clear_cache_param = params.get("clear")
         debug_frame_param = params.get("debug_frame")
+        loan_calculator_param = params.get("loan_calculator") or params.get("loan")
     except Exception: # Fallback if query params fail
         agent_config = None
         agent_uuid_param = None
         clear_cache_param = None
         debug_frame_param = None
-    
+        loan_calculator_param = None
+
+    # Route to loan calculator if parameter detected
+    if loan_calculator_param:
+        show_loan_calculator()
+        st.stop()
+
     # URL-based cache clearing removed to prevent issues
 
     if agent_config or agent_uuid_param:
