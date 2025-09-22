@@ -22,14 +22,14 @@ def show_free_agents_dashboard(coach):
         from free_agents_rollup import (
             get_free_agents_analytics, get_high_engagement_agents,
             get_inactive_agents, get_market_agent_breakdown,
-            update_free_agents_analytics_table
+            update_free_agents_analytics_table, get_client
         )
     except ImportError:
         st.error("❌ Free agents analytics module not available")
         return
 
     # Control buttons
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
         if st.button("🔄 Update Analytics Data"):
             with st.spinner("Updating free agents analytics..."):
@@ -41,16 +41,39 @@ def show_free_agents_dashboard(coach):
                     st.error(f"❌ Failed to update: {e}")
 
     with col2:
-        show_coach_filter = st.checkbox("👨‍🏫 My Agents Only", value=True)
+        if st.button("⚡ Manual Refresh"):
+            with st.spinner("Running manual agents refresh..."):
+                try:
+                    client = get_client()
+                    if client:
+                        # Call the Supabase scheduled function manually
+                        result = client.rpc('scheduled_agents_refresh').execute()
+                        if result.data and isinstance(result.data, dict):
+                            if result.data.get('success'):
+                                agents_updated = result.data.get('agents_updated', 0)
+                                st.success(f"✅ Manual refresh completed! Updated {agents_updated} agents.")
+                            else:
+                                error_msg = result.data.get('error', 'Unknown error')
+                                st.error(f"❌ Refresh failed: {error_msg}")
+                        else:
+                            st.success("✅ Manual refresh completed!")
+                        st.rerun()
+                    else:
+                        st.error("❌ Supabase client not available")
+                except Exception as e:
+                    st.error(f"❌ Manual refresh failed: {e}")
 
     with col3:
+        show_coach_filter = st.checkbox("👨‍🏫 My Agents Only", value=True)
+
+    with col4:
         activity_filter = st.selectbox(
             "🎯 Activity Level",
             ["All Levels", "High", "Medium", "Low", "New", "Inactive"],
             index=0
         )
 
-    with col4:
+    with col5:
         market_filter = st.selectbox(
             "🌍 Market Filter",
             ["All Markets", "Houston", "Dallas", "Las Vegas", "Bay Area", "Denver", "Phoenix", "Other"],

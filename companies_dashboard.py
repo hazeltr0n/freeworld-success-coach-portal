@@ -22,14 +22,14 @@ def show_companies_dashboard():
         from companies_rollup import (
             get_company_analytics, get_fair_chance_companies,
             get_market_company_breakdown, update_companies_table,
-            update_company_blacklist
+            update_company_blacklist, get_client
         )
     except ImportError:
         st.error("❌ Companies rollup module not available")
         return
     
     # Control buttons
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         if st.button("🔄 Update Companies Data"):
             with st.spinner("Updating companies rollup table..."):
@@ -39,13 +39,36 @@ def show_companies_dashboard():
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Failed to update: {e}")
-    
+
     with col2:
-        show_fair_chance_only = st.checkbox("🤝 Fair Chance Only")
-    
+        if st.button("⚡ Manual Refresh"):
+            with st.spinner("Running manual companies refresh..."):
+                try:
+                    client = get_client()
+                    if client:
+                        # Call the Supabase scheduled function manually
+                        result = client.rpc('scheduled_companies_refresh').execute()
+                        if result.data and isinstance(result.data, dict):
+                            if result.data.get('success'):
+                                companies_updated = result.data.get('companies_updated', 0)
+                                st.success(f"✅ Manual refresh completed! Updated {companies_updated} companies.")
+                            else:
+                                error_msg = result.data.get('error', 'Unknown error')
+                                st.error(f"❌ Refresh failed: {error_msg}")
+                        else:
+                            st.success("✅ Manual refresh completed!")
+                        st.rerun()
+                    else:
+                        st.error("❌ Supabase client not available")
+                except Exception as e:
+                    st.error(f"❌ Manual refresh failed: {e}")
+
     with col3:
+        show_fair_chance_only = st.checkbox("🤝 Fair Chance Only")
+
+    with col4:
         market_filter = st.selectbox(
-            "🌍 Filter by Market", 
+            "🌍 Filter by Market",
             ["All Markets", "Houston", "Dallas", "Las Vegas", "Bay Area", "Denver", "Phoenix", "Other"],
             index=0
         )
