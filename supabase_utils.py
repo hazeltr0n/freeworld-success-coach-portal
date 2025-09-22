@@ -647,6 +647,28 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
         return [], str(e)
 
 
+def get_free_agents_analytics_data(coach_username=None):
+    """Get free agents analytics data with all-time and 14-day metrics"""
+    client = get_client()
+    if not client:
+        print("❌ Supabase client not available")
+        return pd.DataFrame()
+
+    try:
+        query = client.table('free_agents_analytics').select('*').order('total_job_clicks', desc=True)
+
+        if coach_username:
+            query = query.eq('coach_username', coach_username)
+
+        result = query.execute()
+        df = pd.DataFrame(result.data or [])
+        print(f"✅ Loaded {len(df)} agents from analytics table")
+        return df
+
+    except Exception as e:
+        print(f"❌ Error loading analytics data: {e}")
+        return pd.DataFrame()
+
 def refresh_free_agents_analytics_manual():
     """Manually trigger the free agents analytics refresh - using Python fallback if SQL function fails"""
     client = get_client()

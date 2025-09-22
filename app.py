@@ -1741,26 +1741,8 @@ def show_free_agent_management_page(coach):
     st.header("👥 Free Agent Management")
     st.markdown("*Configure job searches for your Free Agents and manage their custom job feeds*")
     
-    # Analytics settings section
-    with st.expander("📊 Analytics Settings", expanded=False):
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            lookback_days = st.number_input(
-                "Click data lookback period (days)", 
-                min_value=1, 
-                max_value=365, 
-                value=st.session_state.get('analytics_lookback_days', 14),
-                help="How many days back to look for click activity"
-            )
-        with col2:
-            st.markdown("<div style='height: 1.75rem;'></div>", unsafe_allow_html=True)
-            if st.button("🔄 Update Analytics", key="update_analytics_btn"):
-                st.session_state['analytics_lookback_days'] = lookback_days
-                st.success(f"Analytics updated to {lookback_days} days lookback")
-                st.rerun()
-    
-    # Get current lookback setting
-    current_lookback = st.session_state.get('analytics_lookback_days', 14)
+    # Note about analytics periods
+    st.info("📊 **Analytics**: Free Agent metrics show All-Time data and 14-day periods (for bi-weekly coach check-ins).")
     
     # Add New Agent Section
     with st.expander("➕ Add New Free Agent", expanded=False):
@@ -2311,14 +2293,37 @@ def show_free_agent_management_page(coach):
         # Convert agents to DataFrame for streamlit data_editor
         # pandas already imported globally
         
+        # Load analytics data for better metrics
+        from supabase_utils import get_free_agents_analytics_data
+        analytics_df = get_free_agents_analytics_data(coach.username)
+
+        # Create lookup for analytics data
+        analytics_lookup = {}
+        if not analytics_df.empty:
+            for _, row in analytics_df.iterrows():
+                analytics_lookup[row['agent_uuid']] = {
+                    'total_clicks': row.get('total_job_clicks', 0),
+                    'clicks_14d': row.get('job_clicks_14d', 0),
+                    'total_applications': row.get('total_applications', 0),
+                    'applications_14d': row.get('applications_14d', 0),
+                    'engagement_score': row.get('engagement_score', 0),
+                    'activity_level': row.get('activity_level', 'new')
+                }
+
         # Prepare data for the editor
         agent_data = []
         for agent in agents:
-            # Use pre-loaded click stats from optimized batch loading
+            # Use analytics data if available, fallback to agent profile data
+            agent_uuid = agent.get('agent_uuid', '')
+            analytics = analytics_lookup.get(agent_uuid, {})
+
             stats = {
-                'total_clicks': agent.get('total_clicks', 0),
-                'recent_clicks': agent.get('recent_clicks', 0),
-                'lookback_days': agent.get('lookback_days', current_lookback)
+                'total_clicks': analytics.get('total_clicks', agent.get('total_clicks', 0)),
+                'clicks_14d': analytics.get('clicks_14d', 0),
+                'total_applications': analytics.get('total_applications', agent.get('total_applications', 0)),
+                'applications_14d': analytics.get('applications_14d', 0),
+                'engagement_score': analytics.get('engagement_score', 0),
+                'activity_level': analytics.get('activity_level', 'new')
             }
             
             # Use stored portal URL if available, otherwise generate dynamic URL
@@ -2353,9 +2358,12 @@ def show_free_agent_management_page(coach):
             agent_row = {
                 'Status': status,
                 'Free Agent Name': agent.get('agent_name', 'Unknown'),
-                f'Total Clicks ({current_lookback}d)': stats['total_clicks'],
-                'Recent (7d)': stats['recent_clicks'],
-                'Applications': agent.get('total_applications', 0),
+                'Total Clicks (All-Time)': stats['total_clicks'],
+                'Clicks (14d)': stats['clicks_14d'],
+                'Total Applications (All-Time)': stats['total_applications'],
+                'Applications (14d)': stats['applications_14d'],
+                'Engagement Score': int(stats['engagement_score']) if stats['engagement_score'] else 0,
+                'Activity Level': stats['activity_level'].title() if stats['activity_level'] else 'New',
                 'Last Applied': agent.get('last_application_at', '')[:10] if agent.get('last_application_at') else '',
                 'Market': agent.get('location', 'Houston'),
                 'Route': agent.get('route_filter', 'both'),
@@ -2378,11 +2386,12 @@ def show_free_agent_management_page(coach):
             agent_data.append(agent_row)
         
         df = pd.DataFrame(agent_data)
-        # Reorder columns to prioritize metrics next to name
+        # Reorder columns to prioritize new analytics metrics next to name
         desired_order = [
-            'Status', 'Free Agent Name', f'Total Clicks ({current_lookback}d)', 'Recent (7d)', 'Applications', 'Last Applied',
-            'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Match Level', 'Career Pathways', 'City', 'State', 'Created',
-            'Portal Link', 'Admin Portal', 'Delete', 'Restore', '_agent_uuid', '_created_at', '_original_data', '_is_active'
+            'Status', 'Free Agent Name', 'Total Clicks (All-Time)', 'Clicks (14d)', 'Total Applications (All-Time)', 'Applications (14d)',
+            'Engagement Score', 'Activity Level', 'Last Applied', 'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Match Level',
+            'Career Pathways', 'City', 'State', 'Created', 'Portal Link', 'Admin Portal', 'Delete', 'Restore',
+            '_agent_uuid', '_created_at', '_original_data', '_is_active'
         ]
         df = df[[c for c in desired_order if c in df.columns]]
         
@@ -2443,9 +2452,9 @@ def show_free_agent_management_page(coach):
                 width="medium",
                 disabled=True  # Read-only display
             ),
-            f'Total Clicks ({current_lookback}d)': st.column_config.NumberColumn(
-                f"Total Clicks ({current_lookback}d)",
-                help=f"Total clicks in last {current_lookback} days",
+            'Total Clicks (All-Time)': st.column_config.NumberColumn(
+                "Total Clicks (All-Time)",
+                help="Total clicks since agent was created",
                 disabled=True,
                 width="small"
             ),
@@ -2818,16 +2827,16 @@ def show_free_agent_management_page(coach):
         with col1:
             st.metric("Total Agents", len(agents))
         with col2:
-            # Use pre-loaded total_clicks from optimized batch loading
-            total_clicks = sum(agent.get('total_clicks', 0) for agent in agents)
-            st.metric(f"Total Clicks ({current_lookback}d)", total_clicks)
+            # Use analytics data for accurate all-time clicks
+            total_clicks_all_time = sum(analytics_lookup.get(a.get('agent_uuid', ''), {}).get('total_clicks', 0) for a in agents)
+            st.metric("Total Clicks (All-Time)", total_clicks_all_time)
         with col3:
-            # Use pre-loaded recent_clicks for 7-day activity
-            active_agents = len([a for a in agents if a.get('recent_clicks', 0) > 0])
-            st.metric("Active Agents (7d)", active_agents)
+            # Use analytics data for 14-day active agents
+            active_agents_14d = len([uuid for uuid, stats in analytics_lookup.items() if stats.get('clicks_14d', 0) > 0])
+            st.metric("Active Agents (14d)", active_agents_14d)
         with col4:
-            avg_clicks = total_clicks / len(agents) if agents else 0
-            st.metric(f"Avg Clicks/Agent", f"{avg_clicks:.1f}")
+            avg_clicks = total_clicks_all_time / len(agents) if agents else 0
+            st.metric("Avg Clicks/Agent (All-Time)", f"{avg_clicks:.1f}")
                 
     
     else:
