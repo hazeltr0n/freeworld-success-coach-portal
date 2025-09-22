@@ -97,140 +97,7 @@ def normalize_company_name(company_name: str) -> str:
     
     return normalized.title()
 
-def extract_market_from_location(location: str) -> str:
-    """Extract market name from job location with comprehensive mapping"""
-    if not location or pd.isna(location):
-        return "Unknown"
-
-    # Comprehensive market mappings - priority order matters!
-    market_mapping = {
-        # Bay Area (check specific cities first)
-        'san francisco': 'Bay Area',
-        'oakland': 'Bay Area',
-        'san jose': 'Bay Area',
-        'fremont': 'Bay Area',
-        'hayward': 'Bay Area',
-        'berkeley': 'Bay Area',
-        'bay area': 'Bay Area',
-
-        # Houston area
-        'houston': 'Houston',
-        'pasadena, tx': 'Houston',
-        'katy': 'Houston',
-        'sugar land': 'Houston',
-        'the woodlands': 'Houston',
-        'pearland': 'Houston',
-        'spring': 'Houston',
-        'cypress': 'Houston',
-
-        # Dallas area
-        'dallas': 'Dallas',
-        'plano': 'Dallas',
-        'irving': 'Dallas',
-        'garland': 'Dallas',
-        'mesquite': 'Dallas',
-        'richardson': 'Dallas',
-        'carrollton': 'Dallas',
-        'grand prairie': 'Dallas',
-        'fort worth': 'Dallas',
-
-        # Las Vegas area
-        'las vegas': 'Las Vegas',
-        'henderson': 'Las Vegas',
-        'north las vegas': 'Las Vegas',
-
-        # Other major markets
-        'stockton': 'Stockton',
-        'modesto': 'Stockton',
-        'tracy': 'Stockton',
-        'manteca': 'Stockton',
-
-        'denver': 'Denver',
-        'aurora': 'Denver',
-        'lakewood': 'Denver',
-        'thornton': 'Denver',
-        'westminster': 'Denver',
-
-        'phoenix': 'Phoenix',
-        'mesa': 'Phoenix',
-        'scottsdale': 'Phoenix',
-        'tempe': 'Phoenix',
-        'glendale': 'Phoenix',
-        'chandler': 'Phoenix',
-
-        'newark': 'Newark',
-        'jersey city': 'Newark',
-        'elizabeth': 'Newark',
-        'paterson': 'Newark',
-
-        'trenton': 'Trenton',
-        'hamilton': 'Trenton',
-        'princeton': 'Trenton',
-
-        # Inland Empire
-        'inland empire': 'Inland Empire',
-        'riverside': 'Inland Empire',
-        'san bernardino': 'Inland Empire',
-        'fontana': 'Inland Empire',
-        'rancho cucamonga': 'Inland Empire',
-        'ontario': 'Inland Empire',
-        'corona': 'Inland Empire',
-        'moreno valley': 'Inland Empire',
-
-        # Additional markets
-        'los angeles': 'Los Angeles',
-        'chicago': 'Chicago',
-        'atlanta': 'Atlanta',
-        'miami': 'Miami',
-        'seattle': 'Seattle',
-        'portland': 'Portland',
-        'austin': 'Austin',
-        'san antonio': 'San Antonio',
-    }
-
-    location_lower = str(location).lower().strip()
-
-    # Check for direct market matches (most specific first)
-    for key, market in market_mapping.items():
-        if key in location_lower:
-            return market
-
-    # Enhanced fallback logic - check if location contains a state and major city
-    parts = str(location).split(',')
-    if len(parts) >= 2:
-        city = parts[0].strip().lower()
-        state = parts[1].strip().lower()
-
-        # State-based market mapping for common patterns
-        state_markets = {
-            'tx': 'Texas',
-            'ca': 'California',
-            'nv': 'Nevada',
-            'co': 'Colorado',
-            'nj': 'New Jersey',
-            'az': 'Arizona',
-            'il': 'Illinois',
-            'fl': 'Florida',
-            'wa': 'Washington',
-            'or': 'Oregon'
-        }
-
-        # Try city with state context
-        city_state_key = f"{city}, {state}"
-        for key, market in market_mapping.items():
-            if key in city_state_key:
-                return market
-
-        # Return state if we recognize it
-        if state in state_markets:
-            return f"{parts[0].strip().title()}, {state_markets[state]}"
-
-    # Last resort: return cleaned city name
-    if len(parts) >= 1:
-        city = parts[0].strip().title()
-        return city if city else "Unknown"
-
-    return "Unknown"
+# NOTE: extract_market_from_location function removed - we now use the market field directly from jobs table
 
 def analyze_jobs_for_companies() -> pd.DataFrame:
     """Analyze jobs table and create companies rollup data - only include companies with good/so-so jobs"""
@@ -254,7 +121,7 @@ def analyze_jobs_for_companies() -> pd.DataFrame:
 
     while True:
         result = client.table('jobs').select(
-            'company, location, job_title, match_level, route_type, fair_chance, salary, created_at, success_coach'
+            'company, location, job_title, match_level, route_type, fair_chance, salary, created_at, success_coach, market'
         ).gte('created_at', cutoff_date).in_('match_level', ['good', 'so-so']).range(offset, offset + page_size - 1).execute()
 
         page_data = result.data or []
@@ -287,8 +154,7 @@ def analyze_jobs_for_companies() -> pd.DataFrame:
     # Normalize company names
     df['normalized_company'] = df['company'].apply(normalize_company_name)
     
-    # Extract markets
-    df['market'] = df['location'].apply(extract_market_from_location)
+    # Use the market field directly from the jobs table (no conversion needed)
     
     # Parse salary data (assuming it's stored as text like "50000-60000" or "50000")
     def parse_salary(salary_str):
