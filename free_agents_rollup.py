@@ -384,21 +384,34 @@ def update_free_agents_analytics_table():
         print("⚠️ No agents data to update")
         return
 
-    # Clear existing data and insert new data
-    print(f"🗑️ Clearing existing analytics data...")
-    client.table('free_agents_analytics').delete().neq('id', 0).execute()
-
-    print(f"📊 Inserting {len(agents_df)} agent analytics...")
+    # Clear existing data and insert new data using upsert
+    print(f"📊 Upserting {len(agents_df)} agent analytics...")
 
     # Convert DataFrame to list of dicts for Supabase
     agents_data = agents_df.to_dict('records')
 
-    # Insert in batches
+    # Use upsert to handle existing records
     batch_size = 50
     for i in range(0, len(agents_data), batch_size):
         batch = agents_data[i:i + batch_size]
-        result = client.table('free_agents_analytics').insert(batch).execute()
-        print(f"✅ Inserted batch {i//batch_size + 1}: {len(batch)} agents")
+        try:
+            # Use upsert with conflict resolution on agent_uuid
+            result = client.table('free_agents_analytics').upsert(
+                batch,
+                on_conflict='agent_uuid'
+            ).execute()
+            print(f"✅ Upserted batch {i//batch_size + 1}: {len(batch)} agents")
+        except Exception as e:
+            print(f"❌ Error in batch {i//batch_size + 1}: {e}")
+            # Try individual inserts for this batch
+            for record in batch:
+                try:
+                    client.table('free_agents_analytics').upsert(
+                        record,
+                        on_conflict='agent_uuid'
+                    ).execute()
+                except Exception as individual_error:
+                    print(f"❌ Failed to upsert agent {record.get('agent_name', 'Unknown')}: {individual_error}")
 
     print(f"🎉 Free agents analytics table updated successfully!")
 
