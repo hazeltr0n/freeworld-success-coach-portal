@@ -21,8 +21,12 @@ class TestSearchPaths:
         test_name = "memory_only_cdl_traditional"
 
         try:
-            # Navigate to main search interface
-            page.goto(TEST_CONFIG["base_url"])
+            # Navigate to Job Search tab
+            iframe_locator = page.frame_locator('iframe[title="streamlitApp"]')
+
+            # Click on Job Search navigation (the clickable navigation link, not the heading)
+            iframe_locator.get_by_label("Navigation").get_by_text("🔍 Job Search").click()
+            time.sleep(3)  # Wait for tab to load
 
             # Set search parameters
             self._set_search_parameters(page, {
@@ -33,7 +37,8 @@ class TestSearchPaths:
             })
 
             # Click Memory Only button
-            page.locator('button:has-text("💾 Memory Only")').click()
+            iframe_locator = page.frame_locator('iframe[title="streamlitApp"]')
+            iframe_locator.locator('button:has-text("💾 Memory Only")').click()
 
             # Wait for search completion
             success = wait_for_search_completion(page, timeout=30000)
@@ -81,7 +86,8 @@ class TestSearchPaths:
             })
 
             # Click Memory Only button
-            page.locator('button:has-text("💾 Memory Only")').click()
+            iframe_locator = page.frame_locator('iframe[title="streamlitApp"]')
+            iframe_locator.locator('button:has-text("💾 Memory Only")').click()
 
             # Wait for search completion
             success = wait_for_search_completion(page, timeout=30000)
@@ -124,7 +130,8 @@ class TestSearchPaths:
             })
 
             # Click Indeed Fresh Only button
-            page.locator('button:has-text("🔍 Indeed Fresh Only")').click()
+            iframe_locator = page.frame_locator('iframe[title="streamlitApp"]')
+            iframe_locator.locator('button:has-text("🔍 Indeed Fresh Only")').click()
 
             # Wait for search completion (longer timeout for API calls)
             success = wait_for_search_completion(page, timeout=120000)
@@ -178,7 +185,8 @@ class TestSearchPaths:
             })
 
             # Click Indeed Fresh Only button
-            page.locator('button:has-text("🔍 Indeed Fresh Only")').click()
+            iframe_locator = page.frame_locator('iframe[title="streamlitApp"]')
+            iframe_locator.locator('button:has-text("🔍 Indeed Fresh Only")').click()
 
             # Wait for search completion
             success = wait_for_search_completion(page, timeout=120000)
@@ -228,7 +236,8 @@ class TestSearchPaths:
             })
 
             # Click Indeed Fresh Only button
-            page.locator('button:has-text("🔍 Indeed Fresh Only")').click()
+            iframe_locator = page.frame_locator('iframe[title="streamlitApp"]')
+            iframe_locator.locator('button:has-text("🔍 Indeed Fresh Only")').click()
 
             # Wait for search completion
             success = wait_for_search_completion(page, timeout=120000)
@@ -258,20 +267,36 @@ class TestSearchPaths:
     def _set_search_parameters(self, page: Page, params: dict):
         """Helper method to set search parameters"""
 
-        # Location
+        # Market (location)
         if "location" in params:
-            location_input = page.locator('input[data-testid="textInput"]:has-text("Location")')
-            if location_input.count() == 0:
-                # Try alternative selector
-                location_input = page.get_by_placeholder("Enter location")
-            location_input.fill(params["location"])
+            # Try market-based selectors first (app uses "market" not "location")
+            iframe_locator = page.frame_locator('iframe[title="streamlitApp"]')
+
+            market_input = iframe_locator.get_by_placeholder("Enter market")
+            if market_input.count() == 0:
+                # Try alternative selectors
+                market_input = iframe_locator.locator('input[data-testid="textInput"]:near(:text("Market"))')
+            if market_input.count() == 0:
+                # Fallback to location selectors
+                market_input = iframe_locator.get_by_placeholder("Enter location")
+            if market_input.count() == 0:
+                market_input = iframe_locator.locator('input[data-testid="textInput"]:near(:text("Location"))')
+
+            market_input.fill(params["location"])
 
         # Search terms
         if "search_terms" in params:
-            search_input = page.locator('input[data-testid="textInput"]:near(:text("Search Terms"))')
+            iframe_locator = page.frame_locator('iframe[title="streamlitApp"]')
+
+            # Use aria-label selector based on debug findings
+            search_input = iframe_locator.locator('input[aria-label="🔍 Search Terms:"]')
             if search_input.count() == 0:
-                # Try alternative selector
-                search_input = page.get_by_placeholder("Job search keywords")
+                # Try alternative selectors
+                search_input = iframe_locator.get_by_placeholder("Job search keywords")
+            if search_input.count() == 0:
+                search_input = iframe_locator.locator('input[type="text"]').filter(has=iframe_locator.locator('text="Search Terms"'))
+
+            search_input.clear()
             search_input.fill(params["search_terms"])
 
         # Classifier type
