@@ -648,7 +648,7 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
 
 
 def refresh_free_agents_analytics_manual():
-    """Manually trigger the free agents analytics refresh function in Supabase"""
+    """Manually trigger the free agents analytics refresh - using Python fallback if SQL function fails"""
     client = get_client()
     if not client:
         return {"success": False, "error": "Supabase client not available"}
@@ -665,8 +665,17 @@ def refresh_free_agents_analytics_manual():
 
     except Exception as e:
         error_msg = str(e)
-        print(f"❌ Analytics refresh failed: {error_msg}")
-        return {"success": False, "error": error_msg}
+        print(f"❌ SQL function failed: {error_msg}")
+        print("🔄 Falling back to Python-based refresh...")
+
+        try:
+            # Fallback: Use Python-based refresh
+            from free_agents_rollup import update_free_agents_analytics_table
+            update_free_agents_analytics_table()
+            return {"success": True, "message": "Analytics refreshed via Python fallback", "fallback": True}
+        except Exception as fallback_error:
+            print(f"❌ Python fallback also failed: {fallback_error}")
+            return {"success": False, "error": f"Both SQL and Python refresh failed: {error_msg}"}
 
 
 def _format_agent_profile(row: Dict) -> Dict:
