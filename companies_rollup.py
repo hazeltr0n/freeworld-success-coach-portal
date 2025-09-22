@@ -107,13 +107,9 @@ def analyze_jobs_for_companies() -> pd.DataFrame:
 
     print("🔍 Fetching jobs data from Supabase...")
 
-    # Get jobs from the last 365 days to include ALL quality jobs
-    # Extended from 60 days to ensure we capture all good/so-so jobs
-    cutoff_date = (datetime.now(timezone.utc) - timedelta(days=365)).isoformat()
-
-    # Fetch ALL jobs data with good/so-so quality using pagination to ensure we get everything
-    # Supabase has default limits, so we need to paginate to get all results
-    print("🔄 Fetching all jobs with pagination...")
+    # Fetch ALL jobs data with good/so-so quality - NO TIME LIMITS
+    # Get every single quality job in the entire database
+    print("🔄 Fetching ALL jobs with good/so-so quality (no time limits)...")
 
     all_jobs_data = []
     page_size = 1000  # Supabase default limit
@@ -122,7 +118,7 @@ def analyze_jobs_for_companies() -> pd.DataFrame:
     while True:
         result = client.table('jobs').select(
             'company, location, job_title, match_level, route_type, fair_chance, salary, created_at, success_coach, market'
-        ).gte('created_at', cutoff_date).in_('match_level', ['good', 'so-so']).range(offset, offset + page_size - 1).execute()
+        ).in_('match_level', ['good', 'so-so']).range(offset, offset + page_size - 1).execute()
 
         page_data = result.data or []
         if not page_data:
@@ -142,7 +138,7 @@ def analyze_jobs_for_companies() -> pd.DataFrame:
             break
 
     jobs_data = all_jobs_data
-    print(f"📊 Analyzing {len(jobs_data)} jobs from the last 365 days...")
+    print(f"📊 Analyzing {len(jobs_data)} total quality jobs (ALL TIME)...")
     
     if not jobs_data:
         print("⚠️ No jobs data found")

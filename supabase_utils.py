@@ -572,20 +572,16 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
                 profiles.append(profile)
             return profiles, None
         
-        # Step 3: Get all click events for these agents in ONE query
+        # Step 3: Get ALL click events for these agents - NO TIME LIMITS
         from datetime import datetime, timedelta, timezone
-        end_date = datetime.now(timezone.utc) + timedelta(minutes=5)  # Add 5-minute buffer for recent clicks
-        start_date = end_date - timedelta(days=lookback_days, minutes=5)  # Adjust start_date accordingly
-        
-        # Query each agent's clicks individually to avoid batch query limits
+
+        # Query each agent's clicks individually to avoid batch query limits - ALL CLICKS EVER
         all_clicks = []
-        
+
         for agent_uuid in agent_uuids:
             agent_clicks = client.table('click_events').select(
                 'clicked_at, candidate_id, candidate_name, coach, market, route, match, fair, short_id'
-            ).eq('candidate_id', agent_uuid).gte(
-                'clicked_at', start_date.isoformat()
-            ).execute()
+            ).eq('candidate_id', agent_uuid).execute()
             
             all_clicks.extend(agent_clicks.data or [])
         
@@ -596,9 +592,10 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
         
         clicks_result = MockResult(all_clicks)
         
-        # Step 4: Build click stats lookup by agent_uuid
+        # Step 4: Build click stats lookup by agent_uuid - ALL CLICKS + recent calculation
         click_stats = {}
-        recent_cutoff = end_date - timedelta(days=min(7, lookback_days))
+        # Calculate recent cutoff (last 7 days) for recent clicks display
+        recent_cutoff = datetime.now(timezone.utc) - timedelta(days=7)
         
         for click in (clicks_result.data or []):
             agent_uuid = click.get('candidate_id')
