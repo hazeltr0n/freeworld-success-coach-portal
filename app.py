@@ -4724,7 +4724,28 @@ def main():
             show_combined_batches_and_scheduling_page(coach)
     
     elif selected_tab == "👥 Free Agents":
-        show_free_agent_management_page(coach)
+        # Enhanced Free Agents tab with both management and analytics
+        st.header("👥 Free Agents Portal")
+
+        # Sub-tabs for different views
+        agent_tab_options = ["🛠️ Management", "📊 Analytics"]
+        agent_selected = st.radio(
+            "Free Agents View",
+            options=agent_tab_options,
+            horizontal=True,
+            key="agent_tab_radio"
+        )
+
+        st.markdown("---")
+
+        if agent_selected == "🛠️ Management":
+            show_free_agent_management_page(coach)
+        elif agent_selected == "📊 Analytics":
+            try:
+                from free_agents_dashboard import show_free_agents_dashboard
+                show_free_agents_dashboard(coach)
+            except ImportError:
+                st.error("❌ Free agents analytics dashboard not available")
     
     elif selected_tab == "📊 Coach Analytics":
         st.header("📊 Coach Performance Analytics")
