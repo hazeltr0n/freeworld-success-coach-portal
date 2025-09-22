@@ -385,6 +385,7 @@ def generate_calculator_html():
         flex-direction: column;
         min-width: 0;
         box-sizing: border-box;
+        position: relative;
     }}
 
     .form-label {{
@@ -392,6 +393,9 @@ def generate_calculator_html():
         font-weight: 600;
         color: var(--fw-midnight);
         margin-bottom: 6px;
+        height: 20px;
+        display: flex;
+        align-items: center;
     }}
 
     .form-input {{
@@ -448,6 +452,94 @@ def generate_calculator_html():
         box-shadow: 0 3px 10px rgba(220,53,69,0.2);
     }}
 
+    /* Tooltip styles */
+    .label-with-help {{
+        display: flex;
+        align-items: center;
+        width: 100%;
+        position: relative;
+    }}
+
+    .help-icon {{
+        position: absolute;
+        top: 0;
+        right: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        background: var(--fw-roots);
+        color: white;
+        font-size: 10px;
+        font-weight: bold;
+        cursor: help;
+        flex-shrink: 0;
+        z-index: 10;
+    }}
+
+    .help-icon:hover {{
+        background: var(--fw-visionary-violet);
+        transform: scale(1.1);
+        transition: all 0.2s ease;
+    }}
+
+    .tooltip {{
+        visibility: hidden;
+        opacity: 0;
+        position: absolute;
+        bottom: 130%;
+        right: 0;
+        background: var(--fw-midnight);
+        color: white;
+        text-align: left;
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 13px;
+        font-weight: normal;
+        line-height: 1.4;
+        z-index: 1000;
+        width: 280px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: opacity 0.3s, visibility 0.3s;
+    }}
+
+    .tooltip::after {{
+        content: "";
+        position: absolute;
+        top: 100%;
+        right: 18px;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: var(--fw-midnight) transparent transparent transparent;
+    }}
+
+    .help-icon:hover .tooltip {{
+        visibility: visible;
+        opacity: 1;
+    }}
+
+    @media (max-width: 768px) {{
+        .form-row {{
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }}
+
+        .tooltip {{
+            width: 240px;
+            font-size: 12px;
+            padding: 10px;
+            right: -20px;
+        }}
+
+        .help-icon {{
+            width: 16px;
+            height: 16px;
+            font-size: 9px;
+        }}
+    }}
     .error-text {{
         font-size: 14px;
         font-weight: 600;
