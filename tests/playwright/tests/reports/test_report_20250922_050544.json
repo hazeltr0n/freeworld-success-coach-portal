@@ -1,0 +1,123 @@
+{
+  "summary": {
+    "total_tests": 5,
+    "passed": 2,
+    "failed": 3,
+    "pass_rate": 40.0,
+    "total_duration": 337.917951,
+    "total_jobs_found": 34,
+    "total_supabase_records": 0,
+    "total_links_generated": 0
+  },
+  "results": [
+    {
+      "test_name": "cdl_classification_accuracy",
+      "status": "passed",
+      "duration": 35.779382944107056,
+      "jobs_found": 34,
+      "supabase_records": 0,
+      "links_generated": 0,
+      "errors": [],
+      "timestamp": "2025-09-22T05:01:05.978204"
+    },
+    {
+      "test_name": "pathway_classification_accuracy",
+      "status": "failed",
+      "duration": 63.898412466049194,
+      "jobs_found": 0,
+      "supabase_records": 0,
+      "links_generated": 0,
+      "errors": [
+        "Locator.click: Timeout 60000ms exceeded.\nCall log:\n  - waiting for locator(\"iframe[title=\\\"streamlitApp\\\"]\").content_frame.locator(\"button:has-text(\\\"\ud83d\udd0d Indeed Fresh Only\\\")\").first\n"
+      ],
+      "timestamp": "2025-09-22T05:02:33.779162"
+    },
+    {
+      "test_name": "classification_consistency",
+      "status": "failed",
+      "duration": 63.931519508361816,
+      "jobs_found": 0,
+      "supabase_records": 0,
+      "links_generated": 0,
+      "errors": [
+        "Locator.click: Timeout 60000ms exceeded.\nCall log:\n  - waiting for locator(\"button:has-text(\\\"\ud83d\udcbe Memory Only\\\")\")\n"
+      ],
+      "timestamp": "2025-09-22T05:04:23.354014"
+    },
+    {
+      "test_name": "forced_fresh_classification",
+      "status": "passed",
+      "duration": 2.0237560272216797,
+      "jobs_found": 0,
+      "supabase_records": 0,
+      "links_generated": 0,
+      "errors": [
+        "Force fresh classification not available (user permission)"
+      ],
+      "timestamp": "2025-09-22T05:05:11.140703"
+    },
+    {
+      "test_name": "supabase_data_integrity",
+      "status": "failed",
+      "duration": 0.07882428169250488,
+      "jobs_found": 0,
+      "supabase_records": 0,
+      "links_generated": 0,
+      "errors": [
+        "Table job_postings error: [Errno -2] Name or service not known"
+      ],
+      "timestamp": "2025-09-22T05:05:39.071949"
+    }
+  ],
+  "config": {
+    "base_url": "https://fwcareertest.streamlit.app",
+    "timeout": 60000,
+    "admin_username": "james.hazelton",
+    "admin_password": "Tbonbass1!",
+    "test_coach_username": "james.hazelton",
+    "test_coach_password": "Tbonbass1!",
+    "test_locations": [
+      "Houston, TX",
+      "Dallas, TX",
+      "Austin, TX"
+    ],
+    "test_search_terms": [
+      "CDL driver",
+      "truck driver",
+      "warehouse, forklift",
+      "dock worker"
+    ],
+    "classifiers": [
+      "CDL Traditional",
+      "Career Pathways"
+    ],
+    "search_modes": [
+      "memory_only",
+      "indeed_fresh"
+    ],
+    "route_filters": [
+      "both",
+      "local",
+      "otr"
+    ],
+    "quality_levels": [
+      "good only",
+      "good and so-so"
+    ],
+    "experience_levels": [
+      "both",
+      "entry level",
+      "experienced"
+    ],
+    "pathway_options": [
+      "cdl_pathway",
+      "dock_to_driver",
+      "internal_cdl_training",
+      "warehouse_to_driver",
+      "logistics_progression",
+      "non_cdl_driving",
+      "general_warehouse",
+      "construction_apprentice"
+    ]
+  }
+}

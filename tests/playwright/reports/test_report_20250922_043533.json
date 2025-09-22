@@ -1,0 +1,19 @@
+{
+  "test_run_timestamp": "20250922_043533",
+  "total_suites": 1,
+  "passed_suites": 0,
+  "failed_suites": 1,
+  "error_suites": 0,
+  "timeout_suites": 0,
+  "success_rate": 0.0,
+  "total_duration": 109.61227798461914,
+  "results": {
+    "health_check": {
+      "status": "failed",
+      "duration": 109.61227798461914,
+      "stdout": "...E                                                                     [100%]\n==================================== ERRORS ====================================\n____ ERROR at setup of TestHealthCheck.test_main_navigation_tabs[chromium] _____\nconftest.py:132: in authenticated_admin_page\n    login_as_admin(page)\nconftest.py:208: in login_as_admin\n    raise Exception(\"Login appears to have failed. Expected to find main app content after login.\")\nE   Exception: Login appears to have failed. Expected to find main app content after login.\n---------------------------- Captured stdout setup -----------------------------\n\ud83d\udd10 Logging in as admin: test_admin\n\u23f3 Waiting for login to complete...\n   \ud83d\udcca Attempt 1: Found 0 indicators: []\n   \ud83d\udcca Attempt 2: Found 0 indicators: []\n   \ud83d\udcca Attempt 3: Found 0 indicators: []\n   \ud83d\udcca Attempt 4: Found 0 indicators: []\n   \ud83d\udcca Attempt 5: Found 0 indicators: []\n   \ud83d\udcca Attempt 6: Found 0 indicators: []\n   \ud83d\udcca Attempt 7: Found 0 indicators: []\n   \ud83d\udcca Attempt 8: Found 0 indicators: []\n- generated xml file: /workspaces/freeworld-success-coach-portal/tests/playwright/reports/health_check_results.xml -\n=========================== short test summary info ============================\nERROR test_health_check.py::TestHealthCheck::test_main_navigation_tabs[chromium]\n3 passed, 1 error in 109.05s (0:01:49)\n",
+      "stderr": "",
+      "returncode": 1
+    }
+  }
+}

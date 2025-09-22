@@ -1,0 +1,105 @@
+{
+  "summary": {
+    "total_tests": 4,
+    "passed": 4,
+    "failed": 0,
+    "pass_rate": 100.0,
+    "total_duration": 62.13705,
+    "total_jobs_found": 0,
+    "total_supabase_records": 0,
+    "total_links_generated": 0
+  },
+  "results": [
+    {
+      "test_name": "streamlit_app_loads",
+      "status": "passed",
+      "duration": 5.355779647827148,
+      "jobs_found": 0,
+      "supabase_records": 0,
+      "links_generated": 0,
+      "errors": [],
+      "timestamp": "2025-09-22T04:55:59.658970"
+    },
+    {
+      "test_name": "login_form_exists",
+      "status": "passed",
+      "duration": 5.168550252914429,
+      "jobs_found": 0,
+      "supabase_records": 0,
+      "links_generated": 0,
+      "errors": [],
+      "timestamp": "2025-09-22T04:56:05.098271"
+    },
+    {
+      "test_name": "admin_login_works",
+      "status": "passed",
+      "duration": 18.9514262676239,
+      "jobs_found": 0,
+      "supabase_records": 0,
+      "links_generated": 0,
+      "errors": [],
+      "timestamp": "2025-09-22T04:56:24.237559"
+    },
+    {
+      "test_name": "main_navigation_tabs",
+      "status": "passed",
+      "duration": 0.0718238353729248,
+      "jobs_found": 0,
+      "supabase_records": 0,
+      "links_generated": 0,
+      "errors": [],
+      "timestamp": "2025-09-22T04:56:51.105410"
+    }
+  ],
+  "config": {
+    "base_url": "https://fwcareertest.streamlit.app",
+    "timeout": 60000,
+    "admin_username": "james.hazelton",
+    "admin_password": "Tbonbass1!",
+    "test_coach_username": "test_coach",
+    "test_coach_password": "test_password",
+    "test_locations": [
+      "Houston, TX",
+      "Dallas, TX",
+      "Austin, TX"
+    ],
+    "test_search_terms": [
+      "CDL driver",
+      "truck driver",
+      "warehouse, forklift",
+      "dock worker"
+    ],
+    "classifiers": [
+      "CDL Traditional",
+      "Career Pathways"
+    ],
+    "search_modes": [
+      "memory_only",
+      "indeed_fresh"
+    ],
+    "route_filters": [
+      "both",
+      "local",
+      "otr"
+    ],
+    "quality_levels": [
+      "good only",
+      "good and so-so"
+    ],
+    "experience_levels": [
+      "both",
+      "entry level",
+      "experienced"
+    ],
+    "pathway_options": [
+      "cdl_pathway",
+      "dock_to_driver",
+      "internal_cdl_training",
+      "warehouse_to_driver",
+      "logistics_progression",
+      "non_cdl_driving",
+      "general_warehouse",
+      "construction_apprentice"
+    ]
+  }
+}

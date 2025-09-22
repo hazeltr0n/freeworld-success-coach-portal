@@ -1,0 +1,129 @@
+{
+  "summary": {
+    "total_tests": 6,
+    "passed": 4,
+    "failed": 2,
+    "pass_rate": 66.66666666666666,
+    "total_duration": 507.7212,
+    "total_jobs_found": 140,
+    "total_supabase_records": 2,
+    "total_links_generated": 0
+  },
+  "results": [
+    {
+      "test_name": "memory_only_cdl_traditional",
+      "status": "passed",
+      "duration": 16.58072519302368,
+      "jobs_found": 36,
+      "supabase_records": 0,
+      "links_generated": 0,
+      "errors": [],
+      "timestamp": "2025-09-22T05:39:16.596942"
+    },
+    {
+      "test_name": "memory_only_career_pathways",
+      "status": "passed",
+      "duration": 16.54798436164856,
+      "jobs_found": 36,
+      "supabase_records": 0,
+      "links_generated": 0,
+      "errors": [],
+      "timestamp": "2025-09-22T05:39:56.686873"
+    },
+    {
+      "test_name": "indeed_fresh_cdl_traditional",
+      "status": "passed",
+      "duration": 41.479227781295776,
+      "jobs_found": 34,
+      "supabase_records": 1,
+      "links_generated": 0,
+      "errors": [],
+      "timestamp": "2025-09-22T05:41:01.473183"
+    },
+    {
+      "test_name": "indeed_fresh_career_pathways",
+      "status": "passed",
+      "duration": 39.36321783065796,
+      "jobs_found": 34,
+      "supabase_records": 1,
+      "links_generated": 0,
+      "errors": [],
+      "timestamp": "2025-09-22T05:42:05.427884"
+    },
+    {
+      "test_name": "multiple_search_terms_indeed_fresh",
+      "status": "failed",
+      "duration": 36.93352937698364,
+      "jobs_found": 0,
+      "supabase_records": 0,
+      "links_generated": 0,
+      "errors": [
+        "No multiple search indicators found. Expected one of: ['separate Indeed queries', 'multiple', 'queries', 'driver', 'warehouse']\nassert 0 > 0\n +  where 0 = len([])"
+      ],
+      "timestamp": "2025-09-22T05:43:05.966541"
+    },
+    {
+      "test_name": "filter_combinations",
+      "status": "failed",
+      "duration": 192.10158967971802,
+      "jobs_found": 0,
+      "supabase_records": 0,
+      "links_generated": 0,
+      "errors": [
+        "No filter combinations worked (0/3)\nassert 0 > 0"
+      ],
+      "timestamp": "2025-09-22T05:46:41.830010"
+    }
+  ],
+  "config": {
+    "base_url": "https://fwcareertest.streamlit.app",
+    "timeout": 60000,
+    "admin_username": "james.hazelton",
+    "admin_password": "Tbonbass1!",
+    "test_coach_username": "james.hazelton",
+    "test_coach_password": "Tbonbass1!",
+    "test_locations": [
+      "Houston, TX",
+      "Dallas, TX",
+      "Austin, TX"
+    ],
+    "test_search_terms": [
+      "CDL driver",
+      "truck driver",
+      "warehouse, forklift",
+      "dock worker"
+    ],
+    "classifiers": [
+      "CDL Traditional",
+      "Career Pathways"
+    ],
+    "search_modes": [
+      "memory_only",
+      "indeed_fresh"
+    ],
+    "route_filters": [
+      "both",
+      "local",
+      "otr"
+    ],
+    "quality_levels": [
+      "good only",
+      "good and so-so"
+    ],
+    "experience_levels": [
+      "both",
+      "entry level",
+      "experienced"
+    ],
+    "pathway_options": [
+      "cdl_pathway",
+      "dock_to_driver",
+      "internal_cdl_training",
+      "warehouse_to_driver",
+      "logistics_progression",
+      "non_cdl_driving",
+      "general_warehouse",
+      "construction_apprentice"
+    ]
+  }
+}
