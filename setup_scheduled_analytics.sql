@@ -14,7 +14,7 @@ DECLARE
     error_msg TEXT;
 BEGIN
     -- Clear existing companies data
-    DELETE FROM companies;
+    DELETE FROM companies WHERE id > 0;
 
     -- Insert fresh companies data from jobs analysis
     INSERT INTO companies (
@@ -123,7 +123,7 @@ DECLARE
     click_data JSON;
 BEGIN
     -- Clear existing analytics data
-    DELETE FROM free_agents_analytics;
+    DELETE FROM free_agents_analytics WHERE id > 0;
 
     -- Process each active agent
     FOR rec IN

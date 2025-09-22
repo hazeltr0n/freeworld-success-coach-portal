@@ -2206,12 +2206,17 @@ def show_free_agent_management_page(coach):
             if 'agent_profiles' in st.session_state:
                 del st.session_state['agent_profiles']
 
-            # Update analytics rollup table with latest data
+            # Update analytics rollup table with latest data using Supabase function
             try:
-                from free_agents_rollup import update_free_agents_analytics_table
+                from supabase_utils import refresh_free_agents_analytics_manual
                 with st.spinner("🔄 Refreshing analytics data..."):
-                    update_free_agents_analytics_table()
-                st.success("✅ Analytics data refreshed")
+                    result = refresh_free_agents_analytics_manual()
+                    if result.get('success'):
+                        agents_updated = result.get('agents_updated', 0)
+                        st.success(f"✅ Analytics data refreshed! Updated {agents_updated} agents.")
+                    else:
+                        error_msg = result.get('error', 'Unknown error')
+                        st.error(f"❌ Analytics refresh failed: {error_msg}")
             except Exception as e:
                 st.warning(f"⚠️ Analytics refresh failed: {e}")
 
@@ -4823,28 +4828,9 @@ def main():
             show_combined_batches_and_scheduling_page(coach)
     
     elif selected_tab == "👥 Free Agents":
-        # Enhanced Free Agents tab with both management and analytics
+        # Free Agents management
         st.header("👥 Free Agents Portal")
-
-        # Sub-tabs for different views
-        agent_tab_options = ["🛠️ Management", "📊 Analytics"]
-        agent_selected = st.radio(
-            "Free Agents View",
-            options=agent_tab_options,
-            horizontal=True,
-            key="agent_tab_radio"
-        )
-
-        st.markdown("---")
-
-        if agent_selected == "🛠️ Management":
-            show_free_agent_management_page(coach)
-        elif agent_selected == "📊 Analytics":
-            try:
-                from free_agents_dashboard import show_free_agents_dashboard
-                show_free_agents_dashboard(coach)
-            except ImportError:
-                st.error("❌ Free agents analytics dashboard not available")
+        show_free_agent_management_page(coach)
     
     elif selected_tab == "📊 Coach Analytics":
         st.header("📊 Coach Performance Analytics")

@@ -31,16 +31,6 @@ def show_companies_dashboard():
     # Control buttons
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        if st.button("🔄 Update Companies Data"):
-            with st.spinner("Updating companies rollup table..."):
-                try:
-                    update_companies_table()
-                    st.success("✅ Companies data updated successfully!")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Failed to update: {e}")
-
-    with col2:
         if st.button("⚡ Manual Refresh"):
             with st.spinner("Running manual companies refresh..."):
                 try:
@@ -63,10 +53,10 @@ def show_companies_dashboard():
                 except Exception as e:
                     st.error(f"❌ Manual refresh failed: {e}")
 
-    with col3:
+    with col2:
         show_fair_chance_only = st.checkbox("🤝 Fair Chance Only")
 
-    with col4:
+    with col3:
         market_filter = st.selectbox(
             "🌍 Filter by Market",
             ["All Markets", "Houston", "Dallas", "Las Vegas", "Bay Area", "Denver", "Phoenix", "Other"],
@@ -84,7 +74,7 @@ def show_companies_dashboard():
             companies_df = get_company_analytics(limit=None)  # Get ALL companies with good/so-so jobs
         
         if companies_df.empty:
-            st.warning("📊 No companies data available. Click 'Update Companies Data' to populate the table.")
+            st.warning("📊 No companies data available. Click 'Manual Refresh' to populate the table.")
             return
             
     except Exception as e:

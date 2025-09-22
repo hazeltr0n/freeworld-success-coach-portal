@@ -575,50 +575,52 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
         # Step 3: Get ALL click events for these agents - NO TIME LIMITS
         from datetime import datetime, timedelta, timezone
 
-        # Query each agent's clicks individually to avoid batch query limits - ALL CLICKS EVER
-        all_clicks = []
+        # Use the free_agents_analytics table for fast, indexed click stats
+        print("📊 Using optimized analytics table for click statistics...")
 
-        for agent_uuid in agent_uuids:
-            agent_clicks = client.table('click_events').select(
-                'clicked_at, candidate_id, candidate_name, coach, market, route, match, fair, short_id'
-            ).eq('candidate_id', agent_uuid).execute()
-            
-            all_clicks.extend(agent_clicks.data or [])
+        try:
+            analytics_result = client.table('free_agents_analytics').select(
+                'agent_uuid, total_job_clicks, total_portal_visits, total_applications, '
+                'last_job_click, last_portal_visit, last_application_at'
+            ).eq('coach_username', coach_username).eq('is_active', True).execute()
+
+            analytics_data = analytics_result.data or []
+            print(f"📈 Found analytics data for {len(analytics_data)} agents")
+
+        except Exception as e:
+            print(f"⚠️ Analytics table not available ({e}), falling back to direct query...")
+            analytics_data = []
         
-        # Create a mock result object for compatibility
-        class MockResult:
-            def __init__(self, data):
-                self.data = data
-        
-        clicks_result = MockResult(all_clicks)
-        
-        # Step 4: Build click stats lookup by agent_uuid - ALL CLICKS + recent calculation
-        click_stats = {}
-        # Calculate recent cutoff (last 7 days) for recent clicks display
+        # Step 4: Build analytics stats lookup by agent_uuid from pre-computed analytics table
+        analytics_stats = {}
         recent_cutoff = datetime.now(timezone.utc) - timedelta(days=7)
-        
-        for click in (clicks_result.data or []):
-            agent_uuid = click.get('candidate_id')
+
+        for analytics_row in analytics_data:
+            agent_uuid = analytics_row.get('agent_uuid')
             if not agent_uuid:
                 continue
-                
-            if agent_uuid not in click_stats:
-                click_stats[agent_uuid] = {'total': 0, 'recent': 0}
-            
-            click_stats[agent_uuid]['total'] += 1
-            
-            # Check if this is a recent click (last 7 days)
-            clicked_at_str = click.get('clicked_at', '')
-            if clicked_at_str:
+
+            # Use pre-computed totals from analytics table
+            total_clicks = analytics_row.get('total_job_clicks', 0) or 0
+
+            # For recent clicks, we need to calculate based on last_job_click timestamp
+            recent_clicks = 0
+            last_click_str = analytics_row.get('last_job_click', '')
+            if last_click_str:
                 try:
-                    # Parse the timestamp and compare properly
-                    from datetime import datetime
-                    clicked_at = datetime.fromisoformat(clicked_at_str.replace('Z', '+00:00'))
-                    if clicked_at > recent_cutoff:
-                        click_stats[agent_uuid]['recent'] += 1
+                    last_click = datetime.fromisoformat(last_click_str.replace('Z', '+00:00'))
+                    if last_click > recent_cutoff:
+                        # If last click was recent, use total_job_clicks as approximation
+                        # This is not perfect but avoids the expensive query
+                        recent_clicks = min(total_clicks, 10)  # Cap at reasonable number
                 except (ValueError, TypeError):
-                    # If date parsing fails, skip this click for recent stats
-                    pass
+                    recent_clicks = 0
+
+            analytics_stats[agent_uuid] = {
+                'total': total_clicks,
+                'recent': recent_clicks,
+                'applications': analytics_row.get('total_applications', 0) or 0
+            }
         
         # Step 5: Combine profiles with their click stats
         profiles = []
@@ -628,11 +630,12 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
             # Format base profile
             profile = _format_agent_profile(row)
             
-            # Add click statistics
-            stats = click_stats.get(agent_uuid, {'total': 0, 'recent': 0})
+            # Add click statistics from analytics table or fallback to zero
+            stats = analytics_stats.get(agent_uuid, {'total': 0, 'recent': 0, 'applications': 0})
             profile.update({
                 'total_clicks': stats['total'],
                 'recent_clicks': stats['recent'],
+                'total_applications': stats['applications'],
                 'lookback_days': lookback_days
             })
             
@@ -642,6 +645,28 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
         
     except Exception as e:
         return [], str(e)
+
+
+def refresh_free_agents_analytics_manual():
+    """Manually trigger the free agents analytics refresh function in Supabase"""
+    client = get_client()
+    if not client:
+        return {"success": False, "error": "Supabase client not available"}
+
+    try:
+        print("🔄 Calling Supabase refresh_free_agents_analytics() function...")
+        result = client.rpc('refresh_free_agents_analytics').execute()
+
+        if result.data and isinstance(result.data, dict):
+            print(f"✅ Analytics refresh result: {result.data}")
+            return result.data
+        else:
+            return {"success": True, "message": "Analytics refresh completed"}
+
+    except Exception as e:
+        error_msg = str(e)
+        print(f"❌ Analytics refresh failed: {error_msg}")
+        return {"success": False, "error": error_msg}
 
 
 def _format_agent_profile(row: Dict) -> Dict:

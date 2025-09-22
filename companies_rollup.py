@@ -230,6 +230,12 @@ def analyze_jobs_for_companies() -> pd.DataFrame:
         salary_data = company_jobs[['salary_min', 'salary_max']].dropna()
         avg_salary_min = salary_data['salary_min'].mean() if not salary_data.empty else None
         avg_salary_max = salary_data['salary_max'].mean() if not salary_data.empty else None
+
+        # Ensure no NaN or infinity values
+        if avg_salary_min is not None and (pd.isna(avg_salary_min) or not pd.isfinite(avg_salary_min)):
+            avg_salary_min = None
+        if avg_salary_max is not None and (pd.isna(avg_salary_max) or not pd.isfinite(avg_salary_max)):
+            avg_salary_max = None
         
         companies_rollup.append({
             'company_name': company_jobs['company'].iloc[0],  # Original name
@@ -248,8 +254,8 @@ def analyze_jobs_for_companies() -> pd.DataFrame:
             'blacklist_reason': None,
             'oldest_job_date': oldest_date.isoformat() if pd.notna(oldest_date) else None,
             'newest_job_date': newest_date.isoformat() if pd.notna(newest_date) else None,
-            'avg_salary_min': float(avg_salary_min) if pd.notna(avg_salary_min) else None,
-            'avg_salary_max': float(avg_salary_max) if pd.notna(avg_salary_max) else None,
+            'avg_salary_min': avg_salary_min,
+            'avg_salary_max': avg_salary_max,
         })
     
     return pd.DataFrame(companies_rollup)
