@@ -38,15 +38,20 @@ def show_companies_dashboard():
                     if client:
                         # Call the Supabase scheduled function manually
                         result = client.rpc('scheduled_companies_refresh').execute()
-                        if result.data and isinstance(result.data, dict):
-                            if result.data.get('success'):
-                                companies_updated = result.data.get('companies_updated', 0)
-                                st.success(f"✅ Manual refresh completed! Updated {companies_updated} companies.")
+                        # The SQL function returns a JSON object as the first element of data array
+                        if result.data and len(result.data) > 0:
+                            response_data = result.data[0]  # Get the first (and only) result
+                            if isinstance(response_data, dict):
+                                if response_data.get('success'):
+                                    companies_updated = response_data.get('companies_updated', 0)
+                                    st.success(f"✅ Manual refresh completed! Updated {companies_updated} companies.")
+                                else:
+                                    error_msg = response_data.get('error', 'Unknown error')
+                                    st.error(f"❌ Refresh failed: {error_msg}")
                             else:
-                                error_msg = result.data.get('error', 'Unknown error')
-                                st.error(f"❌ Refresh failed: {error_msg}")
+                                st.success("✅ Manual refresh completed!")
                         else:
-                            st.success("✅ Manual refresh completed!")
+                            st.warning("⚠️ No response data from refresh function")
                         st.rerun()
                     else:
                         st.error("❌ Supabase client not available")
