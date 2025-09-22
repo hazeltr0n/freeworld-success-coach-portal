@@ -307,54 +307,47 @@ def update_companies_table():
     return companies_df
 
 def get_company_analytics(company_name: str = None, limit: int = None) -> pd.DataFrame:
-    """Get ALL companies data - using service role to bypass limits"""
+    """Get ALL companies data - using range queries to bypass 1000 row limit"""
 
-    # Get service role client to bypass RLS and anon key limits
-    try:
-        import streamlit as st
-        if hasattr(st, 'secrets'):
-            url = st.secrets.get("SUPABASE_URL")
-            service_key = st.secrets.get("SUPABASE_SERVICE_ROLE")
-
-            if url and service_key:
-                from supabase import create_client
-                service_client = create_client(url, service_key)
-
-                # Use service role client to get ALL companies
-                query = service_client.table('companies').select('*').order('total_jobs', desc=True)
-
-                if company_name:
-                    query = query.ilike('normalized_company_name', f'%{company_name}%')
-
-                if limit:
-                    query = query.limit(limit)
-
-                result = query.execute()
-                df = pd.DataFrame(result.data or [])
-                print(f"✅ Loaded {len(df)} companies using SERVICE ROLE")
-                return df
-    except Exception as e:
-        print(f"❌ Service role failed: {e}")
-
-    # Fallback to regular client
     client = get_client()
     if not client:
         raise Exception("Supabase client not available")
 
+    # RESEARCH SOLUTION: Use range queries to get ALL data beyond 1000 row limit
+    all_companies = []
+    page_size = 1000  # Supabase default limit
+    start = 0
+
     try:
-        query = client.table('companies').select('*').order('total_jobs', desc=True)
+        while True:
+            query = client.table('companies').select('*').order('total_jobs', desc=True)
 
-        if company_name:
-            query = query.ilike('normalized_company_name', f'%{company_name}%')
+            if company_name:
+                query = query.ilike('normalized_company_name', f'%{company_name}%')
 
-        if limit:
-            query = query.limit(limit)
-        else:
-            query = query.limit(10000)
+            # Use range to get chunks of data
+            result = query.range(start, start + page_size - 1).execute()
+            page_data = result.data or []
 
-        result = query.execute()
-        df = pd.DataFrame(result.data or [])
-        print(f"✅ Fallback loaded {len(df)} companies")
+            if not page_data:
+                break  # No more data
+
+            all_companies.extend(page_data)
+            print(f"📄 Loaded page {start//page_size + 1}: {len(page_data)} companies (total: {len(all_companies)})")
+
+            # If we got less than page_size, we're done
+            if len(page_data) < page_size:
+                break
+
+            start += page_size
+
+        df = pd.DataFrame(all_companies)
+
+        # Apply limit if specified
+        if limit and len(df) > limit:
+            df = df.head(limit)
+
+        print(f"✅ FINAL RESULT: Loaded {len(df)} companies using range queries")
         return df
 
     except Exception as e:

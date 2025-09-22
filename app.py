@@ -2246,7 +2246,7 @@ def show_free_agent_management_page(coach):
                         # Map click data
                         agent['total_clicks'] = agent.get('total_job_clicks', 0)
                         agent['recent_clicks'] = agent.get('total_job_clicks', 0)  # Analytics table may not have 7-day split
-                        agent['lookback_days'] = current_lookback
+                        agent['lookback_days'] = 14  # Fixed 14-day period
                         agent['total_applications'] = agent.get('total_applications', 0)
                         agent['last_application_at'] = agent.get('last_application_at', '')
 
@@ -2272,10 +2272,10 @@ def show_free_agent_management_page(coach):
                                 agent[field] = ''
                 else:
                     # Fallback to original method if analytics table is empty
-                    agents = load_agent_profiles_with_stats(coach.username, current_lookback)
+                    agents = load_agent_profiles_with_stats(coach.username, 14)
             except Exception as analytics_error:
                 print(f"⚠️ Analytics rollup failed: {analytics_error}, falling back to original method")
-                agents = load_agent_profiles_with_stats(coach.username, current_lookback)
+                agents = load_agent_profiles_with_stats(coach.username, 14)
     except Exception as e:
         st.error(f"⚠️ Failed to load agent profiles: {str(e)}")
         st.info("💡 Using fallback mode - some features may be limited")
