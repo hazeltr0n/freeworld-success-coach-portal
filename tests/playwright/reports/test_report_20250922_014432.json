@@ -1,0 +1,18 @@
+{
+  "test_run_timestamp": "20250922_014432",
+  "total_suites": 1,
+  "passed_suites": 1,
+  "failed_suites": 0,
+  "error_suites": 0,
+  "timeout_suites": 0,
+  "success_rate": 100.0,
+  "total_duration": 63.18390655517578,
+  "results": {
+    "health_check": {
+      "status": "passed",
+      "duration": 63.18390655517578,
+      "stdout": "....                                                                     [100%]\n- generated xml file: /workspaces/freeworld-success-coach-portal/tests/playwright/reports/health_check_results.xml -\n4 passed in 62.52s (0:01:02)\n",
+      "stderr": ""
+    }
+  }
+}

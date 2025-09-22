@@ -9,13 +9,13 @@ import json
 from playwright.sync_api import Page
 from conftest import (
     TEST_CONFIG, wait_for_search_completion, extract_search_metrics,
-    verify_link_tracking, TestDataCollector
+    verify_link_tracking, DataCollector
 )
 
 class TestLinkTracking:
     """Test link generation and tracking functionality"""
 
-    def test_agent_portal_link_generation(self, authenticated_admin_page: Page, test_data_collector: TestDataCollector):
+    def test_agent_portal_link_generation(self, authenticated_admin_page: Page, test_data_collector: DataCollector):
         """Test agent portal link generation"""
         page = authenticated_admin_page
         start_time = time.time()
@@ -52,7 +52,7 @@ class TestLinkTracking:
             )
             raise
 
-    def test_bulk_portal_link_regeneration(self, authenticated_admin_page: Page, test_data_collector: TestDataCollector):
+    def test_bulk_portal_link_regeneration(self, authenticated_admin_page: Page, test_data_collector: DataCollector):
         """Test bulk portal link regeneration"""
         page = authenticated_admin_page
         start_time = time.time()
@@ -88,7 +88,7 @@ class TestLinkTracking:
             )
             raise
 
-    def test_job_tracking_links_in_search(self, authenticated_admin_page: Page, test_data_collector: TestDataCollector):
+    def test_job_tracking_links_in_search(self, authenticated_admin_page: Page, test_data_collector: DataCollector):
         """Test job tracking links are generated during search"""
         page = authenticated_admin_page
         start_time = time.time()
@@ -135,7 +135,7 @@ class TestLinkTracking:
             )
             raise
 
-    def test_click_analytics_system(self, authenticated_admin_page: Page, test_data_collector: TestDataCollector):
+    def test_click_analytics_system(self, authenticated_admin_page: Page, test_data_collector: DataCollector):
         """Test click analytics system functionality"""
         page = authenticated_admin_page
         start_time = time.time()
@@ -186,7 +186,7 @@ class TestLinkTracking:
             )
             raise
 
-    def test_pdf_generation_with_tracking_links(self, authenticated_admin_page: Page, test_data_collector: TestDataCollector):
+    def test_pdf_generation_with_tracking_links(self, authenticated_admin_page: Page, test_data_collector: DataCollector):
         """Test PDF generation includes proper tracking links"""
         page = authenticated_admin_page
         start_time = time.time()
@@ -243,7 +243,7 @@ class TestLinkTracking:
             )
             raise
 
-    def test_shortio_integration(self, authenticated_admin_page: Page, test_data_collector: TestDataCollector):
+    def test_shortio_integration(self, authenticated_admin_page: Page, test_data_collector: DataCollector):
         """Test Short.io API integration"""
         page = authenticated_admin_page
         start_time = time.time()

@@ -121,9 +121,57 @@ def check_project_structure():
     print("✅ Project structure verified")
     return True
 
+def load_streamlit_secrets():
+    """Load environment variables from .streamlit/secrets.toml"""
+    secrets_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".streamlit", "secrets.toml")
+
+    if os.path.exists(secrets_path):
+        try:
+            import toml
+            secrets = toml.load(secrets_path)
+            # Handle both flat structure and sectioned structure
+            for key, value in secrets.items():
+                if isinstance(value, dict):
+                    # Handle [secrets] section
+                    for subkey, subvalue in value.items():
+                        if subkey not in os.environ:
+                            os.environ[subkey] = str(subvalue)
+                else:
+                    # Handle flat keys
+                    if key not in os.environ:
+                        os.environ[key] = str(value)
+            return True
+        except ImportError:
+            # If toml is not available, try simple parsing
+            try:
+                with open(secrets_path, 'r') as f:
+                    current_section = None
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith('[') and line.endswith(']'):
+                            current_section = line[1:-1]
+                            continue
+                        if '=' in line and not line.startswith('#'):
+                            key, value = line.split('=', 1)
+                            key = key.strip().strip('"')
+                            value = value.strip().strip('"')
+                            if key not in os.environ:
+                                os.environ[key] = value
+                return True
+            except Exception as e:
+                print(f"⚠️  Could not parse secrets.toml: {e}")
+                return False
+        except Exception as e:
+            print(f"⚠️  Could not load secrets.toml: {e}")
+            return False
+    return False
+
 def check_environment():
     """Check if environment is properly configured"""
     print("🔍 Checking environment configuration...")
+
+    # Try to load from .streamlit/secrets.toml first
+    load_streamlit_secrets()
 
     required_env_vars = [
         "OPENAI_API_KEY",

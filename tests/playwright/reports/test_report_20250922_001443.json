@@ -1,0 +1,18 @@
+{
+  "test_run_timestamp": "20250922_001443",
+  "total_suites": 1,
+  "passed_suites": 1,
+  "failed_suites": 0,
+  "error_suites": 0,
+  "timeout_suites": 0,
+  "success_rate": 100.0,
+  "total_duration": 55.87644982337952,
+  "results": {
+    "health_check": {
+      "status": "passed",
+      "duration": 55.87644982337952,
+      "stdout": "============================= test session starts ==============================\nplatform linux -- Python 3.11.13, pytest-8.4.2, pluggy-1.6.0 -- /usr/local/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.1.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nmetadata: {'Python': '3.11.13', 'Platform': 'Linux-6.8.0-1030-azure-x86_64-with-glibc2.31', 'Packages': {'pytest': '8.4.2', 'pluggy': '1.6.0'}, 'Plugins': {'html': '4.1.1', 'benchmark': '5.1.0', 'allure-pytest': '2.15.0', 'anyio': '4.10.0', 'playwright': '0.7.1', 'typeguard': '4.4.4', 'metadata': '3.1.1', 'base-url': '2.1.0', 'xdist': '3.8.0'}, 'Base URL': ''}\nrootdir: /workspaces/freeworld-success-coach-portal/tests/playwright\nplugins: html-4.1.1, benchmark-5.1.0, allure-pytest-2.15.0, anyio-4.10.0, playwright-0.7.1, typeguard-4.4.4, metadata-3.1.1, base-url-2.1.0, xdist-3.8.0\ncollecting ... collected 4 items\n\ntest_health_check.py::TestHealthCheck::test_streamlit_app_loads[chromium] PASSED [ 25%]\ntest_health_check.py::TestHealthCheck::test_login_form_exists[chromium] PASSED [ 50%]\ntest_health_check.py::TestHealthCheck::test_admin_login_works[chromium] PASSED [ 75%]\ntest_health_check.py::TestHealthCheck::test_main_navigation_tabs[chromium] PASSED [100%]\n\n- generated xml file: /workspaces/freeworld-success-coach-portal/tests/playwright/reports/health_check_results.xml -\n============================== 4 passed in 55.31s ==============================\n",
+      "stderr": ""
+    }
+  }
+}

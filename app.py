@@ -6460,11 +6460,36 @@ def show_combined_batches_and_scheduling_page(coach):
                         )
 
                     with col4:
+                        batch_classifier_type = st.selectbox(
+                            "🎯 Job Type:",
+                            ["CDL Traditional", "Career Pathways"],
+                            index=0,
+                            help="Choose the job classification approach"
+                        )
+
+                    # Row 2.5: Additional Options
+                    col1, col2, col3, col4 = st.columns(4)
+
+                    with col1:
                         batch_force_fresh = st.checkbox(
                             "🔄 Force fresh classification",
                             value=False,
                             help="Bypass AI classification cache"
                         )
+
+                    # Career Pathways specific options
+                    if batch_classifier_type == "Career Pathways":
+                        with col2:
+                            batch_pathway_preferences = st.multiselect(
+                                "🛤️ Career Pathways:",
+                                ["cdl_pathway", "dock_to_driver", "internal_cdl_training",
+                                 "warehouse_to_driver", "logistics_progression", "non_cdl_driving",
+                                 "general_warehouse", "construction_apprentice"],
+                                default=["cdl_pathway"],
+                                help="Select preferred career pathways"
+                            )
+                    else:
+                        batch_pathway_preferences = []
 
                     # Row 3: Scheduling Options
                     st.markdown("### 🗓️ Schedule Settings")
@@ -6509,79 +6534,109 @@ def show_combined_batches_and_scheduling_page(coach):
                         run_now = st.form_submit_button("🚀 Run Now", width='stretch', type="secondary")
                     
                     if submitted or run_now:
+                        # Validate inputs first
+                        if not batch_search_terms.strip():
+                            st.error("❌ Please enter search terms")
+                            st.stop()
+
+                        if batch_location_type == "Custom Location" and not batch_custom_location.strip():
+                            st.error("❌ Please enter a custom location")
+                            st.stop()
+
+                        if batch_frequency == "Weekly" and not batch_days:
+                            st.error("❌ Please select at least one day for weekly schedule")
+                            st.stop()
+
+                        # Create comprehensive job parameters matching main search page
+                        search_params = {
+                            # Core search parameters
+                            'search_terms': batch_search_terms.strip(),
+                            'location': batch_location,
+                            'limit': batch_job_limit,
+
+                            # Search filters (same as main search)
+                            'search_radius': batch_search_radius,
+                            'no_experience': batch_no_experience,
+                            'force_fresh_classification': batch_force_fresh,
+
+                            # Classification parameters
+                            'classifier_type': batch_classifier_type,
+                            'pathway_preferences': batch_pathway_preferences if batch_classifier_type == "Career Pathways" else [],
+
+                            # Pipeline parameters
+                            'coach_username': coach.username,
+                            'coach_name': coach.full_name,
+                            'mode': {10: 'test', 50: 'mini', 100: 'sample', 250: 'medium', 500: 'large', 1000: 'full'}.get(batch_job_limit, 'sample'),
+
+                            # Scheduling metadata
+                            'frequency': batch_frequency,
+                            'scheduled_time': batch_time.strftime('%H:%M'),
+                            'scheduled_days': batch_days if batch_frequency == "Weekly" else None,
+
+                            # Location metadata for tracking
+                            'location_type': batch_location_type,
+                            'selected_market': batch_selected_market if batch_location_type == "Select Market" else None,
+                            'custom_location': batch_custom_location if batch_location_type == "Custom Location" else None,
+
+                            # Additional flags
+                            'exact_location': batch_exact_location,
+                            'source_type': 'Indeed'  # Focus on Indeed only
+                        }
+
                         try:
                             from async_job_manager import AsyncJobManager
                             manager = AsyncJobManager()
 
-                            # Validate inputs
-                            if not batch_search_terms.strip():
-                                st.error("❌ Please enter search terms")
-                                st.stop()
-
-                            if batch_location_type == "Custom Location" and not batch_custom_location.strip():
-                                st.error("❌ Please enter a custom location")
-                                st.stop()
-
-                            if batch_frequency == "Weekly" and not batch_days:
-                                st.error("❌ Please select at least one day for weekly schedule")
-                                st.stop()
-
-                            # Create comprehensive job parameters matching main search page
-                            search_params = {
-                                # Core search parameters
-                                'search_terms': batch_search_terms.strip(),
-                                'location': batch_location,
-                                'limit': batch_job_limit,
-
-                                # Search filters (same as main search)
-                                'search_radius': batch_search_radius,
-                                'no_experience': batch_no_experience,
-                                'force_fresh_classification': batch_force_fresh,
-
-                                # Pipeline parameters
-                                'coach_username': coach.username,
-                                'coach_name': coach.full_name,
-                                'mode': {10: 'test', 50: 'mini', 100: 'sample', 250: 'medium', 500: 'large', 1000: 'full'}.get(batch_job_limit, 'sample'),
-
-                                # Scheduling metadata
-                                'frequency': batch_frequency,
-                                'scheduled_time': batch_time.strftime('%H:%M'),
-                                'scheduled_days': batch_days if batch_frequency == "Weekly" else None,
-                                'run_immediately': run_now,
-
-                                # Location metadata for tracking
-                                'location_type': batch_location_type,
-                                'selected_market': batch_selected_market if batch_location_type == "Select Market" else None,
-                                'custom_location': batch_custom_location if batch_location_type == "Custom Location" else None,
-
-                                # Additional flags
-                                'exact_location': batch_exact_location,
-                                'source_type': 'Indeed'  # Focus on Indeed only
-                            }
-
-                            # Submit Indeed batch job
-                            job = manager.submit_indeed_search(search_params, coach.username)
-
-                            # Success message with details
                             if run_now:
+                                # Run immediately - submit the job for immediate execution
+                                search_params['run_immediately'] = True
+                                job = manager.submit_indeed_search(search_params, coach.username)
+
                                 st.success(f"🚀 Indeed batch submitted and running!")
                                 st.info(f"📋 Job ID: {job.id}")
                                 st.info(f"📍 Location: {batch_location}")
                                 st.info(f"🔍 Terms: {batch_search_terms}")
+                                st.info(f"🎯 Classifier: {batch_classifier_type}")
                                 st.info(f"📊 Job Limit: {batch_job_limit}")
+
                             else:
-                                st.success(f"💾 Indeed batch scheduled successfully!")
-                                st.info(f"📋 Job ID: {job.id}")
-                                st.info(f"📍 Location: {batch_location}")
-                                st.info(f"📅 Schedule: {batch_frequency}")
-                                if batch_frequency == "Weekly":
-                                    st.info(f"🗓️ Days: {', '.join(batch_days)}")
-                                st.info(f"⏰ Time: {batch_time.strftime('%H:%M')} Central")
+                                # Save for later - create scheduled job entry without immediate execution
+                                search_params['run_immediately'] = False
+                                search_params['status'] = 'scheduled'  # Mark as scheduled, not running
+
+                                # For "Save for Later", we should save to a scheduled jobs table/database
+                                # rather than immediately executing. This requires a different method.
+                                try:
+                                    # Try to save as scheduled job (not immediately execute)
+                                    job = manager.create_scheduled_job(search_params, coach.username)
+
+                                    st.success(f"💾 Indeed batch scheduled successfully!")
+                                    st.info(f"📋 Schedule ID: {job.id}")
+                                    st.info(f"📍 Location: {batch_location}")
+                                    st.info(f"🔍 Terms: {batch_search_terms}")
+                                    st.info(f"🎯 Classifier: {batch_classifier_type}")
+                                    st.info(f"📅 Schedule: {batch_frequency}")
+                                    if batch_frequency == "Weekly":
+                                        st.info(f"🗓️ Days: {', '.join(batch_days)}")
+                                    st.info(f"⏰ Time: {batch_time.strftime('%H:%M')} Central")
+                                    st.info("🔮 Job will run at scheduled time - it has NOT been executed yet")
+
+                                except AttributeError:
+                                    # If create_scheduled_job doesn't exist, fall back to the old method
+                                    # but mark it clearly that this is a scheduling issue
+                                    st.warning("⚠️ ISSUE: 'Save for Later' is running the job immediately due to missing scheduled job functionality")
+                                    search_params['run_immediately'] = False
+                                    job = manager.submit_indeed_search(search_params, coach.username)
+
+                                    st.info(f"📋 Job ID: {job.id} (Note: May have run immediately - this is the reported bug)")
+                                    st.info(f"📍 Location: {batch_location}")
+                                    st.info(f"🎯 Classifier: {batch_classifier_type}")
 
                             st.rerun()  # Refresh to show the job in table
-                            
+
                         except Exception as e:
                             st.error(f"❌ Failed to create batch: {e}")
+                            st.error(f"Error details: {str(e)}")
             
             # Scheduled batches table
             st.markdown("### 📊 Scheduled Batches Table")
