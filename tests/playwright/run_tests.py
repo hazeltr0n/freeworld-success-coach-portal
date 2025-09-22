@@ -265,6 +265,7 @@ def start_streamlit_server():
         print(f"❌ Failed to start Streamlit server: {e}")
         return False
 
+
 def run_test_suite(suite_name: str, verbose: bool = False) -> dict:
     """Run a specific test suite"""
     suite = TEST_SUITES.get(suite_name)
