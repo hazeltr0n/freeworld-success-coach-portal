@@ -7,6 +7,7 @@ import pytest
 import os
 import sys
 import json
+import subprocess
 from datetime import datetime, timedelta
 from playwright.sync_api import Page, Playwright, Browser, BrowserContext
 from typing import Dict, Any, List, Generator
@@ -98,6 +99,105 @@ TEST_CONFIG = {
         "construction_apprentice"
     ]
 }
+
+def ensure_playwright_browsers():
+    """Ensure Playwright browsers are installed"""
+    try:
+        print("🌐 Checking Playwright browser installation...")
+
+        # Try to import playwright first
+        try:
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            print("📦 Installing Playwright...")
+            subprocess.run([sys.executable, "-m", "pip", "install", "playwright>=1.40.0"],
+                         check=True, capture_output=True)
+            from playwright.sync_api import sync_playwright
+
+        # Check if browsers are installed by trying to launch one
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)
+                browser.close()
+                print("✅ Playwright browsers already installed")
+                return True
+        except Exception as browser_error:
+            print(f"🔧 Browsers need installation: {browser_error}")
+
+            # Install browsers
+            print("📥 Installing Playwright browsers (Chromium, Firefox, WebKit)...")
+            result = subprocess.run([
+                sys.executable, "-m", "playwright", "install"
+            ], capture_output=True, text=True, timeout=600)
+
+            if result.returncode == 0:
+                print("✅ Playwright browsers installed successfully")
+
+                # Verify installation
+                with sync_playwright() as p:
+                    browser = p.chromium.launch(headless=True)
+                    browser.close()
+                    print("✅ Browser installation verified")
+                return True
+            else:
+                print(f"❌ Browser installation failed: {result.stderr}")
+                return False
+
+    except subprocess.TimeoutExpired:
+        print("❌ Browser installation timed out")
+        return False
+    except Exception as e:
+        print(f"❌ Browser setup failed: {e}")
+        return False
+
+def ensure_required_packages():
+    """Ensure all required Python packages are installed"""
+    required_packages = [
+        "playwright>=1.40.0",
+        "pytest>=7.4.0",
+        "requests>=2.31.0",
+        "pandas>=2.0.0",
+        "supabase>=2.0.0"
+    ]
+
+    missing_packages = []
+
+    for package in required_packages:
+        package_name = package.split(">=")[0].split("==")[0]
+        try:
+            __import__(package_name.replace("-", "_"))
+        except ImportError:
+            missing_packages.append(package)
+
+    if missing_packages:
+        print(f"📦 Installing missing packages: {missing_packages}")
+        try:
+            subprocess.run([
+                sys.executable, "-m", "pip", "install"
+            ] + missing_packages, check=True, capture_output=True)
+            print("✅ Required packages installed")
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Package installation failed: {e}")
+            return False
+    else:
+        print("✅ All required packages already installed")
+
+    return True
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_environment():
+    """Automatically set up the test environment before any tests run"""
+    print("\n🚀 Setting up test environment...")
+
+    # Ensure required packages are installed
+    if not ensure_required_packages():
+        pytest.exit("❌ Failed to install required packages")
+
+    # Ensure Playwright browsers are installed
+    if not ensure_playwright_browsers():
+        pytest.exit("❌ Failed to install Playwright browsers")
+
+    print("✅ Test environment setup complete!\n")
 
 @pytest.fixture(scope="session")
 def browser_context_args(browser_context_args):

@@ -53,40 +53,89 @@ TEST_SUITES = {
     }
 }
 
+def install_dependencies():
+    """Install required dependencies automatically"""
+    print("📦 Installing dependencies...")
+
+    required_packages = [
+        "playwright>=1.40.0",
+        "pytest>=7.4.0",
+        "python-dotenv>=1.0.0",
+        "requests>=2.31.0",
+        "pandas>=2.0.0",
+        "supabase>=2.0.0"
+    ]
+
+    try:
+        subprocess.run([
+            sys.executable, "-m", "pip", "install"
+        ] + required_packages, check=True, capture_output=True)
+        print("✅ Dependencies installed successfully")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Failed to install dependencies: {e}")
+        return False
+
+def install_playwright_browsers():
+    """Install Playwright browsers automatically"""
+    print("🌐 Installing Playwright browsers...")
+
+    try:
+        result = subprocess.run([
+            sys.executable, "-m", "playwright", "install"
+        ], capture_output=True, text=True, timeout=600)
+
+        if result.returncode == 0:
+            print("✅ Playwright browsers installed successfully")
+            return True
+        else:
+            print(f"❌ Browser installation failed: {result.stderr}")
+            return False
+
+    except subprocess.TimeoutExpired:
+        print("❌ Browser installation timed out")
+        return False
+    except Exception as e:
+        print(f"❌ Browser installation error: {e}")
+        return False
+
 def check_dependencies():
-    """Check if required dependencies are installed"""
+    """Check and install required dependencies"""
     print("🔍 Checking dependencies...")
 
     required_packages = [
         ("playwright", "playwright"),
         ("pytest", "pytest"),
-        ("python-dotenv", "dotenv")
+        ("python-dotenv", "dotenv"),
+        ("requests", "requests"),
+        ("pandas", "pandas"),
+        ("supabase", "supabase")
     ]
 
     missing_packages = []
     for package_name, import_name in required_packages:
         try:
-            __import__(import_name)
+            __import__(import_name.replace("-", "_"))
         except ImportError:
             missing_packages.append(package_name)
 
+    # If missing packages, install them automatically
     if missing_packages:
-        print(f"❌ Missing packages: {', '.join(missing_packages)}")
-        print("Install with: pip install playwright pytest python-dotenv")
-        return False
+        print(f"📥 Missing packages detected: {', '.join(missing_packages)}")
+        if not install_dependencies():
+            return False
 
     # Check if Playwright browsers are installed
     try:
-        result = subprocess.run(["playwright", "install", "--help"],
-                              capture_output=True, text=True)
-        if result.returncode != 0:
-            print("❌ Playwright not properly installed")
-            print("Install browsers with: playwright install")
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            browser.close()
+        print("✅ Playwright browsers already installed")
+    except Exception:
+        print("🔧 Playwright browsers need installation...")
+        if not install_playwright_browsers():
             return False
-    except FileNotFoundError:
-        print("❌ Playwright command not found")
-        print("Install with: pip install playwright && playwright install")
-        return False
 
     print("✅ All dependencies satisfied")
     return True
