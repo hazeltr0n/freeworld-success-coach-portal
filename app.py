@@ -543,9 +543,9 @@ def generate_dynamic_portal_link(agent_data: dict) -> str:
         from supabase_utils import get_client
         client = get_client()
         if client:
-            result = client.table('agent_profiles').select('custom_url').eq('agent_uuid', agent_uuid).maybeSingle().execute()
-            if result.data and result.data.get('custom_url'):
-                return result.data['custom_url']
+            result = client.table('agent_profiles').select('custom_url').eq('agent_uuid', agent_uuid).limit(1).execute()
+            if result.data and len(result.data) > 0 and result.data[0].get('custom_url'):
+                return result.data[0]['custom_url']
     except Exception as e:
         print(f"⚠️ Could not fetch custom_url from database: {e}")
 
