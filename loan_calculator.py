@@ -897,9 +897,16 @@ def generate_calculator_html():
     """
 
 # Streamlit configuration
+# Load FreeWorld round logo for favicon
+try:
+    from PIL import Image
+    production_favicon = Image.open("fw_logo.png")
+except (ImportError, FileNotFoundError):
+    production_favicon = "🏫"  # School emoji fallback
+
 st.set_page_config(
     page_title="FreeWorld Trucking School Loan Calculator - CDL Training Cost Estimator",
-    page_icon="🏫",
+    page_icon=production_favicon,
     layout="centered",
     initial_sidebar_state="collapsed"
 )
