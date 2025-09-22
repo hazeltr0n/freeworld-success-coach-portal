@@ -148,7 +148,7 @@ def analyze_jobs_for_companies() -> pd.DataFrame:
     # Fetch ALL jobs data with good/so-so quality - remove limit and get comprehensive data
     # We need ALL companies with good/so-so jobs regardless of query limits
     result = client.table('jobs').select(
-        'company, location, job_title, match_level, route_type, fair_chance, salary, created_at, success_coach, candidate_id, candidate_name'
+        'company, location, job_title, match_level, route_type, fair_chance, salary, created_at, success_coach'
     ).gte('created_at', cutoff_date).in_('match_level', ['good', 'so-so']).execute()
     
     jobs_data = result.data or []
@@ -229,13 +229,12 @@ def analyze_jobs_for_companies() -> pd.DataFrame:
                 else:
                     normalized_route_counts['Other'] = normalized_route_counts.get('Other', 0) + count
 
-        # Free agent feedback aggregation
+        # Free agent feedback aggregation (placeholder for future enhancement)
         feedback_data = {}
-        if 'candidate_name' in company_jobs.columns:
-            # Count unique candidates who applied to this company
-            unique_candidates = company_jobs['candidate_name'].dropna().nunique()
-            feedback_data['total_applicants'] = unique_candidates
-            feedback_data['total_applications'] = len(company_jobs.dropna(subset=['candidate_name']))
+        # Note: Free agent feedback will be populated when click tracking data is integrated
+        # For now, we'll track basic engagement metrics
+        feedback_data['total_jobs_posted'] = total_jobs
+        feedback_data['last_job_date'] = company_jobs['created_at'].max() if not company_jobs.empty else None
 
         # Date ranges
         dates = pd.to_datetime(company_jobs['created_at'])
