@@ -306,22 +306,51 @@ def update_companies_table():
     
     return companies_df
 
-def get_company_analytics(company_name: str = None, limit: int = 50) -> pd.DataFrame:
-    """Get companies data with optional filtering"""
+def get_company_analytics(company_name: str = None, limit: int = None) -> pd.DataFrame:
+    """Get companies data with optional filtering - uses SQL function like Free Agents"""
     client = get_client()
     if not client:
         raise Exception("Supabase client not available")
-    
-    query = client.table('companies').select('*').order('total_jobs', desc=True)
-    
-    if company_name:
-        query = query.ilike('normalized_company_name', f'%{company_name}%')
-    
-    if limit:
-        query = query.limit(limit)
-    
-    result = query.execute()
-    return pd.DataFrame(result.data or [])
+
+    try:
+        # Use the same approach as Free Agents - call SQL function directly
+        print("🔄 Calling get_all_companies_data() SQL function...")
+        result = client.rpc('get_all_companies_data').execute()
+
+        if result.data:
+            df = pd.DataFrame(result.data)
+            print(f"✅ Loaded {len(df)} companies from SQL function")
+
+            # Apply filtering after getting all data
+            if company_name:
+                mask = df['normalized_company_name'].str.contains(company_name, case=False, na=False)
+                df = df[mask]
+
+            if limit:
+                df = df.head(limit)
+
+            return df
+        else:
+            print("⚠️ No data returned from SQL function")
+            return pd.DataFrame()
+
+    except Exception as e:
+        print(f"❌ SQL function failed: {e}")
+        print("🔄 Falling back to table query...")
+
+        # Fallback to direct table query
+        query = client.table('companies').select('*').order('total_jobs', desc=True)
+        if company_name:
+            query = query.ilike('normalized_company_name', f'%{company_name}%')
+        if limit:
+            query = query.limit(limit)
+        else:
+            query = query.limit(2100)  # Set high limit to get all companies
+
+        result = query.execute()
+        df = pd.DataFrame(result.data or [])
+        print(f"✅ Fallback loaded {len(df)} companies")
+        return df
 
 def get_fair_chance_companies() -> pd.DataFrame:
     """Get companies that offer fair chance opportunities"""

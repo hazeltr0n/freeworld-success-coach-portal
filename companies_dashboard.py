@@ -38,20 +38,21 @@ def show_companies_dashboard():
                     if client:
                         # Call the Supabase scheduled function manually
                         result = client.rpc('scheduled_companies_refresh').execute()
-                        # The SQL function returns a JSON object as the first element of data array
+                        # The function now returns simple text: "SUCCESS: Updated 2051 companies"
                         if result.data and len(result.data) > 0:
-                            response_data = result.data[0]  # Get the first (and only) result
-                            if isinstance(response_data, dict):
-                                if response_data.get('success'):
-                                    companies_updated = response_data.get('companies_updated', 0)
-                                    st.success(f"✅ Manual refresh completed! Updated {companies_updated} companies.")
+                            response_text = result.data[0]
+                            if isinstance(response_text, str):
+                                if response_text.startswith('SUCCESS:'):
+                                    st.success(f"✅ Manual refresh completed! {response_text}")
+                                elif response_text.startswith('ERROR:'):
+                                    st.error(f"❌ Refresh failed: {response_text}")
                                 else:
-                                    error_msg = response_data.get('error', 'Unknown error')
-                                    st.error(f"❌ Refresh failed: {error_msg}")
+                                    st.success(f"✅ Manual refresh completed! {response_text}")
                             else:
                                 st.success("✅ Manual refresh completed!")
                         else:
                             st.warning("⚠️ No response data from refresh function")
+
                         st.rerun()
                     else:
                         st.error("❌ Supabase client not available")
