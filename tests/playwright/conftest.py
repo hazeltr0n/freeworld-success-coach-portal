@@ -476,7 +476,7 @@ def verify_supabase_upload(expected_jobs: int = 0) -> int:
         from datetime import datetime, timedelta
         recent_time = (datetime.now() - timedelta(minutes=5)).isoformat()
 
-        response = client.table('job_postings').select('id').gte('created_at', recent_time).execute()
+        response = client.table('jobs').select('job_id').gte('created_at', recent_time).execute()
 
         return len(response.data)
 
