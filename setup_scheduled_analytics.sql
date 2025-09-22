@@ -40,19 +40,11 @@ BEGIN
         COUNT(*) as active_jobs,
         COUNT(*) FILTER (WHERE fair_chance ILIKE '%fair%' OR fair_chance ILIKE '%yes%' OR fair_chance = 'true') as fair_chance_jobs,
         COUNT(*) FILTER (WHERE fair_chance ILIKE '%fair%' OR fair_chance ILIKE '%yes%' OR fair_chance = 'true') > 0 as has_fair_chance,
-        ARRAY_AGG(DISTINCT
-            CASE
-                WHEN location ILIKE '%houston%' THEN 'Houston'
-                WHEN location ILIKE '%dallas%' THEN 'Dallas'
-                WHEN location ILIKE '%las vegas%' OR location ILIKE '%nevada%' THEN 'Las Vegas'
-                WHEN location ILIKE '%bay area%' OR location ILIKE '%san francisco%' OR location ILIKE '%oakland%' THEN 'Bay Area'
-                WHEN location ILIKE '%phoenix%' OR location ILIKE '%arizona%' THEN 'Phoenix'
-                WHEN location ILIKE '%denver%' OR location ILIKE '%colorado%' THEN 'Denver'
-                WHEN location ILIKE '%newark%' OR location ILIKE '%new jersey%' THEN 'Newark'
-                WHEN location ILIKE '%stockton%' THEN 'Stockton'
-                ELSE SPLIT_PART(location, ',', 1)
-            END
-        ) FILTER (WHERE location IS NOT NULL) as markets,
+        ARRAY_AGG(DISTINCT market) FILTER (WHERE
+            market IS NOT NULL
+            AND market != ''
+            AND market IN ('Houston', 'Dallas', 'Las Vegas', 'Bay Area', 'Phoenix', 'Denver', 'Newark', 'Stockton', 'Inland Empire', 'Trenton')
+        ) as markets,
         ARRAY_AGG(DISTINCT job_title ORDER BY job_title) FILTER (WHERE job_title IS NOT NULL) as job_titles,
         ARRAY_AGG(DISTINCT route_type) FILTER (WHERE route_type IS NOT NULL) as route_types,
         JSON_BUILD_OBJECT(

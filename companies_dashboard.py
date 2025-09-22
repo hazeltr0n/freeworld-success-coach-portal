@@ -112,75 +112,8 @@ def show_companies_dashboard():
         blacklisted_count = companies_df['is_blacklisted'].sum() if 'is_blacklisted' in companies_df.columns else 0
         st.metric("Blacklisted", blacklisted_count, delta_color="inverse")
     
-    # Charts
-    st.markdown("## 📊 Analytics")
-
     # Note about filtering
     st.info("📋 **Data Note**: Only showing companies with 'good' or 'so-so' quality jobs. Companies with only 'bad' jobs are filtered out.")
-    
-    # Enhanced analytics with route breakdown
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("### 🏆 Top Companies by Job Count")
-        top_companies = companies_df.nlargest(15, 'total_jobs') if 'total_jobs' in companies_df.columns else companies_df.head(15)
-        
-        fig = px.bar(
-            top_companies, 
-            x='total_jobs', 
-            y='company_name',
-            orientation='h',
-            title="Jobs Posted (Last 60 Days)",
-            color='has_fair_chance' if 'has_fair_chance' in companies_df.columns else None,
-            color_discrete_map={True: '#10B981', False: '#6B7280'}
-        )
-        fig.update_layout(height=500, showlegend=True if 'has_fair_chance' in companies_df.columns else False)
-        st.plotly_chart(fig, use_container_width=True)
-    
-    with col2:
-        st.markdown("### 🚚 Route Type Distribution")
-
-        if 'route_breakdown' in companies_df.columns:
-            # Aggregate route data across all companies
-            route_totals = {'Local': 0, 'OTR': 0, 'Regional': 0, 'Other': 0}
-
-            for _, row in companies_df.iterrows():
-                route_data = row.get('route_breakdown', {})
-                if isinstance(route_data, dict):
-                    for route_type, count in route_data.items():
-                        if route_type in route_totals:
-                            route_totals[route_type] += count
-
-            # Filter out zero counts
-            route_totals = {k: v for k, v in route_totals.items() if v > 0}
-
-            if route_totals:
-                fig = px.pie(
-                    values=list(route_totals.values()),
-                    names=list(route_totals.keys()),
-                    title="Job Distribution by Route Type",
-                    color_discrete_sequence=['#3B82F6', '#EF4444', '#10B981', '#F59E0B']
-                )
-                fig.update_layout(height=400)
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info("Route breakdown data not available")
-        else:
-            # Fallback to fair chance distribution
-            st.markdown("### 🤝 Fair Chance Distribution")
-
-            if 'has_fair_chance' in companies_df.columns:
-                fair_chance_counts = companies_df['has_fair_chance'].value_counts()
-                fig = px.pie(
-                    values=fair_chance_counts.values,
-                    names=['Fair Chance' if x else 'Standard' for x in fair_chance_counts.index],
-                    title="Companies by Fair Chance Status",
-                    color_discrete_sequence=['#10B981', '#6B7280']
-                )
-                fig.update_layout(height=400)
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info("Fair chance data not available")
     
     # Market breakdown
     if 'markets' in companies_df.columns:
@@ -202,6 +135,30 @@ def show_companies_dashboard():
     
     # Companies table
     st.markdown("## 📋 Companies Details")
+
+    # Quality and route breakdown summary
+    col1, col2, col3 = st.columns(3)
+
+    # Calculate companies by job quality
+    good_companies = 0
+    so_so_companies = 0
+    fair_chance_companies = companies_df['has_fair_chance'].sum() if 'has_fair_chance' in companies_df.columns else 0
+
+    if 'quality_breakdown' in companies_df.columns:
+        for _, row in companies_df.iterrows():
+            quality_data = row.get('quality_breakdown')
+            if isinstance(quality_data, dict):
+                if quality_data.get('good', 0) > 0:
+                    good_companies += 1
+                if quality_data.get('so-so', 0) > 0:
+                    so_so_companies += 1
+
+    with col1:
+        st.metric("Companies with Good Jobs", good_companies)
+    with col2:
+        st.metric("Companies with So-so Jobs", so_so_companies)
+    with col3:
+        st.metric("Fair Chance Employers", fair_chance_companies)
 
     # Show route type breakdown summary
     if 'route_breakdown' in companies_df.columns:
@@ -251,7 +208,7 @@ def show_companies_dashboard():
     # Markets display (using actual markets, not city names)
     if 'markets' in companies_df.columns:
         companies_df['markets_display'] = companies_df['markets'].apply(
-            lambda x: ', '.join(x[:3]) + (f' (+{len(x)-3} more)' if len(x) > 3 else '') if isinstance(x, list) and x else 'Unknown'
+            lambda x: ', '.join(x) if isinstance(x, list) and x else 'Unknown'
         )
         display_columns.append('markets_display')
 
