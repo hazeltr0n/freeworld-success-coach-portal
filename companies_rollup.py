@@ -31,6 +31,10 @@ def create_companies_table_sql():
         job_titles TEXT[] DEFAULT ARRAY[]::TEXT[],
         route_types TEXT[] DEFAULT ARRAY[]::TEXT[],
         quality_breakdown JSONB DEFAULT '{}'::JSONB,
+        route_breakdown JSONB DEFAULT '{}'::JSONB,
+        free_agent_feedback JSONB DEFAULT '{}'::JSONB,
+        is_blacklisted BOOLEAN DEFAULT FALSE,
+        blacklist_reason TEXT,
         oldest_job_date TIMESTAMPTZ,
         newest_job_date TIMESTAMPTZ,
         avg_salary_min NUMERIC,
@@ -44,6 +48,9 @@ def create_companies_table_sql():
     CREATE INDEX IF NOT EXISTS idx_companies_fair_chance ON companies(has_fair_chance);
     CREATE INDEX IF NOT EXISTS idx_companies_active_jobs ON companies(active_jobs);
     CREATE INDEX IF NOT EXISTS idx_companies_updated ON companies(updated_at);
+    CREATE INDEX IF NOT EXISTS idx_companies_blacklisted ON companies(is_blacklisted);
+    CREATE INDEX IF NOT EXISTS idx_companies_quality_breakdown ON companies USING GIN(quality_breakdown);
+    CREATE INDEX IF NOT EXISTS idx_companies_route_breakdown ON companies USING GIN(route_breakdown);
     
     -- Create function to update updated_at timestamp
     CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -128,20 +135,21 @@ def extract_market_from_location(location: str) -> str:
     return "Unknown"
 
 def analyze_jobs_for_companies() -> pd.DataFrame:
-    """Analyze jobs table and create companies rollup data"""
+    """Analyze jobs table and create companies rollup data - only include companies with good/so-so jobs"""
     client = get_client()
     if not client:
         raise Exception("Supabase client not available")
-    
+
     print("🔍 Fetching jobs data from Supabase...")
-    
+
     # Get jobs from the last 60 days to focus on active/recent companies
     cutoff_date = (datetime.now(timezone.utc) - timedelta(days=60)).isoformat()
-    
-    # Fetch jobs data - use correct Supabase field names
+
+    # Fetch ALL jobs data with good/so-so quality - remove limit and get comprehensive data
+    # We need ALL companies with good/so-so jobs regardless of query limits
     result = client.table('jobs').select(
-        'company, location, job_title, match_level, route_type, fair_chance, salary, created_at, success_coach'
-    ).gte('created_at', cutoff_date).execute()
+        'company, location, job_title, match_level, route_type, fair_chance, salary, created_at, success_coach, candidate_id, candidate_name'
+    ).gte('created_at', cutoff_date).in_('match_level', ['good', 'so-so']).execute()
     
     jobs_data = result.data or []
     print(f"📊 Analyzing {len(jobs_data)} jobs from the last 60 days...")
@@ -204,12 +212,36 @@ def analyze_jobs_for_companies() -> pd.DataFrame:
         
         # Quality breakdown
         quality_counts = company_jobs['match_level'].value_counts().to_dict()
-        
+
+        # Route breakdown with job counts
+        route_counts = company_jobs['route_type'].value_counts().to_dict()
+        # Normalize route names
+        normalized_route_counts = {}
+        for route, count in route_counts.items():
+            if pd.notna(route):
+                route_key = str(route).lower()
+                if 'local' in route_key:
+                    normalized_route_counts['Local'] = normalized_route_counts.get('Local', 0) + count
+                elif 'otr' in route_key or 'over the road' in route_key:
+                    normalized_route_counts['OTR'] = normalized_route_counts.get('OTR', 0) + count
+                elif 'regional' in route_key:
+                    normalized_route_counts['Regional'] = normalized_route_counts.get('Regional', 0) + count
+                else:
+                    normalized_route_counts['Other'] = normalized_route_counts.get('Other', 0) + count
+
+        # Free agent feedback aggregation
+        feedback_data = {}
+        if 'candidate_name' in company_jobs.columns:
+            # Count unique candidates who applied to this company
+            unique_candidates = company_jobs['candidate_name'].dropna().nunique()
+            feedback_data['total_applicants'] = unique_candidates
+            feedback_data['total_applications'] = len(company_jobs.dropna(subset=['candidate_name']))
+
         # Date ranges
         dates = pd.to_datetime(company_jobs['created_at'])
         oldest_date = dates.min()
         newest_date = dates.max()
-        
+
         # Salary averages
         salary_data = company_jobs[['salary_min', 'salary_max']].dropna()
         avg_salary_min = salary_data['salary_min'].mean() if not salary_data.empty else None
@@ -226,6 +258,10 @@ def analyze_jobs_for_companies() -> pd.DataFrame:
             'job_titles': job_titles,
             'route_types': [rt for rt in route_types if rt and not pd.isna(rt)],
             'quality_breakdown': quality_counts,
+            'route_breakdown': normalized_route_counts,
+            'free_agent_feedback': feedback_data,
+            'is_blacklisted': False,  # Default to not blacklisted
+            'blacklist_reason': None,
             'oldest_job_date': oldest_date.isoformat() if pd.notna(oldest_date) else None,
             'newest_job_date': newest_date.isoformat() if pd.notna(newest_date) else None,
             'avg_salary_min': float(avg_salary_min) if pd.notna(avg_salary_min) else None,
@@ -311,10 +347,60 @@ def get_market_company_breakdown(market: str) -> pd.DataFrame:
     client = get_client()
     if not client:
         raise Exception("Supabase client not available")
-    
+
     # Use PostgreSQL array contains operator
     result = client.table('companies').select('*').contains('markets', [market]).order('total_jobs', desc=True).execute()
     return pd.DataFrame(result.data or [])
+
+def update_company_blacklist(company_id: int, is_blacklisted: bool, reason: str = None) -> bool:
+    """Update blacklist status for a company"""
+    client = get_client()
+    if not client:
+        raise Exception("Supabase client not available")
+
+    update_data = {
+        'is_blacklisted': is_blacklisted,
+        'blacklist_reason': reason if is_blacklisted else None
+    }
+
+    try:
+        result = client.table('companies').update(update_data).eq('id', company_id).execute()
+        return True
+    except Exception as e:
+        print(f"Error updating company blacklist: {e}")
+        return False
+
+def get_blacklisted_companies() -> pd.DataFrame:
+    """Get all blacklisted companies for pipeline filtering"""
+    client = get_client()
+    if not client:
+        return pd.DataFrame()
+
+    try:
+        result = client.table('companies').select('company_name, normalized_company_name, blacklist_reason').eq('is_blacklisted', True).execute()
+        return pd.DataFrame(result.data or [])
+    except Exception as e:
+        print(f"Error fetching blacklisted companies: {e}")
+        return pd.DataFrame()
+
+def is_company_blacklisted(company_name: str) -> bool:
+    """Check if a company is blacklisted"""
+    if not company_name:
+        return False
+
+    blacklisted_df = get_blacklisted_companies()
+    if blacklisted_df.empty:
+        return False
+
+    normalized_name = normalize_company_name(company_name)
+
+    # Check both original and normalized names
+    is_blacklisted = (
+        blacklisted_df['company_name'].str.lower().str.contains(company_name.lower(), na=False).any() or
+        blacklisted_df['normalized_company_name'].str.lower().str.contains(normalized_name.lower(), na=False).any()
+    )
+
+    return bool(is_blacklisted)
 
 if __name__ == "__main__":
     import argparse

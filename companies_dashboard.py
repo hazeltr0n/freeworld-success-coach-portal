@@ -20,8 +20,9 @@ def show_companies_dashboard():
     # Import companies functions
     try:
         from companies_rollup import (
-            get_company_analytics, get_fair_chance_companies, 
-            get_market_company_breakdown, update_companies_table
+            get_company_analytics, get_fair_chance_companies,
+            get_market_company_breakdown, update_companies_table,
+            update_company_blacklist
         )
     except ImportError:
         st.error("❌ Companies rollup module not available")
@@ -49,14 +50,15 @@ def show_companies_dashboard():
             index=0
         )
     
-    # Load companies data
+    # Load companies data - remove limit to get ALL companies with good/so-so jobs
     try:
         if show_fair_chance_only:
             companies_df = get_fair_chance_companies()
         elif market_filter != "All Markets":
             companies_df = get_market_company_breakdown(market_filter)
         else:
-            companies_df = get_company_analytics(limit=500)
+            # Remove limit to get ALL companies with quality jobs - address Supabase query limits
+            companies_df = get_company_analytics(limit=None)  # Get ALL companies with good/so-so jobs
         
         if companies_df.empty:
             st.warning("📊 No companies data available. Click 'Update Companies Data' to populate the table.")
@@ -68,29 +70,36 @@ def show_companies_dashboard():
     
     # Summary metrics
     st.markdown("## 📈 Overview")
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
+
+    col1, col2, col3, col4, col5 = st.columns(5)
+
     with col1:
-        st.metric("Total Companies", len(companies_df))
-    
+        st.metric("Quality Companies", len(companies_df))
+
     with col2:
         fair_chance_count = companies_df['has_fair_chance'].sum() if 'has_fair_chance' in companies_df.columns else 0
         fair_chance_pct = (fair_chance_count / len(companies_df) * 100) if len(companies_df) > 0 else 0
         st.metric("Fair Chance Companies", f"{fair_chance_count} ({fair_chance_pct:.1f}%)")
-    
+
     with col3:
         total_jobs = companies_df['total_jobs'].sum() if 'total_jobs' in companies_df.columns else 0
-        st.metric("Total Job Postings", f"{total_jobs:,}")
-    
+        st.metric("Quality Job Postings", f"{total_jobs:,}")
+
     with col4:
         avg_jobs_per_company = companies_df['total_jobs'].mean() if 'total_jobs' in companies_df.columns else 0
         st.metric("Avg Jobs/Company", f"{avg_jobs_per_company:.1f}")
+
+    with col5:
+        blacklisted_count = companies_df['is_blacklisted'].sum() if 'is_blacklisted' in companies_df.columns else 0
+        st.metric("Blacklisted", blacklisted_count, delta_color="inverse")
     
     # Charts
     st.markdown("## 📊 Analytics")
+
+    # Note about filtering
+    st.info("📋 **Data Note**: Only showing companies with 'good' or 'so-so' quality jobs. Companies with only 'bad' jobs are filtered out.")
     
-    # Top companies by job count
+    # Enhanced analytics with route breakdown
     col1, col2 = st.columns(2)
     
     with col1:
@@ -110,20 +119,49 @@ def show_companies_dashboard():
         st.plotly_chart(fig, use_container_width=True)
     
     with col2:
-        st.markdown("### 🤝 Fair Chance Distribution")
-        
-        if 'has_fair_chance' in companies_df.columns:
-            fair_chance_counts = companies_df['has_fair_chance'].value_counts()
-            fig = px.pie(
-                values=fair_chance_counts.values,
-                names=['Fair Chance' if x else 'Standard' for x in fair_chance_counts.index],
-                title="Companies by Fair Chance Status",
-                color_discrete_sequence=['#10B981', '#6B7280']
-            )
-            fig.update_layout(height=400)
-            st.plotly_chart(fig, use_container_width=True)
+        st.markdown("### 🚚 Route Type Distribution")
+
+        if 'route_breakdown' in companies_df.columns:
+            # Aggregate route data across all companies
+            route_totals = {'Local': 0, 'OTR': 0, 'Regional': 0, 'Other': 0}
+
+            for _, row in companies_df.iterrows():
+                route_data = row.get('route_breakdown', {})
+                if isinstance(route_data, dict):
+                    for route_type, count in route_data.items():
+                        if route_type in route_totals:
+                            route_totals[route_type] += count
+
+            # Filter out zero counts
+            route_totals = {k: v for k, v in route_totals.items() if v > 0}
+
+            if route_totals:
+                fig = px.pie(
+                    values=list(route_totals.values()),
+                    names=list(route_totals.keys()),
+                    title="Job Distribution by Route Type",
+                    color_discrete_sequence=['#3B82F6', '#EF4444', '#10B981', '#F59E0B']
+                )
+                fig.update_layout(height=400)
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Route breakdown data not available")
         else:
-            st.info("Fair chance data not available")
+            # Fallback to fair chance distribution
+            st.markdown("### 🤝 Fair Chance Distribution")
+
+            if 'has_fair_chance' in companies_df.columns:
+                fair_chance_counts = companies_df['has_fair_chance'].value_counts()
+                fig = px.pie(
+                    values=fair_chance_counts.values,
+                    names=['Fair Chance' if x else 'Standard' for x in fair_chance_counts.index],
+                    title="Companies by Fair Chance Status",
+                    color_discrete_sequence=['#10B981', '#6B7280']
+                )
+                fig.update_layout(height=400)
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Fair chance data not available")
     
     # Market breakdown
     if 'markets' in companies_df.columns:
@@ -145,37 +183,111 @@ def show_companies_dashboard():
     
     # Companies table
     st.markdown("## 📋 Companies Details")
+
+    # Show route type breakdown summary
+    if 'route_breakdown' in companies_df.columns:
+        col1, col2, col3 = st.columns(3)
+
+        # Calculate companies offering each route type
+        local_companies = sum(1 for _, row in companies_df.iterrows()
+                             if isinstance(row.get('route_breakdown'), dict) and row['route_breakdown'].get('Local', 0) > 0)
+        otr_companies = sum(1 for _, row in companies_df.iterrows()
+                           if isinstance(row.get('route_breakdown'), dict) and row['route_breakdown'].get('OTR', 0) > 0)
+        both_companies = sum(1 for _, row in companies_df.iterrows()
+                            if isinstance(row.get('route_breakdown'), dict) and
+                            row['route_breakdown'].get('Local', 0) > 0 and row['route_breakdown'].get('OTR', 0) > 0)
+
+        with col1:
+            st.metric("Companies with Local Routes", local_companies)
+        with col2:
+            st.metric("Companies with OTR Routes", otr_companies)
+        with col3:
+            st.metric("Companies with Both Route Types", both_companies)
     
-    # Prepare display columns
+    # Prepare display columns with enhanced data
     display_columns = ['company_name', 'total_jobs']
-    
-    if 'has_fair_chance' in companies_df.columns:
-        companies_df['fair_chance_status'] = companies_df['has_fair_chance'].map({True: '🤝 Yes', False: '❌ No'})
-        display_columns.append('fair_chance_status')
-    
-    if 'fair_chance_jobs' in companies_df.columns:
-        display_columns.append('fair_chance_jobs')
-    
+
+    # Route type indicators with job counts
+    if 'route_breakdown' in companies_df.columns:
+        def format_route_info(route_data):
+            if not isinstance(route_data, dict) or not route_data:
+                return "Unknown"
+
+            route_parts = []
+            if route_data.get('Local', 0) > 0:
+                route_parts.append(f"Local ({route_data['Local']})")
+            if route_data.get('OTR', 0) > 0:
+                route_parts.append(f"OTR ({route_data['OTR']})")
+            if route_data.get('Regional', 0) > 0:
+                route_parts.append(f"Regional ({route_data['Regional']})")
+
+            if not route_parts:
+                return "Other"
+
+            return ", ".join(route_parts)
+
+        companies_df['route_info'] = companies_df['route_breakdown'].apply(format_route_info)
+        display_columns.append('route_info')
+
+    # Markets display (using actual markets, not city names)
     if 'markets' in companies_df.columns:
         companies_df['markets_display'] = companies_df['markets'].apply(
             lambda x: ', '.join(x[:3]) + (f' (+{len(x)-3} more)' if len(x) > 3 else '') if isinstance(x, list) and x else 'Unknown'
         )
         display_columns.append('markets_display')
-    
+
+    # Fair chance status
+    if 'has_fair_chance' in companies_df.columns:
+        companies_df['fair_chance_status'] = companies_df['has_fair_chance'].map({True: '🤝 Yes', False: '❌ No'})
+        display_columns.append('fair_chance_status')
+
+    if 'fair_chance_jobs' in companies_df.columns:
+        display_columns.append('fair_chance_jobs')
+
+    # Free agent feedback
+    if 'free_agent_feedback' in companies_df.columns:
+        def format_feedback(feedback_data):
+            if not isinstance(feedback_data, dict) or not feedback_data:
+                return "No data"
+
+            applicants = feedback_data.get('total_applicants', 0)
+            applications = feedback_data.get('total_applications', 0)
+
+            if applicants == 0:
+                return "No applications"
+
+            return f"{applicants} applicants, {applications} applications"
+
+        companies_df['agent_feedback'] = companies_df['free_agent_feedback'].apply(format_feedback)
+        display_columns.append('agent_feedback')
+
+    # Quality breakdown (only good/so-so since we're filtering out bad)
     if 'quality_breakdown' in companies_df.columns:
         companies_df['quality_summary'] = companies_df['quality_breakdown'].apply(
             lambda x: f"Good: {x.get('good', 0)}, So-so: {x.get('so-so', 0)}" if isinstance(x, dict) else "N/A"
         )
         display_columns.append('quality_summary')
+
+    # Blacklist status with editable checkbox
+    if 'is_blacklisted' in companies_df.columns:
+        display_columns.append('is_blacklisted')
+
+    # Add ID for editing
+    if 'id' in companies_df.columns:
+        display_columns.insert(0, 'id')
     
     # Column configuration for better display
     column_config = {
+        'id': st.column_config.NumberColumn('ID', width='small'),
         'company_name': st.column_config.TextColumn('Company Name', width='large'),
         'total_jobs': st.column_config.NumberColumn('Total Jobs', format='%d'),
-        'fair_chance_status': st.column_config.TextColumn('Fair Chance'),
-        'fair_chance_jobs': st.column_config.NumberColumn('Fair Chance Jobs', format='%d'),
+        'route_info': st.column_config.TextColumn('Route Types & Counts', width='medium'),
         'markets_display': st.column_config.TextColumn('Markets', width='medium'),
-        'quality_summary': st.column_config.TextColumn('Job Quality', width='medium')
+        'fair_chance_status': st.column_config.TextColumn('Fair Chance', width='small'),
+        'fair_chance_jobs': st.column_config.NumberColumn('FC Jobs', format='%d', width='small'),
+        'agent_feedback': st.column_config.TextColumn('Free Agent Activity', width='medium'),
+        'quality_summary': st.column_config.TextColumn('Job Quality', width='medium'),
+        'is_blacklisted': st.column_config.CheckboxColumn('Blacklisted', help='Check to blacklist company (auto-marks jobs as bad)', width='small')
     }
     
     # Search functionality
@@ -187,13 +299,52 @@ def show_companies_dashboard():
         mask = display_df['company_name'].str.contains(search_term, case=False, na=False)
         display_df = display_df[mask]
     
-    # Display table
-    st.dataframe(
-        display_df,
-        column_config=column_config,
-        use_container_width=True,
-        height=600
-    )
+    # Handle blacklist updates
+    if 'is_blacklisted' in display_df.columns and 'id' in display_df.columns:
+        st.info("💡 **Company Blacklist**: Check the 'Blacklisted' box to automatically mark all jobs from that company as 'bad' quality. This helps filter out problematic companies.")
+
+        # Create editable dataframe
+        edited_df = st.data_editor(
+            display_df,
+            column_config=column_config,
+            use_container_width=True,
+            height=600,
+            key="companies_table",
+            on_change=None
+        )
+
+        # Check for blacklist changes
+        if not edited_df.equals(display_df):
+            # Find changes in blacklist column
+            for idx in edited_df.index:
+                if idx < len(display_df):
+                    old_blacklist = display_df.loc[idx, 'is_blacklisted']
+                    new_blacklist = edited_df.loc[idx, 'is_blacklisted']
+
+                    if old_blacklist != new_blacklist:
+                        company_id = edited_df.loc[idx, 'id']
+                        company_name = edited_df.loc[idx, 'company_name']
+
+                        # Update blacklist status
+                        reason = f"Manually blacklisted via dashboard on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}" if new_blacklist else None
+                        success = update_company_blacklist(company_id, new_blacklist, reason)
+
+                        if success:
+                            if new_blacklist:
+                                st.success(f"✅ {company_name} has been blacklisted. Future jobs will be marked as 'bad'.")
+                            else:
+                                st.success(f"✅ {company_name} has been removed from blacklist.")
+                            st.rerun()
+                        else:
+                            st.error(f"❌ Failed to update blacklist status for {company_name}")
+    else:
+        # Display regular dataframe
+        st.dataframe(
+            display_df,
+            column_config=column_config,
+            use_container_width=True,
+            height=600
+        )
     
     # Export functionality
     st.markdown("## 💾 Export Data")
@@ -206,9 +357,19 @@ def show_companies_dashboard():
             st.download_button(
                 label="💾 Download Companies CSV",
                 data=csv,
-                file_name=f"companies_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                file_name=f"companies_good_quality_only_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv"
             )
+
+        # Blacklist management
+        st.markdown("#### 🚫 Blacklist Management")
+        if st.button("📋 View All Blacklisted Companies"):
+            from companies_rollup import get_blacklisted_companies
+            blacklisted_df = get_blacklisted_companies()
+            if not blacklisted_df.empty:
+                st.dataframe(blacklisted_df, use_container_width=True)
+            else:
+                st.info("No companies are currently blacklisted.")
     
     with col2:
         # Show detailed view for selected company
@@ -220,8 +381,13 @@ def show_companies_dashboard():
             
             if selected_company != "Select a company...":
                 company_details = companies_df[companies_df['company_name'] == selected_company].iloc[0]
-                
-                st.markdown(f"### 🏢 {selected_company}")
+
+                # Show blacklist warning if applicable
+                blacklist_warning = ""
+                if company_details.get('is_blacklisted', False):
+                    blacklist_warning = " 🚫 (BLACKLISTED)"
+
+                st.markdown(f"### 🏢 {selected_company}{blacklist_warning}")
                 
                 detail_col1, detail_col2 = st.columns(2)
                 
@@ -233,14 +399,40 @@ def show_companies_dashboard():
                 with detail_col2:
                     if 'markets' in company_details and company_details['markets']:
                         st.write(f"**Markets:** {', '.join(company_details['markets'])}")
-                    if 'route_types' in company_details and company_details['route_types']:
-                        st.write(f"**Route Types:** {', '.join(company_details['route_types'])}")
+                    if 'route_breakdown' in company_details and company_details['route_breakdown']:
+                        route_data = company_details['route_breakdown']
+                        if isinstance(route_data, dict):
+                            route_info = []
+                            for route_type, count in route_data.items():
+                                if count > 0:
+                                    route_info.append(f"{route_type}: {count}")
+                            if route_info:
+                                st.write(f"**Route Breakdown:** {', '.join(route_info)}")
+                    if 'free_agent_feedback' in company_details and company_details['free_agent_feedback']:
+                        feedback = company_details['free_agent_feedback']
+                        if isinstance(feedback, dict) and feedback:
+                            st.write(f"**Free Agent Activity:** {feedback.get('total_applicants', 0)} applicants, {feedback.get('total_applications', 0)} applications")
+                    if 'is_blacklisted' in company_details:
+                        status = "🚫 Yes" if company_details['is_blacklisted'] else "✅ No"
+                        st.write(f"**Blacklisted:** {status}")
+                        if company_details['is_blacklisted'] and company_details.get('blacklist_reason'):
+                            st.write(f"**Reason:** {company_details['blacklist_reason']}")
                 
-                # Show job titles
+                # Show job titles and quality breakdown
                 if 'job_titles' in company_details and company_details['job_titles']:
                     st.write("**Common Job Titles:**")
                     for title in company_details['job_titles'][:5]:
                         st.write(f"• {title}")
+
+                # Enhanced quality breakdown
+                if 'quality_breakdown' in company_details and company_details['quality_breakdown']:
+                    quality_data = company_details['quality_breakdown']
+                    if isinstance(quality_data, dict):
+                        st.write("**Job Quality Distribution:**")
+                        total_quality_jobs = sum(quality_data.values())
+                        for quality, count in quality_data.items():
+                            percentage = (count / total_quality_jobs * 100) if total_quality_jobs > 0 else 0
+                            st.write(f"• {quality.title()}: {count} ({percentage:.1f}%)")
 
 if __name__ == "__main__":
     show_companies_dashboard()

@@ -35,9 +35,10 @@ class JobFilters:
         
         # Apply filters in order
         df = self._md5_dedupe(df)
-        df = self._r1_collapse(df) 
+        df = self._r1_collapse(df)
         df = self._r2_collapse(df)
         df = self._spam_filter(df)
+        df = self._blacklist_filter(df)  # Add blacklist filter
         df = self._owner_op_filter(df)
         df = self._school_bus_filter(df)
         
@@ -205,7 +206,46 @@ class JobFilters:
         df.loc[spam_indices, 'final_status'] = 'filtered: Spam source'
         
         return df
-    
+
+    def _blacklist_filter(self, df):
+        """Filter out jobs from blacklisted companies and mark them as 'bad' quality"""
+        try:
+            # Import here to avoid circular imports
+            from companies_rollup import is_company_blacklisted
+
+            active_mask = df['filtered'] == False
+            active_df = df[active_mask]
+
+            if 'company' not in active_df.columns:
+                return df
+
+            blacklisted_indices = []
+
+            # Check each company against blacklist
+            for idx, row in active_df.iterrows():
+                company_name = row.get('company', '')
+                if company_name and is_company_blacklisted(company_name):
+                    blacklisted_indices.append(idx)
+
+            if blacklisted_indices:
+                # Mark blacklisted companies' jobs as filtered
+                df.loc[blacklisted_indices, 'filtered'] = True
+                df.loc[blacklisted_indices, 'final_status'] = 'filtered: Blacklisted company'
+
+                # ALSO mark as 'bad' quality for any that get through
+                if 'ai.match' in df.columns:
+                    df.loc[blacklisted_indices, 'ai.match'] = 'bad'
+                if 'match_level' in df.columns:
+                    df.loc[blacklisted_indices, 'match_level'] = 'bad'
+
+                print(f"🚫 Filtered {len(blacklisted_indices)} jobs from blacklisted companies")
+
+        except Exception as e:
+            print(f"⚠️ Blacklist filter error: {e}")
+            # Continue without blacklist filtering if there's an error
+
+        return df
+
     def _owner_op_filter(self, df):
         """Remove owner-operator jobs"""
         active_mask = df['filtered'] == False
