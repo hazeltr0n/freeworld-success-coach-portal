@@ -113,9 +113,9 @@ try:
         qa_favicon = "🧪"  # Fallback emoji for QA
     
     st.set_page_config(
-        page_title="FreeWorld QA Portal - Test Environment", 
-        page_icon=qa_favicon, 
-        layout="wide", 
+        page_title="FreeWorld QA Portal - Test Environment",
+        page_icon=qa_favicon,
+        layout="wide",
         initial_sidebar_state="expanded"
     )
     # Mark configured to prevent later duplicate calls

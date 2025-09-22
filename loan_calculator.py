@@ -265,7 +265,7 @@ def generate_calculator_html():
 
     return f"""
     <head>
-        <title>FreeWorld Trucking School Loan Calculator</title>
+        <title>FreeWorld Trucking School Loan Calculator - CDL Training Cost Estimator</title>
         {favicon_html}
     </head>
     <style>
@@ -898,7 +898,7 @@ def generate_calculator_html():
 
 # Streamlit configuration
 st.set_page_config(
-    page_title="FreeWorld Loan Calculator",
+    page_title="FreeWorld Trucking School Loan Calculator - CDL Training Cost Estimator",
     page_icon="🏫",
     layout="centered",
     initial_sidebar_state="collapsed"
