@@ -2205,6 +2205,16 @@ def show_free_agent_management_page(coach):
             # Clear any session state cache to force fresh load
             if 'agent_profiles' in st.session_state:
                 del st.session_state['agent_profiles']
+
+            # Update analytics rollup table with latest data
+            try:
+                from free_agents_rollup import update_free_agents_analytics_table
+                with st.spinner("🔄 Refreshing analytics data..."):
+                    update_free_agents_analytics_table()
+                st.success("✅ Analytics data refreshed")
+            except Exception as e:
+                st.warning(f"⚠️ Analytics refresh failed: {e}")
+
             st.rerun()
     
     with col3:
@@ -2236,7 +2246,49 @@ def show_free_agent_management_page(coach):
                 if 'total_portal_visits' not in agent:
                     agent['total_portal_visits'] = 0
         else:
-            agents = load_agent_profiles_with_stats(coach.username, current_lookback)
+            # Use analytics rollup table for better performance and no 1000 click limit
+            try:
+                from free_agents_rollup import get_free_agents_analytics
+                agents_df = get_free_agents_analytics(coach_username=coach.username, limit=None)
+
+                if not agents_df.empty:
+                    # Convert DataFrame to list of dicts for compatibility
+                    agents = agents_df.to_dict('records')
+                    # Map analytics fields to expected format
+                    for agent in agents:
+                        # Map click data
+                        agent['total_clicks'] = agent.get('total_job_clicks', 0)
+                        agent['recent_clicks'] = agent.get('total_job_clicks', 0)  # Analytics table may not have 7-day split
+                        agent['lookback_days'] = current_lookback
+                        agent['total_applications'] = agent.get('total_applications', 0)
+                        agent['last_application_at'] = agent.get('last_application_at', '')
+
+                        # Map location and preferences
+                        agent['location'] = agent.get('market', 'Houston')
+                        agent['route_filter'] = agent.get('route_preferences', {}).get('filter', 'both') if isinstance(agent.get('route_preferences'), dict) else 'both'
+                        agent['fair_chance_only'] = agent.get('route_preferences', {}).get('fair_chance_only', False) if isinstance(agent.get('route_preferences'), dict) else False
+                        agent['max_jobs'] = agent.get('search_config', {}).get('max_jobs', 25) if isinstance(agent.get('search_config'), dict) else 25
+                        agent['match_level'] = agent.get('search_config', {}).get('quality_level', 'good and so-so') if isinstance(agent.get('search_config'), dict) else 'good and so-so'
+                        agent['classifier_type'] = agent.get('search_config', {}).get('classifier_type', 'cdl') if isinstance(agent.get('search_config'), dict) else 'cdl'
+                        agent['pathway_preferences'] = agent.get('pathway_preferences', [])
+
+                        # Map portal info
+                        agent['portal_url'] = agent.get('portal_url', '')
+                        agent['admin_portal_url'] = agent.get('admin_portal_url', '')
+
+                        # Map creation info
+                        agent['created_at'] = agent.get('created_at', '')
+
+                        # Ensure required fields exist with defaults
+                        for field in ['agent_name', 'agent_email', 'agent_city', 'agent_state']:
+                            if field not in agent:
+                                agent[field] = ''
+                else:
+                    # Fallback to original method if analytics table is empty
+                    agents = load_agent_profiles_with_stats(coach.username, current_lookback)
+            except Exception as analytics_error:
+                print(f"⚠️ Analytics rollup failed: {analytics_error}, falling back to original method")
+                agents = load_agent_profiles_with_stats(coach.username, current_lookback)
     except Exception as e:
         st.error(f"⚠️ Failed to load agent profiles: {str(e)}")
         st.info("💡 Using fallback mode - some features may be limited")
