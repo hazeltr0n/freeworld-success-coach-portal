@@ -1,47 +1,15 @@
 
 """
 FreeWorld Success Coach Portal - Production Environment
-Complete fresh start to bypass Streamlit Cloud import caching
 DEPLOYMENT VERSION: September 18, 2025 - Full feature deployment from QA
-CACHE_BUSTER_ID: production_full_qa_deploy_v1
 """
 
 # === IMPORTS ===
-# AGGRESSIVE CACHE BUST - Force rebuild to fix deployment issues
-import time
-CACHE_BUST_VERSION = f"v{int(time.time())}"
-print(f"🔥 FORCE REBUILD ACTIVE: {CACHE_BUST_VERSION}")
-
 import streamlit as st
-
-# === CACHE CLEARING FOR DEPLOYMENT ISSUES ===
-# Clear caches on restart to fix Streamlit Cloud deployment issues
-if st.query_params.get("clear_cache") == "true" or not st.session_state.get("_deployment_cache_cleared"):
-    st.cache_data.clear()
-    st.cache_resource.clear()
-    st.session_state["_deployment_cache_cleared"] = True
-    print("🔥 Deployment caches cleared - forcing fresh start")
 
 if not st.session_state.get("_startup_initialized"):
     st.session_state["_startup_initialized"] = True
     print("🚀 App startup completed")
-
-# === CACHE BUSTER ===
-# Clear all Streamlit caches on app startup to ensure fresh deployment
-CACHE_VERSION = "production_cache_fix_sept8_2025_PRESERVE_SUPABASE_CONNECTIONS"
-
-@st.cache_data
-def get_cache_version():
-    """Returns cache version to force cache invalidation on deployment"""
-    return CACHE_VERSION
-
-# PRODUCTION FIX: Don't auto-clear caches on version change - this breaks Supabase connections
-# Only track version changes, don't clear caches automatically
-current_version = get_cache_version()
-if 'cache_version' not in st.session_state or st.session_state.cache_version != current_version:
-    # Just update the version, don't clear caches
-    st.session_state.cache_version = current_version
-    print(f"📝 Version updated: {current_version} (caches preserved)")
 
 # Production environment - all QA features deployed
 
@@ -124,7 +92,7 @@ except Exception:
     # If Streamlit isn't fully initialized (e.g., when imported by tests), ignore
     pass
 
-# --- CACHE KILL-SWITCH (moved below set_page_config to prevent rerun loop issues) ---
+# Bootstrap secrets to environment variables
 try:
     from dotenv import load_dotenv  # type: ignore
     load_dotenv()
@@ -151,49 +119,10 @@ def _bootstrap_secrets_to_env():
 
 _bootstrap_secrets_to_env()
 
-# Kill-switch via env var or URL query param
-force_clear = os.getenv("CLEAR_CACHE") == "1"
-
-
-try:
-    # Streamlit 1.30+ query params API
-    params = st.query_params
-    qp_clear = params.get("clear") == "1"
-except Exception:
-    # Fallback - no query params
-    qp_clear = False
-
-# PRODUCTION FIX: Only clear caches when explicitly requested via ?clear=1 URL parameter
-# Don't auto-clear on deployment as this breaks Supabase connections and auth
-if qp_clear:  # Only clear when user explicitly requests it, not on every deploy
-    # Prevent infinite rerun loops by clearing only once per session
-    if not st.session_state.get("_cleared_startup_cache_once"):
-        try:
-            st.cache_data.clear()  # Clear data cache only
-            # DON'T clear st.cache_resource as it breaks Supabase client connections
-        except Exception:
-            pass
-        st.session_state["_cleared_startup_cache_once"] = True
-        st.success("🧹 Data cache cleared (keeping resource connections intact)")
-        st.rerun()
-
-# --- end kill-switch ---
-
 import pandas as pd
 from datetime import datetime, timezone, timedelta
 import base64
 import time
-
-# Import cache utilities
-try:
-    from cache_utils import clear_all_caches_and_refresh, safe_cache_data
-except ImportError:
-    # Fallback if cache_utils doesn't exist yet
-    def clear_all_caches_and_refresh():
-        st.cache_data.clear()
-        st.cache_resource.clear()
-        st.rerun()
-    safe_cache_data = st.cache_data
 from pathlib import Path
 from unittest.mock import MagicMock
 try:
@@ -222,12 +151,10 @@ except Exception as e:
     except ImportError:
         pass  # dotenv not available in this environment
 
-# Force cache refresh - increment this to clear caches on deployment
 APP_VERSION = "2.3.8-security-token-sync"
 DEPLOYMENT_TIMESTAMP = "2025-09-01-14-15"
 BUILD_COMMIT = "429a7f2"  # Security + Sync implementation
 
-# Auto cache-bust detection
 import hashlib
 BUILD_HASH = hashlib.md5(f"{APP_VERSION}-{DEPLOYMENT_TIMESTAMP}-{BUILD_COMMIT}".encode()).hexdigest()[:8]
 
@@ -2184,7 +2111,7 @@ def show_free_agent_management_page(coach):
     col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
     with col2:
         if st.button("🔄 Refresh", help="Reload agents from database"):
-            # Clear any session state cache to force fresh load
+            # Clear session state to reload data
             if 'agent_profiles' in st.session_state:
                 del st.session_state['agent_profiles']
 
@@ -2633,10 +2560,10 @@ def show_free_agent_management_page(coach):
 
                             st.info("💡 Use 'Regenerate All Portal Links' to update portal URLs with new settings")
 
-                            # Clear any cached agent data to force fresh load on next page visit
+                            # Clear session state to reload fresh data
                             if 'agent_profiles' in st.session_state:
                                 del st.session_state['agent_profiles']
-                                st.info("🔄 Cleared agent cache to ensure fresh data loads")
+                                st.info("🔄 Cleared session data to ensure fresh data loads")
 
                         if error_count > 0:
                             st.error(f"❌ Failed to update {error_count} agent(s)")
@@ -2863,7 +2790,7 @@ def _df_fingerprint(df) -> str:
     blob = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
-@safe_cache_data(ttl=300, max_entries=5)  # 5 min cache, max 5 entries  
+@st.cache_data(ttl=300, max_entries=5)  # 5 min cache, max 5 entries  
 def _render_jobs_html_cached(df_json: str, agent_params_json: str) -> str:
     """Cached HTML render with limited cache size."""
     import json
@@ -3291,13 +3218,11 @@ def main():
         params = st.query_params
         agent_config = params.get("agent_config") or params.get("config")
         agent_uuid_param = params.get("agent")
-        clear_cache_param = params.get("clear")
         debug_frame_param = params.get("debug_frame")
         loan_calculator_param = params.get("loan_calculator") or params.get("loan")
     except Exception: # Fallback if query params fail
         agent_config = None
         agent_uuid_param = None
-        clear_cache_param = None
         debug_frame_param = None
         loan_calculator_param = None
 
@@ -3306,7 +3231,6 @@ def main():
         show_loan_calculator()
         st.stop()
 
-    # URL-based cache clearing removed to prevent issues
 
     if agent_config or agent_uuid_param:
         # 🔐 SECURITY: Validate secure token for portal access
@@ -3372,30 +3296,15 @@ def main():
     # Use getattr with default True for backwards compatibility with existing coaches
     can_pull_fresh = getattr(coach, 'can_pull_fresh_jobs', True)
     
-    # Auto cache-bust on build changes
-    last_build_key = f"last_build_hash_{coach.username}"
-    if last_build_key not in st.session_state:
-        st.session_state[last_build_key] = None
-    
-    if st.session_state[last_build_key] != BUILD_HASH:
-        # New build detected - clear caches automatically (silent)
-        try:
-            st.cache_data.clear()
-            st.cache_resource.clear()
-            st.session_state[last_build_key] = BUILD_HASH
-            # Cache clearing now happens silently - no UI noise
-        except Exception as e:
-            st.warning(f"⚠️ Cache clear failed: {e}")
-    
-    # Initialize pipeline wrapper with version-based cache busting
+    # Initialize pipeline wrapper
     @st.cache_resource
-    def get_pipeline(version):
+    def get_pipeline():
         if _PIPELINE_WRAPPER_CLASS is None:
             st.error("❌ Pipeline wrapper class not available")
             st.stop()
         return _PIPELINE_WRAPPER_CLASS()
-    
-    pipeline = get_pipeline(BUILD_HASH)  # Use build hash for stronger cache busting
+
+    pipeline = get_pipeline()
     
     # FreeWorld Logo at top left of main page - prefer round logo for QA
     logo_paths = [
@@ -3460,8 +3369,6 @@ def main():
                 st.session_state.show_password_change = True
                 st.rerun()
             
-            if st.button("🔄 Clear Cache", key="hamburger_cache", width="stretch", help="Clear all caches and refresh"):
-                clear_all_caches_and_refresh()
             
             st.divider()
             
@@ -7660,15 +7567,9 @@ def show_pending_jobs_page(coach):
         import os
         async_manager = AsyncJobManager()
         
-        # Cache management
-        if st.button("🔄 Clear Cache", help="Clear all caches and refresh"):
-            clear_all_caches_and_refresh()
-        
         # Debug: Check if AsyncJobManager is properly initialized
-        cache_info = f"Cache cleared: {st.session_state.get('cache_cleared_at', 'never')}"
         st.write(f"🔍 AsyncJobManager initialized: {async_manager is not None}")
         st.write(f"🔍 Supabase client available: {async_manager.supabase_client is not None}")
-        st.write(f"🔍 {cache_info}")
         
         # Batch status checking tool at the top
         col1, col2 = st.columns([2, 1])
