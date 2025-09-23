@@ -140,7 +140,16 @@ st.markdown("""
         min-width: 100px !important;
     }
 
-    .stRadio > div {
+    /* Main navigation tabs - force horizontal layout */
+    div[data-testid="stRadio"] > div > div {
+        flex-direction: row !important;
+        justify-content: center;
+        gap: 2rem;
+        flex-wrap: wrap;
+    }
+
+    /* Form radio buttons can stay vertical for better UX */
+    .stForm .stRadio > div {
         flex-direction: column !important;
     }
 
@@ -6056,7 +6065,7 @@ def show_combined_batches_and_scheduling_page(coach):
                     # Submit buttons
                     col_save, col_run = st.columns(2)
                     with col_save:
-                        submitted = st.form_submit_button("💾 Save for Later", width='stretch')
+                        submitted = st.form_submit_button("📅 Schedule Recurring Batch", width='stretch')
                     with col_run:
                         run_now = st.form_submit_button("🚀 Run Now", width='stretch', type="secondary")
                     
@@ -6070,7 +6079,8 @@ def show_combined_batches_and_scheduling_page(coach):
                             st.error("❌ Please enter a custom location")
                             st.stop()
 
-                        if batch_frequency == "Weekly" and not batch_days:
+                        # Only validate scheduling parameters for "Schedule Recurring Batch"
+                        if submitted and batch_frequency == "Weekly" and not batch_days:
                             st.error("❌ Please select at least one day for weekly schedule")
                             st.stop()
 
@@ -6095,11 +6105,6 @@ def show_combined_batches_and_scheduling_page(coach):
                             'coach_name': coach.full_name,
                             'mode': {10: 'test', 50: 'mini', 100: 'sample', 250: 'medium', 500: 'large', 1000: 'full'}.get(batch_job_limit, 'sample'),
 
-                            # Scheduling metadata
-                            'frequency': batch_frequency,
-                            'scheduled_time': batch_time.strftime('%H:%M'),
-                            'scheduled_days': batch_days if batch_frequency == "Weekly" else None,
-
                             # Location metadata for tracking
                             'location_type': batch_location_type,
                             'selected_market': batch_selected_market if batch_location_type == "Select Market" else None,
@@ -6110,6 +6115,20 @@ def show_combined_batches_and_scheduling_page(coach):
                             'source_type': 'Indeed'  # Focus on Indeed only
                         }
 
+                        # Only add scheduling metadata for "Schedule Recurring Batch" (not Run Now)
+                        if submitted:  # Schedule Recurring Batch
+                            search_params.update({
+                                'frequency': batch_frequency,
+                                'scheduled_time': batch_time.strftime('%H:%M'),
+                                'scheduled_days': batch_days if batch_frequency == "Weekly" else None,
+                            })
+                        else:  # Run Now - ignore scheduling
+                            search_params.update({
+                                'frequency': 'Once',  # Force to one-time execution
+                                'scheduled_time': None,
+                                'scheduled_days': None,
+                            })
+
                         try:
                             from async_job_manager import AsyncJobManager
                             manager = AsyncJobManager()
@@ -6119,25 +6138,26 @@ def show_combined_batches_and_scheduling_page(coach):
                                 search_params['run_immediately'] = True
                                 job = manager.submit_indeed_search(search_params, coach.username)
 
-                                st.success(f"🚀 Indeed batch submitted and running!")
+                                st.success(f"🚀 Indeed batch running NOW!")
                                 st.info(f"📋 Job ID: {job.id}")
                                 st.info(f"📍 Location: {batch_location}")
                                 st.info(f"🔍 Terms: {batch_search_terms}")
                                 st.info(f"🎯 Classifier: {batch_classifier_type}")
                                 st.info(f"📊 Job Limit: {batch_job_limit}")
+                                st.info("⚡ One-time execution (ignoring schedule settings)")
 
                             else:
-                                # Save for later - create scheduled job entry without immediate execution
+                                # Schedule recurring batch - create scheduled job entry without immediate execution
                                 search_params['run_immediately'] = False
                                 search_params['status'] = 'scheduled'  # Mark as scheduled, not running
 
-                                # For "Save for Later", we should save to a scheduled jobs table/database
+                                # For "Schedule Recurring Batch", we should save to a scheduled jobs table/database
                                 # rather than immediately executing. This requires a different method.
                                 try:
                                     # Try to save as scheduled job (not immediately execute)
                                     job = manager.create_scheduled_job(search_params, coach.username)
 
-                                    st.success(f"💾 Indeed batch scheduled successfully!")
+                                    st.success(f"📅 Indeed recurring batch scheduled successfully!")
                                     st.info(f"📋 Schedule ID: {job.id}")
                                     st.info(f"📍 Location: {batch_location}")
                                     st.info(f"🔍 Terms: {batch_search_terms}")
@@ -6330,7 +6350,7 @@ def show_combined_batches_and_scheduling_page(coach):
                         # Submit buttons
                         col_save, col_run = st.columns(2)
                         with col_save:
-                            google_submitted = st.form_submit_button("💾 Save for Later", width='stretch')
+                            google_submitted = st.form_submit_button("📅 Schedule Recurring Batch", width='stretch')
                         with col_run:
                             google_run_now = st.form_submit_button("🚀 Run Now", width='stretch', type="secondary")
 
@@ -6344,7 +6364,8 @@ def show_combined_batches_and_scheduling_page(coach):
                                 st.error("❌ Please specify a location")
                                 st.stop()
 
-                            if google_frequency == "Weekly" and not google_days:
+                            # Only validate scheduling parameters for "Schedule Recurring Batch"
+                            if google_submitted and google_frequency == "Weekly" and not google_days:
                                 st.error("❌ Please select at least one day for weekly schedule")
                                 st.stop()
 
@@ -6374,11 +6395,6 @@ def show_combined_batches_and_scheduling_page(coach):
                                 'coach_name': coach.full_name,
                                 'mode': {100: 'sample', 250: 'medium', 500: 'large', 1000: 'full'}.get(google_job_limit, 'large'),
 
-                                # Scheduling metadata
-                                'frequency': google_frequency,
-                                'scheduled_time': google_time.strftime('%H:%M'),
-                                'scheduled_days': google_days if google_frequency == "Weekly" else None,
-
                                 # Location metadata
                                 'location_type': google_location_type,
                                 'selected_market': google_selected_market if google_location_type == "Select Market" else None,
@@ -6389,6 +6405,20 @@ def show_combined_batches_and_scheduling_page(coach):
                                 'source_type': 'Google Jobs'
                             }
 
+                            # Only add scheduling metadata for "Schedule Recurring Batch" (not Run Now)
+                            if google_submitted:  # Schedule Recurring Batch
+                                google_search_params.update({
+                                    'frequency': google_frequency,
+                                    'scheduled_time': google_time.strftime('%H:%M'),
+                                    'scheduled_days': google_days if google_frequency == "Weekly" else None,
+                                })
+                            else:  # Run Now - ignore scheduling
+                                google_search_params.update({
+                                    'frequency': 'Once',  # Force to one-time execution
+                                    'scheduled_time': None,
+                                    'scheduled_days': None,
+                                })
+
                             try:
                                 from async_job_manager import AsyncJobManager
                                 google_manager = AsyncJobManager()
@@ -6398,27 +6428,26 @@ def show_combined_batches_and_scheduling_page(coach):
                                     google_search_params['run_immediately'] = True
                                     job = google_manager.submit_google_search(google_search_params, coach.username)
 
-                                    st.success(f"🚀 Google Jobs batch submitted! Job ID: {job.id}")
+                                    st.success(f"🚀 Google Jobs batch running NOW!")
+                                    st.info(f"📋 Job ID: {job.id}")
                                     st.info(f"⏱️ Processing time: ~2-5 minutes for async completion.")
                                     st.info(f"📊 Search: {google_job_limit} jobs | {google_location} | '{final_search_terms}'")
+                                    st.info("⚡ One-time execution (ignoring schedule settings)")
 
                                     # Rerun to show updated table
                                     st.rerun()
 
                                 if google_submitted:
-                                    # Save for later - create scheduled job entry without immediate execution
+                                    # Schedule recurring batch - create scheduled job entry without immediate execution
                                     google_search_params['run_immediately'] = False
                                     google_search_params['status'] = 'scheduled'
                                     google_search_params['job_type'] = 'google_jobs'
-                                    google_search_params['frequency'] = google_frequency
-                                    google_search_params['time'] = google_time.strftime('%H:%M')
-                                    google_search_params['days'] = google_days if google_frequency == "Weekly" else []
 
                                     try:
                                         # Create scheduled job
                                         job = google_manager.create_scheduled_job(google_search_params, coach.username)
 
-                                        st.success(f"💾 Google Jobs batch scheduled successfully!")
+                                        st.success(f"📅 Google Jobs recurring batch scheduled successfully!")
                                         st.info(f"📋 Schedule ID: {job.id}")
                                         st.info(f"📍 Location: {google_location}")
                                         st.info(f"🔍 Terms: {final_search_terms}")
