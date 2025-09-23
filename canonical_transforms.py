@@ -799,10 +799,13 @@ def transform_business_rules(df: pd.DataFrame, filter_settings: Dict[str, bool] 
     
     rules_fields['rules.is_spam_source'] = df.apply(apply_spam_rule, axis=1)
     
-    # Deduplication keys (requires market to be set)
-    market = df['meta.market'].iloc[0] if len(df) > 0 and 'meta.market' in df.columns else 'Unknown'
-    print(f"🔍 DEDUP DEBUG: Using market='{market}' for deduplication key generation")
-    dedup_data = df.apply(lambda row: generate_dedup_keys(row, market), axis=1)
+    # Deduplication keys (using individual row markets instead of first market for all jobs)
+    def generate_row_dedup_keys(row):
+        row_market = row.get('meta.market', 'Unknown')
+        return generate_dedup_keys(row, row_market)
+
+    print(f"🔍 DEDUP DEBUG: Using individual row markets for deduplication key generation")
+    dedup_data = df.apply(generate_row_dedup_keys, axis=1)
     rules_fields['rules.duplicate_r1'] = dedup_data.apply(lambda x: x['rules.duplicate_r1'])
     rules_fields['rules.duplicate_r2'] = dedup_data.apply(lambda x: x['rules.duplicate_r2'])
     
