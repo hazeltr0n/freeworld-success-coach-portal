@@ -6102,14 +6102,9 @@ def show_combined_batches_and_scheduling_page(coach):
                                     st.info("🔮 Job will run at scheduled time - it has NOT been executed yet")
 
                                 except Exception as e:
-                                    # If create_scheduled_job fails for any reason, fall back to old method
-                                    st.warning(f"⚠️ Scheduling failed ({str(e)}), running job immediately as fallback")
-                                    search_params['run_immediately'] = False
-                                    job = manager.submit_indeed_search(search_params, coach.username)
-
-                                    st.info(f"📋 Job ID: {job.id} (Note: Run immediately due to scheduling error)")
-                                    st.info(f"📍 Location: {batch_location}")
-                                    st.info(f"🎯 Classifier: {batch_classifier_type}")
+                                    # If create_scheduled_job fails, show error message
+                                    st.error(f"❌ Scheduling failed: {str(e)}")
+                                    st.info("💡 Jobs will only run when explicitly triggered. Use 'Run Now' button to execute immediately.")
 
                             st.rerun()  # Refresh to show the job in table
 
@@ -7336,9 +7331,10 @@ def show_simple_batch_table(coach):
         completed_jobs = manager.get_completed_jobs(None if coach.role == 'admin' else coach.username)
         failed_jobs = manager.get_failed_jobs(None if coach.role == 'admin' else coach.username)
         retrieved_jobs = manager.get_retrieved_jobs(None if coach.role == 'admin' else coach.username)
-        
+        scheduled_jobs = manager.get_scheduled_jobs(None if coach.role == 'admin' else coach.username)
+
         # Combine all job types
-        all_jobs = pending_jobs + completed_jobs + failed_jobs + retrieved_jobs
+        all_jobs = pending_jobs + completed_jobs + failed_jobs + retrieved_jobs + scheduled_jobs
         
         if not all_jobs:
             st.info("📝 No scheduled batches found. Create your first batch above!")

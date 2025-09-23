@@ -1431,7 +1431,46 @@ class AsyncJobManager:
         except Exception as e:
             print(f"Error getting failed jobs: {e}")
             return []
-    
+
+    def get_scheduled_jobs(self, coach_username: Optional[str] = None, limit: int = 50) -> List[AsyncJob]:
+        """Get scheduled async jobs (waiting to run)"""
+        if not self.supabase_client:
+            return []
+
+        try:
+            query = self.supabase_client.table('async_job_queue')\
+                .select('*')\
+                .eq('status', 'scheduled')
+
+            if coach_username:
+                query = query.eq('coach_username', coach_username)
+
+            result = query.order('scheduled_run_at', desc=False).limit(limit).execute()
+
+            jobs = []
+            for record in result.data or []:
+                jobs.append(AsyncJob(
+                    id=record['id'],
+                    scheduled_search_id=record.get('scheduled_search_id'),
+                    coach_username=record['coach_username'],
+                    job_type=record['job_type'],
+                    request_id=record.get('request_id'),
+                    status=record['status'],
+                    search_params=record['search_params'],
+                    submitted_at=datetime.fromisoformat(record['submitted_at'].replace('Z', '+00:00')) if record.get('submitted_at') else None,
+                    completed_at=datetime.fromisoformat(record['completed_at'].replace('Z', '+00:00')) if record.get('completed_at') else None,
+                    result_count=record['result_count'],
+                    quality_job_count=record['quality_job_count'],
+                    error_message=record.get('error_message'),
+                    csv_filename=record.get('csv_filename'),
+                    created_at=datetime.fromisoformat(record['created_at'].replace('Z', '+00:00'))
+                ))
+
+            return jobs
+        except Exception as e:
+            print(f"Error getting scheduled jobs: {e}")
+            return []
+
     def check_pending_google_jobs_in_market(self, location: str) -> List[AsyncJob]:
         """Check if there are pending Google Jobs searches for the same market"""
         if not self.supabase_client:
