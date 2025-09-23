@@ -6619,11 +6619,16 @@ def show_combined_batches_and_scheduling_page(coach):
                         )
 
                     with col2:
-                        batch_time = st.time_input(
+                        batch_time_str = st.text_input(
                             "Run Time (Central):",
-                            value=pd.Timestamp("02:00").time(),
-                            help="Time in Central Time Zone (CT/CST)"
+                            value="02:00",
+                            help="Time in Central Time Zone (CT/CST) - Format: HH:MM"
                         )
+                        # Convert string to time object for compatibility
+                        try:
+                            batch_time = pd.Timestamp(batch_time_str).time()
+                        except:
+                            batch_time = pd.Timestamp("02:00").time()
 
                     with col3:
                         if batch_frequency == "Weekly":
@@ -6752,7 +6757,261 @@ def show_combined_batches_and_scheduling_page(coach):
                         except Exception as e:
                             st.error(f"❌ Failed to create batch: {e}")
                             st.error(f"Error details: {str(e)}")
-            
+
+            # Google Batch Schedule Section
+            with st.expander("➕ Create New Google Batch Schedule", expanded=False):
+                st.caption("Schedule Google Jobs searches to run automatically on selected days. Uses the same parameters as the main search page.")
+
+                # Check Google Jobs permission
+                if not check_coach_permission('can_access_google_jobs'):
+                    st.error("❌ You don't have permission to access Google Jobs batches")
+                else:
+                    with st.form("google_batch_scheduler"):
+                        st.markdown("**Google Jobs Batch Configuration**")
+
+                        # Row 1: Location and Job Limit
+                        col1, col2, col3, col4 = st.columns(4)
+
+                        with col1:
+                            google_location_type = st.selectbox(
+                                "📍 Location Type:",
+                                ["Select Market", "Custom Location"],
+                                help="Choose from predefined markets or enter custom location",
+                                key="google_location_type"
+                            )
+
+                        with col2:
+                            if google_location_type == "Select Market":
+                                from market_mapper import MarketMapper
+                                mapper = MarketMapper()
+                                markets = mapper.get_all_markets()
+                                google_selected_market = st.selectbox(
+                                    "🎯 Select Market:",
+                                    markets,
+                                    index=markets.index('Dallas') if 'Dallas' in markets else 0,
+                                    key="google_selected_market"
+                                )
+                                google_location = google_selected_market
+                                google_custom_location = None
+                            else:
+                                google_custom_location = st.text_input(
+                                    "🌍 Custom Location:",
+                                    value="Dallas, TX",
+                                    help="Enter city, state (e.g., 'Phoenix, AZ')",
+                                    key="google_custom_location"
+                                )
+                                google_location = google_custom_location
+                                google_selected_market = None
+
+                        with col3:
+                            google_job_quantity = st.selectbox(
+                                "📊 Job Limit:",
+                                ["100 jobs", "250 jobs", "500 jobs", "1000 jobs"],
+                                index=2,  # default to 500
+                                help="Number of jobs to fetch per search",
+                                key="google_job_quantity"
+                            )
+                            job_quantity_map = {"100 jobs": 100, "250 jobs": 250, "500 jobs": 500, "1000 jobs": 1000}
+                            google_job_limit = job_quantity_map[google_job_quantity]
+
+                        with col4:
+                            google_search_terms = st.text_input(
+                                "🔍 Search Terms:",
+                                value="CDL Driver No Experience",
+                                help="Job search keywords. Use commas for multiple terms",
+                                key="google_search_terms"
+                            )
+
+                        # Row 2: Search Filters
+                        col1, col2, col3, col4 = st.columns(4)
+
+                        with col1:
+                            google_search_radius = st.selectbox(
+                                "📏 Search Radius:",
+                                [25, 50, 100],
+                                index=1,  # default to 50
+                                help="Search radius in miles from target location",
+                                key="google_search_radius"
+                            )
+
+                        with col2:
+                            google_exact_location = st.checkbox(
+                                "📍 Use exact location only",
+                                value=False,
+                                help="Search only the specified city (radius=0)",
+                                key="google_exact_location"
+                            )
+                            if google_exact_location:
+                                google_search_radius = 0
+
+                        with col3:
+                            google_no_experience = st.checkbox(
+                                "📋 Google No Experience Filter",
+                                value=True,
+                                help="Add 'No Experience' to search terms for Google",
+                                key="google_no_experience"
+                            )
+
+                        with col4:
+                            google_force_fresh = False
+                            if check_coach_permission('can_force_fresh_classification'):
+                                google_force_fresh = st.checkbox(
+                                    "⚡ Force Fresh Classification",
+                                    value=False,
+                                    help="Re-run AI classification (admin only)",
+                                    key="google_force_fresh"
+                                )
+
+                        # Row 3: Classification Settings
+                        col1, col2, col3, col4 = st.columns(4)
+
+                        with col1:
+                            google_classifier_type = st.selectbox(
+                                "🎯 Classifier Type:",
+                                ["CDL Traditional", "Career Pathways"],
+                                index=0,
+                                help="Choose classification system",
+                                key="google_classifier_type"
+                            )
+
+                        with col2:
+                            google_pathway_preferences = []
+                            if google_classifier_type == "Career Pathways":
+                                google_pathway_preferences = st.multiselect(
+                                    "🛤️ Pathway Preferences:",
+                                    ["dock_to_driver", "internal_cdl_training", "warehouse_to_driver", "logistics_progression", "non_cdl_driving"],
+                                    default=[],
+                                    help="Filter for specific career pathways",
+                                    key="google_pathway_preferences"
+                                )
+
+                        # Row 4: Schedule Settings
+                        st.markdown("**Schedule Configuration**")
+                        col1, col2, col3 = st.columns(3)
+
+                        with col1:
+                            google_frequency = st.selectbox(
+                                "Frequency:",
+                                ["Once", "Daily", "Weekly"],
+                                index=2,  # default to Weekly
+                                help="How often to run this search",
+                                key="google_frequency"
+                            )
+
+                        with col2:
+                            google_time_str = st.text_input(
+                                "Run Time (Central):",
+                                value="02:30",
+                                help="Time in Central Time Zone (CT/CST) - Format: HH:MM",
+                                key="google_time"
+                            )
+                            # Convert string to time object for compatibility
+                            try:
+                                google_time = pd.Timestamp(google_time_str).time()
+                            except:
+                                google_time = pd.Timestamp("02:30").time()
+
+                        with col3:
+                            if google_frequency == "Weekly":
+                                st.write("**Days of Week to Run:**")
+                                day_cols = st.columns(7)
+                                google_days = []
+                                days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+                                default_days = ["Tue", "Thu", "Sat"]  # Different from Indeed
+
+                                for i, day in enumerate(days):
+                                    with day_cols[i]:
+                                        if st.checkbox(day, value=day in default_days, key=f"google_batch_day_{day}"):
+                                            google_days.append(day)
+                            else:
+                                google_days = None
+
+                        # Submit buttons
+                        col_save, col_run = st.columns(2)
+                        with col_save:
+                            google_submitted = st.form_submit_button("💾 Save for Later", width='stretch')
+                        with col_run:
+                            google_run_now = st.form_submit_button("🚀 Run Now", width='stretch', type="secondary")
+
+                        if google_submitted or google_run_now:
+                            # Validation
+                            if not google_search_terms.strip():
+                                st.error("❌ Please enter search terms")
+                                st.stop()
+
+                            if not google_location:
+                                st.error("❌ Please specify a location")
+                                st.stop()
+
+                            if google_frequency == "Weekly" and not google_days:
+                                st.error("❌ Please select at least one day for weekly schedule")
+                                st.stop()
+
+                            # Handle "No Experience" search term modification for Google
+                            final_search_terms = google_search_terms.strip()
+                            if google_no_experience and "no experience" not in final_search_terms.lower():
+                                final_search_terms += " No Experience"
+
+                            # Create search parameters for Google Jobs
+                            google_search_params = {
+                                # Core search parameters
+                                'search_terms': final_search_terms,
+                                'location': google_location,
+                                'limit': google_job_limit,
+
+                                # Search filters
+                                'search_radius': google_search_radius,
+                                'no_experience': google_no_experience,
+                                'force_fresh_classification': google_force_fresh,
+
+                                # Classification parameters
+                                'classifier_type': "pathway" if google_classifier_type == "Career Pathways" else "cdl",
+                                'pathway_preferences': google_pathway_preferences if google_classifier_type == "Career Pathways" else [],
+
+                                # Pipeline parameters
+                                'coach_username': coach.username,
+                                'coach_name': coach.full_name,
+                                'mode': {100: 'sample', 250: 'medium', 500: 'large', 1000: 'full'}.get(google_job_limit, 'large'),
+
+                                # Scheduling metadata
+                                'frequency': google_frequency,
+                                'scheduled_time': google_time.strftime('%H:%M'),
+                                'scheduled_days': google_days if google_frequency == "Weekly" else None,
+
+                                # Location metadata
+                                'location_type': google_location_type,
+                                'selected_market': google_selected_market if google_location_type == "Select Market" else None,
+                                'custom_location': google_custom_location if google_location_type == "Custom Location" else None,
+
+                                # Source type
+                                'exact_location': google_exact_location,
+                                'source_type': 'Google Jobs'
+                            }
+
+                            try:
+                                from async_job_manager import AsyncJobManager
+                                google_manager = AsyncJobManager()
+
+                                if google_run_now:
+                                    # Run immediately - submit the job for immediate execution
+                                    google_search_params['run_immediately'] = True
+                                    job = google_manager.submit_google_search(google_search_params, coach.username)
+
+                                    st.success(f"🚀 Google Jobs batch submitted! Job ID: {job.id}")
+                                    st.info(f"⏱️ Processing time: ~2-5 minutes for async completion.")
+                                    st.info(f"📊 Search: {google_job_limit} jobs | {google_location} | '{final_search_terms}'")
+
+                                    # Rerun to show updated table
+                                    st.rerun()
+
+                                if google_submitted:
+                                    # Schedule for future runs (TODO: implement scheduling system)
+                                    st.warning("📅 Scheduling system coming soon! Use 'Run Now' for immediate Google Jobs processing.")
+
+                            except Exception as e:
+                                st.error(f"❌ Failed to create Google batch: {e}")
+                                st.error(f"Error details: {str(e)}")
+
             # Scheduled batches table
             st.markdown("### 📊 Scheduled Batches Table")
             show_simple_batch_table(coach)

@@ -142,11 +142,25 @@ class AsyncJobManager:
             # Use the first search term for the primary query (Outscraper async only supports single query)
             # TODO: Future enhancement could submit multiple async jobs for each term
             primary_term = search_terms_list[0] if search_terms_list else search_terms_raw
-            
+
+            # Handle exact location vs radius expansion like sync Google Jobs search
+            exact_location = search_params.get('exact_location', False)
+            search_radius = search_params.get('search_radius', 50)
+
+            if exact_location or search_radius == 0:
+                # Exact location search - format like sync version for consistency
+                location_formatted = location.replace(',', '').replace('  ', ' ').strip()
+                query = f"{primary_term} {location_formatted}"
+                print(f"📍 Google async batch: exact location mode - '{location_formatted}'")
+            else:
+                # Standard location search
+                query = f"{primary_term} {location}"
+                print(f"⚠️ Google async batch: radius mode ({search_radius}mi) - may be slower")
+
             # Submit to Outscraper with async=true and webhook
             headers = {'X-API-KEY': self.outscraper_api_key}
             params = {
-                'query': f"{primary_term} {location}",
+                'query': query,
                 'limit': search_params.get('limit', 500),
                 'async': 'true',  # Key parameter for background processing
                 'webhook': os.getenv('OUTSCRAPER_WEBHOOK_URL')  # Webhook for completion notifications
@@ -229,6 +243,7 @@ class AsyncJobManager:
                 'location': search_params['location'],
                 'search_terms': search_params['search_terms'],
                 'search_radius': search_params.get('search_radius', 50),
+                'exact_location': search_params.get('exact_location', False),
                 'force_fresh': True,  # Force fresh Indeed search
                 'force_fresh_classification': search_params.get('force_fresh_classification', False),
                 'no_experience': search_params.get('no_experience', True),  # Use form value or default to True
@@ -563,10 +578,21 @@ class AsyncJobManager:
             self.store_all_jobs_supabase(jobs_df, source=source, job=job)
             
             # 2. Import classifier and run AI classification (map to expected fields)
+            # Support dual classifier option like main search
+            classifier_type = job.search_params.get('classifier_type', 'cdl')
             try:
                 from jobs_schema import generate_job_id
-                from job_classifier import JobClassifier
-                classifier = JobClassifier()
+
+                # Select classifier based on type
+                if classifier_type == 'pathway':
+                    from pathway_classifier import PathwayClassifier
+                    classifier = PathwayClassifier()
+                    print(f"🎯 Using Pathway Classifier for async batch job {job.id}")
+                else:
+                    from job_classifier import JobClassifier
+                    classifier = JobClassifier()
+                    print(f"🎯 Using CDL Classifier for async batch job {job.id}")
+
                 df_cls = pd.DataFrame()
                 df_cls['job_title'] = jobs_df.get('source.title', jobs_df.get('title', ''))
                 df_cls['company'] = jobs_df.get('source.company', jobs_df.get('company', ''))
@@ -580,14 +606,31 @@ class AsyncJobManager:
                 jobs_df['ai.match'] = classified_df['match']
                 jobs_df['ai.reason'] = classified_df['reason']
                 jobs_df['ai.summary'] = classified_df['summary']
-                jobs_df['ai.route_type'] = classified_df['route_type']
-                jobs_df['ai.fair_chance'] = classified_df['fair_chance']
-                jobs_df['ai.endorsements'] = classified_df['endorsements']
+
+                # Handle classifier-specific fields
+                if classifier_type == 'pathway':
+                    jobs_df['ai.career_pathway'] = classified_df.get('career_pathway', 'no_pathway')
+                    jobs_df['ai.training_provided'] = classified_df.get('training_provided', False)
+                    jobs_df['ai.fair_chance'] = classified_df.get('fair_chance', 'no_requirements_mentioned')
+                    jobs_df['ai.route_type'] = classified_df.get('route_type', 'Unknown')
+                else:
+                    jobs_df['ai.route_type'] = classified_df.get('route_type', 'Unknown')
+                    jobs_df['ai.fair_chance'] = classified_df.get('fair_chance', 'unknown')
+                    jobs_df['ai.endorsements'] = classified_df.get('endorsements', '')
             except Exception as e:
                 print(f"Classification failed: {e}")
                 jobs_df = jobs_df.copy()
                 jobs_df['ai.match'] = 'error'
                 jobs_df['ai.summary'] = 'Classification failed'
+                # Set default values for classifier-specific fields
+                if classifier_type == 'pathway':
+                    jobs_df['ai.career_pathway'] = 'no_pathway'
+                    jobs_df['ai.training_provided'] = False
+                    jobs_df['ai.fair_chance'] = 'no_requirements_mentioned'
+                else:
+                    jobs_df['ai.fair_chance'] = 'unknown'
+                    jobs_df['ai.endorsements'] = ''
+                jobs_df['ai.route_type'] = 'Unknown'
             
             # 3. Store in memory database for future searches
             try:
@@ -609,7 +652,12 @@ class AsyncJobManager:
                 canon['ai.summary'] = jobs_df.get('ai.summary', '')
                 canon['ai.route_type'] = jobs_df.get('ai.route_type', '')
                 canon['ai.fair_chance'] = jobs_df.get('ai.fair_chance', '')
-                canon['ai.endorsements'] = jobs_df.get('ai.endorsements', '')
+                # Handle classifier-specific fields in memory storage
+                if classifier_type == 'pathway':
+                    canon['ai.career_pathway'] = jobs_df.get('ai.career_pathway', 'no_pathway')
+                    canon['ai.training_provided'] = jobs_df.get('ai.training_provided', False)
+                else:
+                    canon['ai.endorsements'] = jobs_df.get('ai.endorsements', '')
                 memory_db.store_classifications(canon)
             except Exception as e:
                 print(f"Memory DB insert failed: {e}")
