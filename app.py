@@ -131,6 +131,42 @@ st.markdown("""
         color: #10B981 !important; /* Freedom green */
     }
 
+    /* Responsive form controls - prevent cramping */
+    .stSelectbox > div > div {
+        min-width: 120px !important;
+    }
+
+    .stTextInput > div > div > input {
+        min-width: 100px !important;
+    }
+
+    .stRadio > div {
+        flex-direction: column !important;
+    }
+
+    /* Better column spacing on mobile */
+    @media (max-width: 768px) {
+        .stColumn {
+            margin-bottom: 1rem !important;
+        }
+
+        .stSelectbox > div > div {
+            min-width: auto !important;
+            width: 100% !important;
+        }
+
+        .stTextInput > div > div > input {
+            min-width: auto !important;
+            width: 100% !important;
+        }
+    }
+
+    /* Prevent text overflow in columns */
+    .stColumn > div {
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+    }
+
     /* Allow zoom functionality */
     html {
         zoom: 1;
@@ -3234,115 +3270,126 @@ def main():
         # Job Search tab - main interface controls
         st.header("🔍 Job Search")
         
-        # COMPACT Search Parameters Section
+        # RESPONSIVE Search Parameters Section
         st.header("🎯 Search Parameters")
-        
-        # Single Row: Location Type, Target Markets, Job Quantity, Search Terms, Search Radius, and Classifier Type
+
+        # Row 1: Location and Search Settings
+        st.markdown("##### 📍 Location & Search Settings")
         with st.container():
-            col1, col2, col3, col4, col5, col6 = st.columns([1, 3, 1.5, 1.5, 1, 1.5])
-        
-        with col1:
-            location_options_tab = ["Select Market"]
-            if check_coach_permission('can_use_custom_locations'):
-                location_options_tab.append("Custom Location")
-            
-            location_type_tab = st.radio(
-                "Location Type:",
-                location_options_tab,
-                help="Choose from preset markets or enter a custom location",
-                key="tab_location_type"
-            )
-        
-        with col2:
-            location_tab = None
-            if location_type_tab == "Select Market":
-                markets = pipeline.get_markets()
-                selected_market_tab = st.selectbox(
-                    "Target Market:",
-                    markets,
-                    help="Select a market to search",
-                    key="tab_selected_market"
-                )
-                if selected_market_tab:
-                    location_tab = pipeline.get_market_location(selected_market_tab)
-                else:
-                    st.warning("👆 Please select a market")
-                    
-            elif location_type_tab == "Custom Location":
-                custom_location_tab = st.text_input(
-                    "Enter ZIP code, city, or state:",
-                    placeholder="e.g., 90210, Austin TX, California",
-                    help="Enter any US location - ZIP code, city name, or state",
-                    key="tab_custom_location"
-                )
-                if custom_location_tab:
-                    location_tab = custom_location_tab.strip()
-                    st.success(f"📍 Custom Location: {location_tab}")
-                else:
-                    st.warning("👆 Please enter a location")
-        
-        with col3:
-            # Use shared constants to prevent duplication
-            mode_display_map_tab = MODE_DISPLAY_MAP
-            search_display_options_tab = MODE_DISPLAY_OPTIONS.copy()
-            if check_coach_permission('can_access_full_mode'):
-                search_display_options_tab.append("1000 jobs")
-            
-            search_mode_display_tab = st.selectbox(
-                "📊 Job Quantity:",
-                search_display_options_tab,
-                index=1,  # default to "100 jobs"
-                help="Number of jobs to analyze and classify",
-                key="tab_search_mode_display"
-            )
-            search_mode_tab = mode_display_map_tab[search_mode_display_tab]
-        
-        with col4:
-            search_terms_tab = st.text_input(
-                "🔍 Search Terms:",
-                value="CDL Driver No Experience",
-                help="Job search keywords. Use commas for multiple terms",
-                key="tab_search_terms"
-            )
-        
-        with col5:
-            search_radius_tab = st.selectbox(
-                "📏 Search Radius:",
-                [25, 50, 100],
-                index=1,  # default to 50
-                help="Search radius in miles from target location",
-                key="tab_search_radius"
-            )
+            col1, col2, col3 = st.columns([1.5, 2.5, 1.5])
 
-        with col6:
-            classifier_type_tab = st.selectbox(
-                "🧠 Job Type:",
-                ["CDL Traditional", "Career Pathways"],
-                index=0,  # default to CDL Traditional
-                help="CDL Traditional: Focus on experienced CDL driving jobs\nCareer Pathways: Include warehouse-to-driver, dock-to-driver, and training opportunities",
-                key="tab_classifier_type"
-            )
-            # Convert display to internal value
-            classifier_type_value_tab = "cdl" if classifier_type_tab == "CDL Traditional" else "pathway"
+            with col1:
+                location_options_tab = ["Select Market"]
+                if check_coach_permission('can_use_custom_locations'):
+                    location_options_tab.append("Custom Location")
 
-            exact_location_tab = st.checkbox(
-                "📍 Use exact location only",
-                value=False,
-                help="Search only the specified city (radius=0)",
-                key="tab_exact_location"
-            )
-            if exact_location_tab:
-                search_radius_tab = 0
-        
+                location_type_tab = st.radio(
+                    "Location Type:",
+                    location_options_tab,
+                    help="Choose from preset markets or enter a custom location",
+                    key="tab_location_type"
+                )
+
+            with col2:
+                location_tab = None
+                if location_type_tab == "Select Market":
+                    markets = pipeline.get_markets()
+                    selected_market_tab = st.selectbox(
+                        "Target Market:",
+                        markets,
+                        help="Select a market to search",
+                        key="tab_selected_market"
+                    )
+                    if selected_market_tab:
+                        location_tab = selected_market_tab
+                        st.success(f"📍 Selected Market: {location_tab}")
+                    else:
+                        st.warning("👆 Please select a market")
+
+                elif location_type_tab == "Custom Location":
+                    custom_location_tab = st.text_input(
+                        "Enter ZIP code, city, or state:",
+                        placeholder="e.g., 90210, Austin TX, California",
+                        help="Enter any US location - ZIP code, city name, or state",
+                        key="tab_custom_location"
+                    )
+                    if custom_location_tab:
+                        location_tab = custom_location_tab.strip()
+                        st.success(f"📍 Custom Location: {location_tab}")
+                    else:
+                        st.warning("👆 Please enter a location")
+
+            with col3:
+                # Use shared constants to prevent duplication
+                mode_display_map_tab = MODE_DISPLAY_MAP
+                search_display_options_tab = MODE_DISPLAY_OPTIONS.copy()
+                if check_coach_permission('can_access_full_mode'):
+                    search_display_options_tab.append("1000 jobs")
+
+                search_mode_display_tab = st.selectbox(
+                    "📊 Job Quantity:",
+                    search_display_options_tab,
+                    index=1,  # default to "100 jobs"
+                    help="Number of jobs to analyze and classify",
+                    key="tab_search_mode_display"
+                )
+                search_mode_tab = mode_display_map_tab[search_mode_display_tab]
+
+        # Row 2: Search Terms and Advanced Options
+        st.markdown("##### 🔍 Search Terms & Options")
+        with st.container():
+            col4, col5, col6 = st.columns([2, 1.5, 1.5])
+
+            with col4:
+                search_terms_tab = st.text_input(
+                    "🔍 Search Terms:",
+                    value="CDL Driver No Experience",
+                    help="Job search keywords. Use commas for multiple terms",
+                    key="tab_search_terms"
+                )
+
+            with col5:
+                search_radius_tab = st.selectbox(
+                    "📏 Search Radius:",
+                    [25, 50, 100],
+                    index=1,  # default to 50
+                    help="Search radius in miles from target location",
+                    key="tab_search_radius"
+                )
+
+            with col6:
+                classifier_type_tab = st.selectbox(
+                    "🧠 Job Type:",
+                    ["CDL Traditional", "Career Pathways"],
+                    index=0,  # default to CDL Traditional
+                    help="CDL Traditional: Focus on experienced CDL driving jobs\nCareer Pathways: Include warehouse-to-driver, dock-to-driver, and training opportunities",
+                    key="tab_classifier_type"
+                )
+                # Convert display to internal value
+                classifier_type_value_tab = "cdl" if classifier_type_tab == "CDL Traditional" else "pathway"
+
         # Row 3: Additional Options
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            no_experience_tab = st.checkbox(
-                "📋 Indeed No Experience Filter",
-                value=True,
-                help="Include jobs that don't require prior experience",
-                key="tab_no_experience"
-            )
+        st.markdown("##### ⚙️ Additional Options")
+        with st.container():
+            col7, col8, col9 = st.columns(3)
+
+            with col7:
+                exact_location_tab = st.checkbox(
+                    "📍 Use exact location only",
+                    value=False,
+                    help="Search only the specified city (radius=0)",
+                    key="tab_exact_location"
+                )
+                if exact_location_tab:
+                    search_radius_tab = 0
+
+            with col8:
+                no_experience_tab = st.checkbox(
+                    "📋 Indeed No Experience Filter",
+                    value=True,
+                    help="Include jobs that don't require prior experience",
+                    key="tab_no_experience"
+                )
         
         # Set default value for removed advanced options
         push_to_airtable_tab = False
@@ -7392,40 +7439,24 @@ def show_simple_batch_table(coach):
                 'job_obj': job  # Store full job object for actions
             })
         
-        # Display enhanced table with better management
+        # Display enhanced table with better management - RESPONSIVE DESIGN
         if table_data:
-            # Add table header
-            header_cols = st.columns([1, 1, 1, 1, 2, 1, 1, 1, 1, 3])
-            headers = ['ID', 'Coach', 'Type', 'Source', 'Location/Terms', 'Status', 'Total', 'Quality', 'Created', 'Actions']
-            
-            for i, header in enumerate(headers):
-                with header_cols[i]:
-                    st.markdown(f"**{header}**")
-            st.divider()
-            
-            # Display each batch with enhanced actions
+            # Mobile-friendly responsive table with grouped information
             for data in table_data:
                 job_id = data['ID']
                 status = data['Status']
                 job = data['job_obj']
-                
+
+                # Card-based layout for better mobile experience
                 with st.container():
-                    cols = st.columns([1, 1, 1, 1, 2, 1, 1, 1, 1, 3])
-                    
-                    with cols[0]:
-                        st.write(f"**{job_id}**")
-                    with cols[1]:
-                        st.write(data['Coach'])
-                    with cols[2]:
-                        st.write(data['Type'])
-                    with cols[3]:
-                        st.write(data['Source'])
-                    with cols[4]:
-                        location_terms = f"{data['Location']} | {data['Terms'][:25]}"
-                        if len(data['Terms']) > 25:
-                            location_terms += "..."
-                        st.write(location_terms)
-                    with cols[5]:
+                    # Header row: ID, Status, Actions
+                    header_row = st.columns([1.5, 2, 1.5])
+
+                    with header_row[0]:
+                        st.markdown(f"**Batch #{job_id}**")
+                        st.caption(f"{data['Coach']} • {data['Created']}")
+
+                    with header_row[1]:
                         # Enhanced status display with more details
                         if "Failed" in status and job.error_message:
                             st.error(f"❌ Failed")
@@ -7440,16 +7471,11 @@ def show_simple_batch_table(coach):
                             st.info("🔄 Running...")
                         else:
                             st.write(status)
-                    with cols[6]:
-                        st.write(f"{data['Total Jobs']}")
-                    with cols[7]:
-                        st.write(f"{data['Quality Jobs']}")
-                    with cols[8]:
-                        st.write(data['Created'])
-                    with cols[9]:
+
+                    with header_row[2]:
                         # Enhanced action buttons based on status
-                        action_cols = st.columns([1, 1, 1])
-                        
+                        action_cols = st.columns([1, 1])
+
                         # Always show delete button (works for any status)
                         with action_cols[0]:
                             if st.button("🗑️", key=f"delete_{job_id}", help="Delete batch"):
@@ -7461,10 +7487,10 @@ def show_simple_batch_table(coach):
                                         st.error(f"❌ Failed to delete batch {job_id}")
                                 except Exception as e:
                                     st.error(f"❌ Delete failed: {e}")
-                        
-                        # Status-specific actions
-                        if "Scheduled" in status or "Processing" in status:
-                            with action_cols[1]:
+
+                        # Status-specific secondary action
+                        with action_cols[1]:
+                            if "Scheduled" in status or "Processing" in status:
                                 if st.button("🚫", key=f"cancel_{job_id}", help="Cancel batch"):
                                     try:
                                         # AsyncJobManager doesn't have cancel_job method, so update status to cancelled
@@ -7485,12 +7511,7 @@ def show_simple_batch_table(coach):
                                                 st.error(f"❌ Failed to stop batch {job_id}")
                                     except Exception as e:
                                         st.error(f"❌ Cancel failed: {e}")
-                            with action_cols[2]:
-                                if st.button("📝", key=f"edit_{job_id}", help="Edit batch"):
-                                    st.info(f"📝 Edit functionality for batch {job_id} - coming soon!")
-                                    
-                        elif "Complete" in status:
-                            with action_cols[1]:
+                            elif "Complete" in status:
                                 if st.button("📊", key=f"download_{job_id}", help="Download results"):
                                     try:
                                         # Try to get results from the job
@@ -7502,22 +7523,30 @@ def show_simple_batch_table(coach):
                                             st.warning(f"⚠️ No results data found for batch {job_id}")
                                     except Exception as e:
                                         st.error(f"❌ Download failed: {e}")
-                            with action_cols[2]:
-                                if st.button("🔄", key=f"rerun_{job_id}", help="Run again"):
-                                    st.info(f"🔄 Rerun functionality for batch {job_id} - coming soon!")
-                                    
-                        elif "Failed" in status:
-                            with action_cols[1]:
+                            elif "Failed" in status:
                                 if st.button("🔄", key=f"retry_{job_id}", help="Retry batch"):
                                     st.info(f"🔄 Retry functionality for batch {job_id} - coming soon!")
-                            with action_cols[2]:
-                                if st.button("📋", key=f"logs_{job_id}", help="View logs"):
-                                    # Show error details if available
-                                    if hasattr(job, 'error_message') and job.error_message:
-                                        st.error(f"❌ Error: {job.error_message}")
-                                    else:
-                                        st.info(f"📋 Error details for batch {job_id} - check logs")
-                
+
+                    # Details row: Search parameters and results
+                    details_row = st.columns([2, 2, 1])
+
+                    with details_row[0]:
+                        location_terms = f"📍 {data['Location']}"
+                        if len(data['Terms']) > 30:
+                            search_terms_display = data['Terms'][:30] + "..."
+                        else:
+                            search_terms_display = data['Terms']
+                        st.caption(f"{location_terms}")
+                        st.caption(f"🔍 {search_terms_display}")
+
+                    with details_row[1]:
+                        st.caption(f"{data['Type']} • {data['Source']}")
+                        st.caption(f"📊 {data['Total Jobs']} total, {data['Quality Jobs']} quality")
+
+                    with details_row[2]:
+                        if data['Frequency'] != "Once":
+                            st.caption(f"🔄 {data['Frequency']}")
+
                     st.divider()
                     
         else:
