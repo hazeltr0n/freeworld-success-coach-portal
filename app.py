@@ -6061,14 +6061,13 @@ def show_combined_batches_and_scheduling_page(coach):
                                     st.info(f"⏰ Time: {batch_time.strftime('%H:%M')} Central")
                                     st.info("🔮 Job will run at scheduled time - it has NOT been executed yet")
 
-                                except AttributeError:
-                                    # If create_scheduled_job doesn't exist, fall back to the old method
-                                    # but mark it clearly that this is a scheduling issue
-                                    st.warning("⚠️ ISSUE: 'Save for Later' is running the job immediately due to missing scheduled job functionality")
+                                except Exception as e:
+                                    # If create_scheduled_job fails for any reason, fall back to old method
+                                    st.warning(f"⚠️ Scheduling failed ({str(e)}), running job immediately as fallback")
                                     search_params['run_immediately'] = False
                                     job = manager.submit_indeed_search(search_params, coach.username)
 
-                                    st.info(f"📋 Job ID: {job.id} (Note: May have run immediately - this is the reported bug)")
+                                    st.info(f"📋 Job ID: {job.id} (Note: Run immediately due to scheduling error)")
                                     st.info(f"📍 Location: {batch_location}")
                                     st.info(f"🎯 Classifier: {batch_classifier_type}")
 
@@ -6325,8 +6324,39 @@ def show_combined_batches_and_scheduling_page(coach):
                                     st.rerun()
 
                                 if google_submitted:
-                                    # Schedule for future runs (TODO: implement scheduling system)
-                                    st.warning("📅 Scheduling system coming soon! Use 'Run Now' for immediate Google Jobs processing.")
+                                    # Save for later - create scheduled job entry without immediate execution
+                                    google_search_params['run_immediately'] = False
+                                    google_search_params['status'] = 'scheduled'
+                                    google_search_params['job_type'] = 'google_jobs'
+                                    google_search_params['frequency'] = google_frequency
+                                    google_search_params['time'] = google_time.strftime('%H:%M')
+                                    google_search_params['days'] = google_days if google_frequency == "Weekly" else []
+
+                                    try:
+                                        # Create scheduled job
+                                        job = google_manager.create_scheduled_job(google_search_params, coach.username)
+
+                                        st.success(f"💾 Google Jobs batch scheduled successfully!")
+                                        st.info(f"📋 Schedule ID: {job.id}")
+                                        st.info(f"📍 Location: {google_location}")
+                                        st.info(f"🔍 Terms: {final_search_terms}")
+                                        st.info(f"📅 Schedule: {google_frequency}")
+                                        if google_frequency == "Weekly":
+                                            st.info(f"🗓️ Days: {', '.join(google_days)}")
+                                        st.info(f"⏰ Time: {google_time.strftime('%H:%M')} Central")
+                                        st.info("🔮 Job will run at scheduled time - it has NOT been executed yet")
+
+                                    except Exception as e:
+                                        # If create_scheduled_job fails, fall back to old method
+                                        st.warning(f"⚠️ Google Jobs scheduling failed ({str(e)}), running immediately as fallback")
+                                        google_search_params['run_immediately'] = True
+                                        job = google_manager.submit_google_search(google_search_params, coach.username)
+
+                                        st.info(f"📋 Job ID: {job.id} (Note: Run immediately due to scheduling error)")
+                                        st.info(f"📍 Location: {google_location}")
+                                        st.info(f"🎯 Terms: {final_search_terms}")
+
+                                    st.rerun()  # Refresh to show the job in table
 
                             except Exception as e:
                                 st.error(f"❌ Failed to create Google batch: {e}")

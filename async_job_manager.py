@@ -100,7 +100,79 @@ class AsyncJobManager:
         except Exception as e:
             print(f"Error updating job {job_id}: {e}")
             return False
-    
+
+    def create_scheduled_job(self, search_params: Dict, coach_username: str) -> AsyncJob:
+        """Create a scheduled job that will run at a specified time instead of immediately"""
+        if not self.supabase_client:
+            raise Exception("Supabase client not available")
+
+        # Extract scheduling information from search_params
+        frequency = search_params.get('frequency', 'once')
+        run_time = search_params.get('time', '02:00')
+        days = search_params.get('days', [])
+
+        # Calculate next run time based on frequency
+        from datetime import datetime, timezone, timedelta
+        import time as time_module
+
+        now = datetime.now(timezone.utc)
+
+        if frequency == "once":
+            # For "Save for Later", schedule for next day at specified time
+            next_run = now.replace(hour=int(run_time.split(':')[0]),
+                                  minute=int(run_time.split(':')[1]),
+                                  second=0, microsecond=0) + timedelta(days=1)
+        elif frequency == "daily":
+            # Schedule for next occurrence of the specified time
+            next_run = now.replace(hour=int(run_time.split(':')[0]),
+                                  minute=int(run_time.split(':')[1]),
+                                  second=0, microsecond=0)
+            if next_run <= now:
+                next_run += timedelta(days=1)
+        elif frequency == "weekly":
+            # Find next occurrence of specified days
+            # For now, schedule for next day (this could be enhanced)
+            next_run = now.replace(hour=int(run_time.split(':')[0]),
+                                  minute=int(run_time.split(':')[1]),
+                                  second=0, microsecond=0) + timedelta(days=1)
+        else:
+            # Default to next day
+            next_run = now + timedelta(days=1)
+
+        # Create job data with scheduling information
+        job_data = {
+            'coach_username': coach_username,
+            'job_type': search_params.get('job_type', 'indeed_jobs'),
+            'search_params': search_params,
+            'status': 'scheduled',  # Special status for scheduled jobs
+            'result_count': 0,
+            'quality_job_count': 0,
+            'created_at': now.isoformat(),
+            'scheduled_run_at': next_run.isoformat()  # When to actually run the job
+        }
+
+        result = self.supabase_client.table('async_job_queue').insert(job_data).execute()
+        if result.data and len(result.data) > 0:
+            job_record = result.data[0]
+            return AsyncJob(
+                id=job_record['id'],
+                scheduled_search_id=job_record.get('scheduled_search_id'),
+                coach_username=job_record['coach_username'],
+                job_type=job_record['job_type'],
+                request_id=job_record.get('request_id'),
+                status=job_record['status'],
+                search_params=job_record['search_params'],
+                submitted_at=job_record.get('submitted_at'),
+                completed_at=job_record.get('completed_at'),
+                result_count=job_record['result_count'],
+                quality_job_count=job_record['quality_job_count'],
+                error_message=job_record.get('error_message'),
+                csv_filename=job_record.get('csv_filename'),
+                created_at=datetime.fromisoformat(job_record['created_at'].replace('Z', '+00:00'))
+            )
+        else:
+            raise Exception("Failed to create scheduled job entry")
+
     def delete_job(self, job_id: int) -> bool:
         """Delete a job from the queue"""
         if not self.supabase_client:
