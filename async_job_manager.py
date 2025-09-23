@@ -424,8 +424,8 @@ class AsyncJobManager:
             records.append(record)
 
         try:
-            # Upload to Supabase table (adjust table name as needed)
-            result = self.supabase_client.table('scraped_jobs').upsert(
+            # Upload to Supabase table (using correct table name)
+            result = self.supabase_client.table('all_scraped_jobs').upsert(
                 records,
                 on_conflict='job_hash'
             ).execute()

@@ -428,8 +428,11 @@ def main(argv: List[str]) -> int:
             from link_tracker import LinkTracker
             link_tracker = LinkTracker()
             if link_tracker.is_available:
-                # Only generate tracking URLs for included jobs (not all classified jobs)
-                included_jobs_mask = (df_final.get('route.included', False) == True)
+                # Only generate tracking URLs for included jobs (good/so-so matches that aren't filtered)
+                included_jobs_mask = (
+                    (df_final.get('route.filtered', True) == False) &  # Not filtered out
+                    (df_final.get('route.final_status', '').astype(str).str.startswith('included'))  # Status starts with 'included'
+                )
                 included_jobs = df_final[included_jobs_mask]
                 print(f"🎯 Filtering to {len(included_jobs)} included jobs from {len(df_final)} total classified jobs")
                 

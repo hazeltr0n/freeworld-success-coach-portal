@@ -1257,10 +1257,10 @@ class FreeWorldPipelineV3:
                 x.get('source.url', '')
             ), axis=1)
             
-            # Group by clean URL
-            url_groups = df[df['clean_apply_url'] != ''].groupby('clean_apply_url')
-            
-            for url, group_df in url_groups:
+            # Group by clean URL + market (same URL can appear in different markets)
+            url_groups = df[df['clean_apply_url'] != ''].groupby(['clean_apply_url', 'meta.market'])
+
+            for (url, market), group_df in url_groups:
                 if len(group_df) > 1:
                     # Only dedupe if not already filtered
                     unfiltered = group_df[group_df['route.filtered'] != True]
