@@ -3919,8 +3919,7 @@ def main():
                                 data=pdf_bytes,
                                 file_name=f"FreeWorld_Jobs_{market_name.replace(' ', '_')}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.pdf",
                                 mime="application/pdf",
-                                use_container_width=True,
-                                key=f"{search_type_tab}_pdf_download"
+                                                                key=f"{search_type_tab}_pdf_download"
                             )
                         else:
                             st.error("PDF generation failed")
@@ -4396,8 +4395,7 @@ def main():
                                                     file_name=pdf_data['filename'],
                                                     mime="application/pdf",
                                                     key=f"download_market_pdf_tab_{market}",
-                                                    use_container_width=True
-                                                )
+                                                                                                    )
                                     
                                     # Quality jobs for this market
                                     if not market_quality.empty:
@@ -4467,8 +4465,7 @@ def main():
                                     data=pdf_bytes,
                                     file_name=f"freeworld_jobs_{str(market_name).replace(' ', '_')}.pdf",
                                     mime="application/pdf",
-                                    use_container_width=True
-                                )
+                                                                    )
                             else:
                                 st.error("PDF generation failed")
             else:
@@ -5131,8 +5128,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                             data=pdf_bytes,
                             file_name=f"{pretty.lower().replace(' ', '_')}.pdf",
                             mime="application/pdf",
-                            use_container_width=True
-                        )
+                                                    )
                 
                 # HTML Preview if enabled (memory searches should work)  
                 if show_html_preview_tab and jobs_dataframe_to_dicts and render_jobs_html and not df.empty:
@@ -5337,8 +5333,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                             data=pdf_bytes,
                             file_name=f"FreeWorld_Jobs_{market_name.replace(' ', '_')}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.pdf",
                             mime="application/pdf",
-                            use_container_width=True,
-                            key="memory_pdf_download"
+                                                        key="memory_pdf_download"
                         )
                     else:
                         st.error("PDF generation failed")
@@ -5626,8 +5621,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         data=st.session_state.indeed_pdf_bytes,
                         file_name=st.session_state.indeed_pdf_filename,
                         mime="application/pdf",
-                        use_container_width=True,
-                        key="indeed_persistent_pdf_download"
+                                                key="indeed_persistent_pdf_download"
                     )
 
                 # Record search in coach's usage stats
@@ -6873,7 +6867,7 @@ def show_combined_batches_and_scheduling_page(coach):
                     # Show results table (outside column structure)
                     if 'df_final' in locals() and len(df_final) > 0:
                         st.markdown("### 📋 **Classified Jobs Data**")
-                        st.dataframe(df_final, use_container_width=True, height=420)
+                        st.dataframe(df_final, height=420)
 
                         # Multi-market display (similar to job search page)
                         try:
@@ -6907,7 +6901,7 @@ def show_combined_batches_and_scheduling_page(coach):
                                             # Preferred columns similar to job search
                                             cols_pref = ['source.title', 'source.company', 'ai.match', 'ai.route_type', 'ai.career_pathway', 'ai.training_provided', 'ai.fair_chance', 'ai.summary', 'source.indeed_url']
                                             cols_show = [c for c in cols_pref if c in mdf_inc.columns]
-                                            st.dataframe(mdf_inc[cols_show] if cols_show else mdf_inc, use_container_width=True, height=360)
+                                            st.dataframe(mdf_inc[cols_show] if cols_show else mdf_inc, height=360)
 
                                             # Per-market metrics
                                             try:
@@ -6936,7 +6930,7 @@ def show_combined_batches_and_scheduling_page(coach):
 
                                             # Full results for this market
                                             with st.expander(f"🔎 Full Results — {mk}", expanded=False):
-                                                st.dataframe(mdf, use_container_width=True, height=480)
+                                                st.dataframe(mdf, height=480)
                                         except Exception as e:
                                             st.warning(f"⚠️ Display error for {mk}: {e}")
                         except Exception:
@@ -7416,7 +7410,7 @@ def show_simple_batch_table(coach):
                         
                         # Always show delete button (works for any status)
                         with action_cols[0]:
-                            if st.button("🗑️", key=f"delete_{job_id}", help="Delete batch", use_container_width=True):
+                            if st.button("🗑️", key=f"delete_{job_id}", help="Delete batch"):
                                 try:
                                     if manager.delete_job(job_id):
                                         st.success(f"✅ Deleted batch {job_id}")
@@ -7429,7 +7423,7 @@ def show_simple_batch_table(coach):
                         # Status-specific actions
                         if "Scheduled" in status or "Processing" in status:
                             with action_cols[1]:
-                                if st.button("🚫", key=f"cancel_{job_id}", help="Cancel batch", use_container_width=True):
+                                if st.button("🚫", key=f"cancel_{job_id}", help="Cancel batch"):
                                     try:
                                         # AsyncJobManager doesn't have cancel_job method, so update status to cancelled
                                         if hasattr(manager, 'update_job'):
@@ -7450,12 +7444,12 @@ def show_simple_batch_table(coach):
                                     except Exception as e:
                                         st.error(f"❌ Cancel failed: {e}")
                             with action_cols[2]:
-                                if st.button("📝", key=f"edit_{job_id}", help="Edit batch", use_container_width=True):
+                                if st.button("📝", key=f"edit_{job_id}", help="Edit batch"):
                                     st.info(f"📝 Edit functionality for batch {job_id} - coming soon!")
                                     
                         elif "Complete" in status:
                             with action_cols[1]:
-                                if st.button("📊", key=f"download_{job_id}", help="Download results", use_container_width=True):
+                                if st.button("📊", key=f"download_{job_id}", help="Download results"):
                                     try:
                                         # Try to get results from the job
                                         if hasattr(job, 'result_data') and job.result_data:
@@ -7467,15 +7461,15 @@ def show_simple_batch_table(coach):
                                     except Exception as e:
                                         st.error(f"❌ Download failed: {e}")
                             with action_cols[2]:
-                                if st.button("🔄", key=f"rerun_{job_id}", help="Run again", use_container_width=True):
+                                if st.button("🔄", key=f"rerun_{job_id}", help="Run again"):
                                     st.info(f"🔄 Rerun functionality for batch {job_id} - coming soon!")
                                     
                         elif "Failed" in status:
                             with action_cols[1]:
-                                if st.button("🔄", key=f"retry_{job_id}", help="Retry batch", use_container_width=True):
+                                if st.button("🔄", key=f"retry_{job_id}", help="Retry batch"):
                                     st.info(f"🔄 Retry functionality for batch {job_id} - coming soon!")
                             with action_cols[2]:
-                                if st.button("📋", key=f"logs_{job_id}", help="View logs", use_container_width=True):
+                                if st.button("📋", key=f"logs_{job_id}", help="View logs"):
                                     # Show error details if available
                                     if hasattr(job, 'error_message') and job.error_message:
                                         st.error(f"❌ Error: {job.error_message}")

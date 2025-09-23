@@ -131,7 +131,7 @@ def show_companies_dashboard():
                 labels={'x': 'Market', 'y': 'Number of Companies'}
             )
             fig.update_layout(height=400)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig)
     
     # Companies table
     st.markdown("## 📋 Companies Details")
@@ -283,7 +283,7 @@ def show_companies_dashboard():
         edited_df = st.data_editor(
             display_df,
             column_config=column_config,
-            use_container_width=True,
+            ,
             height=600,
             key="companies_table",
             on_change=None
@@ -318,7 +318,7 @@ def show_companies_dashboard():
         st.dataframe(
             display_df,
             column_config=column_config,
-            use_container_width=True,
+            ,
             height=600
         )
     
@@ -343,7 +343,7 @@ def show_companies_dashboard():
             from companies_rollup import get_blacklisted_companies
             blacklisted_df = get_blacklisted_companies()
             if not blacklisted_df.empty:
-                st.dataframe(blacklisted_df, use_container_width=True)
+                st.dataframe(blacklisted_df)
             else:
                 st.info("No companies are currently blacklisted.")
     

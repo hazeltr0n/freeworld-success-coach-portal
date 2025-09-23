@@ -144,7 +144,7 @@ def show_free_agents_dashboard(coach):
                 color_discrete_sequence=['#3B82F6']
             )
             fig.update_layout(height=400)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig)
         else:
             st.info("No engagement data available")
 
@@ -162,7 +162,7 @@ def show_free_agents_dashboard(coach):
                     color_discrete_sequence=px.colors.qualitative.Set3
                 )
                 fig.update_layout(height=400)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig)
             else:
                 st.info("No market data available")
         else:
@@ -191,7 +191,7 @@ def show_free_agents_dashboard(coach):
                 }
             )
             fig.update_layout(height=400)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig)
 
         with col2:
             # Engagement vs Activity scatter plot
@@ -213,7 +213,7 @@ def show_free_agents_dashboard(coach):
                     }
                 )
                 fig.update_layout(height=400)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig)
             else:
                 st.info("Need more agents for scatter plot")
 
@@ -278,8 +278,7 @@ def show_free_agents_dashboard(coach):
     st.dataframe(
         display_df,
         column_config=column_config,
-        use_container_width=True,
-        height=600
+                height=600
     )
 
     # Detailed Analytics Section
@@ -293,7 +292,7 @@ def show_free_agents_dashboard(coach):
             top_performers = agents_df.nlargest(10, 'engagement_score')[
                 ['agent_name', 'market', 'engagement_score', 'total_job_clicks']
             ]
-            st.dataframe(top_performers, use_container_width=True)
+            st.dataframe(top_performers)
 
     with col2:
         st.markdown("### 😴 Needs Attention")
@@ -304,7 +303,7 @@ def show_free_agents_dashboard(coach):
         ] if 'last_activity_display' in agents_df.columns else pd.DataFrame()
 
         if not inactive_or_low.empty:
-            st.dataframe(inactive_or_low, use_container_width=True)
+            st.dataframe(inactive_or_low)
         else:
             st.info("All agents are actively engaged! 🎉")
 
@@ -335,8 +334,7 @@ def show_free_agents_dashboard(coach):
                 st.success(f"Found {len(inactive_agents)} agents needing re-engagement")
                 st.dataframe(
                     inactive_agents[['agent_name', 'agent_email', 'market', 'last_activity_at']],
-                    use_container_width=True
-                )
+                                    )
             else:
                 st.info("No inactive agents found!")
 
@@ -359,7 +357,7 @@ def show_free_agents_dashboard(coach):
                     color_discrete_sequence=['#3B82F6']
                 )
                 fig.update_layout(height=300)
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig)
 
         with col2:
             st.markdown("### 📈 Engagement Trends")
@@ -377,7 +375,7 @@ def show_free_agents_dashboard(coach):
                         color_discrete_sequence=['#10B981']
                     )
                     fig.update_layout(height=300)
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig)
 
     # Action Items and Insights
     if not agents_df.empty:

@@ -16,6 +16,28 @@ from plotly.subplots import make_subplots
 # Market analytics constants
 DEFAULT_TIME_WINDOW = 168  # 1 week in hours
 
+# Import Airtable sync for live job seeker data
+try:
+    from airtable_job_seekers_sync import get_job_seeker_counts, refresh_airtable_job_seeker_cache
+    LIVE_AIRTABLE_SYNC = True
+except ImportError as e:
+    LIVE_AIRTABLE_SYNC = False
+
+# Fallback job seeker counts (updated to match live Airtable test results)
+FALLBACK_JOB_SEEKER_COUNTS = {
+    'Houston': 153,     # Live: 153
+    'Dallas': 81,       # Live: 81
+    'Stockton': 96,     # Live: 96
+    'Inland Empire': 21, # Live: 21 (16+5)
+    'Bay Area': 21,     # Live: 21
+    'Phoenix': 15,      # Live: 15
+    'Trenton': 9,       # Live: 9
+    'Newark': 5,        # Live: 5
+    'Las Vegas': 1,     # Live: 1
+    'Denver': 0,        # Live: 0 (filtered out)
+    'Unknown': 0
+}
+
 # All financial functions removed - focusing on pure market analytics from jobs table
 
 def get_market_analytics(hours: Optional[int] = None) -> pd.DataFrame:
@@ -66,11 +88,31 @@ def get_market_analytics(hours: Optional[int] = None) -> pd.DataFrame:
         df['match_level'] = df['match_level'].fillna('unknown').str.lower()
         df['route_type'] = df['route_type'].fillna('Unknown').str.title()
         df['market'] = df['market'].fillna('Unknown')
+
+        # Debug: Print unique market names to see what we have
+        print("🔍 Markets in jobs data:", sorted(df['market'].unique()))
         
-        # Group by market and calculate statistics
+        # Get job seeker counts once for all markets (more efficient)
+        if LIVE_AIRTABLE_SYNC:
+            job_seeker_counts = get_job_seeker_counts()
+            print("🔍 Airtable job seeker counts:", job_seeker_counts)
+        else:
+            job_seeker_counts = FALLBACK_JOB_SEEKER_COUNTS
+            print("🔍 Using fallback job seeker counts:", job_seeker_counts)
+
+        # Define target markets (exclude custom locations like Montgomery)
+        TARGET_MARKETS = {
+            'Houston', 'Dallas', 'Las Vegas', 'Bay Area', 'Phoenix', 'Denver',
+            'Newark', 'Stockton', 'Inland Empire', 'Trenton'
+        }
+
+        # Group by market and calculate statistics (only target markets)
         stats = []
-        
+
         for market in df['market'].unique():
+            # Skip non-target markets
+            if market not in TARGET_MARKETS:
+                continue
             market_jobs = df[df['market'] == market]
             
             # Quality breakdown
@@ -87,7 +129,14 @@ def get_market_analytics(hours: Optional[int] = None) -> pd.DataFrame:
             total_jobs = len(market_jobs)
             quality_jobs = good_count + so_so_count
             quality_rate = (quality_jobs / total_jobs * 100) if total_jobs > 0 else 0
-            
+
+            # Get job seeker count for this market
+            job_seekers = job_seeker_counts.get(market, 0)
+
+            # Calculate ratios
+            jobs_per_seeker = round(quality_jobs / job_seekers, 2) if job_seekers > 0 else 0
+            total_jobs_per_seeker = round(total_jobs / job_seekers, 2) if job_seekers > 0 else 0
+
             stats.append({
                 'market': market,
                 'total_jobs': total_jobs,
@@ -99,7 +148,10 @@ def get_market_analytics(hours: Optional[int] = None) -> pd.DataFrame:
                 'otr': otr_count,
                 'unknown_route': unknown_route,
                 'quality_jobs': quality_jobs,
-                'quality_rate': round(quality_rate, 1)
+                'quality_rate': round(quality_rate, 1),
+                'job_seekers': job_seekers,
+                'jobs_per_seeker': jobs_per_seeker,
+                'total_jobs_per_seeker': total_jobs_per_seeker
             })
         
         result_df = pd.DataFrame(stats)
@@ -124,10 +176,12 @@ def render_market_summary_cards(df: pd.DataFrame):
     total_so_so = df['so_so'].sum()
     total_local = df['local'].sum()
     total_otr = df['otr'].sum()
+    total_job_seekers = df['job_seekers'].sum()
     avg_quality_rate = df['quality_rate'].mean()
-    
+    avg_jobs_per_seeker = df['jobs_per_seeker'].mean()
+
     # Create summary cards
-    col1, col2, col3, col4, col5 = st.columns(5)
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
     
     with col1:
         st.metric(
@@ -159,9 +213,44 @@ def render_market_summary_cards(df: pd.DataFrame):
     
     with col5:
         st.metric(
-            label="🛣️ OTR Routes", 
+            label="🛣️ OTR Routes",
             value=f"{total_otr:,}",
             delta=f"{(total_otr/total_jobs*100):.1f}%" if total_jobs > 0 else "0%"
+        )
+
+    with col6:
+        st.metric(
+            label="👥 Total Job Seekers",
+            value=f"{total_job_seekers:,}",
+            delta=f"{avg_jobs_per_seeker:.1f} avg jobs/seeker"
+        )
+
+    # Overall ratio metric (prominent)
+    st.markdown("### 🎯 **Key Metric: Quality Jobs to Job Seekers Ratio**")
+    overall_ratio = total_quality / total_job_seekers if total_job_seekers > 0 else 0
+
+    col_ratio1, col_ratio2, col_ratio3 = st.columns(3)
+    with col_ratio1:
+        ratio_color = "🔴" if overall_ratio < 10 else "🟢"
+        st.metric(
+            label=f"{ratio_color} **Overall Quality Jobs per Job Seeker**",
+            value=f"{overall_ratio:.2f}",
+            delta="Target: 10+ jobs per seeker",
+            delta_color="inverse" if overall_ratio < 10 else "normal"
+        )
+
+    with col_ratio2:
+        st.metric(
+            label="📊 Total Quality Jobs",
+            value=f"{total_quality:,}",
+            delta=f"{len(df)} markets"
+        )
+
+    with col_ratio3:
+        st.metric(
+            label="👥 Total Active Job Seekers",
+            value=f"{total_job_seekers:,}",
+            delta="From Airtable filtered view"
         )
 
 def render_market_analytics_table(df: pd.DataFrame):
@@ -173,18 +262,18 @@ def render_market_analytics_table(df: pd.DataFrame):
     # Format the dataframe for display
     display_df = df.copy()
     
-    # Reorder columns for better readability
+    # Reorder columns for better readability - adding job seekers and ratio
     columns_order = [
-        'market', 'total_jobs', 'quality_rate', 'good', 'so_so', 'bad', 
-        'local', 'otr', 'unknown_route'
+        'market', 'total_jobs', 'quality_jobs', 'job_seekers', 'jobs_per_seeker',
+        'quality_rate', 'good', 'so_so', 'bad', 'local', 'otr', 'unknown_route'
     ]
-    
+
     display_df = display_df[columns_order]
-    
+
     # Rename columns for better display
     display_df.columns = [
-        'Market', 'Total Jobs', 'Quality %', 'Good', 'So-So', 'Bad',
-        'Local', 'OTR', 'Unknown Route'
+        'Market', 'Total Jobs', 'Quality Jobs', 'Job Seekers', 'Quality Jobs/Seeker',
+        'Quality %', 'Good', 'So-So', 'Bad', 'Local', 'OTR', 'Unknown Route'
     ]
     
     # Style the dataframe
@@ -197,6 +286,16 @@ def render_market_analytics_table(df: pd.DataFrame):
             return 'background-color: #fff3cd; color: #856404'
         else:
             return 'background-color: #f8d7da; color: #721c24'
+
+    def style_jobs_per_seeker(val):
+        if pd.isna(val):
+            return ''
+        elif val < 10:
+            return 'background-color: #f8d7da; color: #721c24; font-weight: bold'  # Red for under 10
+        elif val >= 20:
+            return 'background-color: #d4edda; color: #155724; font-weight: bold'  # Green for 20+
+        else:
+            return 'background-color: #fff3cd; color: #856404'  # Yellow for 10-19
     
     def style_job_count(val):
         if pd.isna(val):
@@ -212,15 +311,18 @@ def render_market_analytics_table(df: pd.DataFrame):
     styled_df = display_df.style.format({
         'Quality %': '{:.1f}%',
         'Total Jobs': '{:,}',
+        'Quality Jobs': '{:,}',
+        'Job Seekers': '{:,}',
+        'Quality Jobs/Seeker': '{:.2f}',
         'Good': '{:,}',
         'So-So': '{:,}',
         'Bad': '{:,}',
         'Local': '{:,}',
         'OTR': '{:,}',
         'Unknown Route': '{:,}'
-    }).applymap(style_quality_rate, subset=['Quality %']).applymap(style_job_count, subset=['Total Jobs'])
+    }).map(style_quality_rate, subset=['Quality %']).map(style_job_count, subset=['Total Jobs']).map(style_jobs_per_seeker, subset=['Quality Jobs/Seeker'])
     
-    st.dataframe(styled_df, use_container_width=True, hide_index=True)
+    st.dataframe(styled_df, hide_index=True)
 
 def render_market_charts(df: pd.DataFrame):
     """Render interactive charts for market analytics"""
@@ -250,7 +352,7 @@ def render_market_charts(df: pd.DataFrame):
             height=400
         )
         
-        st.plotly_chart(fig_quality, use_container_width=True)
+        st.plotly_chart(fig_quality)
     
     with col2:
         st.subheader("🛣️ Route Types by Market")
@@ -270,7 +372,7 @@ def render_market_charts(df: pd.DataFrame):
             height=400
         )
         
-        st.plotly_chart(fig_routes, use_container_width=True)
+        st.plotly_chart(fig_routes)
     
     # Quality rate comparison
     st.subheader("⭐ Quality Rate Comparison")
@@ -286,7 +388,7 @@ def render_market_charts(df: pd.DataFrame):
     )
     
     fig_rates.update_layout(height=400)
-    st.plotly_chart(fig_rates, use_container_width=True)
+    st.plotly_chart(fig_rates)
 
 def render_export_options(df: pd.DataFrame, time_window: str):
     """Render data export options"""
@@ -377,13 +479,27 @@ def show_admin_market_dashboard():
             custom_hours = None
     
     with col3:
-        refresh_button = st.button("🔄 Refresh Data", type="primary")
-        if refresh_button:
-            try:
-                st.rerun()
-            except Exception:
-                # Backward compatibility for older Streamlit
-                st.experimental_rerun()
+        col3a, col3b = st.columns(2)
+        with col3a:
+            refresh_button = st.button("🔄 Refresh Data", type="primary")
+            if refresh_button:
+                try:
+                    st.rerun()
+                except Exception:
+                    # Backward compatibility for older Streamlit
+                    st.experimental_rerun()
+
+        with col3b:
+            if LIVE_AIRTABLE_SYNC:
+                refresh_airtable_button = st.button("📊 Refresh Airtable")
+                if refresh_airtable_button:
+                    with st.spinner("Refreshing job seeker data from Airtable..."):
+                        refresh_airtable_job_seeker_cache()
+                        st.success("✅ Airtable job seeker data refreshed!")
+                    try:
+                        st.rerun()
+                    except Exception:
+                        st.experimental_rerun()
     
     # Map time presets to hours
     time_mapping = {

@@ -151,8 +151,7 @@ def display_market_section(market: str, df: pd.DataFrame, metadata: Dict[str, An
                             file_name="freeworld_jobs_report.pdf",
                             mime="application/pdf",
                             key=f"download_pdf_{market}",
-                            use_container_width=True
-                        )
+                                                    )
                 except Exception:
                     st.caption("PDF unavailable")
         
@@ -165,8 +164,7 @@ def display_market_section(market: str, df: pd.DataFrame, metadata: Dict[str, An
         
         st.dataframe(
             quality_df[cols_show] if cols_show else quality_df,
-            use_container_width=True,
-            height=400
+                        height=400
         )
         
         # Display metrics

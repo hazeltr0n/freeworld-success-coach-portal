@@ -1,0 +1,11 @@
+FORCE DEPLOYMENT - September 18, 2025
+This file exists to force Streamlit Cloud to rebuild the application.
+
+Changes that need to be deployed:
+1. Fix ValueError in Free Agent Management - handle 'All' option for Max Jobs
+2. Updated secrets.toml with production secrets
+3. Max Jobs SelectboxColumn [15, 25, 50, 100, "All"] properly handled
+
+Current issue: Streamlit Cloud not deploying Max Jobs fix
+
+DEPLOYMENT_ID: force_rebuild_max_jobs_fix_001
