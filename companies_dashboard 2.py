@@ -191,7 +191,6 @@ def show_companies_dashboard():
     st.dataframe(
         display_df,
         column_config=column_config,
-        ,
         height=600
     )
     

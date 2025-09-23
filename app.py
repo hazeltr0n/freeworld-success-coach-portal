@@ -113,6 +113,24 @@ st.markdown("""
         padding-top: 0.5rem;
     }
 
+    /* Fix metric box colors - use freedom green brand color */
+    .stMetric > div > div > div > div {
+        color: #10B981 !important; /* Freedom green */
+    }
+
+    .stMetric > div > div > div {
+        color: #10B981 !important; /* Freedom green */
+    }
+
+    /* Metric label and value styling */
+    .stMetric label {
+        color: #10B981 !important; /* Freedom green */
+    }
+
+    .stMetric > div[data-testid="metric-container"] > div {
+        color: #10B981 !important; /* Freedom green */
+    }
+
     /* Allow zoom functionality */
     html {
         zoom: 1;

@@ -283,7 +283,6 @@ def show_companies_dashboard():
         edited_df = st.data_editor(
             display_df,
             column_config=column_config,
-            ,
             height=600,
             key="companies_table",
             on_change=None
@@ -318,7 +317,6 @@ def show_companies_dashboard():
         st.dataframe(
             display_df,
             column_config=column_config,
-            ,
             height=600
         )
     
