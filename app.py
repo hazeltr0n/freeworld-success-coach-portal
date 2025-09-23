@@ -92,61 +92,30 @@ except Exception:
     # If Streamlit isn't fully initialized (e.g., when imported by tests), ignore
     pass
 
-# Add responsive CSS to fix screen resizing issues after removing use_container_width
+# Add responsive CSS that keeps login page properly sized
 st.markdown("""
 <style>
-    /* Ensure main content takes full width and is responsive */
-    .main .block-container {
-        padding-left: 1rem;
-        padding-right: 1rem;
-        max-width: none;
-    }
-
     /* Make dataframes responsive */
     .stDataFrame > div {
         width: 100% !important;
-        max-width: none !important;
     }
 
-    /* Fix download buttons to be responsive */
-    .stDownloadButton > button {
-        width: 100%;
-        max-width: none;
+    /* Ensure login page and all content fits in viewport */
+    .main .block-container {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        max-width: 100%;
+        min-height: fit-content;
     }
 
-    /* Ensure columns adapt to screen size */
-    .stColumn > div {
-        width: 100% !important;
-        max-width: none !important;
+    /* Reduce excessive padding that pushes content down */
+    .main .block-container {
+        padding-top: 0.5rem;
     }
 
-    /* Make metrics responsive */
-    .metric-container {
-        width: 100% !important;
-    }
-
-    /* Responsive text input */
-    .stTextInput > div > div > input {
-        width: 100% !important;
-    }
-
-    /* Responsive selectbox */
-    .stSelectbox > div > div > select {
-        width: 100% !important;
-    }
-
-    /* Enable zoom and responsive scaling */
-    body {
+    /* Allow zoom functionality */
+    html {
         zoom: 1;
-        -moz-transform: scale(1);
-        -webkit-transform: scale(1);
-        transform: scale(1);
-    }
-
-    /* Allow viewport zoom */
-    @viewport {
-        width: device-width;
-        zoom: 1.0;
     }
 </style>
 """, unsafe_allow_html=True)
