@@ -92,6 +92,65 @@ except Exception:
     # If Streamlit isn't fully initialized (e.g., when imported by tests), ignore
     pass
 
+# Add responsive CSS to fix screen resizing issues after removing use_container_width
+st.markdown("""
+<style>
+    /* Ensure main content takes full width and is responsive */
+    .main .block-container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        max-width: none;
+    }
+
+    /* Make dataframes responsive */
+    .stDataFrame > div {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    /* Fix download buttons to be responsive */
+    .stDownloadButton > button {
+        width: 100%;
+        max-width: none;
+    }
+
+    /* Ensure columns adapt to screen size */
+    .stColumn > div {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    /* Make metrics responsive */
+    .metric-container {
+        width: 100% !important;
+    }
+
+    /* Responsive text input */
+    .stTextInput > div > div > input {
+        width: 100% !important;
+    }
+
+    /* Responsive selectbox */
+    .stSelectbox > div > div > select {
+        width: 100% !important;
+    }
+
+    /* Enable zoom and responsive scaling */
+    body {
+        zoom: 1;
+        -moz-transform: scale(1);
+        -webkit-transform: scale(1);
+        transform: scale(1);
+    }
+
+    /* Allow viewport zoom */
+    @viewport {
+        width: device-width;
+        zoom: 1.0;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # Bootstrap secrets to environment variables
 try:
     from dotenv import load_dotenv  # type: ignore
