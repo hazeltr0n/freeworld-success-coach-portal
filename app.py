@@ -73,16 +73,16 @@ try:
     except Exception:
         pass
     
-    # Set QA-specific favicon
+    # Set production favicon
     try:
         from PIL import Image
-        qa_favicon = Image.open("fw_logo.png")
+        production_favicon = Image.open("fw_logo.png")
     except (ImportError, FileNotFoundError):
-        qa_favicon = "🧪"  # Fallback emoji for QA
-    
+        production_favicon = "🚀"  # Production rocket emoji
+
     st.set_page_config(
-        page_title="FreeWorld QA Portal - Test Environment",
-        page_icon=qa_favicon,
+        page_title="FreeWorld Success Coach Portal",
+        page_icon=production_favicon,
         layout="wide",
         initial_sidebar_state="collapsed"
     )
@@ -2679,15 +2679,15 @@ def show_free_agent_portal(agent_config_encoded):
                         break
                     except Exception:
                         continue
-            # Use FreeWorld logo or fallback to QA emoji
+            # Use FreeWorld logo or fallback to production emoji
             try:
-                qa_favicon = Image.open("fw_logo.png") if page_icon_img is None else page_icon_img
+                production_favicon = Image.open("fw_logo.png") if page_icon_img is None else page_icon_img
             except (FileNotFoundError, OSError):
-                qa_favicon = "🧪"  # QA test tube emoji
-                
+                production_favicon = "🚀"  # Production rocket emoji
+
             st.set_page_config(
-                page_title="FreeWorld QA Portal - Test Environment",
-                page_icon=qa_favicon,
+                page_title="FreeWorld Success Coach Portal",
+                page_icon=production_favicon,
                 layout="wide",
             )
             st.session_state["_page_configured"] = True

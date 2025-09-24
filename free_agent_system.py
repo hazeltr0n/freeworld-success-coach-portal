@@ -93,26 +93,12 @@ def generate_agent_url(agent_uuid: str, params: Dict[str, Any]) -> str:
         current_dir = os.getcwd()
         repo_name = os.path.basename(current_dir)
         
-        # Multiple ways to detect QA environment - prioritize environment variable
-        is_qa_portal = (
-            os.getenv('STREAMLIT_ENV') == 'qa' or  # Environment variable override
-            os.getenv('IS_QA_PORTAL', '').lower() == 'true' or  # Direct QA flag
-            'freeworld-qa-portal' in current_dir or 
-            repo_name == 'freeworld-qa-portal' or
-            '/mount/src/freeworld-qa-portal' in current_dir or
-            os.path.exists('.qa-portal-marker')  # Fallback marker file
-        )
+        # Production deployment - always use production URLs
+        is_qa_portal = False
         
-        if is_qa_portal:
-            # QA Portal URL
-            base_url = "https://fwcareertest.streamlit.app"  # QA environment
-            print(f"🧪 QA Environment detected - using QA portal URL: {base_url}")
-        else:
-            # Production environment
-            base_url = "https://fwcareercoach.streamlit.app"  # Production environment
-            print(f"✅ Production Environment - using production portal URL: {base_url}")
-        
-        print(f"🔍 Environment debug: current_dir='{current_dir}', repo_name='{repo_name}', is_qa_portal={is_qa_portal}")
+        # Always use production environment
+        base_url = "https://fwcareercoach.streamlit.app"  # Production environment
+        print(f"✅ Production Environment - using production portal URL: {base_url}")
             
         # Override for local development
         is_local = False
