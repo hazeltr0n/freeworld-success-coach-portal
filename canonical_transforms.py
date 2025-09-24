@@ -888,7 +888,7 @@ def transform_ai_classification(df: pd.DataFrame, ai_results: Dict[str, Dict], j
 
         # Handle career pathway fields (from pathway classifier)
         if 'career_pathway' in result:
-            ai_result['ai.career_pathway'] = result.get('career_pathway', 'no_pathway')
+            ai_result['ai.career_pathway'] = result.get('career_pathway', 'cdl_pathway')
         else:
             # For CDL jobs, set career_pathway to 'cdl_pathway'
             ai_result['ai.career_pathway'] = 'cdl_pathway'

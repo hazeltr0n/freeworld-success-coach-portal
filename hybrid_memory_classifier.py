@@ -282,7 +282,9 @@ class HybridMemoryClassifier:
                     
                 df.at[idx, 'fair_chance'] = memory_data.get('fair_chance', 'unknown')
                 df.at[idx, 'endorsements'] = memory_data.get('endorsements', 'unknown')
-                
+                df.at[idx, 'career_pathway'] = memory_data.get('career_pathway', 'cdl_pathway')
+                df.at[idx, 'training_provided'] = memory_data.get('training_provided', False)
+
                 # Special final_status for jobs from memory
                 original_status = memory_data.get('final_status', 'included')
                 if original_status == 'included':

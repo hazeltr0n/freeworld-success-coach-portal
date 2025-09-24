@@ -2100,17 +2100,17 @@ def show_free_agent_management_page(coach):
             is_active = agent.get('is_active', True)
             status = "🟢 Active" if is_active else "👻 Deleted"
             
-            # Format pathway preferences for display including CDL
+            # Format pathway preferences for multi-select editing
             pathway_prefs = agent.get('pathway_preferences', [])
             classifier_type = agent.get('classifier_type', 'cdl')
 
-            # Add CDL Pathway if agent uses CDL classifier
+            # For CDL agents, always include CDL Pathway in the list
             if classifier_type == 'cdl':
-                pathway_display = 'CDL Pathway'
+                pathway_list = ['cdl_pathway']
                 if pathway_prefs:
-                    pathway_display += ', ' + ', '.join(pathway_prefs)
+                    pathway_list.extend(pathway_prefs)
             else:
-                pathway_display = ', '.join(pathway_prefs) if pathway_prefs else 'All Career Pathways'
+                pathway_list = pathway_prefs if pathway_prefs else []
 
             agent_row = {
                 'Status': status,
@@ -2127,7 +2127,7 @@ def show_free_agent_management_page(coach):
                 'Fair Chance': agent.get('fair_chance_only', False),
                 'Max Jobs': agent.get('max_jobs', 25),
                 'Match Level': agent.get('match_level', 'good and so-so'),
-                'Career Pathways': pathway_display,
+                'Career Pathways': pathway_list,
                 'City': agent.get('agent_city', ''),
                 'State': agent.get('agent_state', ''),
                 'Created': agent.get('created_at', '')[:10] if agent.get('created_at') else '',
@@ -2162,12 +2162,12 @@ def show_free_agent_management_page(coach):
             ),
             'City': st.column_config.TextColumn(
                 "City",
-                disabled=True,
+                help="Agent's city - editable",
                 width="small"
             ),
             'State': st.column_config.TextColumn(
-                "State", 
-                disabled=True,
+                "State",
+                help="Agent's state - editable",
                 width="small"
             ),
             'Market': st.column_config.SelectboxColumn(
@@ -2203,11 +2203,10 @@ def show_free_agent_management_page(coach):
                 options=["good", "so-so", "good and so-so", "all"],
                 required=True
             ),
-            'Career Pathways': st.column_config.TextColumn(
+            'Career Pathways': st.column_config.ListColumn(
                 "Career Pathways",
-                help="Shows CDL Pathway for CDL agents, or specific career pathway preferences",
-                width="medium",
-                disabled=True  # Read-only display
+                help="Select career pathway preferences - CDL agents always include CDL Pathway",
+                width="medium"
             ),
             'Total Clicks (All-Time)': st.column_config.NumberColumn(
                 "Total Clicks (All-Time)",
@@ -2241,8 +2240,7 @@ def show_free_agent_management_page(coach):
             ),
             'Admin Portal': st.column_config.LinkColumn(
                 "Admin Portal",
-                help="Admin portal link from Airtable (if available)",
-                disabled=True,
+                help="Admin portal link - editable and clickable",
                 width="medium"
             ),
             'Created': st.column_config.DateColumn(
@@ -2281,7 +2279,7 @@ def show_free_agent_management_page(coach):
         # Create a stable hash of the current dataframe state for comparison
         def get_editable_data_hash(df_row):
             """Get hash of just the editable fields for comparison"""
-            editable_fields = ['Market', 'Route', 'Fair Chance', 'Max Jobs', 'Match Level']
+            editable_fields = ['Market', 'Route', 'Fair Chance', 'Max Jobs', 'Match Level', 'Career Pathways', 'City', 'State', 'Admin Portal']
             return hash(tuple(str(df_row[field]) for field in editable_fields))
 
         # Initialize with current state on first load to avoid false positives
@@ -2335,12 +2333,29 @@ def show_free_agent_management_page(coach):
                             # Create updated agent data
                             updated_agent = original_agent.copy()
 
+                            # Handle Career Pathways - separate CDL pathway from additional pathways
+                            career_pathways = edited['Career Pathways']
+                            if isinstance(career_pathways, list):
+                                # For CDL agents, cdl_pathway should stay in classifier_type
+                                # Additional pathways go in pathway_preferences
+                                if 'cdl_pathway' in career_pathways:
+                                    updated_agent['classifier_type'] = 'cdl'
+                                    additional_pathways = [p for p in career_pathways if p != 'cdl_pathway']
+                                    updated_agent['pathway_preferences'] = additional_pathways
+                                else:
+                                    # Non-CDL agent with pathway preferences only
+                                    updated_agent['classifier_type'] = 'pathway'
+                                    updated_agent['pathway_preferences'] = career_pathways
+
                             updated_agent.update({
                                 'location': str(edited['Market']),
                                 'route_filter': str(edited['Route']),
                                 'fair_chance_only': bool(edited['Fair Chance']),
                                 'max_jobs': edited['Max Jobs'] if str(edited['Max Jobs']) == "All" else int(edited['Max Jobs']),
-                                'match_level': str(edited['Match Level'])
+                                'match_level': str(edited['Match Level']),
+                                'agent_city': str(edited['City']),
+                                'agent_state': str(edited['State']),
+                                'admin_portal_url': str(edited['Admin Portal'])
                             })
 
                             # Save to database
@@ -2350,7 +2365,7 @@ def show_free_agent_management_page(coach):
                                 # Update the saved state hash
                                 st.session_state.agent_table_last_saved[agent_uuid] = get_editable_data_hash(edited)
                                 # Show detailed success message for debugging
-                                st.info(f"✅ Saved changes for {edited['Free Agent Name']}: Market={edited['Market']}, Route={edited['Route']}, Fair Chance={edited['Fair Chance']}, Max Jobs={edited['Max Jobs']}, Match Level={edited['Match Level']}")
+                                st.info(f"✅ Saved changes for {edited['Free Agent Name']}: Market={edited['Market']}, Route={edited['Route']}, Fair Chance={edited['Fair Chance']}, Max Jobs={edited['Max Jobs']}, Match Level={edited['Match Level']}, Career Pathways={edited['Career Pathways']}, City={edited['City']}, State={edited['State']}, Admin Portal={edited['Admin Portal']}")
                             else:
                                 error_count += 1
                                 st.error(f"❌ Failed to update {edited['Free Agent Name']}: {message}")
@@ -3301,19 +3316,44 @@ def main():
 
             with col2:
                 location_tab = None
+                selected_market_tab = None  # Initialize variable
                 if location_type_tab == "Select Market":
                     markets = pipeline.get_markets()
-                    selected_market_tab = st.selectbox(
-                        "Target Market:",
-                        markets,
-                        help="Select a market to search",
-                        key="tab_selected_market"
-                    )
-                    if selected_market_tab:
-                        location_tab = selected_market_tab
-                        st.success(f"📍 Selected Market: {location_tab}")
+
+                    # Check if memory search is being used - restrict to single market only
+                    memory_search_active = memory_clicked_tab if 'memory_clicked_tab' in locals() else False
+
+                    if memory_search_active:
+                        # Memory search: force single market selection
+                        selected_market_tab = st.selectbox(
+                            "Target Market:",
+                            [""] + markets,
+                            help="Memory search supports single market only",
+                            key="tab_selected_market_memory"
+                        )
+                        # Convert to list format for compatibility
+                        selected_markets_tab = [selected_market_tab] if selected_market_tab else []
+                        if selected_market_tab:
+                            st.info("💾 Memory search: Single market mode")
                     else:
-                        st.warning("👆 Please select a market")
+                        # Regular search: allow multiple markets
+                        selected_markets_tab = st.multiselect(
+                            "Target Markets:",
+                            markets,
+                            help="Select one or multiple markets to search",
+                            key="tab_selected_markets"
+                        )
+                        # Set selected_market_tab for compatibility
+                        selected_market_tab = selected_markets_tab[0] if selected_markets_tab else None
+                    if selected_markets_tab:
+                        if len(selected_markets_tab) == 1:
+                            location_tab = selected_markets_tab[0]
+                            st.success(f"📍 Selected Market: {location_tab}")
+                        else:
+                            location_tab = selected_markets_tab  # List of markets for multi-market search
+                            st.success(f"📍 Selected Markets: {', '.join(selected_markets_tab)}")
+                    else:
+                        st.warning("👆 Please select at least one market")
 
                 elif location_type_tab == "Custom Location":
                     custom_location_tab = st.text_input(
@@ -3756,11 +3796,29 @@ def main():
                 
                 # Add location parameters (for non-Google searches)
                 if location_type_tab == "Select Market":
-                    params.update({
-                        'location_type': 'markets',
-                        'markets': selected_market_tab,
-                        'location': location_tab
-                    })
+                    if isinstance(location_tab, list) and len(location_tab) > 1 and search_type_tab == 'memory':
+                        # Memory search with multi-market: force single market
+                        st.error("❌ Memory searches only support single market selection. Using first market only.")
+                        location_tab = location_tab[0]  # Use first market only
+                        params.update({
+                            'location_type': 'markets',
+                            'markets': location_tab,
+                            'location': location_tab
+                        })
+                    elif isinstance(location_tab, list):
+                        # Multi-market search (non-memory)
+                        params.update({
+                            'location_type': 'multi_markets',
+                            'markets': location_tab,  # List of markets
+                            'location': location_tab[0] if location_tab else ''  # First market for legacy compatibility
+                        })
+                    else:
+                        # Single market search
+                        params.update({
+                            'location_type': 'markets',
+                            'markets': location_tab,
+                            'location': location_tab
+                        })
                 else:
                     params.update({
                         'location_type': 'custom',
@@ -3831,9 +3889,37 @@ def main():
                             params['candidate_id'] = candidate_id
                             params['candidate_name'] = candidate_name
                         
-                        # Run full pipeline for memory search (enables URL generation and PDF)
-                        with st.spinner(search_messages.get(search_type_tab, "Searching...")):
-                            df, metadata = pipeline.run_pipeline(params)
+                        # Run full pipeline - handle multi-market searches
+                        if params.get('location_type') == 'multi_markets':
+                            # Multi-market search: run pipeline for each market and combine results
+                            import pandas as pd
+                            markets = params['markets']
+                            combined_df = pd.DataFrame()
+                            combined_metadata = {'success': True, 'message': 'Multi-market search completed'}
+
+                            with st.spinner(f"🔍 Searching {len(markets)} markets: {', '.join(markets)}..."):
+                                for market in markets:
+                                    # Create single-market params for this iteration
+                                    single_market_params = params.copy()
+                                    single_market_params.update({
+                                        'location_type': 'markets',
+                                        'markets': market,
+                                        'location': market
+                                    })
+
+                                    # Run pipeline for this market
+                                    market_df, market_metadata = pipeline.run_pipeline(single_market_params)
+
+                                    # Add market assignment to all jobs from this search
+                                    if not market_df.empty:
+                                        market_df['meta.market'] = market
+                                        combined_df = pd.concat([combined_df, market_df], ignore_index=True)
+
+                                df, metadata = combined_df, combined_metadata
+                        else:
+                            # Single market/location search
+                            with st.spinner(search_messages.get(search_type_tab, "Searching...")):
+                                df, metadata = pipeline.run_pipeline(params)
                             
                             # Add coach and candidate info to ALL jobs in DataFrame (for link tracking and PDF)
                             if not df.empty:
@@ -3870,8 +3956,37 @@ def main():
                         for key in pdf_keys_to_clear:
                             del st.session_state[key]
                         
-                        with st.spinner(search_messages.get(search_type_tab, "Searching...")):
-                            df, metadata = pipeline.run_pipeline(params)
+                        # Run pipeline - handle multi-market searches
+                        if params.get('location_type') == 'multi_markets':
+                            # Multi-market search: run pipeline for each market and combine results
+                            import pandas as pd
+                            markets = params['markets']
+                            combined_df = pd.DataFrame()
+                            combined_metadata = {'success': True, 'message': 'Multi-market search completed'}
+
+                            with st.spinner(f"🔍 Searching {len(markets)} markets: {', '.join(markets)}..."):
+                                for market in markets:
+                                    # Create single-market params for this iteration
+                                    single_market_params = params.copy()
+                                    single_market_params.update({
+                                        'location_type': 'markets',
+                                        'markets': market,
+                                        'location': market
+                                    })
+
+                                    # Run pipeline for this market
+                                    market_df, market_metadata = pipeline.run_pipeline(single_market_params)
+
+                                    # Add market assignment to all jobs from this search
+                                    if not market_df.empty:
+                                        market_df['meta.market'] = market
+                                        combined_df = pd.concat([combined_df, market_df], ignore_index=True)
+
+                                df, metadata = combined_df, combined_metadata
+                        else:
+                            # Single market/location search
+                            with st.spinner(search_messages.get(search_type_tab, "Searching...")):
+                                df, metadata = pipeline.run_pipeline(params)
                             
                             # Add coach and candidate info to ALL jobs in DataFrame (for link tracking and PDF)
                             if not df.empty:
@@ -4030,17 +4145,102 @@ def main():
                     
                     st.markdown("---")
                     
-                    # 3. QUALITY JOBS DATAFRAME DISPLAY
-                    st.markdown("### 🎯 Quality Jobs")
+                    # 3. COMPREHENSIVE RESULTS DISPLAY (CSV CLASSIFIER FORMAT)
                     from display_utils import get_quality_display_dataframe, get_full_display_dataframe
 
-                    quality_display = get_quality_display_dataframe(df)
-                    st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
+                    # Show overall results table first
+                    st.markdown("### 📋 **All Search Results**")
+                    full_display = get_full_display_dataframe(df)
+                    st.dataframe(full_display, width="stretch", height=420, hide_index=True)
 
-                    # 4. COLLAPSIBLE FULL DATAFRAME
-                    with st.expander(f"🔍 All Processed Jobs ({total_jobs} total)", expanded=False):
-                        full_display = get_full_display_dataframe(df)
-                        st.dataframe(full_display, width="stretch", height=500, hide_index=True)
+                    # Multi-market display (CSV classifier format)
+                    try:
+                        if 'meta.market' in df.columns:
+                            unique_mkts = [m for m in df['meta.market'].dropna().unique().tolist() if str(m).strip()]
+                            if unique_mkts:
+                                st.info(f"📊 Markets detected: {', '.join(sorted(unique_mkts))}")
+                                ordered = sorted(unique_mkts, key=lambda s: s.lower())
+                                for mk in ordered:
+                                    try:
+                                        st.markdown("---")
+                                        col_h, _ = st.columns([8, 2])
+                                        with col_h:
+                                            st.markdown(f"## 📍 **{mk}**")
+                                            st.caption(f"Jobs classified for {mk}")
+
+                                        mdf = df[df['meta.market'] == mk]
+
+                                        # Quality subset for this market
+                                        try:
+                                            if 'route.final_status' in mdf.columns:
+                                                mask_m = mdf['route.final_status'].astype(str).str.startswith('included')
+                                                mdf_inc = mdf[mask_m] if mask_m.any() else mdf
+                                            elif 'ai.match' in mdf.columns:
+                                                mdf_inc = mdf[mdf['ai.match'].isin(['good', 'so-so'])]
+                                            else:
+                                                mdf_inc = mdf
+                                        except Exception:
+                                            mdf_inc = mdf
+
+                                        # Show quality jobs for this market
+                                        market_quality_display = get_quality_display_dataframe(mdf_inc)
+                                        st.dataframe(market_quality_display, width="stretch", height=360, hide_index=True)
+
+                                        # Per-market metrics
+                                        try:
+                                            inc_count = len(mdf_inc)
+                                            total_count = len(mdf)
+                                            ai_good_m = int((mdf['ai.match'] == 'good').sum()) if 'ai.match' in mdf.columns else 0
+                                            ai_soso_m = int((mdf['ai.match'] == 'so-so').sum()) if 'ai.match' in mdf.columns else 0
+                                            local_routes_m = int((mdf['ai.route_type'] == 'Local').sum()) if 'ai.route_type' in mdf.columns else 0
+                                            otr_routes_m = int((mdf['ai.route_type'] == 'OTR').sum()) if 'ai.route_type' in mdf.columns else 0
+                                            colA, colB, colC, colD = st.columns(4)
+                                            with colA:
+                                                st.metric("Quality Jobs Found", inc_count)
+                                            with colB:
+                                                st.metric("Total Jobs Analyzed", total_count)
+                                            with colC:
+                                                st.metric("Excellent Matches", ai_good_m)
+                                            with colD:
+                                                st.metric("Possible Fits", ai_soso_m)
+                                            colE, colF = st.columns(2)
+                                            with colE:
+                                                st.metric("Local Routes", local_routes_m)
+                                            with colF:
+                                                st.metric("OTR Routes", otr_routes_m)
+                                        except Exception:
+                                            pass
+
+                                        # Full results for this market
+                                        with st.expander(f"🔎 Full Results — {mk}", expanded=False):
+                                            market_full_display = get_full_display_dataframe(mdf)
+                                            st.dataframe(market_full_display, width="stretch", height=480, hide_index=True)
+                                    except Exception as e:
+                                        st.warning(f"⚠️ Display error for {mk}: {e}")
+                            else:
+                                # No markets detected - show single quality view
+                                st.markdown("### 🎯 Quality Jobs")
+                                quality_display = get_quality_display_dataframe(df)
+                                st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
+                                # Single collapsible full dataframe
+                                with st.expander(f"🔍 All Processed Jobs ({total_jobs} total)", expanded=False):
+                                    st.dataframe(full_display, width="stretch", height=500, hide_index=True)
+                        else:
+                            # No meta.market column - show single quality view
+                            st.markdown("### 🎯 Quality Jobs")
+                            quality_display = get_quality_display_dataframe(df)
+                            st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
+                            # Single collapsible full dataframe
+                            with st.expander(f"🔍 All Processed Jobs ({total_jobs} total)", expanded=False):
+                                st.dataframe(full_display, width="stretch", height=500, hide_index=True)
+                    except Exception as e:
+                        st.warning(f"⚠️ Multi-market display error: {e}")
+                        # Fallback to simple display
+                        st.markdown("### 🎯 Quality Jobs")
+                        quality_display = get_quality_display_dataframe(df)
+                        st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
+                        with st.expander(f"🔍 All Processed Jobs ({total_jobs} total)", expanded=False):
+                            st.dataframe(full_display, width="stretch", height=500, hide_index=True)
                     
                     # HTML Preview if enabled (but NOT for Indeed searches)
                     if show_html_preview_tab and jobs_dataframe_to_dicts and render_jobs_html and not df.empty and search_type_tab not in ['indeed_fresh', 'indeed']:
@@ -5444,17 +5644,102 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                 
                 st.markdown("---")
                 
-                # 3. QUALITY JOBS DATAFRAME DISPLAY
-                st.markdown("### 🎯 Quality Jobs")
+                # 3. COMPREHENSIVE RESULTS DISPLAY (CSV CLASSIFIER FORMAT)
                 from display_utils import get_quality_display_dataframe, get_full_display_dataframe
 
-                quality_display = get_quality_display_dataframe(df)
-                st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
+                # Show overall results table first
+                st.markdown("### 📋 **All Search Results**")
+                full_display = get_full_display_dataframe(df)
+                st.dataframe(full_display, width="stretch", height=420, hide_index=True)
 
-                # 4. COLLAPSIBLE FULL DATAFRAME
-                with st.expander(f"🔍 All Processed Jobs ({total_jobs} total)", expanded=False):
-                    full_display = get_full_display_dataframe(df)
-                    st.dataframe(full_display, width="stretch", height=500, hide_index=True)
+                # Multi-market display (CSV classifier format)
+                try:
+                    if 'meta.market' in df.columns:
+                        unique_mkts = [m for m in df['meta.market'].dropna().unique().tolist() if str(m).strip()]
+                        if unique_mkts:
+                            st.info(f"📊 Markets detected: {', '.join(sorted(unique_mkts))}")
+                            ordered = sorted(unique_mkts, key=lambda s: s.lower())
+                            for mk in ordered:
+                                try:
+                                    st.markdown("---")
+                                    col_h, _ = st.columns([8, 2])
+                                    with col_h:
+                                        st.markdown(f"## 📍 **{mk}**")
+                                        st.caption(f"Jobs classified for {mk}")
+
+                                    mdf = df[df['meta.market'] == mk]
+
+                                    # Quality subset for this market
+                                    try:
+                                        if 'route.final_status' in mdf.columns:
+                                            mask_m = mdf['route.final_status'].astype(str).str.startswith('included')
+                                            mdf_inc = mdf[mask_m] if mask_m.any() else mdf
+                                        elif 'ai.match' in mdf.columns:
+                                            mdf_inc = mdf[mdf['ai.match'].isin(['good', 'so-so'])]
+                                        else:
+                                            mdf_inc = mdf
+                                    except Exception:
+                                        mdf_inc = mdf
+
+                                    # Show quality jobs for this market
+                                    market_quality_display = get_quality_display_dataframe(mdf_inc)
+                                    st.dataframe(market_quality_display, width="stretch", height=360, hide_index=True)
+
+                                    # Per-market metrics
+                                    try:
+                                        inc_count = len(mdf_inc)
+                                        total_count = len(mdf)
+                                        ai_good_m = int((mdf['ai.match'] == 'good').sum()) if 'ai.match' in mdf.columns else 0
+                                        ai_soso_m = int((mdf['ai.match'] == 'so-so').sum()) if 'ai.match' in mdf.columns else 0
+                                        local_routes_m = int((mdf['ai.route_type'] == 'Local').sum()) if 'ai.route_type' in mdf.columns else 0
+                                        otr_routes_m = int((mdf['ai.route_type'] == 'OTR').sum()) if 'ai.route_type' in mdf.columns else 0
+                                        colA, colB, colC, colD = st.columns(4)
+                                        with colA:
+                                            st.metric("Quality Jobs Found", inc_count)
+                                        with colB:
+                                            st.metric("Total Jobs Analyzed", total_count)
+                                        with colC:
+                                            st.metric("Excellent Matches", ai_good_m)
+                                        with colD:
+                                            st.metric("Possible Fits", ai_soso_m)
+                                        colE, colF = st.columns(2)
+                                        with colE:
+                                            st.metric("Local Routes", local_routes_m)
+                                        with colF:
+                                            st.metric("OTR Routes", otr_routes_m)
+                                    except Exception:
+                                        pass
+
+                                    # Full results for this market
+                                    with st.expander(f"🔎 Full Results — {mk}", expanded=False):
+                                        market_full_display = get_full_display_dataframe(mdf)
+                                        st.dataframe(market_full_display, width="stretch", height=480, hide_index=True)
+                                except Exception as e:
+                                    st.warning(f"⚠️ Display error for {mk}: {e}")
+                        else:
+                            # No markets detected - show single quality view
+                            st.markdown("### 🎯 Quality Jobs")
+                            quality_display = get_quality_display_dataframe(df)
+                            st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
+                            # Single collapsible full dataframe
+                            with st.expander(f"🔍 All Processed Jobs ({total_jobs} total)", expanded=False):
+                                st.dataframe(full_display, width="stretch", height=500, hide_index=True)
+                    else:
+                        # No meta.market column - show single quality view
+                        st.markdown("### 🎯 Quality Jobs")
+                        quality_display = get_quality_display_dataframe(df)
+                        st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
+                        # Single collapsible full dataframe
+                        with st.expander(f"🔍 All Processed Jobs ({total_jobs} total)", expanded=False):
+                            st.dataframe(full_display, width="stretch", height=500, hide_index=True)
+                except Exception as e:
+                    st.warning(f"⚠️ Multi-market display error: {e}")
+                    # Fallback to simple display
+                    st.markdown("### 🎯 Quality Jobs")
+                    quality_display = get_quality_display_dataframe(df)
+                    st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
+                    with st.expander(f"🔍 All Processed Jobs ({total_jobs} total)", expanded=False):
+                        st.dataframe(full_display, width="stretch", height=500, hide_index=True)
                 
                 if not df.empty:
                     st.balloons()
@@ -5922,15 +6207,22 @@ def show_combined_batches_and_scheduling_page(coach):
                                 from pipeline_wrapper import StreamlitPipelineWrapper
                                 pipeline = StreamlitPipelineWrapper()
                                 markets = pipeline.get_markets()
-                                batch_selected_market = st.selectbox(
-                                    "Target Market:",
+                                batch_selected_markets = st.multiselect(
+                                    "Target Markets:",
                                     markets,
-                                    help="Select a market to search"
+                                    help="Select one or multiple markets to search"
                                 )
-                                batch_location = pipeline.get_market_location(batch_selected_market) if batch_selected_market else "Houston, TX"
+                                if batch_selected_markets:
+                                    if len(batch_selected_markets) == 1:
+                                        batch_location = pipeline.get_market_location(batch_selected_markets[0])
+                                    else:
+                                        # Multi-market: use first market for legacy location field
+                                        batch_location = pipeline.get_market_location(batch_selected_markets[0])
+                                else:
+                                    batch_location = "Houston, TX"
                             except Exception as e:
                                 st.error(f"Could not load markets: {e}")
-                                batch_selected_market = "Houston"
+                                batch_selected_markets = ["Houston"]
                                 batch_location = "Houston, TX"
                         else:
                             batch_custom_location = st.text_input(
@@ -6107,8 +6399,9 @@ def show_combined_batches_and_scheduling_page(coach):
 
                             # Location metadata for tracking
                             'location_type': batch_location_type,
-                            'selected_market': batch_selected_market if batch_location_type == "Select Market" else None,
+                            'selected_markets': batch_selected_markets if batch_location_type == "Select Market" else None,
                             'custom_location': batch_custom_location if batch_location_type == "Custom Location" else None,
+                            'multi_market': len(batch_selected_markets) > 1 if batch_location_type == "Select Market" and batch_selected_markets else False,
 
                             # Additional flags
                             'exact_location': batch_exact_location,
@@ -6134,44 +6427,98 @@ def show_combined_batches_and_scheduling_page(coach):
                             manager = AsyncJobManager()
 
                             if run_now:
-                                # Run immediately - submit the job for immediate execution
-                                search_params['run_immediately'] = True
-                                job = manager.submit_indeed_search(search_params, coach.username)
+                                # Handle multi-market execution
+                                if search_params.get('multi_market') and search_params.get('selected_markets'):
+                                    # Multi-market: create separate job for each market
+                                    markets = search_params['selected_markets']
+                                    st.success(f"🚀 Indeed batch running NOW for {len(markets)} markets!")
 
-                                st.success(f"🚀 Indeed batch running NOW!")
-                                st.info(f"📋 Job ID: {job.id}")
-                                st.info(f"📍 Location: {batch_location}")
-                                st.info(f"🔍 Terms: {batch_search_terms}")
-                                st.info(f"🎯 Classifier: {batch_classifier_type}")
-                                st.info(f"📊 Job Limit: {batch_job_limit}")
-                                st.info("⚡ One-time execution (ignoring schedule settings)")
+                                    for market in markets:
+                                        # Create single-market params for this job
+                                        single_market_params = search_params.copy()
+                                        single_market_params.update({
+                                            'location': pipeline.get_market_location(market),
+                                            'selected_markets': [market],
+                                            'multi_market': False,
+                                            'run_immediately': True
+                                        })
+
+                                        job = manager.submit_indeed_search(single_market_params, coach.username)
+                                        st.info(f"📋 Job ID: {job.id} - Market: {market}")
+
+                                    st.info(f"🔍 Terms: {batch_search_terms}")
+                                    st.info(f"🎯 Classifier: {batch_classifier_type}")
+                                    st.info(f"📊 Job Limit: {batch_job_limit}")
+                                    st.info("⚡ One-time execution (ignoring schedule settings)")
+                                else:
+                                    # Single market execution
+                                    search_params['run_immediately'] = True
+                                    job = manager.submit_indeed_search(search_params, coach.username)
+
+                                    st.success(f"🚀 Indeed batch running NOW!")
+                                    st.info(f"📋 Job ID: {job.id}")
+                                    st.info(f"📍 Location: {batch_location}")
+                                    st.info(f"🔍 Terms: {batch_search_terms}")
+                                    st.info(f"🎯 Classifier: {batch_classifier_type}")
+                                    st.info(f"📊 Job Limit: {batch_job_limit}")
+                                    st.info("⚡ One-time execution (ignoring schedule settings)")
 
                             else:
                                 # Schedule recurring batch - create scheduled job entry without immediate execution
                                 search_params['run_immediately'] = False
                                 search_params['status'] = 'scheduled'  # Mark as scheduled, not running
 
-                                # For "Schedule Recurring Batch", we should save to a scheduled jobs table/database
-                                # rather than immediately executing. This requires a different method.
-                                try:
-                                    # Try to save as scheduled job (not immediately execute)
-                                    job = manager.create_scheduled_job(search_params, coach.username)
+                                # Handle multi-market scheduled jobs
+                                if search_params.get('multi_market') and search_params.get('selected_markets'):
+                                    # Multi-market: create separate scheduled job for each market
+                                    markets = search_params['selected_markets']
+                                    st.success(f"📅 Indeed recurring batch scheduled for {len(markets)} markets!")
 
-                                    st.success(f"📅 Indeed recurring batch scheduled successfully!")
-                                    st.info(f"📋 Schedule ID: {job.id}")
-                                    st.info(f"📍 Location: {batch_location}")
+                                    for market in markets:
+                                        # Create single-market params for this scheduled job
+                                        single_market_params = search_params.copy()
+                                        single_market_params.update({
+                                            'location': pipeline.get_market_location(market),
+                                            'selected_markets': [market],
+                                            'multi_market': False,
+                                            'run_immediately': False,
+                                            'status': 'scheduled'
+                                        })
+
+                                        try:
+                                            job = manager.create_scheduled_job(single_market_params, coach.username)
+                                            st.info(f"📋 Schedule ID: {job.id} - Market: {market}")
+                                        except Exception as e:
+                                            st.error(f"❌ Scheduling failed for {market}: {str(e)}")
+
                                     st.info(f"🔍 Terms: {batch_search_terms}")
                                     st.info(f"🎯 Classifier: {batch_classifier_type}")
                                     st.info(f"📅 Schedule: {batch_frequency}")
                                     if batch_frequency == "Weekly":
                                         st.info(f"🗓️ Days: {', '.join(batch_days)}")
                                     st.info(f"⏰ Time: {batch_time.strftime('%H:%M')} Central")
-                                    st.info("🔮 Job will run at scheduled time - it has NOT been executed yet")
+                                    st.info("🔮 Jobs will run at scheduled time - they have NOT been executed yet")
+                                else:
+                                    # Single market scheduled job
+                                    try:
+                                        # Try to save as scheduled job (not immediately execute)
+                                        job = manager.create_scheduled_job(search_params, coach.username)
 
-                                except Exception as e:
-                                    # If create_scheduled_job fails, show error message
-                                    st.error(f"❌ Scheduling failed: {str(e)}")
-                                    st.info("💡 Jobs will only run when explicitly triggered. Use 'Run Now' button to execute immediately.")
+                                        st.success(f"📅 Indeed recurring batch scheduled successfully!")
+                                        st.info(f"📋 Schedule ID: {job.id}")
+                                        st.info(f"📍 Location: {batch_location}")
+                                        st.info(f"🔍 Terms: {batch_search_terms}")
+                                        st.info(f"🎯 Classifier: {batch_classifier_type}")
+                                        st.info(f"📅 Schedule: {batch_frequency}")
+                                        if batch_frequency == "Weekly":
+                                            st.info(f"🗓️ Days: {', '.join(batch_days)}")
+                                        st.info(f"⏰ Time: {batch_time.strftime('%H:%M')} Central")
+                                        st.info("🔮 Job will run at scheduled time - it has NOT been executed yet")
+
+                                    except Exception as e:
+                                        # If create_scheduled_job fails, show error message
+                                        st.error(f"❌ Scheduling failed: {str(e)}")
+                                        st.info("💡 Jobs will only run when explicitly triggered. Use 'Run Now' button to execute immediately.")
 
                             st.rerun()  # Refresh to show the job in table
 
