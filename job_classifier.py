@@ -484,7 +484,7 @@ Return your results as a JSON object with a "job_classifications" array like thi
         df['route_type'] = df.apply(get_route_type, axis=1)
         df['fair_chance'] = df['job_id'].map(lambda x: results_dict.get(x, {}).get('fair_chance', 'unknown'))
         df['endorsements'] = df['job_id'].map(lambda x: results_dict.get(x, {}).get('endorsements', 'unknown'))
-        df['career_pathway'] = df['job_id'].map(lambda x: results_dict.get(x, {}).get('career_pathway', 'cdl_pathway'))
+        df['career_pathway'] = df['job_id'].map(lambda x: results_dict.get(x, {}).get('career_pathway', 'cdl_pathway') or 'cdl_pathway')
         df['training_provided'] = df['job_id'].map(lambda x: results_dict.get(x, {}).get('training_provided', False))
         
         return df

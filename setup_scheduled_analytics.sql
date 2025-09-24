@@ -113,6 +113,7 @@ DECLARE
     activity_level TEXT;
     market_name TEXT;
     click_data JSON;
+    total_applications_count INTEGER;
 BEGIN
     -- Clear existing analytics data
     DELETE FROM free_agents_analytics WHERE id > 0;
@@ -121,11 +122,17 @@ BEGIN
     FOR rec IN
         SELECT * FROM agent_profiles WHERE is_active = true
     LOOP
+        -- Calculate total applications from job_feedback
+        SELECT COUNT(*) INTO total_applications_count
+        FROM job_feedback
+        WHERE candidate_id = rec.agent_uuid
+          AND feedback_type = 'i_applied_to_this_job';
+
         -- Calculate engagement score
         engagement_score := calculate_agent_engagement_score(
             COALESCE(rec.portal_visits, 0),
             COALESCE(rec.job_clicks, 0),
-            COALESCE(rec.total_applications, 0),
+            total_applications_count,
             COALESCE(rec.last_portal_visit, rec.last_job_click)
         );
 
@@ -182,6 +189,8 @@ BEGIN
             total_portal_visits,
             total_job_clicks,
             total_applications,
+            applications_14d,
+            job_clicks_14d,
             last_portal_visit,
             last_job_click,
             last_application_at,
@@ -206,7 +215,16 @@ BEGIN
             market_name,
             COALESCE(rec.portal_visits, 0),
             COALESCE(rec.job_clicks, 0),
-            COALESCE(rec.total_applications, 0),
+            total_applications_count,
+            -- Calculate 14-day applications count from job_feedback table
+            (SELECT COUNT(*) FROM job_feedback
+             WHERE candidate_id = rec.agent_uuid
+               AND created_at >= NOW() - INTERVAL '14 days'
+               AND feedback_type = 'i_applied_to_this_job'),
+            -- Calculate 14-day job clicks count from click_events
+            (SELECT COUNT(*) FROM click_events
+             WHERE candidate_id = rec.agent_uuid
+               AND clicked_at >= NOW() - INTERVAL '14 days'),
             rec.last_portal_visit,
             rec.last_job_click,
             rec.last_application_at,
