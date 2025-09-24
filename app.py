@@ -6828,9 +6828,17 @@ def show_combined_batches_and_scheduling_page(coach):
                         from link_tracker import LinkTracker
                         link_tracker = LinkTracker()
                         if link_tracker.is_available:
-                            jobs_without_tracking = df_final[df_final.get('meta.tracked_url', '').fillna('') == '']
+                            # Only generate tracking URLs for included jobs (good/so-so matches that aren't filtered)
+                            included_jobs_mask = (
+                                (df_final.get('route.filtered', True) == False) &  # Not filtered out
+                                (df_final.get('route.final_status', '').astype(str).str.startswith('included'))  # Status starts with 'included'
+                            )
+                            included_jobs = df_final[included_jobs_mask]
+                            st.info(f"🎯 Filtering to {len(included_jobs)} included jobs from {len(df_final)} total classified jobs")
+
+                            jobs_without_tracking = included_jobs[included_jobs.get('meta.tracked_url', '').fillna('') == '']
                             if len(jobs_without_tracking) > 0:
-                                st.info(f"🔗 Generating tracking URLs for {len(jobs_without_tracking)} CSV jobs...")
+                                st.info(f"🔗 Generating tracking URLs for {len(jobs_without_tracking)} included jobs...")
                                 
                                 for idx, job in jobs_without_tracking.iterrows():
                                     original_url = job.get('source.url', '')
