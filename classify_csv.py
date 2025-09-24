@@ -110,12 +110,44 @@ def main(argv: List[str]) -> int:
     print(f"🔍 Available CSV columns: {list(df_src.columns)}")
     print(f"🔍 Column mapping: {cols_map}")
     
+    def extract_url_from_json_or_string(value):
+        """Extract first URL from JSON array or return string directly"""
+        if not value or value == '':
+            return ''
+
+        try:
+            # If it's already a simple URL string, return it
+            if isinstance(value, str) and value.startswith('http'):
+                return value
+
+            # Try to parse as JSON array
+            import json
+            if isinstance(value, str):
+                url_data = json.loads(value)
+            else:
+                return str(value)
+
+            if url_data and len(url_data) > 0:
+                # Handle simple string arrays
+                if isinstance(url_data[0], str):
+                    return url_data[0]
+
+                # Handle URL objects with apply_url: or apply_url
+                if isinstance(url_data[0], dict):
+                    url = url_data[0].get('apply_url:', '') or url_data[0].get('apply_url', '')
+                    return url if url else ''
+
+            return ''
+        except:
+            return str(value) if value else ''
+
     raw_rows: List[Dict[str, Any]] = []
     for i, (_, row) in enumerate(df_src.iterrows()):
         title = _first(row, cols_map, ["title", "job_title", "job"], "")
         company = _first(row, cols_map, ["company", "company_name", "employer"], "")
         location_raw = _first(row, cols_map, ["formattedLocation", "location", "city", "job_location"], "")
-        apply_url = _first(row, cols_map, ["viewJobLink", "apply_url", "applyUrl", "url", "link"], "")
+        raw_apply_url = _first(row, cols_map, ["viewJobLink", "apply_url", "apply_urls", "applyUrl", "url", "link"], "")
+        apply_url = extract_url_from_json_or_string(raw_apply_url)
         description = _first(row, cols_map, ["snippet", "description", "job_description", "jobDescription", "details"], "")
         
         # Debug first few rows to show field mapping and detect HTML issues

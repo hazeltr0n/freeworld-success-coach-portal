@@ -6581,12 +6581,44 @@ def show_combined_batches_and_scheduling_page(coach):
                                     return str(v).strip()
                         return default
 
+                    def extract_url_from_json_or_string(value):
+                        """Extract first URL from JSON array or return string directly"""
+                        if not value or value == '':
+                            return ''
+
+                        try:
+                            # If it's already a simple URL string, return it
+                            if isinstance(value, str) and value.startswith('http'):
+                                return value
+
+                            # Try to parse as JSON array
+                            import json
+                            if isinstance(value, str):
+                                url_data = json.loads(value)
+                            else:
+                                return str(value)
+
+                            if url_data and len(url_data) > 0:
+                                # Handle simple string arrays
+                                if isinstance(url_data[0], str):
+                                    return url_data[0]
+
+                                # Handle URL objects with apply_url: or apply_url
+                                if isinstance(url_data[0], dict):
+                                    url = url_data[0].get('apply_url:', '') or url_data[0].get('apply_url', '')
+                                    return url if url else ''
+
+                            return ''
+                        except:
+                            return str(value) if value else ''
+
                     for _, row in df_src.iterrows():
                         title = first(row, ["title", "job_title", "job"], "")
                         company = first(row, ["company", "company_name", "employer"], "")
                         location_raw = first(row, ["formattedLocation", "location", "city", "job_location"], "")
-                        # Prefer concrete apply URL
-                        apply_url = first(row, ["viewJobLink", "apply_url", "applyUrl", "url", "link"], "")
+                        # Prefer concrete apply URL - now with JSON support
+                        raw_apply_url = first(row, ["viewJobLink", "apply_url", "apply_urls", "applyUrl", "url", "link"], "")
+                        apply_url = extract_url_from_json_or_string(raw_apply_url)
                         # Extract description/snippet - CRITICAL for AI classification
                         description = first(row, ["snippet", "description", "job_description", "jobDescription", "details"], "")
                         # Build minimal Outscraper-like object
