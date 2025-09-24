@@ -3903,7 +3903,7 @@ def main():
                                     single_market_params = params.copy()
                                     single_market_params.update({
                                         'location_type': 'markets',
-                                        'markets': market,
+                                        'markets': [market],  # Pass as list, not string
                                         'location': market
                                     })
 
@@ -3970,7 +3970,7 @@ def main():
                                     single_market_params = params.copy()
                                     single_market_params.update({
                                         'location_type': 'markets',
-                                        'markets': market,
+                                        'markets': [market],  # Pass as list, not string
                                         'location': market
                                     })
 

@@ -10,7 +10,8 @@ import json
 from playwright.sync_api import Page
 from conftest import (
     TEST_CONFIG, wait_for_search_completion, extract_search_metrics,
-    verify_supabase_upload, verify_link_tracking, DataCollector
+    verify_supabase_upload, verify_link_tracking, DataCollector,
+    navigate_to_tab, set_search_parameters, check_permission_access
 )
 
 class TestMasterEfficient:
@@ -43,13 +44,12 @@ class TestMasterEfficient:
 
             iframe_locator = page.frame_locator('iframe[title="streamlitApp"]')
 
-            # Navigate to Job Search tab
-            try:
-                iframe_locator.get_by_label("Navigation").get_by_text("🔍 Job Search").click()
-                time.sleep(3)
-                print("📍 Navigated to Job Search tab")
-            except:
-                print("⚠️ Already on Job Search tab")
+            # Navigate to Job Search tab using improved navigation
+            nav_success = navigate_to_tab(page, "🔍 Job Search")
+            if nav_success:
+                print("📍 Successfully navigated to Job Search tab")
+            else:
+                print("⚠️ Navigation to Job Search tab failed, continuing anyway")
 
             # =================================================================
             # PHASE 1: COMPREHENSIVE DATA GENERATION (ONE search for everything)
@@ -58,12 +58,14 @@ class TestMasterEfficient:
             print("Generating ALL data needed for complete QA validation...")
 
             # Use comprehensive search parameters that will generate rich data
-            self._set_search_parameters(page, {
+            search_params = {
                 "location": "Houston, TX",
                 "search_terms": "CDL truck driver, warehouse, forklift",  # Multiple classifiers
                 "classifier_type": "CDL Traditional",  # Start with CDL
                 "search_radius": 25
-            })
+            }
+            params_success = set_search_parameters(page, search_params)
+            assert params_success, "Failed to set search parameters"
 
             # Run Indeed Fresh to get comprehensive fresh data
             iframe_locator.locator('button:has-text("🔍 Indeed Fresh Only")').first.click()
@@ -85,10 +87,12 @@ class TestMasterEfficient:
             print(f"✅ CDL Data Generated: {cdl_metrics['total_jobs']} jobs, {validation_results['data_generation']['cdl_classification_rate']:.1f}% classified")
 
             # Switch to Career Pathways and test pathway classification on SAME data
-            self._set_search_parameters(page, {
+            pathway_params = {
                 "search_terms": "warehouse, forklift, dock worker",
                 "classifier_type": "Career Pathways"
-            })
+            }
+            pathway_params_success = set_search_parameters(page, pathway_params)
+            assert pathway_params_success, "Failed to set pathway search parameters"
 
             iframe_locator.locator('button:has-text("💾 Memory Only")').first.click()
             success = wait_for_search_completion(page, timeout=60000)
@@ -342,33 +346,6 @@ class TestMasterEfficient:
             "cherry_pick_supabase", "passed", time.time() - start_time
         )
 
-    def _set_search_parameters(self, page: Page, params: dict):
-        """Efficient parameter setting"""
-        iframe_locator = page.frame_locator('iframe[title="streamlitApp"]')
-
-        # Set search terms (most important)
-        if "search_terms" in params:
-            try:
-                terms_input = iframe_locator.locator('input[placeholder*="search"], textarea[placeholder*="search"]')
-                if terms_input.count() > 0:
-                    terms_input.clear()
-                    terms_input.fill(params["search_terms"])
-                    print(f"🔍 Search terms: {params['search_terms']}")
-            except:
-                print(f"🔍 Using default search terms")
-
-        # Set classifier type
-        if "classifier_type" in params:
-            try:
-                classifier_select = iframe_locator.locator('select[aria-label*="Classifier"], select:has(option:text("CDL Traditional"))')
-                if classifier_select.count() > 0:
-                    classifier_select.select_option(params["classifier_type"])
-                    print(f"⚙️ Classifier: {params['classifier_type']}")
-            except:
-                print(f"⚙️ Using default classifier")
-
-        # Brief wait for parameters to be set
-        page.wait_for_timeout(1000)
 
 
 # Performance benchmark for the master test
@@ -383,11 +360,8 @@ class TestMasterPerformance:
         # Run quick memory search for baseline performance
         iframe_locator = page.frame_locator('iframe[title="streamlitApp"]')
 
-        try:
-            iframe_locator.get_by_label("Navigation").get_by_text("🔍 Job Search").click()
-            time.sleep(2)
-        except:
-            pass
+        # Navigate to Job Search using improved navigation
+        navigate_to_tab(page, "🔍 Job Search")
 
         iframe_locator.locator('button:has-text("💾 Memory Only")').first.click()
 

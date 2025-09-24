@@ -57,15 +57,20 @@ class FreeWorldJobScraper:
             # Multiple URLs - pass as list directly to Outscraper API
             query_urls = indeed_url_or_urls
             print(f"🔍 Searching {len(indeed_url_or_urls)} Indeed queries for {actual_limit} jobs each...")
+            # Calculate effective limit: multiply by number of queries for multi-market searches
+            effective_limit = actual_limit * len(indeed_url_or_urls) if len(indeed_url_or_urls) > 1 else actual_limit
+            if len(indeed_url_or_urls) > 1:
+                print(f"🔢 Multi-market search: {len(indeed_url_or_urls)} markets × {actual_limit} jobs = {effective_limit} total limit")
         else:
             # Single URL (backward compatibility)
             query_urls = indeed_url_or_urls
+            effective_limit = actual_limit
             print(f"🔍 Searching Indeed for {actual_limit} jobs...")
 
         url = "https://api.outscraper.cloud/indeed-search"
         params = {
             'query': query_urls,  # Can be string or list - requests handles both
-            'limit': actual_limit,
+            'limit': effective_limit,
             'async': 'false'
         }
         
@@ -103,10 +108,17 @@ class FreeWorldJobScraper:
                         print(f"   Query {i+1}: {len(query_result)} jobs")
 
                 jobs = all_jobs
-                print(f"✅ Found {len(jobs)} total Indeed jobs from {len(data['data'])} queries (requested {actual_limit} per query)")
-                if len(jobs) < actual_limit:
-                    print(f"⚠️  API returned fewer jobs than requested ({len(jobs)} < {actual_limit})")
-                    print("   This might be an API limit or search result limit")
+                if isinstance(indeed_url_or_urls, list) and len(indeed_url_or_urls) > 1:
+                    expected_total = actual_limit * len(indeed_url_or_urls)
+                    print(f"✅ Found {len(jobs)} total Indeed jobs from {len(data['data'])} queries (requested {actual_limit} per query = {expected_total} total)")
+                    if len(jobs) < expected_total * 0.5:  # Allow for some variance in API results
+                        print(f"⚠️  API returned significantly fewer jobs than expected ({len(jobs)} < {expected_total})")
+                        print("   This might be an API limit or search result limit")
+                else:
+                    print(f"✅ Found {len(jobs)} total Indeed jobs from {len(data['data'])} queries (requested {actual_limit})")
+                    if len(jobs) < actual_limit:
+                        print(f"⚠️  API returned fewer jobs than requested ({len(jobs)} < {actual_limit})")
+                        print("   This might be an API limit or search result limit")
                 
                 scraped_jobs = self._process_indeed_jobs(jobs)
                 
@@ -556,10 +568,19 @@ class FreeWorldJobScraper:
             query_urls = indeed_url_or_urls
             print(f"🔍 Fetching {limit} raw jobs from Indeed API...")
 
+        # Calculate effective limit: multiply by number of queries for multi-market searches
+        # Outscraper API distributes the total limit across all queries, so we need
+        # to multiply by query count to get the desired limit per query
+        if isinstance(query_urls, list) and len(query_urls) > 1:
+            effective_limit = limit * len(query_urls)
+            print(f"🔢 Multi-market search: {len(query_urls)} markets × {limit} jobs = {effective_limit} total limit")
+        else:
+            effective_limit = limit
+
         url = "https://api.outscraper.cloud/indeed-search"
         params = {
             'query': query_urls,  # Can be string or list - requests handles both
-            'limit': limit,
+            'limit': effective_limit,
             'async': 'false'
         }
         

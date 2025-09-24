@@ -72,6 +72,18 @@ TEST_CONFIG = {
     "admin_password": os.getenv("TEST_ADMIN_PASSWORD", "test_password"),
     "test_coach_username": os.getenv("TEST_COACH_USERNAME", "test_coach"),
     "test_coach_password": os.getenv("TEST_COACH_PASSWORD", "test_password"),
+
+    # Updated test parameters based on current UI
+    "google_jobs_enabled": True,
+    "batches_enabled": True,
+    "agent_portal_enabled": True,
+    "analytics_enabled": True,
+
+    # Extended timeouts for complex operations
+    "batch_timeout": 180000,  # 3 minutes for batch operations
+    "analytics_timeout": 120000,  # 2 minutes for analytics
+    "search_timeout": 120000,  # 2 minutes for searches
+
     "test_locations": [
         "Houston, TX",
         "Dallas, TX",
@@ -84,7 +96,7 @@ TEST_CONFIG = {
         "dock worker"
     ],
     "classifiers": ["CDL Traditional", "Career Pathways"],
-    "search_modes": ["memory_only", "indeed_fresh"],
+    "search_modes": ["memory_only", "indeed_fresh", "google_jobs"],  # Added Google Jobs
     "route_filters": ["both", "local", "otr"],
     "quality_levels": ["good only", "good and so-so"],
     "experience_levels": ["both", "entry level", "experienced"],
@@ -97,6 +109,24 @@ TEST_CONFIG = {
         "non_cdl_driving",
         "general_warehouse",
         "construction_apprentice"
+    ],
+
+    # Navigation tabs based on current UI
+    "navigation_tabs": [
+        "🔍 Job Search",
+        "🗓️ Batches & Scheduling",
+        "👥 Free Agents",
+        "📊 Coach Analytics",
+        "🏢 Companies",
+        "⚙️ Admin Panel"
+    ],
+
+    # Current job quantity options
+    "job_quantity_options": [
+        "25 jobs (test)",
+        "100 jobs (sample)",
+        "500 jobs (medium)",
+        "1000+ jobs (full)"
     ]
 }
 
@@ -599,3 +629,143 @@ def verify_link_tracking() -> bool:
     except Exception as e:
         print(f"⚠️ Link tracking verification failed: {e}")
         return False
+
+# Enhanced Navigation Functions
+def navigate_to_tab(page: Page, tab_name: str, timeout: int = 30000) -> bool:
+    """Navigate to specific tab using improved selector"""
+    try:
+        iframe_locator = page.frame_locator('iframe[title="streamlitApp"]')
+
+        # Use radio button navigation with specific label
+        nav_locator = iframe_locator.get_by_label("Navigation").get_by_text(tab_name)
+        nav_locator.wait_for(timeout=timeout)
+        nav_locator.click()
+
+        # Wait for tab content to load
+        time.sleep(3)
+        print(f"✅ Successfully navigated to {tab_name}")
+        return True
+
+    except Exception as e:
+        print(f"⚠️ Navigation to {tab_name} failed: {e}")
+        # Fallback to old method
+        try:
+            iframe_locator.locator(f'text="{tab_name}"').first.click()
+            time.sleep(3)
+            print(f"✅ Successfully navigated to {tab_name} (fallback)")
+            return True
+        except:
+            return False
+
+def check_permission_access(page: Page, feature: str) -> bool:
+    """Check if user has access to specific feature"""
+    try:
+        iframe_locator = page.frame_locator('iframe[title="streamlitApp"]')
+        page_text = iframe_locator.locator('body').text_content(timeout=10000)
+
+        permission_indicators = {
+            "google_jobs": ["Google Jobs", "Google batch"],
+            "batches": ["Batches & Scheduling", "Create New", "Schedule"],
+            "admin": ["Admin Panel", "Manage Users", "Edit Prompts"],
+            "analytics": ["Coach Analytics", "Performance", "Engagement"]
+        }
+
+        if feature in permission_indicators:
+            indicators = permission_indicators[feature]
+            return any(indicator in page_text for indicator in indicators)
+
+        return False
+
+    except Exception as e:
+        print(f"⚠️ Permission check failed for {feature}: {e}")
+        return False
+
+def set_search_parameters(page: Page, params: Dict[str, Any]) -> bool:
+    """Set search parameters using current UI elements"""
+    try:
+        iframe_locator = page.frame_locator('iframe[title="streamlitApp"]')
+
+        # Navigate to Job Search if not already there
+        navigate_to_tab(page, "🔍 Job Search")
+
+        # Set location
+        if "location" in params:
+            location_input = iframe_locator.locator('input[placeholder*="location"]').first
+            location_input.clear()
+            location_input.fill(params["location"])
+
+        # Set search terms
+        if "search_terms" in params:
+            terms_input = iframe_locator.locator('input[placeholder*="search"]').first
+            terms_input.clear()
+            terms_input.fill(params["search_terms"])
+
+        # Set classifier type if provided
+        if "classifier_type" in params:
+            classifier_select = iframe_locator.get_by_label("Classifier Type")
+            classifier_select.click()
+            classifier_select.select_option(params["classifier_type"])
+
+        # Set job quantity if provided
+        if "job_quantity" in params and params["job_quantity"] in TEST_CONFIG["job_quantity_options"]:
+            quantity_select = iframe_locator.locator('select').filter(has_text="jobs").first
+            quantity_select.select_option(params["job_quantity"])
+
+        time.sleep(2)  # Allow form to update
+        print(f"✅ Search parameters set: {params}")
+        return True
+
+    except Exception as e:
+        print(f"⚠️ Failed to set search parameters: {e}")
+        return False
+
+def get_batch_form_elements(page: Page, batch_type: str = "indeed") -> Dict[str, Any]:
+    """Get batch form elements for testing"""
+    try:
+        iframe_locator = page.frame_locator('iframe[title="streamlitApp"]')
+
+        # Navigate to Batches & Scheduling
+        navigate_to_tab(page, "🗓️ Batches & Scheduling")
+
+        # Expand appropriate batch form
+        form_header = f"➕ Create New {batch_type.title()} Batch Schedule"
+        expand_button = iframe_locator.locator(f'text="{form_header}"')
+        expand_button.click()
+        time.sleep(2)
+
+        return {
+            "form_expanded": True,
+            "batch_type": batch_type,
+            "form_locator": iframe_locator
+        }
+
+    except Exception as e:
+        print(f"⚠️ Failed to get batch form elements: {e}")
+        return {"form_expanded": False}
+
+def verify_analytics_dashboard(page: Page) -> Dict[str, bool]:
+    """Verify analytics dashboard components"""
+    try:
+        iframe_locator = page.frame_locator('iframe[title="streamlitApp"]')
+
+        # Navigate to Coach Analytics
+        navigate_to_tab(page, "📊 Coach Analytics")
+
+        page_text = iframe_locator.locator('body').text_content(timeout=15000)
+
+        analytics_components = {
+            "overview_tab": "Overview" in page_text,
+            "individual_agents_tab": "Individual Agents" in page_text,
+            "admin_reports_tab": "Admin Reports" in page_text,
+            "metrics_displayed": any(metric in page_text for metric in [
+                "Total Engagements", "Click Rate", "Performance", "ROI"
+            ]),
+            "date_filters": "Date Range" in page_text or "Filter" in page_text
+        }
+
+        print(f"📊 Analytics verification: {analytics_components}")
+        return analytics_components
+
+    except Exception as e:
+        print(f"⚠️ Analytics verification failed: {e}")
+        return {"error": True}

@@ -1,485 +1,266 @@
 # FreeWorld Success Coach Portal - System Documentation
 
-## 🚀 Development & Deployment Workflow
+## 🎯 Mission Statement
 
-### Repository Structure
-- **Production**: `/Users/freeworld_james/Desktop/freeworld-job-scraper` (main repo)
-- **QA/Staging**: `/Users/freeworld_james/Desktop/freeworld-qa-portal` (QA repo for testing)
-
-### Development Workflow (CRITICAL - Follow Every Time)
-1. **Make Changes**: Edit files in the main production repo first
-2. **Copy to QA**: `cp` updated files to QA repo for testing
-3. **Test in QA**: Push only to QA repo and test changes in staging environment
-4. **Production Deploy**: Only after QA approval, commit and push to main production repo
-
-### Commands for QA Deployment
-```bash
-# Copy specific files to QA
-cp /Users/freeworld_james/Desktop/freeworld-job-scraper/app.py /Users/freeworld_james/Desktop/freeworld-qa-portal/
-cp /Users/freeworld_james/Desktop/freeworld-job-scraper/pipeline_v3.py /Users/freeworld_james/Desktop/freeworld-qa-portal/
-
-# Push to QA only
-cd /Users/freeworld_james/Desktop/freeworld-qa-portal
-git add . && git commit -m "Test: [description]" && git push origin main
-```
-
-### ⚠️ NEVER push to production without QA testing first!
+The FreeWorld Success Coach Portal is an AI-powered job discovery platform designed to connect Free Agents (CDL drivers and warehouse workers) with quality employment opportunities through intelligent matching, career pathway guidance, and comprehensive analytics tracking.
 
 ## 🏗️ System Architecture Overview
 
-The FreeWorld Success Coach Portal is a comprehensive job discovery and distribution platform designed to connect Free Agents with quality CDL driving opportunities through AI-powered matching and career coach guidance.
-
-## 📊 Visual System Architecture
+### Current State: September 2025
+- **Version**: Pipeline v3.1 with revolutionary test suite
+- **Primary Database**: Supabase (PostgreSQL)
+- **Deployment**: Streamlit Cloud
+- **AI Model**: OpenAI GPT-4o-mini
+- **Testing**: Master Efficient Test Suite (12x performance improvement)
 
 ```mermaid
 graph TB
     subgraph "🎯 User Interface Layer"
-        UI[Streamlit Web App - app.py]
-        AUTH[Authentication System - user_management.py]
-        ANALYTICS[Analytics Dashboard - show_analytics_dashboard()]
+        UI[Streamlit Web App]
+        AUTH[Coach Authentication]
+        PORTAL[Agent Portal System]
+        ANALYTICS[Analytics Dashboard]
     end
 
-    subgraph "🧠 Core Pipeline System"
-        PV3[Pipeline v3 - pipeline_v3.py]
-        WRAPPER[Pipeline Wrapper - pipeline_wrapper.py]
-        MEMORY[Memory Database - job_memory_db.py]
-        CLASSIFIER[AI Job Classifier - job_classifier.py]
+    subgraph "🧠 Core Processing Pipeline"
+        PV3[Pipeline v3.1 Engine]
+        MEMORY[Supabase Memory System]
+        CDL_CLASS[CDL Job Classifier]
+        PATH_CLASS[Pathway Classifier]
+        SCHEMA[Advanced Schema System]
     end
 
-    subgraph "🔍 Data Ingestion Layer"
-        SCRAPER[Job Scraper - job_scraper.py]
-        API_INDEED[Indeed API]
-        API_GOOGLE[Google Jobs API]
-        OUTSCRAPER[Outscraper Service]
+    subgraph "🔍 Data Ingestion Sources"
+        OUTSCRAPER[Outscraper API - Primary]
+        GOOGLE[Google Jobs API]
+        INDEED[Indeed API - Legacy]
     end
 
-    subgraph "🤖 AI Processing Layer"
-        OPENAI[OpenAI GPT-4o-mini]
-        ROUTE_CLASS[Route Classifier - route_classifier.py]
-        HYBRID_MEM[Hybrid Memory Classifier - hybrid_memory_classifier.py]
-        QUERY_OPT[Query Optimizer - query_optimizer.py]
-    end
-
-    subgraph "💾 Data Storage Layer"
-        PARQUET[(Parquet Checkpoints)]
-        CSV[(CSV Exports)]
-        PDF[(PDF Reports)]
-        AIRTABLE[(Airtable CRM)]
-        SUPABASE[(Supabase Analytics)]
-    end
-
-    subgraph "🔗 External Integrations"
+    subgraph "💾 Data & Analytics Infrastructure"
+        SUPABASE[Supabase Database]
+        PARQUET[Pipeline Checkpoints]
         SHORTIO[Short.io Link Tracking]
-        WEBHOOK[Click Analytics Webhook]
+        REPORTS[PDF/HTML Reports]
     end
 
-    subgraph "🧪 QA & Testing Layer"
-        MASTER_TEST[Master Efficient Test]
+    subgraph "🧪 Quality Assurance"
+        MASTER_TEST[Master Efficient Test Suite]
         PLAYWRIGHT[Playwright Framework]
-        TEST_REPORTS[Test Reports & Metrics]
+        AUTOMATION[Test Automation]
     end
 
-    UI --> AUTH
     UI --> PV3
-    UI --> ANALYTICS
-
     PV3 --> MEMORY
-    PV3 --> CLASSIFIER
-    PV3 --> SCRAPER
+    PV3 --> CDL_CLASS
+    PV3 --> PATH_CLASS
 
-    SCRAPER --> API_INDEED
-    SCRAPER --> API_GOOGLE
-    SCRAPER --> OUTSCRAPER
+    PV3 --> OUTSCRAPER
+    PV3 --> GOOGLE
+    PV3 --> INDEED
 
-    CLASSIFIER --> OPENAI
-    CLASSIFIER --> ROUTE_CLASS
-    CLASSIFIER --> HYBRID_MEM
-
-    PV3 --> PARQUET
-    PV3 --> CSV
-    PV3 --> PDF
-    PV3 --> AIRTABLE
     PV3 --> SUPABASE
-
-    UI --> SHORTIO
-    SHORTIO --> WEBHOOK
-    WEBHOOK --> SUPABASE
-
-    ANALYTICS --> SUPABASE
+    PV3 --> PARQUET
+    PV3 --> SHORTIO
+    PV3 --> REPORTS
 
     MASTER_TEST --> UI
     MASTER_TEST --> PV3
     MASTER_TEST --> SUPABASE
-    MASTER_TEST --> PLAYWRIGHT
-    PLAYWRIGHT --> TEST_REPORTS
 ```
 
-## 🗃️ Data Flow Architecture
+## 🗂️ Core System Components
 
-```mermaid
-flowchart TD
-    START[Coach Initiates Search] --> INPUT[Location + Search Terms + Route Preferences]
-    
-    INPUT --> STAGE1[📥 Stage 1: Ingestion]
-    STAGE1 --> API_CALLS[Outscraper + Indeed + Google APIs]
-    API_CALLS --> MEMORY_CHECK{Memory Database Check}
-    MEMORY_CHECK -->|Cache Hit| CACHED_DATA[Load from Memory DB]
-    MEMORY_CHECK -->|Cache Miss| FRESH_SCRAPE[Fresh API Scraping]
-    
-    CACHED_DATA --> STAGE2[📊 Stage 2: Normalization]
-    FRESH_SCRAPE --> STAGE2
-    
-    STAGE2 --> CANONICAL[Canonical DataFrame Schema]
-    CANONICAL --> STAGE3[⚖️ Stage 3: Business Rules]
-    
-    STAGE3 --> QUALITY_FILTER[Quality Filtering]
-    QUALITY_FILTER --> STAGE4[🔄 Stage 4: Deduplication]
-    
-    STAGE4 --> DEDUP_LOGIC[Remove Duplicates by URL/Title]
-    DEDUP_LOGIC --> STAGE5[🤖 Stage 5: AI Classification]
-    
-    STAGE5 --> OPENAI_API[OpenAI GPT-4o-mini API]
-    OPENAI_API --> AI_RESULTS[good/so-so/bad + summaries]
-    AI_RESULTS --> STAGE6[🧭 Stage 6: Routing Logic]
-    
-    STAGE6 --> ROUTE_RULES[Route Type Classification]
-    ROUTE_RULES --> FINAL_DF[Final Processed DataFrame]
-    
-    FINAL_DF --> OUTPUTS[📋 Output Generation]
-    OUTPUTS --> CSV_OUT[CSV Export]
-    OUTPUTS --> PDF_OUT[PDF Report Generation]
-    OUTPUTS --> AIRTABLE_SYNC[Airtable Upload]
-    OUTPUTS --> LINK_GENERATION[Short.io Link Creation]
-    
-    LINK_GENERATION --> CLICK_TRACKING[📊 Click Analytics]
-    CLICK_TRACKING --> SUPABASE_STORE[Supabase Storage]
-    
-    SUPABASE_STORE --> ANALYTICS_DASH[📈 Analytics Dashboard]
-```
+### 1. Pipeline v3.1 Engine (`pipeline_v3.py`)
+**The orchestration heart of the entire system**
 
-## 🧠 Memory System Architecture
+- **6-Stage Processing Pipeline**:
+  1. **Ingestion**: Multi-source API integration with intelligent fallbacks
+  2. **Normalization**: Advanced field mapping to 100+ schema fields
+  3. **Business Rules**: Quality filtering and compliance checks
+  4. **Deduplication**: Hash-based duplicate removal across sources
+  5. **AI Classification**: Dual classifier system (CDL + Pathway)
+  6. **Routing**: Final job selection and output generation
 
-```mermaid
-graph LR
-    subgraph "💾 Memory Database System"
-        JOBS_TABLE[(job_postings table)]
-        INDEX_SEARCH[Index-based Search]
-        HASH_DEDUP[Hash-based Deduplication]
-        EXPIRY[TTL Expiry System]
-    end
+- **Key Features**:
+  - Unique run ID tracking for complete audit trails
+  - Parquet checkpoint system for error recovery
+  - Supabase-native memory integration
+  - Cost optimization through intelligent API selection
+  - Real-time progress tracking and error handling
 
-    subgraph "🔍 Query Processing"
-        LOCATION_NORM[Location Normalization]
-        TERM_EXPANSION[Search Term Expansion]
-        RADIUS_FILTER[Radius Filtering]
-    end
+### 2. Advanced Schema System (`jobs_schema.py`)
+**Comprehensive 100+ field data model with namespaced organization**
 
-    subgraph "📊 Checkpoint System"
-        STAGE_CHECKPOINTS[Pipeline Stage Parquet Files]
-        RUN_ID[Unique Run ID Tracking]
-        ERROR_RECOVERY[Error Recovery Points]
-    end
-
-    QUERY_INPUT[Search Query] --> LOCATION_NORM
-    LOCATION_NORM --> INDEX_SEARCH
-    INDEX_SEARCH --> JOBS_TABLE
-    
-    JOBS_TABLE --> HASH_DEDUP
-    HASH_DEDUP --> RADIUS_FILTER
-    RADIUS_FILTER --> MEMORY_RESULTS[Memory Results]
-    
-    PIPELINE_START[Pipeline Start] --> RUN_ID
-    RUN_ID --> STAGE_CHECKPOINTS
-    STAGE_CHECKPOINTS --> ERROR_RECOVERY
-    
-    ERROR_RECOVERY --> RESUME_POINT[Resume from Last Checkpoint]
-```
-
-## 🏢 Coach Management System
-
-```mermaid
-graph TB
-    subgraph "👨‍🏫 Coach Authentication"
-        LOGIN[Coach Login]
-        PASSWORD[Password Change System]
-        PERMISSIONS[Permission System]
-        BUDGET[Budget Tracking]
-        USAGE[Usage Analytics]
-    end
-
-    subgraph "🔐 Role-Based Access"
-        ADMIN[Admin Role]
-        COACH[Coach Role]
-        PERMISSIONS_MATRIX[Granular Permissions Matrix]
-    end
-
-    subgraph "🎛️ Advanced Permissions"
-        FORCE_FRESH[Force Fresh Classification]
-        AI_PROMPT[Edit AI Prompts]
-        FILTER_EDIT[Edit Business Rules]
-        USER_MGMT[Manage Users]
-        FULL_MODE[Access 1000+ Jobs]
-    end
-
-    subgraph "💰 Budget Management"
-        MONTHLY_BUDGET[Monthly Budget Allocation]
-        SPENDING_TRACK[Current Spending Tracking]
-        COST_CALCULATOR[Search Cost Calculator]
-    end
-
-    LOGIN --> PASSWORD
-    LOGIN --> PERMISSIONS
-    PERMISSIONS --> PERMISSIONS_MATRIX
-    PERMISSIONS_MATRIX --> ADMIN
-    PERMISSIONS_MATRIX --> COACH
-    
-    ADMIN --> FULL_ACCESS[Full System Access]
-    COACH --> LIMITED_ACCESS[Restricted Features]
-    
-    PERMISSIONS --> FORCE_FRESH
-    PERMISSIONS --> AI_PROMPT
-    PERMISSIONS --> FILTER_EDIT
-    PERMISSIONS --> USER_MGMT
-    PERMISSIONS --> FULL_MODE
-    
-    BUDGET --> MONTHLY_BUDGET
-    BUDGET --> SPENDING_TRACK
-    SPENDING_TRACK --> COST_CALCULATOR
-    
-    USAGE --> SEARCH_HISTORY[Search History]
-    USAGE --> PERFORMANCE_METRICS[Performance Metrics]
-```
-
-## 📊 Analytics & Tracking System
-
-```mermaid
-graph TB
-    subgraph "🔗 Click Tracking Flow"
-        SHORT_LINK[Short.io Generated Links]
-        CLICK_EVENT[Free Agent Clicks Link]
-        WEBHOOK[Short.io → Supabase Webhook]
-        SUPABASE_STORE[(Supabase click_events)]
-    end
-
-    subgraph "📈 Analytics Dashboard"
-        OVERVIEW[📊 Overview Tab]
-        INDIVIDUAL[👤 Individual Agents Tab]
-        FREEWORLD[🌍 FreeWorld Dashboard Tab]
-        DETAILED[📋 Detailed Events Tab]
-        ADMIN_REPORTS[👑 Admin Reports Tab]
-    end
-
-    subgraph "📊 Key Metrics Calculated"
-        ENGAGEMENT[Total Engagements]
-        CLICK_RATES[Click Rates by Coach]
-        QUALITY_DISTRIBUTION[Quality Job Distribution]
-        ECONOMIC_IMPACT[Economic Impact Estimates]
-        ROI_METRICS[ROI & Cost per Engagement]
-    end
-
-    SHORT_LINK --> CLICK_EVENT
-    CLICK_EVENT --> WEBHOOK
-    WEBHOOK --> SUPABASE_STORE
-    
-    SUPABASE_STORE --> OVERVIEW
-    SUPABASE_STORE --> INDIVIDUAL
-    SUPABASE_STORE --> FREEWORLD
-    SUPABASE_STORE --> DETAILED
-    SUPABASE_STORE --> ADMIN_REPORTS
-    
-    OVERVIEW --> ENGAGEMENT
-    ADMIN_REPORTS --> CLICK_RATES
-    ADMIN_REPORTS --> QUALITY_DISTRIBUTION
-    FREEWORLD --> ECONOMIC_IMPACT
-    ADMIN_REPORTS --> ROI_METRICS
-```
-
-## 🗄️ Database Schema
-
-### Canonical Job DataFrame Schema
 ```python
-CANONICAL_SCHEMA = {
-    # Source identification
-    'source.platform': str,      # 'indeed', 'google', 'outscraper'
-    'source.url': str,           # Original job posting URL
-    'source.title': str,         # Raw job title
-    'source.company': str,       # Company name
-    'source.location': str,      # Job location
-    'source.description': str,   # Full job description
-    'source.salary': str,        # Salary information
-    'source.posted_date': str,   # When job was posted
-    
-    # System metadata
-    'sys.scraped_at': datetime,  # When we scraped this job
-    'sys.run_id': str,          # Pipeline run identifier
-    'sys.is_fresh_job': bool,   # True if freshly scraped, False if from memory
-    'sys.hash': str,            # Unique identifier for deduplication
-    
-    # Processed fields
-    'processed.normalized_title': str,    # Cleaned job title
-    'processed.normalized_company': str,  # Cleaned company name
-    'processed.normalized_location': str, # Standardized location
-    'processed.salary_min': float,       # Extracted minimum salary
-    'processed.salary_max': float,       # Extracted maximum salary
-    
-    # AI classification results
-    'ai.match': str,            # 'good', 'so-so', 'bad', 'error'
-    'ai.summary': str,          # AI-generated job summary
-    'ai.route_type': str,       # 'Local', 'Regional', 'OTR'
-    'ai.experience_required': str, # Experience level needed
-    
-    # Routing decisions
-    'route.included': bool,     # Should this job be included in results?
-    'route.filtered': bool,     # Was this job filtered out?
-    'route.filter_reason': str, # Why was it filtered?
-    'route.final_status': str,  # Final routing decision
-    
-    # Link tracking
-    'meta.tracked_url': str,    # Short.io tracking URL
-    'meta.link_id': str,        # Short.io link identifier
-    'meta.tags': str,           # Tracking tags (coach, market, etc.)
+# Namespaced Field Categories
+SCHEMA_CATEGORIES = {
+    'id': ['job', 'source', 'source_row'],
+    'source': ['platform', 'url', 'title', 'company', 'location', 'description', 'salary', 'posted_date'],
+    'normalized': ['title', 'company', 'location', 'salary_min', 'salary_max'],
+    'rules': ['quality_score', 'compliance_check', 'market_fit'],
+    'ai': ['cdl_match', 'cdl_summary', 'pathway_type', 'experience_level', 'route_type'],
+    'routing': ['included', 'filtered', 'filter_reason', 'final_status'],
+    'metadata': ['scraped_at', 'run_id', 'search_terms', 'market', 'coach'],
+    'tracking': ['short_url', 'link_id', 'tags']
 }
 ```
 
-### Supabase Analytics Schema
-```sql
--- click_events table
-CREATE TABLE click_events (
-    id SERIAL PRIMARY KEY,
-    clicked_at TIMESTAMPTZ NOT NULL,
-    candidate_id TEXT,
-    candidate_name TEXT,
-    coach TEXT,
-    market TEXT,
-    route TEXT,
-    match TEXT,
-    fair TEXT,
-    short_id TEXT,
-    user_agent TEXT,
-    ip_address TEXT
-);
+### 3. Dual AI Classification System
 
--- candidate_clicks aggregated table
-CREATE TABLE candidate_clicks (
-    candidate_id TEXT PRIMARY KEY,
-    candidate_name TEXT,
-    clicks INTEGER DEFAULT 0,
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+#### CDL Job Classifier (`job_classifier.py`)
+- **Purpose**: Quality assessment for CDL driving positions
+- **Output**: good/so-so/bad ratings with detailed reasoning
+- **Features**: Fair chance analysis, route type detection, endorsement requirements
+- **Performance**: Optimized prompt caching, retry logic, structured JSON output
+
+#### Pathway Classifier (`pathway_classifier.py`)
+- **Purpose**: Career pathway identification for progression opportunities
+- **Pathways**:
+  - `dock_to_driver` - Warehouse to CDL progression
+  - `warehouse_to_driver` - General warehouse to driving
+  - `internal_cdl_training` - Company-sponsored CDL programs
+  - `cdl_pathway` - Direct CDL opportunities
+- **Integration**: Seamless with CDL classifier for comprehensive job analysis
+
+### 4. Supabase-Native Memory System (`job_memory_db.py`)
+**High-performance caching with 72-hour intelligent expiry**
+
+- **Technology**: PostgreSQL via Supabase (not SQLite as previously documented)
+- **Features**:
+  - Hash-based deduplication across all sources
+  - Radius-based geographic filtering
+  - TTL expiry system for freshness
+  - Centralized client management with health checks
+- **Performance**: 85-95% cache hit rate, sub-second lookups
+- **Cost Impact**: Significant API cost reduction through intelligent caching
+
+### 5. Coach Management System (`user_management.py`)
+**Advanced role-based access control with granular permissions**
+
+#### Permission Matrix
+- `can_access_google_jobs` - Access to Google Jobs API
+- `can_access_batches` - Batch processing and scheduling features
+- `can_force_fresh_classification` - Bypass AI classification cache for testing
+- `can_edit_ai_prompt` - Modify AI system prompts
+- `can_edit_filters` - Adjust business rules and quality filters
+- `can_manage_users` - Add, edit, and remove coaches
+
+#### Storage & Security
+- **Primary**: Supabase with real-time synchronization
+- **Fallback**: Local JSON persistence for offline capability
+- **Security**: Hashed passwords, session management, permission validation
+
+### 6. Agent Portal System (`agent_portal_clean.py`)
+**High-performance personalized job delivery for Free Agents**
+
+- **Architecture**: Clean implementation separate from main application complexity
+- **Performance**: 4x faster queries through database-level filtering
+- **Features**:
+  - Agent-specific filtering (`fair_chance_only`, route preferences)
+  - Smart job prioritization: Match Quality → Recency → Fair Chance → Local Routes
+  - Extended 7-day lookback period for comprehensive results
+  - Personalized messaging with coach attribution (optional)
+- **Integration**: Memory-only pipeline integration with full tracking
+
+### 7. Revolutionary Test Suite (`tests/playwright/`)
+**12x performance improvement transforming QA from "nightmare" to "beautiful"**
+
+#### Master Efficient Test Architecture
+- **Innovation**: DataFrame reuse pattern - one search validates entire system
+- **Performance**: 76 seconds vs 15-20 minutes (1200% improvement)
+- **Coverage**: 70+ jobs tested across all scenarios and edge cases
+- **Reliability**: 100% pass rate with zero flaky failures
+
+#### Test Components
+- `test_master_efficient.py` - Core system validation
+- `test_comprehensive_suite.py` - Test orchestration
+- `test_classification_comprehensive.py` - AI classifier validation
+- `test_integration_comprehensive.py` - Analytics and tracking validation
+
+#### Validation Coverage
+- ✅ Pipeline integrity and data flow consistency
+- ✅ AI classification accuracy (CDL: 41.2%, Pathways: 150% of threshold)
+- ✅ Memory system performance and cache behavior
+- ✅ Link tracking and analytics integration
+- ✅ Supabase database integrity and real-time updates
+
+### 8. Analytics & Tracking Infrastructure
+
+#### Link Tracking System (`link_tracker.py`)
+- **Service**: Short.io with real-time webhook integration
+- **Features**: Supabase Edge Function support, graceful fallbacks
+- **Analytics**: Real-time click tracking with comprehensive metadata
+- **Performance**: Sub-second link generation with intelligent retry logic
+
+#### Analytics Database (Supabase)
+```sql
+-- Core analytics tables
+click_events: Real-time click tracking with user agent and geolocation
+candidate_clicks: Aggregated engagement metrics per Free Agent
+jobs: Complete job posting history with AI classifications
+companies: Company performance and market presence analytics
 ```
 
-## 🔧 Key Components Deep Dive
-
-### 1. Pipeline v3 (pipeline_v3.py)
-- **Purpose**: Main orchestration engine for job processing
-- **Stages**: 6-stage pipeline with checkpoint system
-- **Features**: Error recovery, memory optimization, cost tracking, multi-source integration
-- **Output**: Canonical DataFrame + comprehensive metadata
-- **New**: Google Jobs API integration with exact location mode (radius=0)
-
-### 2. Google Jobs API Integration (job_scraper.py)
-- **Purpose**: Cost-effective job source with 99% cost savings
-- **Features**: Exact location mode (radius=0), intelligent URL prioritization
-- **URL Priority**: Direct company websites > Job boards (Indeed, LinkedIn, etc.)
-- **Stability**: Timeout-resistant with 30s exact location queries
-
-### 3. Memory Database (job_memory_db.py)
-- **Purpose**: High-performance job caching and deduplication
-- **Technology**: SQLite with optimized indexing
-- **Features**: TTL expiry, hash-based deduplication, radius filtering
-- **Performance**: Sub-second lookups for cached jobs
-
-### 3. AI Classifier (job_classifier.py)
-- **Purpose**: Quality assessment and job categorization
-- **Model**: OpenAI GPT-4o-mini with structured output
-- **Classifications**: good/so-so/bad quality ratings
-- **Features**: Route type detection, experience level analysis
-
-### 4. Analytics Dashboard
-- **Purpose**: Comprehensive Free Agent engagement tracking
-- **Features**: Multi-tab interface, date filtering, coach performance
-- **Metrics**: ROI calculations, economic impact estimates
-- **Export**: CSV downloads for reporting
-
-### 5. Link Tracking System
-- **Purpose**: Monitor Free Agent job engagement
-- **Technology**: Short.io API with webhook integration
-- **Storage**: Supabase real-time analytics database
-- **Analytics**: Click rates, engagement patterns, coach effectiveness
-
-### 6. Coach Management System (user_management.py)
-- **Purpose**: Role-based access control and user administration
-- **Features**: Password change, granular permissions, budget tracking
-- **Permissions**: Force Fresh Classification, AI prompt editing, user management, Google Jobs access
-- **Security**: Hashed passwords, session management, permission validation
-- **New**: Google Jobs permission (`can_access_google_jobs`) for cost savings
-
-### 7. Exact Location Search System  
-- **Purpose**: Stable, timeout-resistant job searches
-- **Implementation**: `radius=0` for both Google Jobs and Indeed APIs
-- **UI Control**: "Use exact location only" checkbox in Streamlit
-- **CLI Control**: `--exact-location` flag in terminal script
-- **Benefits**: Faster searches, no 504 Gateway timeouts, more reliable results
-
-### 8. Force Fresh Classification System
-- **Purpose**: Allow bypassing AI classification cache for testing new prompts
-- **Permission**: `can_force_fresh_classification` - admin-controlled
-- **Default**: Enabled for admins, disabled for regular coaches
-- **Use Case**: Testing prompt changes without waiting for cache expiry
-
-### 9. Agent Portal System (agent_portal_clean.py)
-- **Purpose**: High-performance personalized job portals for Free Agents
-- **Architecture**: Clean, focused implementation separate from main app complexity
-- **Performance**: Database-level filtering for 4x faster queries
-- **Features**:
-  - Agent-specific filtering (fair_chance_only, route_filter) applied at Supabase level
-  - Smart job prioritization: Match quality → Newest → Fair chance → Local routes
-  - Extended 7-day lookback period for more job options
-  - Personalized "Prepared for [Agent] by Coach [Coach]" messages (optional)
-  - Max jobs limit enforcement per agent settings
-- **Integration**: Seamless with existing Memory Only search pipeline and job tracking system
-
-## 🚀 Deployment Architecture
+## 🔍 Data Flow Architecture
 
 ```mermaid
-graph TB
-    subgraph "☁️ Streamlit Cloud"
-        APP[Main Streamlit App]
-        SECRETS[st.secrets Configuration]
-        CACHE[Streamlit Cache System]
-    end
+flowchart TD
+    START[Coach Initiates Search] --> CONFIG[Search Configuration]
+    CONFIG --> MEMORY_CHECK{Check Memory System}
 
-    subgraph "🗃️ External Services"
-        OPENAI_API[OpenAI API]
-        OUTSCRAPER_API[Outscraper API]
-        INDEED_API[Indeed API]
-        AIRTABLE_API[Airtable API]
-        SUPABASE_API[Supabase API]
-        SHORTIO_API[Short.io API]
-    end
+    MEMORY_CHECK -->|Cache Hit| CACHED[Load from Supabase Memory]
+    MEMORY_CHECK -->|Cache Miss| APIS[Multi-Source API Calls]
 
-    subgraph "💾 Data Persistence"
-        GIT_STORAGE[Git Repository Storage]
-        PARQUET_FILES[Parquet Checkpoint Files]
-        MEMORY_DB[SQLite Memory Database]
-    end
+    APIS --> OUTSCRAPER[Outscraper Primary]
+    APIS --> GOOGLE[Google Jobs API]
+    APIS --> INDEED[Indeed Fallback]
 
-    APP --> SECRETS
-    APP --> CACHE
-    
-    APP --> OPENAI_API
-    APP --> OUTSCRAPER_API
-    APP --> INDEED_API
-    APP --> AIRTABLE_API
-    APP --> SUPABASE_API
-    APP --> SHORTIO_API
-    
-    APP --> GIT_STORAGE
-    APP --> PARQUET_FILES
-    APP --> MEMORY_DB
+    CACHED --> NORMALIZE[Stage 2: Normalization]
+    OUTSCRAPER --> NORMALIZE
+    GOOGLE --> NORMALIZE
+    INDEED --> NORMALIZE
+
+    NORMALIZE --> CANONICAL[100+ Field Schema Mapping]
+    CANONICAL --> RULES[Stage 3: Business Rules]
+
+    RULES --> QUALITY[Quality Filtering]
+    QUALITY --> DEDUP[Stage 4: Deduplication]
+
+    DEDUP --> AI_CLASS[Stage 5: AI Classification]
+
+    AI_CLASS --> CDL_AI[CDL Job Classifier]
+    AI_CLASS --> PATH_AI[Pathway Classifier]
+
+    CDL_AI --> ROUTING[Stage 6: Routing Logic]
+    PATH_AI --> ROUTING
+
+    ROUTING --> OUTPUTS[Output Generation]
+
+    OUTPUTS --> CSV[CSV Export]
+    OUTPUTS --> PDF[PDF Reports]
+    OUTPUTS --> TRACKING[Short.io Link Generation]
+    OUTPUTS --> SUPABASE_STORE[Supabase Analytics Storage]
+
+    TRACKING --> CLICK_ANALYTICS[Real-time Click Tracking]
+    CLICK_ANALYTICS --> DASHBOARD[Analytics Dashboard]
 ```
 
-## ⚙️ Configuration & Environment
+## 📊 Current Performance Metrics
+
+### System Performance (September 2025)
+- **Pipeline Speed**: 45-75 seconds per 100 jobs (with memory optimization)
+- **Memory Hit Rate**: 85-95% for repeated searches
+- **API Cost Efficiency**: $0.10-0.15 per 100 quality jobs
+- **Test Suite Performance**: 76 seconds for complete system validation
+- **Agent Portal Speed**: 4x faster with database-level filtering
+
+### Quality Metrics
+- **CDL Classification Accuracy**: 90%+ for "good" ratings
+- **Pathway Detection Rate**: 150% above minimum thresholds
+- **Deduplication Effectiveness**: 15-25% duplicate removal
+- **Free Agent Engagement**: 15-85% click rates by coach effectiveness
+
+## 🔧 Configuration & Environment
 
 ### Required Environment Variables
 ```bash
@@ -487,213 +268,108 @@ graph TB
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4o-mini
 
-# Job Scraping APIs
+# Primary Job Sources (in order of preference)
 OUTSCRAPER_API_KEY=...
-INDEED_API_KEY=...
+GOOGLE_JOBS_API_KEY=...
+INDEED_API_KEY=...       # Legacy fallback
 
-# Data Storage & Analytics
-AIRTABLE_API_KEY=...
-AIRTABLE_BASE_ID=...
-AIRTABLE_TABLE_ID=...
+# Core Infrastructure
 SUPABASE_URL=...
 SUPABASE_ANON_KEY=...
-
-# Link Tracking
 SHORTIO_API_KEY=...
 SHORTIO_DOMAIN=...
 
+# Optional Integrations
+AIRTABLE_API_KEY=...     # Limited CRM integration
+AIRTABLE_BASE_ID=...
+AIRTABLE_TABLE_ID=...
+
 # System Configuration
-APP_VERSION=v2.3
-PIPELINE_VERSION=v3
+PIPELINE_VERSION=v3.1
+MEMORY_EXPIRY_HOURS=72
 DEFAULT_JOB_LIMIT=100
-MEMORY_EXPIRY_HOURS=168
 ```
 
-### Pipeline Modes
-- **test**: 25 jobs, memory-only (for testing)
-- **sample**: 100 jobs, mixed memory + fresh
-- **medium**: 500 jobs, comprehensive search
-- **full**: 1000 jobs, maximum coverage (admin only)
+### Pipeline Modes & Limits
+- **test**: 25 jobs (memory-only, for development)
+- **sample**: 100 jobs (mixed memory + fresh scraping)
+- **medium**: 500 jobs (comprehensive search)
+- **full**: 1000 jobs (maximum coverage, admin permission required)
 
-## 📈 Performance Metrics
+## 🚀 Recent Major Updates
 
-### System Performance
-- **Memory Hit Rate**: 85-95% for repeated searches
-- **Processing Speed**: 30-60 seconds per 100 jobs
-- **API Cost Efficiency**: $0.10-0.15 per 100 quality jobs
-- **Deduplication Rate**: 15-25% duplicate removal
+### September 2025: Revolutionary Test Suite
+- **Achievement**: 12x performance improvement in QA workflow
+- **Innovation**: Master Efficient Test with DataFrame reuse pattern
+- **Impact**: Complete system validation in 76 seconds vs 15-20 minutes
+- **Coverage**: 100% pass rate with zero flaky failures
 
-### User Engagement
-- **Free Agent Click Rate**: 15-85% depending on coach effectiveness
-- **Quality Job Accuracy**: 90%+ for "good" classifications
-- **Platform Adoption**: Multi-coach deployment ready
-- **Geographic Coverage**: 50+ target markets supported
+### Google Jobs API Integration
+- **Stability**: Exact location mode eliminates 504 Gateway timeouts
+- **URL Prioritization**: Direct company websites > job boards
+- **Performance**: 30-second timeout resistance with intelligent fallbacks
 
-## 🔄 Maintenance & Operations
+### Agent Portal Performance Optimization
+- **Speed**: 4x faster through database-level filtering
+- **Features**: Fair chance filter, route preferences, 7-day lookback
+- **Architecture**: Clean implementation separate from main app complexity
 
-### Daily Operations
-1. **Monitor API quotas** (OpenAI, Outscraper, Indeed)
-2. **Check memory database size** (auto-cleanup at 7 days)
-3. **Review coach budget utilization**
-4. **Validate Supabase click tracking**
+### Advanced Schema System Implementation
+- **Scale**: 100+ namespaced fields vs previous basic schema
+- **Organization**: Logical field grouping by function and data source
+- **Flexibility**: Extensible design for future enhancements
 
-### Weekly Maintenance
-1. **Backup parquet checkpoint files**
-2. **Clean expired memory database entries**
-3. **Review and update market mappings**
-4. **Analyze coach performance reports**
+## 🧪 Quality Assurance & Testing
 
-### Monthly Reviews
-1. **Update AI classification prompts**
-2. **Review and adjust business rules**
-3. **Optimize search term strategies**
-4. **Generate funder impact reports**
+### Master Efficient Test Suite
+The revolutionary testing framework that transformed QA from a "nightmare" to "beautiful":
 
-## 🎉 Recent Updates (September 22, 2025)
-
-### Revolutionary Test Suite Optimization (Complete) 🚀
-- **Status**: ✅ Completed
-- **Achievement**: Complete QA workflow transformation from "nightmare" to "beautiful"
-- **Performance**: 12x speed improvement (76 seconds vs 15-20 minutes)
-- **Reliability**: 100% pass rate with comprehensive coverage
-- **Innovation**: Master Efficient Test architecture with DataFrame reuse
-
-#### Master Efficient Test Suite Architecture
-```mermaid
-graph TB
-    subgraph "🎯 Master Test Workflow"
-        MASTER[Master Efficient Test]
-        DATA_GEN[Phase 1: Data Generation]
-        SEARCH_PATHS[Phase 2: Search Paths]
-        CLASSIFICATION[Phase 3: Classification]
-        INTEGRATION[Phase 4: Integration]
-        SUPABASE[Phase 5: Supabase]
-        EDGE_CASES[Phase 6: Edge Cases]
-    end
-
-    subgraph "🔄 DataFrame Reuse Pattern"
-        FRESH_SEARCH[Indeed Fresh Search]
-        MEMORY_SEARCH[Memory Search]
-        DATAFRAME[Shared DataFrame]
-        REUSE[Multiple Validations]
-    end
-
-    subgraph "🍒 Cherry-Pick Options"
-        CHERRY_CLASS[Classification Only]
-        CHERRY_SEARCH[Search Paths Only]
-        CHERRY_DB[Supabase Only]
-    end
-
-    MASTER --> DATA_GEN
-    DATA_GEN --> SEARCH_PATHS
-    SEARCH_PATHS --> CLASSIFICATION
-    CLASSIFICATION --> INTEGRATION
-    INTEGRATION --> SUPABASE
-    SUPABASE --> EDGE_CASES
-
-    FRESH_SEARCH --> DATAFRAME
-    MEMORY_SEARCH --> DATAFRAME
-    DATAFRAME --> REUSE
-
-    MASTER --> CHERRY_CLASS
-    MASTER --> CHERRY_SEARCH
-    MASTER --> CHERRY_DB
-```
-
-#### Test Suite Components
-- **`test_master_efficient.py`**: Revolutionary single test validating entire system
-- **`test_comprehensive_suite.py`**: Ultimate test runner and orchestrator
-- **`test_classification_comprehensive.py`**: Efficient classification validation
-- **`test_integration_comprehensive.py`**: Link tracking & analytics validation
-- **`test_search_paths_comprehensive.py`**: Search path validation
-- **Cherry-pick methods**: Targeted testing for specific components
-
-#### Key Innovations
-1. **DataFrame Reuse**: One search → All validations
-2. **Comprehensive Coverage**: 70+ jobs tested across all scenarios
-3. **Realistic Thresholds**: CDL ≥10%, Pathways ≥10% classification accuracy
-4. **Infrastructure Validation**: Supabase, link tracking, analytics integration
-5. **Error Resilience**: Graceful handling of timeouts and edge cases
-
-#### Validation Coverage
-- ✅ **Search Paths**: Memory/Fresh integration, pipeline consistency
-- ✅ **Classification Accuracy**: CDL (41.2%) & Pathway (150%) performance
-- ✅ **Link Tracking**: Short.io integration and system availability
-- ✅ **Analytics Integration**: Dashboard functionality and data flow
-- ✅ **Supabase Integrity**: Table accessibility and data persistence
-- ✅ **Edge Cases**: System resilience and error handling
-
-#### Performance Metrics
-- **Test Duration**: 76 seconds (vs 15-20 minutes previously)
-- **Coverage**: Complete system validation in single run
-- **Reliability**: 100% pass rate, no flaky failures
-- **Efficiency**: 12x improvement while maintaining full QA confidence
-
-#### Usage Examples
 ```bash
-# Run complete system validation (recommended)
+# Complete system validation (recommended)
 python -m pytest test_master_efficient.py::TestMasterEfficient::test_master_comprehensive_validation -v -s
 
-# Run performance benchmark
+# Performance benchmarking
 python -m pytest test_master_efficient.py::TestMasterPerformance::test_master_performance_benchmark -v -s
 
-# Cherry-pick specific validations (requires master data)
+# Cherry-pick specific validations
 python -m pytest test_master_efficient.py::TestMasterEfficient::test_cherry_pick_classification_only -v -s
 ```
 
-### Loan Calculator Restoration (Complete) 💰
-- **Status**: ✅ Completed
-- **Issue**: Loan calculator lost in "the great fuckup"
-- **Solution**: Restored `loan_calculator.py` with full functionality
-- **Features**:
-  - Comprehensive loan calculations and amortization schedules
-  - Interest rate analysis and payment breakdowns
-  - Integration with main Streamlit application
-  - Financial planning tools for Free Agents
+### Key Testing Innovations
+1. **DataFrame Reuse Pattern**: One search validates entire pipeline
+2. **Realistic Thresholds**: CDL ≥10%, Pathways ≥10% accuracy requirements
+3. **Infrastructure Validation**: End-to-end system integrity checks
+4. **Edge Case Coverage**: Timeout handling, API failures, data corruption scenarios
 
-## 🎉 Previous Updates (September 4, 2025)
+## 📈 Analytics Dashboard Features
 
-### Agent Portal Performance Optimization (Complete)
-- **Status**: ✅ Completed
-- **Issue**: Fair chance filter not working, only 46 jobs showing instead of many more excellent matches
-- **Solution**: Database-level filtering with agent-specific parameters
-- **Performance**: 4x faster queries by applying filters at Supabase level instead of DataFrame processing
-- **Features**: 
-  - Fair chance filter now works correctly (`fair_chance_only=true`)
-  - Route filtering (local, OTR) applied at database level
-  - Extended lookback period from 3 days to 7 days for more job options
-  - Smart job prioritization: Match quality → Newest → Fair chance → Local routes
-- **Impact**: Agent portals now show many more quality jobs matching agent preferences
+### Multi-Tab Analytics Interface
+- **Overview**: System-wide engagement and performance metrics
+- **Individual Agents**: Per-agent click rates and job engagement
+- **FreeWorld Dashboard**: Economic impact and ROI calculations
+- **Detailed Events**: Granular click tracking and user behavior
+- **Admin Reports**: Coach performance and system utilization
 
-### Prepared Statement Control System (Complete)
-- **Status**: ✅ Completed  
-- **Feature**: Checkbox to control "Prepared for [Agent] by Coach [Coach]" message
-- **UI**: "Show 'prepared for' message" checkbox in PDF export configuration
-- **Flexibility**: Can hide prepared statement for generic job lists
-- **Default**: Enabled to maintain current behavior
+### Key Metrics Tracked
+- Total Free Agent engagements and click-through rates
+- Quality job distribution and classification accuracy
+- Economic impact estimates and cost-per-engagement
+- Coach effectiveness and search success rates
+- Geographic coverage and market penetration
 
-### Google Jobs API Integration (Complete)
-- **Status**: ✅ Completed
-- **Features**: Full integration with intelligent URL prioritization
-- **Cost Savings**: 99% reduction vs Indeed ($0.005 vs $0.10 per search)
-- **Stability**: Exact location mode eliminates timeout issues
-- **URL Priority**: Direct company websites over job boards
+## 🔄 Maintenance & Operations
 
-### Airtable Field Mapping Fix
-- **Issue**: Incorrect link field mapping
-- **Solution**: Apply Here = tracking URLs, apply_urls = original URLs
-- **Impact**: Proper Free Agent experience and analytics
+### Automated Systems
+- **Memory Cleanup**: Automatic 72-hour expiry for job cache
+- **Performance Monitoring**: Real-time pipeline speed tracking
+- **Error Recovery**: Checkpoint-based resumption for failed runs
+- **Cost Optimization**: Intelligent API selection based on quotas
 
-### Exact Location Search Mode
-- **Feature**: Radius=0 option for both Google and Indeed
-- **UI**: Streamlit checkbox and terminal --exact-location flag
-- **Benefit**: Faster, more stable searches
-
-### Feature Backlog Management
-- **New**: BACKLOG.md for structured feature tracking
-- **Purpose**: Control complexity and prioritize shipping stable features
-- **Categories**: Critical Fixes, Enhancements, Future Features, Technical Debt
+### Manual Review Points
+- **Weekly**: Coach performance reports and budget utilization
+- **Monthly**: AI prompt optimization and business rule adjustments
+- **Quarterly**: Market expansion analysis and system scaling review
 
 ---
 
-*This documentation reflects the current system architecture as of September 4, 2025. The system continues to evolve with new features and optimizations.*
+*Last Updated: September 24, 2025 - Reflects current system architecture with Supabase-native infrastructure, revolutionary test suite, and Google Jobs integration.*

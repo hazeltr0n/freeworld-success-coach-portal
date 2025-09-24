@@ -1,0 +1,127 @@
+{
+  "summary": {
+    "total_tests": 4,
+    "passed": 4,
+    "failed": 0,
+    "pass_rate": 100.0,
+    "total_duration": 67.173233,
+    "total_jobs_found": 0,
+    "total_supabase_records": 0,
+    "total_links_generated": 0
+  },
+  "results": [
+    {
+      "test_name": "streamlit_app_loads",
+      "status": "passed",
+      "duration": 5.409347772598267,
+      "jobs_found": 0,
+      "supabase_records": 0,
+      "links_generated": 0,
+      "errors": [],
+      "timestamp": "2025-09-24T14:45:52.671117"
+    },
+    {
+      "test_name": "login_form_exists",
+      "status": "passed",
+      "duration": 5.863988637924194,
+      "jobs_found": 0,
+      "supabase_records": 0,
+      "links_generated": 0,
+      "errors": [],
+      "timestamp": "2025-09-24T14:45:58.825486"
+    },
+    {
+      "test_name": "admin_login_works",
+      "status": "passed",
+      "duration": 18.66138505935669,
+      "jobs_found": 0,
+      "supabase_records": 0,
+      "links_generated": 0,
+      "errors": [],
+      "timestamp": "2025-09-24T14:46:18.050860"
+    },
+    {
+      "test_name": "main_navigation_tabs",
+      "status": "passed",
+      "duration": 0.0725240707397461,
+      "jobs_found": 0,
+      "supabase_records": 0,
+      "links_generated": 0,
+      "errors": [],
+      "timestamp": "2025-09-24T14:46:45.360647"
+    }
+  ],
+  "config": {
+    "base_url": "https://fwcareertest.streamlit.app",
+    "timeout": 60000,
+    "admin_username": "james.hazelton",
+    "admin_password": "Tbonbass1!",
+    "test_coach_username": "james.hazelton",
+    "test_coach_password": "Tbonbass1!",
+    "google_jobs_enabled": true,
+    "batches_enabled": true,
+    "agent_portal_enabled": true,
+    "analytics_enabled": true,
+    "batch_timeout": 180000,
+    "analytics_timeout": 120000,
+    "search_timeout": 120000,
+    "test_locations": [
+      "Houston, TX",
+      "Dallas, TX",
+      "Austin, TX"
+    ],
+    "test_search_terms": [
+      "CDL driver",
+      "truck driver",
+      "warehouse, forklift",
+      "dock worker"
+    ],
+    "classifiers": [
+      "CDL Traditional",
+      "Career Pathways"
+    ],
+    "search_modes": [
+      "memory_only",
+      "indeed_fresh",
+      "google_jobs"
+    ],
+    "route_filters": [
+      "both",
+      "local",
+      "otr"
+    ],
+    "quality_levels": [
+      "good only",
+      "good and so-so"
+    ],
+    "experience_levels": [
+      "both",
+      "entry level",
+      "experienced"
+    ],
+    "pathway_options": [
+      "cdl_pathway",
+      "dock_to_driver",
+      "internal_cdl_training",
+      "warehouse_to_driver",
+      "logistics_progression",
+      "non_cdl_driving",
+      "general_warehouse",
+      "construction_apprentice"
+    ],
+    "navigation_tabs": [
+      "\ud83d\udd0d Job Search",
+      "\ud83d\uddd3\ufe0f Batches & Scheduling",
+      "\ud83d\udc65 Free Agents",
+      "\ud83d\udcca Coach Analytics",
+      "\ud83c\udfe2 Companies",
+      "\u2699\ufe0f Admin Panel"
+    ],
+    "job_quantity_options": [
+      "25 jobs (test)",
+      "100 jobs (sample)",
+      "500 jobs (medium)",
+      "1000+ jobs (full)"
+    ]
+  }
+}
