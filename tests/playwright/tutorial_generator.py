@@ -598,7 +598,7 @@ def generate_complete_tutorial():
     generator = TutorialCapture()
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False, slow_mo=500)
+        browser = p.chromium.launch(headless=True, slow_mo=500)
 
         try:
             # Generate all tutorial components
