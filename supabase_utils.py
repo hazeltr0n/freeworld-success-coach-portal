@@ -553,7 +553,7 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
                 'agent_uuid, agent_name, agent_email, agent_city, agent_state, '
                 'location, route_filter, fair_chance_only, max_jobs, match_level, '
                 'search_config, custom_url, is_active, created_at, last_accessed, '
-                'portal_clicks, last_portal_click, admin_portal_url'
+                'portal_clicks, last_portal_click, admin_portal_url, show_prepared_for'
             ).eq('coach_username', coach_username).eq('is_active', True).order(
                 'created_at', desc=True
             ).execute()
@@ -563,7 +563,7 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
                 'agent_uuid, agent_name, agent_email, agent_city, agent_state, '
                 'location, route_filter, fair_chance_only, max_jobs, match_level, '
                 'search_config, custom_url, is_active, created_at, last_accessed, '
-                'portal_clicks, last_portal_click'
+                'portal_clicks, last_portal_click, show_prepared_for'
             ).eq('coach_username', coach_username).eq('is_active', True).order(
                 'created_at', desc=True
             ).execute()
@@ -810,11 +810,13 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
         # Exclude permanently flagged jobs
         query = query.eq('job_flagged', False)
 
-        # Exclude jobs with recent expired feedback (72 hours)
-        expired_cutoff = datetime.utcnow() - timedelta(hours=72)
-        # Use OR logic: include jobs that either have no expired feedback timestamp
-        # OR have expired feedback older than 72 hours
-        # Note: We'll filter this after retrieval since Supabase OR logic is complex
+        # For expired feedback, we'll use simpler database-level filtering
+        # Exclude jobs with recent expired feedback (within 72 hours)
+        expired_cutoff = (datetime.utcnow() - timedelta(hours=72)).isoformat()
+
+        # Use Supabase's OR filtering to exclude jobs with recent expired feedback
+        # Include jobs where: last_expired_feedback_at IS NULL OR last_expired_feedback_at < cutoff
+        query = query.or_(f'last_expired_feedback_at.is.null,last_expired_feedback_at.lt.{expired_cutoff}')
 
         # Career pathway filtering
         if pathway_preferences:
@@ -833,33 +835,7 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
             if jobs_filtered > 0:
                 print(f"🚫 Filtered out {jobs_filtered} reported jobs")
 
-        # Filter out jobs with recent expired feedback (72-hour expiry)
-        jobs_before_expired = len(jobs)
-        expired_cutoff = datetime.utcnow() - timedelta(hours=72)
-
-        def should_include_job(job):
-            # Always include jobs with no expired feedback
-            if not job.get('feedback_expired_links') or job.get('feedback_expired_links') == 0:
-                return True
-
-            # Include jobs where expired feedback is older than 72 hours
-            last_expired = job.get('last_expired_feedback_at')
-            if not last_expired:
-                return True  # No timestamp means old feedback
-
-            try:
-                from dateutil import parser
-                last_expired_dt = parser.parse(last_expired)
-                # Include if the last expired feedback is older than 72 hours
-                return last_expired_dt < expired_cutoff
-            except:
-                # If parsing fails, include the job (benefit of doubt)
-                return True
-
-        jobs = [job for job in jobs if should_include_job(job)]
-        expired_filtered = jobs_before_expired - len(jobs)
-        if expired_filtered > 0:
-            print(f"⏰ Filtered out {expired_filtered} jobs with recent expired feedback")
+        # Expired feedback filtering is now handled at database level
         
         print(f"📦 Found {len(jobs)} quality jobs in Supabase memory (after feedback filtering)")
         

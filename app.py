@@ -2173,6 +2173,7 @@ def show_free_agent_management_page(coach):
                     'Fair Chance': agent.get('fair_chance_only', False),
                     'Max Jobs': agent.get('max_jobs', 25),
                     'Quality': agent.get('match_level', 'good and so-so'),
+                    'Show Prepared For': agent.get('show_prepared_for', True),
                     # INDIVIDUAL PATHWAY CHECKBOXES (instead of ListColumn)
                     'CDL Jobs': 'cdl_pathway' in pathway_prefs,
                     'Dock→Driver': 'dock_to_driver' in pathway_prefs,
@@ -2181,7 +2182,6 @@ def show_free_agent_management_page(coach):
                     'Logistics': 'logistics_progression' in pathway_prefs,
                     'Non-CDL': 'non_cdl_driving' in pathway_prefs,
                     'Warehouse': 'general_warehouse' in pathway_prefs,
-                    'Stepping Stone': 'stepping_stone' in pathway_prefs,
                     'City': agent.get('agent_city', ''),
                     'State': agent.get('agent_state', ''),
                     'Created': agent.get('created_at', '')[:10] if agent.get('created_at') else '',
@@ -2200,8 +2200,8 @@ def show_free_agent_management_page(coach):
         # Reorder columns with individual pathway checkboxes
         desired_order = [
             'Status', 'Name', 'Clicks (All)', 'Clicks (14d)', 'Apps (All)', 'Apps (14d)',
-            'Score', 'Activity', 'Last Applied', 'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Quality',
-            'CDL Jobs', 'Dock→Driver', 'CDL Training', 'Warehouse→Driver', 'Logistics', 'Non-CDL', 'Warehouse', 'Stepping Stone',
+            'Score', 'Activity', 'Last Applied', 'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Quality', 'Show Prepared For',
+            'CDL Jobs', 'Dock→Driver', 'CDL Training', 'Warehouse→Driver', 'Logistics', 'Non-CDL', 'Warehouse',
             'City', 'State', 'Created', 'Portal Link', 'Admin Portal', 'Delete', 'Restore',
             '_agent_uuid', '_created_at', '_original_data', '_is_active'
         ]
@@ -2258,6 +2258,11 @@ def show_free_agent_management_page(coach):
                 options=["good", "so-so", "good and so-so", "all"],
                 required=True
             ),
+            'Show Prepared For': st.column_config.CheckboxColumn(
+                "Show Prepared For",
+                help="Include 'Prepared for [Agent] by Coach [Coach]' message in portal",
+                width="small"
+            ),
             # INDIVIDUAL PATHWAY CHECKBOX COLUMNS (replacing ListColumn)
             'CDL Jobs': st.column_config.CheckboxColumn("CDL", width="small", help="Traditional CDL driving positions"),
             'Dock→Driver': st.column_config.CheckboxColumn("Dock→CDL", width="small", help="Dock worker to CDL driver transition"),
@@ -2266,7 +2271,6 @@ def show_free_agent_management_page(coach):
             'Logistics': st.column_config.CheckboxColumn("Logistics", width="small", help="Logistics career advancement"),
             'Non-CDL': st.column_config.CheckboxColumn("Non-CDL", width="small", help="Non-CDL driving positions"),
             'Warehouse': st.column_config.CheckboxColumn("Warehouse", width="small", help="General warehouse opportunities"),
-            'Stepping Stone': st.column_config.CheckboxColumn("Stepping", width="small", help="Career stepping stone positions"),
             'Clicks (All)': st.column_config.NumberColumn(
                 "Clicks (All)",
                 help="Total clicks since agent was created",
@@ -2427,7 +2431,6 @@ def show_free_agent_management_page(coach):
                             if edited['Logistics']: pathway_preferences.append('logistics_progression')
                             if edited['Non-CDL']: pathway_preferences.append('non_cdl_driving')
                             if edited['Warehouse']: pathway_preferences.append('general_warehouse')
-                            if edited['Stepping Stone']: pathway_preferences.append('stepping_stone')
 
                             # Just save the pathway preferences - portal will filter based on pathways
                             updated_agent['pathway_preferences'] = pathway_preferences
@@ -2438,6 +2441,7 @@ def show_free_agent_management_page(coach):
                                 'fair_chance_only': bool(edited['Fair Chance']),
                                 'max_jobs': convert_max_jobs(edited['Max Jobs']),
                                 'match_level': str(edited['Quality']),
+                                'show_prepared_for': bool(edited['Show Prepared For']),
                                 'agent_city': str(edited['City']),
                                 'agent_state': str(edited['State']),
                                 'admin_portal_url': str(edited['Admin Portal'])

@@ -465,31 +465,22 @@
     }
 
     function submitFeedback(jobId, candidateId, feedbackType) {
+      // Debug: Log what values are being passed from template
+      console.log('submitFeedback called with:', {
+        jobId: jobId,
+        candidateId: candidateId,
+        feedbackType: feedbackType
+      });
+
       // Get job details from the card
       const jobCard = document.querySelector(`#feedback-${jobId}`).closest('.page-container');
       const jobTitle = jobCard.querySelector('.card-header h1')?.textContent || 'Unknown';
       const jobCompany = jobCard.querySelector('.metadata-row .company')?.textContent || 'Unknown';
       const jobUrl = jobCard.querySelector('.apply-button')?.href || 'Unknown';
 
-      // Extract agent info from the job URL (edge function URL) instead of page URL
-      let actualCandidateId = 'unknown';
-      let actualJobId = jobId;
-      let coach = 'unknown';
-      let location = 'unknown';
-
-      try {
-        const jobUrlObj = new URL(jobUrl);
-        const jobUrlParams = new URLSearchParams(jobUrlObj.search);
-        actualCandidateId = jobUrlParams.get('candidate_id') || candidateId || 'unknown';
-        actualJobId = jobUrlParams.get('job_id') || jobId || 'unknown';
-        coach = jobUrlParams.get('coach') || 'unknown';
-        location = jobUrlParams.get('location') || 'unknown';
-      } catch (e) {
-        console.warn('Could not parse job URL parameters:', e);
-        // Fallback to passed parameters if URL parsing fails
-        actualCandidateId = candidateId !== 'unknown' ? candidateId : 'unknown';
-        actualJobId = jobId || 'unknown';
-      }
+      // Use the values passed directly from template - no URL parsing needed
+      const actualCandidateId = candidateId;
+      const actualJobId = jobId;
 
       // Prepare feedback data
       const feedbackData = {
@@ -499,8 +490,8 @@
         job_title: jobTitle,
         company: jobCompany,
         feedback_type: feedbackType,
-        location: location,
-        coach: coach
+        location: 'unknown',
+        coach: 'unknown'
       };
 
       console.log('Submitting feedback:', feedbackData);
