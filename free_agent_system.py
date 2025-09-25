@@ -47,6 +47,7 @@ def encode_agent_params(params: Dict[str, Any]) -> str:
         'match_quality_filter': match_value,  # Use modern parameter name
         'coach_username': params.get('coach_username', ''),
         'show_prepared_for': params.get('show_prepared_for', True),  # Include prepared message setting
+        'pathway_preferences': params.get('pathway_preferences', []),  # Individual pathway checkboxes
     }
     
     json_str = json.dumps(param_map, separators=(',', ':'))
@@ -69,6 +70,7 @@ def decode_agent_params(encoded: str) -> Dict[str, Any]:
             'match_level': 'good and so-so',
             'coach_username': '',
             'show_prepared_for': True,  # Default to True when decoding fails
+            'pathway_preferences': [],  # Default to empty pathways list
         }
 
 def generate_agent_url(agent_uuid: str, params: Dict[str, Any]) -> str:

@@ -597,6 +597,46 @@ class LinkTracker:
             self.logger.error(f"Error getting all links analytics: {e}")
             return None
     
+    def update_short_link(self, short_url: str, new_target_url: str, title: Optional[str] = None) -> bool:
+        """
+        Update an existing Short.io link to point to a new URL
+
+        Args:
+            short_url: The existing short URL (e.g., "https://freeworldjobs.short.gy/abc123")
+            new_target_url: New URL to redirect to
+            title: Optional new title
+
+        Returns:
+            True if update succeeded, False otherwise
+        """
+        if not self.api_key:
+            self.logger.warning("No API key available for updating links")
+            return False
+
+        # Extract the path from short URL
+        try:
+            short_path = short_url.split('/')[-1]  # Get last part after /
+
+            # Use Short.io update endpoint
+            update_url = f"{self.base_url}/links/{short_path}"
+            payload = {"originalURL": new_target_url.strip()}
+
+            if title:
+                payload["title"] = title[:100]
+
+            response = self.session.post(update_url, json=payload)
+
+            if response.status_code == 200:
+                self.logger.info(f"Updated short link {short_url} -> {new_target_url}")
+                return True
+            else:
+                self.logger.error(f"Failed to update short link {short_url}: {response.status_code} - {response.text}")
+                return False
+
+        except Exception as e:
+            self.logger.error(f"Error updating short link {short_url}: {e}")
+            return False
+
     def bulk_create_links(self, urls_with_metadata: list) -> Dict[str, str]:
         """
         Create multiple short links in bulk for efficiency

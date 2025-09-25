@@ -162,7 +162,43 @@ SCHEMA_CATEGORIES = {
   - Personalized messaging with coach attribution (optional)
 - **Integration**: Memory-only pipeline integration with full tracking
 
-### 7. Revolutionary Test Suite (`tests/playwright/`)
+### 7. Free Agent Management System (`app.py` - Free Agent Management)
+**Revolutionary high-performance table management with automatic portal link integration**
+
+#### Performance Breakthroughs (September 2025)
+- **Speed**: Eliminated 3-5 second table gray-out delays through comprehensive caching
+- **Responsiveness**: Zero auto-saves - changes only occur when user clicks "Save Changes"
+- **Efficiency**: Session state caching eliminates redundant Supabase queries on every edit
+
+#### Core Features
+- **Individual Pathway Checkboxes**: Clean interface replacing clunky ListColumn with 8 individual pathway options:
+  - `CDL Jobs`, `Dock→Driver`, `CDL Training`, `Warehouse→Driver`, `Logistics`, `Non-CDL`, `Warehouse`, `Stepping Stone`
+- **Shortened Column Names**: Improved UX with concise titles while maintaining full functionality
+- **Database Schema Migration**: Flattened JSON fields into individual columns for optimal performance
+- **Analytics Integration**: Pandas-based JOIN operations for missing field access
+
+#### Automatic Portal Link Generation
+**Revolutionary integration making portal links the core focus of the page**
+
+- **Seamless Integration**: Portal links automatically generate/update during table save process
+- **No Manual Steps**: Removed standalone "Regenerate Portal Links" button
+- **Complete Workflow**:
+  1. Generate encoded Supabase URLs with current agent settings
+  2. Update existing Short.io links OR create new ones
+  3. Store both Short.io and encoded URLs in database
+  4. All happens automatically on "Save Changes"
+
+- **Architecture**: Short.io → Supabase Edge Function → Encoded Portal URL
+- **Encoding**: Base64-encoded parameters include all agent preferences and pathway settings
+- **Tracking**: Full click analytics through Short.io with real-time webhook integration
+
+#### Technical Implementation
+- **Caching Strategy**: `agents_cache_key` prevents repeated database queries
+- **Field Validation**: Safety checks for column name changes and schema evolution
+- **Error Resilience**: Portal link failures don't break the core save process
+- **Performance Monitoring**: Real-time logging of all operations for debugging
+
+### 8. Revolutionary Test Suite (`tests/playwright/`)
 **12x performance improvement transforming QA from "nightmare" to "beautiful"**
 
 #### Master Efficient Test Architecture
@@ -298,6 +334,14 @@ DEFAULT_JOB_LIMIT=100
 
 ## 🚀 Recent Major Updates
 
+### September 2025: Free Agent Management Revolutionary Optimization
+- **Performance**: Eliminated 3-5 second table gray-out delays through comprehensive caching
+- **UX Enhancement**: Individual pathway checkboxes replacing clunky ListColumn interface
+- **Portal Integration**: Automatic portal link generation/updates on save - no manual steps required
+- **Database Migration**: Flattened JSON fields to individual columns for optimal performance
+- **Responsiveness**: Zero auto-saves - changes only occur when user clicks "Save Changes"
+- **Column Optimization**: Shortened column names with autosize for improved readability
+
 ### September 2025: Revolutionary Test Suite
 - **Achievement**: 12x performance improvement in QA workflow
 - **Innovation**: Master Efficient Test with DataFrame reuse pattern
@@ -372,4 +416,4 @@ python -m pytest test_master_efficient.py::TestMasterEfficient::test_cherry_pick
 
 ---
 
-*Last Updated: September 24, 2025 - Reflects current system architecture with Supabase-native infrastructure, revolutionary test suite, and Google Jobs integration.*
+*Last Updated: September 25, 2025 - Reflects current system architecture with Supabase-native infrastructure, revolutionary test suite, Google Jobs integration, and Free Agent Management optimization with automatic portal link generation.*

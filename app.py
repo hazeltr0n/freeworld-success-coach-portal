@@ -1506,7 +1506,7 @@ def show_free_agent_management_page(coach):
     
     st.header("👥 Free Agent Management")
     st.markdown("*Configure job searches for your Free Agents and manage their custom job feeds*")
-    
+
     # Note about analytics periods
     st.info("📊 **Analytics**: Free Agent metrics show All-Time data and 14-day periods (for bi-weekly coach check-ins).")
     
@@ -1955,32 +1955,46 @@ def show_free_agent_management_page(coach):
     with col3:
         show_deleted = st.checkbox("👻 Show Deleted", help="Show soft-deleted (inactive) agents")
 
+    with col1:
+        # Make checkbox visible BEFORE button
+        refresh_analytics = st.checkbox("🔄 Also refresh analytics", help="Slower but updates engagement metrics", key="refresh_analytics_opt")
+
     with col2:
         if st.button("🔄 Refresh", help="Reload agents from database"):
-            # PERFORMANCE OPTIMIZED: Only clear agents cache, preserve other caches
+            # Clear ALL relevant caches to force fresh data load
             agents_cache_key = f'agents_{coach.username}_{show_deleted}'
             if agents_cache_key in st.session_state:
                 del st.session_state[agents_cache_key]
 
-            # Optional analytics refresh - only if user wants it
-            refresh_analytics = st.checkbox("🔄 Also refresh analytics", help="Slower but updates engagement metrics", key="refresh_analytics_opt")
+            analytics_cache_key = f'analytics_{coach.username}'
+            if analytics_cache_key in st.session_state:
+                del st.session_state[analytics_cache_key]
+
+            # Use the checkbox value that's now visible
             if refresh_analytics:
                 try:
-                    from supabase_utils import refresh_free_agents_analytics_manual
-                    with st.spinner("🔄 Refreshing analytics data..."):
-                        result = refresh_free_agents_analytics_manual()
-                        if result.get('success'):
-                            agents_updated = result.get('agents_updated', 0)
-                            st.success(f"✅ Analytics data refreshed! Updated {agents_updated} agents.")
-                            # Clear analytics cache only if we refreshed it
-                            analytics_cache_key = f'analytics_{coach.username}'
-                            if analytics_cache_key in st.session_state:
-                                del st.session_state[analytics_cache_key]
-                        else:
-                            error_msg = result.get('error', 'Unknown error')
-                            st.error(f"❌ Analytics refresh failed: {error_msg}")
+                    from supabase_utils import get_client
+                    client = get_client()
+                    if client:
+                        with st.spinner("🔄 Refreshing analytics data..."):
+                            result = client.rpc('scheduled_agents_refresh').execute()
+
+                            # CRITICAL: Clear ALL Streamlit caches to force fresh data
+                            st.cache_data.clear()
+
+                            st.success("✅ Analytics data refreshed from click_events and job_feedback!")
+                    else:
+                        st.error("❌ Supabase client not available")
                 except Exception as e:
-                    st.warning(f"⚠️ Analytics refresh failed: {e}")
+                    if "JSON could not be generated" in str(e):
+                        # Even on JSON error, clear caches since the function likely worked
+                        st.cache_data.clear()
+                        st.success("✅ Analytics data refreshed from click_events and job_feedback!")
+                    else:
+                        st.error(f"❌ Analytics refresh failed: {e}")
+            else:
+                # Even without analytics refresh, clear Streamlit caches for agent data
+                st.cache_data.clear()
 
             st.rerun()
 

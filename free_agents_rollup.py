@@ -432,21 +432,49 @@ def update_free_agents_analytics_table():
     return agents_df
 
 def get_free_agents_analytics(coach_username: str = None, limit: int = 50) -> pd.DataFrame:
-    """Get free agents analytics with optional filtering"""
+    """Get free agents analytics with manual JOIN using pandas to get portal URLs and individual fields"""
     client = get_client()
     if not client:
         raise Exception("Supabase client not available")
 
-    query = client.table('free_agents_analytics').select('*').order('engagement_score', desc=True)
+    # Get analytics data
+    analytics_query = client.table('free_agents_analytics').select('*').order('engagement_score', desc=True)
 
     if coach_username:
-        query = query.eq('coach_username', coach_username)
+        analytics_query = analytics_query.eq('coach_username', coach_username)
 
     if limit:
-        query = query.limit(limit)
+        analytics_query = analytics_query.limit(limit)
 
-    result = query.execute()
-    return pd.DataFrame(result.data or [])
+    analytics_result = analytics_query.execute()
+    analytics_df = pd.DataFrame(analytics_result.data or [])
+
+    if analytics_df.empty:
+        return analytics_df
+
+    # Get agent profiles for the missing fields (custom_url, location, route_filter, etc.)
+    agent_uuids = analytics_df['agent_uuid'].unique().tolist()
+    profiles_query = client.table('agent_profiles').select(
+        'agent_uuid, custom_url, location, route_filter, fair_chance_only, max_jobs, match_level'
+    ).in_('agent_uuid', agent_uuids)
+
+    profiles_result = profiles_query.execute()
+    profiles_df = pd.DataFrame(profiles_result.data or [])
+
+    # Merge analytics with agent profiles on agent_uuid
+    if not profiles_df.empty:
+        merged_df = analytics_df.merge(profiles_df, on='agent_uuid', how='left', suffixes=('', '_profile'))
+    else:
+        # If no profiles, add empty columns
+        merged_df = analytics_df.copy()
+        merged_df['custom_url'] = ''
+        merged_df['location'] = 'Houston'
+        merged_df['route_filter'] = 'both'
+        merged_df['fair_chance_only'] = False
+        merged_df['max_jobs'] = 25
+        merged_df['match_level'] = 'good and so-so'
+
+    return merged_df
 
 def get_high_engagement_agents(coach_username: str = None) -> pd.DataFrame:
     """Get agents with high engagement scores"""
