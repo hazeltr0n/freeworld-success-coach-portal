@@ -350,6 +350,15 @@ def wrap_html_in_phone_screen(html_content: str) -> str:
     </div>
     """
 
+def convert_max_jobs(value):
+    """Robust conversion for max_jobs field handling 'All', NaN, and numeric values"""
+    try:
+        if pd.isna(value) or str(value).strip() == "" or str(value) == "All":
+            return 250  # Default for "All" or empty values
+        return int(float(value))  # Handle float-like strings
+    except (ValueError, TypeError):
+        return 25  # Safe default if conversion fails
+
 # Optional Airtable candidate lookup helpers (use Api.table to avoid deprecation)
 try:
     from pyairtable import Api  # type: ignore
@@ -597,16 +606,16 @@ def generate_tracked_portal_link(agent_data: dict) -> str:
             "type:portal_access"
         ]
 
-        # Generate edge function URL
+        # Generate edge function URL that will receive the click and redirect to portal
         edge_function_url = tracker.generate_edge_function_url(
             target_url=actual_portal_url,
             candidate_id=agent_uuid,
             tags=tags
         )
 
-        # Create Short.io link that points to the edge function
+        # Create Short.io link that points to the edge function (not directly to portal)
         tracked_shortio_link = tracker.create_short_link(
-            edge_function_url,
+            edge_function_url,  # Short.io points to edge function
             title=f"Portal - {agent_name}",
             tags=tags,
             candidate_id=agent_uuid
@@ -1658,10 +1667,12 @@ def show_free_agent_management_page(coach):
                 key="manual_agent_state",
                 help="Optional: Agent's state (2-letter code)"
             )
+            # Cache market options to avoid duplicate function calls
+            market_options = get_market_options()
             manual_location = st.selectbox(
                 "Market *",
-                options=get_market_options(),
-                index=get_market_options().index("Houston") if "Houston" in get_market_options() else 0,
+                options=market_options,
+                index=market_options.index("Houston") if "Houston" in market_options else 0,
                 key="manual_location",
                 help="Required: Market/location for job search"
             )
@@ -1939,31 +1950,40 @@ def show_free_agent_management_page(coach):
     
     # Add refresh button, deleted agents, and status indicator
     col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
-    with col2:
-        if st.button("🔄 Refresh", help="Reload agents from database"):
-            # Clear session state to reload data
-            if 'agent_profiles' in st.session_state:
-                del st.session_state['agent_profiles']
 
-            # Update analytics rollup table with latest data using Supabase function
-            try:
-                from supabase_utils import refresh_free_agents_analytics_manual
-                with st.spinner("🔄 Refreshing analytics data..."):
-                    result = refresh_free_agents_analytics_manual()
-                    if result.get('success'):
-                        agents_updated = result.get('agents_updated', 0)
-                        st.success(f"✅ Analytics data refreshed! Updated {agents_updated} agents.")
-                    else:
-                        error_msg = result.get('error', 'Unknown error')
-                        st.error(f"❌ Analytics refresh failed: {error_msg}")
-            except Exception as e:
-                st.warning(f"⚠️ Analytics refresh failed: {e}")
-
-            st.rerun()
-    
+    # Define show_deleted FIRST before using it in cache keys
     with col3:
         show_deleted = st.checkbox("👻 Show Deleted", help="Show soft-deleted (inactive) agents")
-    
+
+    with col2:
+        if st.button("🔄 Refresh", help="Reload agents from database"):
+            # PERFORMANCE OPTIMIZED: Only clear agents cache, preserve other caches
+            agents_cache_key = f'agents_{coach.username}_{show_deleted}'
+            if agents_cache_key in st.session_state:
+                del st.session_state[agents_cache_key]
+
+            # Optional analytics refresh - only if user wants it
+            refresh_analytics = st.checkbox("🔄 Also refresh analytics", help="Slower but updates engagement metrics", key="refresh_analytics_opt")
+            if refresh_analytics:
+                try:
+                    from supabase_utils import refresh_free_agents_analytics_manual
+                    with st.spinner("🔄 Refreshing analytics data..."):
+                        result = refresh_free_agents_analytics_manual()
+                        if result.get('success'):
+                            agents_updated = result.get('agents_updated', 0)
+                            st.success(f"✅ Analytics data refreshed! Updated {agents_updated} agents.")
+                            # Clear analytics cache only if we refreshed it
+                            analytics_cache_key = f'analytics_{coach.username}'
+                            if analytics_cache_key in st.session_state:
+                                del st.session_state[analytics_cache_key]
+                        else:
+                            error_msg = result.get('error', 'Unknown error')
+                            st.error(f"❌ Analytics refresh failed: {error_msg}")
+                except Exception as e:
+                    st.warning(f"⚠️ Analytics refresh failed: {e}")
+
+            st.rerun()
+
     with col4:
         # Show data source indicator
         try:
@@ -1975,68 +1995,94 @@ def show_free_agent_management_page(coach):
                 st.warning("🟡 Session")
         except Exception:
             st.warning("🟡 Session")  # Any error connecting to Supabase
-    
-    # Load existing agents with optimized batch loading (includes click stats)
-    # Include inactive agents if checkbox is checked
-    # PRODUCTION FIX: Add robust error handling to prevent crashes
-    try:
-        if show_deleted:
-            # For deleted agents, use basic loading since stats don't matter much
-            agents = load_agent_profiles(coach.username, include_inactive=True)
-            # Add empty stats for compatibility
-            for agent in agents:
-                if 'click_count' not in agent:
-                    agent['click_count'] = 0
-                if 'total_portal_visits' not in agent:
-                    agent['total_portal_visits'] = 0
-        else:
-            # Use analytics rollup table for better performance and no 1000 click limit
-            try:
-                from free_agents_rollup import get_free_agents_analytics
-                agents_df = get_free_agents_analytics(coach_username=coach.username, limit=None)
 
-                if not agents_df.empty:
-                    # Convert DataFrame to list of dicts for compatibility
-                    agents = agents_df.to_dict('records')
-                    # Map analytics fields to expected format
-                    for agent in agents:
-                        # Map click data
-                        agent['total_clicks'] = agent.get('total_job_clicks', 0)
-                        agent['recent_clicks'] = agent.get('total_job_clicks', 0)  # Analytics table may not have 7-day split
-                        agent['lookback_days'] = 14  # Fixed 14-day period
-                        agent['total_applications'] = agent.get('total_applications', 0)
-                        agent['last_application_at'] = agent.get('last_application_at', '')
+    # CACHE AGENTS TO STOP SUPABASE QUERIES ON EDIT
+    # Use the show_deleted value from the checkbox defined above
+    agents_cache_key = f'agents_{coach.username}_{show_deleted}'
 
-                        # Map location and preferences
-                        agent['location'] = agent.get('market', 'Houston')
-                        agent['route_filter'] = agent.get('route_preferences', {}).get('filter', 'both') if isinstance(agent.get('route_preferences'), dict) else 'both'
-                        agent['fair_chance_only'] = agent.get('route_preferences', {}).get('fair_chance_only', False) if isinstance(agent.get('route_preferences'), dict) else False
-                        agent['max_jobs'] = agent.get('search_config', {}).get('max_jobs', 25) if isinstance(agent.get('search_config'), dict) else 25
-                        agent['match_level'] = agent.get('search_config', {}).get('quality_level', 'good and so-so') if isinstance(agent.get('search_config'), dict) else 'good and so-so'
-                        agent['classifier_type'] = agent.get('search_config', {}).get('classifier_type', 'cdl') if isinstance(agent.get('search_config'), dict) else 'cdl'
-                        agent['pathway_preferences'] = agent.get('pathway_preferences', [])
+    if agents_cache_key not in st.session_state:
+        # Only load from Supabase ONCE per session
+        try:
+            if show_deleted:
+                print(f"🔍 LOADING PATH: Using basic loading for deleted agents")
+                # For deleted agents, use basic loading since stats don't matter much
+                agents = load_agent_profiles(coach.username, include_inactive=True)
+                # Add empty stats for compatibility AND fix portal URLs
+                for agent in agents:
+                    if 'click_count' not in agent:
+                        agent['click_count'] = 0
+                    if 'total_portal_visits' not in agent:
+                        agent['total_portal_visits'] = 0
+                    # FIX: Map portal URL for basic loading path
+                    agent['portal_url'] = agent.get('portal_url', agent.get('custom_url', ''))
+            else:
+                print(f"🔍 LOADING PATH: Using analytics rollup for active agents")
+                # Use analytics rollup table for better performance and no 1000 click limit
+                try:
+                    from free_agents_rollup import get_free_agents_analytics
+                    agents_df = get_free_agents_analytics(coach_username=coach.username, limit=None)
 
-                        # Map portal info
-                        agent['portal_url'] = agent.get('portal_url', '')
-                        agent['admin_portal_url'] = agent.get('admin_portal_url', '')
+                    if not agents_df.empty:
+                        # Convert DataFrame to list of dicts for compatibility
+                        agents = agents_df.to_dict('records')
+                        # Map analytics fields to expected format
+                        for agent in agents:
+                            # Map click data
+                            agent['total_clicks'] = agent.get('total_job_clicks', 0)
+                            agent['recent_clicks'] = agent.get('total_job_clicks', 0)  # Analytics table may not have 7-day split
+                            agent['lookback_days'] = 14  # Fixed 14-day period
+                            agent['total_applications'] = agent.get('total_applications', 0)
+                            agent['last_application_at'] = agent.get('last_application_at', '')
 
-                        # Map creation info
-                        agent['created_at'] = agent.get('created_at', '')
+                            # Map location and preferences - check both field names for compatibility
+                            agent['location'] = agent.get('location', agent.get('market', 'Houston'))
+                            # Map search config - check both nested structure and direct fields
+                            search_config = agent.get('search_config', {}) if isinstance(agent.get('search_config'), dict) else {}
+                            agent['route_filter'] = agent.get('route_filter', search_config.get('route_filter', 'both'))
+                            agent['fair_chance_only'] = agent.get('fair_chance_only', search_config.get('fair_chance_only', False))
+                            agent['max_jobs'] = agent.get('max_jobs', search_config.get('max_jobs', 25))
+                            agent['match_level'] = agent.get('match_level', search_config.get('match_level', search_config.get('quality_level', 'good and so-so')))
+                            agent['classifier_type'] = agent.get('search_config', {}).get('classifier_type', 'cdl') if isinstance(agent.get('search_config'), dict) else 'cdl'
+                            agent['pathway_preferences'] = agent.get('pathway_preferences', [])
 
-                        # Ensure required fields exist with defaults
-                        for field in ['agent_name', 'agent_email', 'agent_city', 'agent_state']:
-                            if field not in agent:
-                                agent[field] = ''
-                else:
-                    # Fallback to original method if analytics table is empty
+                            # Map portal info - check both field names for compatibility
+                            custom_url = agent.get('custom_url', '')
+                            portal_url = agent.get('portal_url', '')
+                            final_portal_url = portal_url or custom_url
+                            agent['portal_url'] = final_portal_url
+                            print(f"🔗 PORTAL DEBUG: Agent {agent.get('agent_name', 'Unknown')} - custom_url='{custom_url}', portal_url='{portal_url}', final='{final_portal_url}'")
+                            agent['admin_portal_url'] = agent.get('admin_portal_url', '')
+
+                            # Map creation info
+                            agent['created_at'] = agent.get('created_at', '')
+
+                            # Ensure required fields exist with defaults
+                            for field in ['agent_name', 'agent_email', 'agent_city', 'agent_state']:
+                                if field not in agent:
+                                    agent[field] = ''
+                    else:
+                        # Fallback to original method if analytics table is empty
+                        agents = load_agent_profiles_with_stats(coach.username, 14)
+                        # FIX: Map portal URLs for fallback path
+                        for agent in agents:
+                            agent['portal_url'] = agent.get('portal_url', agent.get('custom_url', ''))
+                except Exception as analytics_error:
+                    print(f"⚠️ Analytics rollup failed: {analytics_error}, falling back to original method")
                     agents = load_agent_profiles_with_stats(coach.username, 14)
-            except Exception as analytics_error:
-                print(f"⚠️ Analytics rollup failed: {analytics_error}, falling back to original method")
-                agents = load_agent_profiles_with_stats(coach.username, 14)
-    except Exception as e:
-        st.error(f"⚠️ Failed to load agent profiles: {str(e)}")
-        st.info("💡 Using fallback mode - some features may be limited")
-        agents = []  # Fallback to empty list to prevent crashes
+                    # FIX: Map portal URLs for fallback path
+                    for agent in agents:
+                        agent['portal_url'] = agent.get('portal_url', agent.get('custom_url', ''))
+
+            # CACHE THE AGENTS
+            st.session_state[agents_cache_key] = agents
+        except Exception as e:
+            st.error(f"⚠️ Failed to load agent profiles: {str(e)}")
+            st.info("💡 Using fallback mode - some features may be limited")
+            agents = []  # Fallback to empty list to prevent crashes
+            st.session_state[agents_cache_key] = agents
+    else:
+        # USE CACHED AGENTS - NO MORE SUPABASE QUERIES ON EDIT!
+        agents = st.session_state[agents_cache_key]
     
     # Debug info for testing
     if agents:
@@ -2046,15 +2092,18 @@ def show_free_agent_management_page(coach):
     
     if agents:
         st.markdown("### Your Free Agents")
-        
-        # Convert agents to DataFrame for streamlit data_editor
-        # pandas already imported globally
-        
-        # Load analytics data for better metrics
-        from supabase_utils import get_free_agents_analytics_data
-        analytics_df = get_free_agents_analytics_data(coach.username)
 
-        # Create lookup for analytics data
+        # STOP SUPABASE QUERIES ON EDIT - cache the analytics data completely
+        analytics_cache_key = f'analytics_{coach.username}'
+
+        if analytics_cache_key not in st.session_state:
+            from supabase_utils import get_free_agents_analytics_data
+            analytics_df = get_free_agents_analytics_data(coach.username)
+            st.session_state[analytics_cache_key] = analytics_df
+        else:
+            analytics_df = st.session_state[analytics_cache_key]
+
+        # Create lookup for analytics data (always process, just don't query DB)
         analytics_lookup = {}
         if not analytics_df.empty:
             for _, row in analytics_df.iterrows():
@@ -2067,7 +2116,7 @@ def show_free_agent_management_page(coach):
                     'activity_level': row.get('activity_level', 'new')
                 }
 
-        # Prepare data for the editor
+        # Prepare ALL data for the editor - keep EVERY column
         agent_data = []
         for agent in agents:
             # Use analytics data if available, fallback to agent profile data
@@ -2075,87 +2124,79 @@ def show_free_agent_management_page(coach):
             analytics = analytics_lookup.get(agent_uuid, {})
 
             stats = {
-                'total_clicks': analytics.get('total_clicks', agent.get('total_clicks', 0)),
-                'clicks_14d': analytics.get('clicks_14d', 0),
-                'total_applications': analytics.get('total_applications', agent.get('total_applications', 0)),
-                'applications_14d': analytics.get('applications_14d', 0),
-                'engagement_score': analytics.get('engagement_score', 0),
-                'activity_level': analytics.get('activity_level', 'new')
+                    'total_clicks': analytics.get('total_clicks', agent.get('total_clicks', 0)),
+                    'clicks_14d': analytics.get('clicks_14d', 0),
+                    'total_applications': analytics.get('total_applications', agent.get('total_applications', 0)),
+                    'applications_14d': analytics.get('applications_14d', 0),
+                    'engagement_score': analytics.get('engagement_score', 0),
+                    'activity_level': analytics.get('activity_level', 'new')
             }
-            
-            # Use stored portal URL if available, otherwise generate dynamic URL
-            agent_uuid = agent.get('agent_uuid', '')
-            if agent_uuid:
-                # Prefer stored portal_url (which should be a short link from agent creation)
-                stored_portal_url = agent.get('portal_url', '')
-                if stored_portal_url:
-                    dynamic_portal_url = stored_portal_url
-                else:
-                    # Fallback to generating dynamic URL if no stored portal_url
-                    dynamic_portal_url = generate_dynamic_portal_link(agent)
-            else:
-                dynamic_portal_url = "Missing UUID - Cannot generate secure link"
-            
+
             # Determine status
             is_active = agent.get('is_active', True)
             status = "🟢 Active" if is_active else "👻 Deleted"
-            
-            # Format pathway preferences for multi-select editing
+
+            # OPTIMIZED PATHWAY LOGIC: Convert to individual checkboxes
             pathway_prefs = agent.get('pathway_preferences', [])
             classifier_type = agent.get('classifier_type', 'cdl')
 
             # For CDL agents, always include CDL Pathway in the list
-            if classifier_type == 'cdl':
-                pathway_list = ['cdl_pathway']
-                if pathway_prefs:
-                    pathway_list.extend(pathway_prefs)
-            else:
-                pathway_list = pathway_prefs if pathway_prefs else []
+            if classifier_type == 'cdl' and 'cdl_pathway' not in pathway_prefs:
+                pathway_prefs = ['cdl_pathway'] + pathway_prefs
 
             agent_row = {
                 'Status': status,
-                'Free Agent Name': agent.get('agent_name', 'Unknown'),
-                'Total Clicks (All-Time)': stats['total_clicks'],
-                'Clicks (14d)': stats['clicks_14d'],
-                'Total Applications (All-Time)': stats['total_applications'],
-                'Applications (14d)': stats['applications_14d'],
-                'Engagement Score': int(stats['engagement_score']) if stats['engagement_score'] else 0,
-                'Activity Level': stats['activity_level'].title() if stats['activity_level'] else 'New',
-                'Last Applied': agent.get('last_application_at', '')[:10] if agent.get('last_application_at') else '',
-                'Market': agent.get('location', 'Houston'),
-                'Route': agent.get('route_filter', 'both'),
-                'Fair Chance': agent.get('fair_chance_only', False),
-                'Max Jobs': agent.get('max_jobs', 25),
-                'Match Level': agent.get('match_level', 'good and so-so'),
-                'Career Pathways': pathway_list,
-                'City': agent.get('agent_city', ''),
-                'State': agent.get('agent_state', ''),
-                'Created': agent.get('created_at', '')[:10] if agent.get('created_at') else '',
-                'Portal Link': generate_tracked_portal_link(agent),
-                'Admin Portal': agent.get('admin_portal_url', ''),
-                'Restore' if not is_active else 'Delete': False,  # Checkbox for restore/deletion
-                # Hidden fields for updates
-                '_agent_uuid': agent.get('agent_uuid', ''),
-                '_created_at': agent.get('created_at', ''),
-                '_original_data': agent,  # Store original for comparison
-                '_is_active': is_active  # Store active status
+                    'Name': agent.get('agent_name', 'Unknown'),
+                    'Clicks (All)': stats['total_clicks'],
+                    'Clicks (14d)': stats['clicks_14d'],
+                    'Apps (All)': stats['total_applications'],
+                    'Apps (14d)': stats['applications_14d'],
+                    'Score': int(stats['engagement_score']) if stats['engagement_score'] else 0,
+                    'Activity': stats['activity_level'].title() if stats['activity_level'] else 'New',
+                    'Last Applied': agent.get('last_application_at', '')[:10] if agent.get('last_application_at') else '',
+                    'Market': agent.get('location', 'Houston'),
+                    'Route': agent.get('route_filter', 'both'),
+                    'Fair Chance': agent.get('fair_chance_only', False),
+                    'Max Jobs': agent.get('max_jobs', 25),
+                    'Quality': agent.get('match_level', 'good and so-so'),
+                    # INDIVIDUAL PATHWAY CHECKBOXES (instead of ListColumn)
+                    'CDL Jobs': 'cdl_pathway' in pathway_prefs,
+                    'Dock→Driver': 'dock_to_driver' in pathway_prefs,
+                    'CDL Training': 'internal_cdl_training' in pathway_prefs,
+                    'Warehouse→Driver': 'warehouse_to_driver' in pathway_prefs,
+                    'Logistics': 'logistics_progression' in pathway_prefs,
+                    'Non-CDL': 'non_cdl_driving' in pathway_prefs,
+                    'Warehouse': 'general_warehouse' in pathway_prefs,
+                    'Stepping Stone': 'stepping_stone' in pathway_prefs,
+                    'City': agent.get('agent_city', ''),
+                    'State': agent.get('agent_state', ''),
+                    'Created': agent.get('created_at', '')[:10] if agent.get('created_at') else '',
+                    'Portal Link': agent.get('portal_url', 'No link generated'),
+                    'Admin Portal': agent.get('admin_portal_url', ''),
+                    'Restore' if not is_active else 'Delete': False,  # Checkbox for restore/deletion
+                    # Hidden fields for updates
+                    '_agent_uuid': agent.get('agent_uuid', ''),
+                    '_created_at': agent.get('created_at', ''),
+                    '_original_data': agent,  # Store original for comparison
+                    '_is_active': is_active  # Store active status
             }
             agent_data.append(agent_row)
-        
+
         df = pd.DataFrame(agent_data)
-        # Reorder columns to prioritize new analytics metrics next to name
+        # Reorder columns with individual pathway checkboxes
         desired_order = [
-            'Status', 'Free Agent Name', 'Total Clicks (All-Time)', 'Clicks (14d)', 'Total Applications (All-Time)', 'Applications (14d)',
-            'Engagement Score', 'Activity Level', 'Last Applied', 'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Match Level',
-            'Career Pathways', 'City', 'State', 'Created', 'Portal Link', 'Admin Portal', 'Delete', 'Restore',
+            'Status', 'Name', 'Clicks (All)', 'Clicks (14d)', 'Apps (All)', 'Apps (14d)',
+            'Score', 'Activity', 'Last Applied', 'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Quality',
+            'CDL Jobs', 'Dock→Driver', 'CDL Training', 'Warehouse→Driver', 'Logistics', 'Non-CDL', 'Warehouse', 'Stepping Stone',
+            'City', 'State', 'Created', 'Portal Link', 'Admin Portal', 'Delete', 'Restore',
             '_agent_uuid', '_created_at', '_original_data', '_is_active'
         ]
         df = df[[c for c in desired_order if c in df.columns]]
         
         # Configure column editor types
         column_config = {
-            'Free Agent Name': st.column_config.TextColumn(
-                "Free Agent Name",
+            'Name': st.column_config.TextColumn(
+                "Name",
                 help="Free Agent's full name",
                 disabled=True,
                 width="medium"
@@ -2193,36 +2234,58 @@ def show_free_agent_management_page(coach):
                 "Maximum Jobs",
                 help="Maximum jobs in search results - includes All option",
                 width="small", 
-                options=[15, 25, 50, 100, "All"],
+                options=[15, 25, 50, 100, 250],
                 required=True
             ),
-            'Match Level': st.column_config.SelectboxColumn(
-                "Match Level",
+            'Quality': st.column_config.SelectboxColumn(
+                "Quality",
                 help="AI match quality filter for jobs",
                 width="small",
                 options=["good", "so-so", "good and so-so", "all"],
                 required=True
             ),
-            'Career Pathways': st.column_config.ListColumn(
-                "Career Pathways",
-                help="Select career pathway preferences - CDL agents always include CDL Pathway",
-                width="medium"
-            ),
-            'Total Clicks (All-Time)': st.column_config.NumberColumn(
-                "Total Clicks (All-Time)",
+            # INDIVIDUAL PATHWAY CHECKBOX COLUMNS (replacing ListColumn)
+            'CDL Jobs': st.column_config.CheckboxColumn("CDL", width="small", help="Traditional CDL driving positions"),
+            'Dock→Driver': st.column_config.CheckboxColumn("Dock→CDL", width="small", help="Dock worker to CDL driver transition"),
+            'CDL Training': st.column_config.CheckboxColumn("Training", width="small", help="Company-sponsored CDL programs"),
+            'Warehouse→Driver': st.column_config.CheckboxColumn("Warehouse→CDL", width="small", help="Warehouse to driving progression"),
+            'Logistics': st.column_config.CheckboxColumn("Logistics", width="small", help="Logistics career advancement"),
+            'Non-CDL': st.column_config.CheckboxColumn("Non-CDL", width="small", help="Non-CDL driving positions"),
+            'Warehouse': st.column_config.CheckboxColumn("Warehouse", width="small", help="General warehouse opportunities"),
+            'Stepping Stone': st.column_config.CheckboxColumn("Stepping", width="small", help="Career stepping stone positions"),
+            'Clicks (All)': st.column_config.NumberColumn(
+                "Clicks (All)",
                 help="Total clicks since agent was created",
                 disabled=True,
                 width="small"
             ),
-            'Recent (7d)': st.column_config.NumberColumn(
-                "Recent (7d)",
-                help="Clicks in last 7 days",
+            'Clicks (14d)': st.column_config.NumberColumn(
+                "Clicks (14d)",
+                help="Clicks in last 14 days",
                 disabled=True,
                 width="small"
             ),
-            'Applications': st.column_config.NumberColumn(
-                "Applications",
-                help="Total job applications submitted via feedback",
+            'Apps (All)': st.column_config.NumberColumn(
+                "Apps (All)",
+                help="Total applications all-time",
+                disabled=True,
+                width="small"
+            ),
+            'Apps (14d)': st.column_config.NumberColumn(
+                "Apps (14d)",
+                help="Applications in last 14 days",
+                disabled=True,
+                width="small"
+            ),
+            'Score': st.column_config.NumberColumn(
+                "Score",
+                help="Engagement score",
+                disabled=True,
+                width="small"
+            ),
+            'Activity': st.column_config.TextColumn(
+                "Activity",
+                help="Activity level",
                 disabled=True,
                 width="small"
             ),
@@ -2279,14 +2342,22 @@ def show_free_agent_management_page(coach):
         # Create a stable hash of the current dataframe state for comparison
         def get_editable_data_hash(df_row):
             """Get hash of just the editable fields for comparison"""
-            editable_fields = ['Market', 'Route', 'Fair Chance', 'Max Jobs', 'Match Level', 'Career Pathways', 'City', 'State', 'Admin Portal']
-            return hash(tuple(str(df_row[field]) for field in editable_fields))
+            editable_fields = [
+                'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Quality', 'City', 'State', 'Admin Portal',
+                'CDL Jobs', 'Dock→Driver', 'CDL Training', 'Warehouse→Driver', 'Logistics', 'Non-CDL', 'Warehouse', 'Stepping Stone'
+            ]
+            # Only include fields that actually exist in the DataFrame (safety check for column name changes)
+            available_fields = [field for field in editable_fields if field in df_row.index]
+            return hash(tuple(str(df_row[field]) for field in available_fields))
 
         # Initialize with current state on first load to avoid false positives
-        if not st.session_state.agent_table_last_saved and len(df) > 0:
-            for idx in range(len(df)):
-                agent_uuid = df.iloc[idx]['_agent_uuid']
-                st.session_state.agent_table_last_saved[agent_uuid] = get_editable_data_hash(df.iloc[idx])
+        # Use edited_df instead of df to match the comparison logic
+        if len(edited_df) > 0:
+            for idx in range(len(edited_df)):
+                agent_uuid = edited_df.iloc[idx]['_agent_uuid']
+                if agent_uuid not in st.session_state.agent_table_last_saved:
+                    # Initialize with current state to prevent false detection on first load
+                    st.session_state.agent_table_last_saved[agent_uuid] = get_editable_data_hash(edited_df.iloc[idx])
 
         # Check for changes and update database (but don't automatically rerun)
         current_state = {}
@@ -2333,30 +2404,34 @@ def show_free_agent_management_page(coach):
                             # Create updated agent data
                             updated_agent = original_agent.copy()
 
-                            # Handle Career Pathways - separate CDL pathway from additional pathways
-                            career_pathways = edited['Career Pathways']
-                            if isinstance(career_pathways, list):
-                                # For CDL agents, cdl_pathway should stay in classifier_type
-                                # Additional pathways go in pathway_preferences
-                                if 'cdl_pathway' in career_pathways:
-                                    updated_agent['classifier_type'] = 'cdl'
-                                    additional_pathways = [p for p in career_pathways if p != 'cdl_pathway']
-                                    updated_agent['pathway_preferences'] = additional_pathways
-                                else:
-                                    # Non-CDL agent with pathway preferences only
-                                    updated_agent['classifier_type'] = 'pathway'
-                                    updated_agent['pathway_preferences'] = career_pathways
+                            # SIMPLIFIED PATHWAY LOGIC: Convert individual checkboxes to unified array
+                            pathway_preferences = []
+                            if edited['CDL Jobs']: pathway_preferences.append('cdl_pathway')
+                            if edited['Dock→Driver']: pathway_preferences.append('dock_to_driver')
+                            if edited['CDL Training']: pathway_preferences.append('internal_cdl_training')
+                            if edited['Warehouse→Driver']: pathway_preferences.append('warehouse_to_driver')
+                            if edited['Logistics']: pathway_preferences.append('logistics_progression')
+                            if edited['Non-CDL']: pathway_preferences.append('non_cdl_driving')
+                            if edited['Warehouse']: pathway_preferences.append('general_warehouse')
+                            if edited['Stepping Stone']: pathway_preferences.append('stepping_stone')
+
+                            # Just save the pathway preferences - portal will filter based on pathways
+                            updated_agent['pathway_preferences'] = pathway_preferences
 
                             updated_agent.update({
-                                'location': str(edited['Market']),
+                                'location': str(edited['Market']),  # Save as 'location' for legacy compatibility
                                 'route_filter': str(edited['Route']),
                                 'fair_chance_only': bool(edited['Fair Chance']),
-                                'max_jobs': edited['Max Jobs'] if str(edited['Max Jobs']) == "All" else int(edited['Max Jobs']),
-                                'match_level': str(edited['Match Level']),
+                                'max_jobs': convert_max_jobs(edited['Max Jobs']),
+                                'match_level': str(edited['Quality']),
                                 'agent_city': str(edited['City']),
                                 'agent_state': str(edited['State']),
                                 'admin_portal_url': str(edited['Admin Portal'])
                             })
+
+                            # DEBUG: Print what we're about to save
+                            print(f"🔍 TABLE SAVE DEBUG: About to save agent {edited['Name']}")
+                            print(f"🔍 TABLE SAVE DEBUG: updated_agent data = {updated_agent}")
 
                             # Save to database
                             success, message = save_agent_profile(coach.username, updated_agent)
@@ -2364,13 +2439,75 @@ def show_free_agent_management_page(coach):
                                 success_count += 1
                                 # Update the saved state hash
                                 st.session_state.agent_table_last_saved[agent_uuid] = get_editable_data_hash(edited)
+
+                                # AUTOMATICALLY GENERATE/UPDATE PORTAL LINKS ON SAVE
+                                try:
+                                    from free_agent_system import generate_agent_url
+                                    from link_tracker import LinkTracker
+
+                                    print(f"🔗 AUTO-GENERATING portal link for {edited['Name']}")
+
+                                    # Generate new encoded Supabase portal URL with current settings
+                                    new_encoded_url = generate_agent_url(updated_agent['agent_uuid'], updated_agent)
+                                    print(f"🔗 Generated encoded portal URL: {new_encoded_url}")
+
+                                    # Get existing Short.io link
+                                    existing_custom_url = original_agent.get('custom_url', '') if isinstance(original_agent, dict) else ''
+
+                                    # Use working create_short_link method (same as jobs)
+                                    tracker = LinkTracker()
+
+                                    # Generate tags like we do for jobs
+                                    tags = [
+                                        f"agent:{updated_agent['agent_uuid']}",
+                                        f"coach:{updated_agent.get('coach_username', '')}",
+                                        f"market:{updated_agent.get('location', 'Unknown')}",
+                                        "source:auto_save",
+                                        "type:agent_portal"
+                                    ]
+
+                                    # Use create_short_link (SAME as jobs) for reliable portal link generation
+                                    working_short_url = tracker.create_short_link(
+                                        original_url=new_encoded_url,  # Pass the final portal URL directly
+                                        title=f"Portal - {edited['Name']}",
+                                        tags=tags,
+                                        candidate_id=updated_agent['agent_uuid']
+                                    )
+
+                                    portal_link_updated = False
+                                    if working_short_url and working_short_url != new_encoded_url:
+                                        print(f"✅ SUCCESS! Working portal link created: {working_short_url}")
+                                        updated_agent['custom_url'] = working_short_url
+                                        updated_agent['original_long_url'] = new_encoded_url
+                                        portal_link_updated = True
+                                    else:
+                                        print(f"⚠️ create_short_link failed or returned same URL: {working_short_url}")
+
+                                    if not portal_link_updated:
+                                        # Fallback: Still store the encoded URL even if Short.io fails
+                                        print(f"⚠️ Portal link generation failed, storing encoded URL only")
+                                        updated_agent['original_long_url'] = new_encoded_url
+
+                                    # Save the updated portal URL info back to database
+                                    if portal_link_updated:
+                                        save_success, save_msg = save_agent_profile(coach.username, updated_agent)
+                                        if save_success:
+                                            print(f"✅ Portal link saved to database for {edited['Name']}")
+                                        else:
+                                            print(f"⚠️ Failed to save portal link to database: {save_msg}")
+
+                                except Exception as e:
+                                    print(f"❌ Portal link generation failed for {edited['Name']}: {e}")
+                                    # Don't fail the whole save process if portal link generation fails
                                 # Show detailed success message for debugging
-                                st.info(f"✅ Saved changes for {edited['Free Agent Name']}: Market={edited['Market']}, Route={edited['Route']}, Fair Chance={edited['Fair Chance']}, Max Jobs={edited['Max Jobs']}, Match Level={edited['Match Level']}, Career Pathways={edited['Career Pathways']}, City={edited['City']}, State={edited['State']}, Admin Portal={edited['Admin Portal']}")
+                                st.info(f"✅ Saved changes for {edited['Name']}: Market={edited['Market']}, Route={edited['Route']}, Fair Chance={edited['Fair Chance']}, Max Jobs={edited['Max Jobs']}, Quality={edited['Quality']}, Pathways={pathway_preferences}, City={edited['City']}, State={edited['State']}, Admin Portal={edited['Admin Portal']}")
+                                print(f"✅ TABLE SAVE SUCCESS: Agent {edited['Name']} saved with Market={edited['Market']}")
                             else:
                                 error_count += 1
-                                st.error(f"❌ Failed to update {edited['Free Agent Name']}: {message}")
+                                st.error(f"❌ Failed to update {edited['Name']}: {message}")
+                                print(f"❌ TABLE SAVE FAILED: Agent {edited['Name']}: {message}")
                                 # Show original values for comparison in case of failure
-                                st.error(f"🔍 Original values - Market: {original_agent.get('location')}, Route: {original_agent.get('route_filter')}, Fair Chance: {original_agent.get('fair_chance_only')}, Max Jobs: {original_agent.get('max_jobs')}, Match Level: {original_agent.get('match_level')}")
+                                st.error(f"🔍 Original values - Market: {original_agent.get('location')}, Route: {original_agent.get('route_filter')}, Fair Chance: {original_agent.get('fair_chance_only')}, Max Jobs: {original_agent.get('max_jobs')}, Quality: {original_agent.get('match_level')}")
 
                         if success_count > 0:
                             st.success(f"✅ Successfully updated {success_count} agent(s)")
@@ -2381,7 +2518,7 @@ def show_free_agent_management_page(coach):
                                     verification_agents = load_agent_profiles(coach.username)
                                     for idx, original, edited in changed_rows:
                                         agent_uuid = original['_agent_uuid']
-                                        agent_name = edited['Free Agent Name']
+                                        agent_name = edited['Name']
 
                                         # Find the agent in the verification data
                                         saved_agent = None
@@ -2397,18 +2534,19 @@ def show_free_agent_management_page(coach):
                                             st.write(f"  - Route: {saved_config.get('route_filter', 'N/A')} (expected: {edited['Route']})")
                                             st.write(f"  - Fair Chance: {saved_config.get('fair_chance_only', 'N/A')} (expected: {edited['Fair Chance']})")
                                             st.write(f"  - Max Jobs: {saved_config.get('max_jobs', 'N/A')} (expected: {edited['Max Jobs']})")
-                                            st.write(f"  - Match Level: {saved_config.get('match_level', 'N/A')} (expected: {edited['Match Level']})")
+                                            st.write(f"  - Quality: {saved_config.get('match_level', 'N/A')} (expected: {edited['Quality']})")
                                         else:
                                             st.error(f"⚠️ Could not find {agent_name} in database verification")
                                 except Exception as e:
                                     st.error(f"❌ Verification failed: {e}")
 
-                            st.info("💡 Use 'Regenerate All Portal Links' to update portal URLs with new settings")
+                            st.info("✅ Portal links will be automatically updated when you save changes")
 
-                            # Clear session state to reload fresh data
-                            if 'agent_profiles' in st.session_state:
-                                del st.session_state['agent_profiles']
-                                st.info("🔄 Cleared session data to ensure fresh data loads")
+                            # Clear agents cache to reload fresh data after successful saves
+                            # This ensures the table shows the updated data from Supabase
+                            agents_cache_key = f'agents_{coach.username}_{show_deleted}'
+                            if agents_cache_key in st.session_state:
+                                del st.session_state[agents_cache_key]
 
                         if error_count > 0:
                             st.error(f"❌ Failed to update {error_count} agent(s)")
@@ -2432,7 +2570,7 @@ def show_free_agent_management_page(coach):
                     delete_count = 0
                     for _, agent_row in agents_to_delete.iterrows():
                         agent_uuid = agent_row['_agent_uuid']
-                        agent_name = agent_row['Free Agent Name']
+                        agent_name = agent_row['Name']
                         try:
                             from free_agent_system import delete_agent_profile
                             if delete_agent_profile(coach.username, agent_uuid):
@@ -2460,7 +2598,7 @@ def show_free_agent_management_page(coach):
                     restore_count = 0
                     for _, agent_row in agents_to_restore.iterrows():
                         agent_uuid = agent_row['_agent_uuid'] 
-                        agent_name = agent_row['Free Agent Name']
+                        agent_name = agent_row['Name']
                         try:
                             from supabase_utils import get_client
                             client = get_client()
@@ -2492,88 +2630,7 @@ def show_free_agent_management_page(coach):
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            if st.button("🔗 Regenerate All Portal Links", help="Regenerate Short.io portal links for all agents using current table settings"):
-                with st.spinner("Regenerating portal links for all agents..."):
-                    regenerated_count = 0
-                    failed_count = 0
-                    
-                    # Use current edited table data instead of original stored data
-                    for idx, edited_row in edited_df.iterrows():
-                        # Get the original agent data for UUID and other non-editable fields
-                        original_agent = edited_row['_original_data']
-                        agent_name = edited_row['Free Agent Name']
-                        
-                        # Create updated agent object with current table filter values
-                        # Build fresh agent dict from table data instead of trying to convert original_agent
-                        updated_agent = {
-                            'agent_uuid': edited_row.get('_agent_uuid', ''),
-                            'agent_name': agent_name,
-                            'agent_email': getattr(original_agent, 'get', lambda x,d: d)('agent_email', ''),
-                            'agent_city': getattr(original_agent, 'get', lambda x,d: d)('agent_city', ''),
-                            'agent_state': getattr(original_agent, 'get', lambda x,d: d)('agent_state', ''),
-                            'created_at': edited_row.get('_created_at', ''),
-                            'coach_username': coach.username
-                        }
-                        # Normalize route filter value to ensure consistency
-                        route_value = str(edited_row['Route']).lower()  # Ensure lowercase
-                        
-                        updated_agent.update({
-                            'location': edited_row['Market'],
-                            'route_filter': route_value,  # Use normalized lowercase value
-                            'fair_chance_only': bool(edited_row['Fair Chance']),
-                            'max_jobs': edited_row['Max Jobs'] if str(edited_row['Max Jobs']) == "All" else int(edited_row['Max Jobs']),
-                            'match_level': edited_row['Match Level'],
-                            'coach_username': coach.username  # Ensure coach username is included
-                        })
-                        
-                        print(f"🔍 ROUTE DEBUG: Table shows '{edited_row['Route']}', normalized to '{route_value}'")
-                        try:
-                            # DEBUG: Show exactly what we're passing to portal link generation
-                            debug_params = {
-                                'agent_uuid': updated_agent.get('agent_uuid', 'MISSING'),
-                                'agent_name': updated_agent.get('agent_name', 'MISSING'),
-                                'location': updated_agent.get('location', 'MISSING'),
-                                'route_filter': updated_agent.get('route_filter', 'MISSING'),
-                                'fair_chance_only': updated_agent.get('fair_chance_only', 'MISSING'),
-                                'max_jobs': updated_agent.get('max_jobs', 'MISSING'),
-                                'match_level': updated_agent.get('match_level', 'MISSING'),
-                                'coach_username': updated_agent.get('coach_username', 'MISSING')
-                            }
-                            print(f"🔍 DEBUG: Agent parameters being passed: {debug_params}")
-                            
-                            # Preserve existing Short.io link, only update underlying portal configuration
-                            print(f"🔗 Updating portal config for {agent_name} with filters: Market={updated_agent['location']}, Route={updated_agent['route_filter']}, Fair Chance={updated_agent['fair_chance_only']}")
-
-                            # Get the existing custom_url from original agent data
-                            existing_custom_url = getattr(original_agent, 'get', lambda x,d: d)('custom_url', '')
-                            if existing_custom_url:
-                                updated_agent['custom_url'] = existing_custom_url
-                                print(f"✅ Preserved existing Short.io link: {existing_custom_url}")
-                            else:
-                                # If no custom_url exists, this will trigger creation in save_agent_profile
-                                print(f"⚠️ No existing Short.io link found, will create new one")
-                            
-                            success, message = save_agent_profile(coach.username, updated_agent)
-                            if success:
-                                regenerated_count += 1
-                                print(f"✅ Successfully regenerated link for {agent_name}")
-                            else:
-                                failed_count += 1
-                                st.error(f"❌ Failed to save {agent_name}: {message}")
-                                
-                        except Exception as e:
-                            failed_count += 1
-                            error_msg = str(e)
-                            print(f"❌ Failed to regenerate link for {agent_name}: {error_msg}")
-                            st.error(f"❌ Failed to regenerate link for {agent_name}: {error_msg}")
-                    
-                    if regenerated_count > 0:
-                        st.success(f"✅ Regenerated {regenerated_count} portal links")
-                    if failed_count > 0:
-                        st.error(f"❌ Failed to regenerate {failed_count} links")
-                    
-                    if regenerated_count > 0:
-                        st.rerun()
+            st.write("")  # Placeholder for now
         
         with col2:
             if st.button("📧 Export Email List", help="Export all agent emails as CSV"):
@@ -3460,7 +3517,7 @@ def main():
             }
             default_pdf_limit = search_mode_to_pdf_limit.get(search_mode_tab, 50)
             default_index = 2  # default to 50
-            pdf_options = [10, 25, 50, 100, "All"]
+            pdf_options = [10, 25, 50, 100, 250]
             if default_pdf_limit in pdf_options:
                 default_index = pdf_options.index(default_pdf_limit)
             
