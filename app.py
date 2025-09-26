@@ -2361,8 +2361,8 @@ def show_free_agent_management_page(coach):
         def get_editable_data_hash(df_row):
             """Get hash of just the editable fields for comparison"""
             editable_fields = [
-                'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Quality', 'City', 'State', 'Admin Portal',
-                'CDL Jobs', 'Dock→Driver', 'CDL Training', 'Warehouse→Driver', 'Logistics', 'Non-CDL', 'Warehouse', 'Stepping Stone'
+                'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Quality', 'Show Prepared For', 'City', 'State', 'Admin Portal',
+                'CDL Jobs', 'Dock→Driver', 'CDL Training', 'Warehouse→Driver', 'Logistics', 'Non-CDL', 'Warehouse'
             ]
             # Only include fields that actually exist in the DataFrame (safety check for column name changes)
             available_fields = [field for field in editable_fields if field in df_row.index]

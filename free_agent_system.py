@@ -188,7 +188,34 @@ def update_job_tracking_for_agent(df: pd.DataFrame, agent_params: Dict) -> pd.Da
     if df.empty:
         print("🔍 UPDATE_JOB_TRACKING_FOR_AGENT: DataFrame is empty after match level filtering, returning")
         return df
-    
+
+    # Apply fair chance filtering based on agent preferences
+    fair_chance_only = agent_params.get('fair_chance_only', False)
+    if fair_chance_only:
+        print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: Applying fair chance filter")
+        original_count = len(df)
+        # Filter for jobs that are fair chance friendly
+        # Check multiple possible column names for fair chance data
+        fair_chance_col = None
+        if 'ai.fair_chance' in df.columns:
+            fair_chance_col = 'ai.fair_chance'
+        elif 'fair_chance' in df.columns:
+            fair_chance_col = 'fair_chance'
+
+        if fair_chance_col:
+            # Filter for jobs that contain fair chance indicators
+            df = df[df[fair_chance_col].astype(str).str.contains('fair_chance_employer|yes|true', case=False, na=False)]
+            filtered_count = len(df)
+            print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: Fair chance filter: {original_count} → {filtered_count} jobs")
+        else:
+            print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: Fair chance filter requested but no fair_chance column found in DataFrame")
+    else:
+        print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: Fair chance filter not requested (fair_chance_only={fair_chance_only})")
+
+    if df.empty:
+        print("🔍 UPDATE_JOB_TRACKING_FOR_AGENT: DataFrame is empty after fair chance filtering, returning")
+        return df
+
     # Debug: Check what columns exist
     print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: DataFrame columns: {list(df.columns)}")
     

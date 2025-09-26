@@ -294,6 +294,7 @@ def save_agent_profile_to_supabase(coach_username: str, agent_data: Dict) -> Tup
             'fair_chance_only': agent_data.get('fair_chance_only', False),
             'max_jobs': agent_data.get('max_jobs', 25),
             'match_level': agent_data.get('match_level', 'good and so-so'),
+            'show_prepared_for': agent_data.get('show_prepared_for', True),
             # Keep search_config for backward compatibility during transition
             'search_config': {
                 'location': agent_data.get('location', 'Houston'),
