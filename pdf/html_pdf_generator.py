@@ -356,6 +356,10 @@ def render_jobs_html(jobs: List[Dict], agent_params=None, *, fragment: bool = Fa
     style_match = re.search(r"<style>(.*?)</style>", html, flags=re.DOTALL|re.IGNORECASE)
     css_content = style_match.group(1).strip() if style_match else ""
 
+    # Extract JavaScript from <script> tags
+    script_matches = re.findall(r"<script[^>]*>(.*?)</script>", html, flags=re.DOTALL|re.IGNORECASE)
+    js_content = "\n".join(match.strip() for match in script_matches if match.strip())
+
     # Return only what's inside <body>...</body> for portal injection
     body_match = re.search(r"<body[^>]*>(.*)</body>", html, flags=re.DOTALL|re.IGNORECASE)
     body_content = body_match.group(1).strip() if body_match else html
@@ -364,8 +368,12 @@ def render_jobs_html(jobs: List[Dict], agent_params=None, *, fragment: bool = Fa
     debug_jobs_comment = f"<!-- DEBUG_JOBS_DATA: {jobs} -->"
     body_content = f"{debug_jobs_comment}\n{body_content}"
 
-    # Prepend CSS to body content
-    return f"<style>{css_content}</style>{body_content}"
+    # Include CSS and JavaScript in fragment
+    result = f"<style>{css_content}</style>"
+    if js_content:
+        result += f"\n<script>{js_content}</script>"
+    result += body_content
+    return result
 
 
 def export_pdf_playwright(html: str, output_path: str):

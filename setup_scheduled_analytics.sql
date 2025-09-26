@@ -114,6 +114,7 @@ DECLARE
     market_name TEXT;
     click_data JSON;
     total_applications_count INTEGER;
+    total_clicks_count INTEGER;
 BEGIN
     -- Clear existing analytics data
     DELETE FROM free_agents_analytics WHERE id > 0;
@@ -128,10 +129,15 @@ BEGIN
         WHERE candidate_id = rec.agent_uuid
           AND feedback_type = 'i_applied_to_this_job';
 
+        -- Calculate total clicks from click_events (portal visits + job clicks)
+        SELECT COUNT(*) INTO total_clicks_count
+        FROM click_events
+        WHERE candidate_id = rec.agent_uuid;
+
         -- Calculate engagement score
         engagement_score := calculate_agent_engagement_score(
-            COALESCE(rec.portal_visits, 0),
-            COALESCE(rec.job_clicks, 0),
+            0, -- portal visits (deprecated, using total_clicks_count instead)
+            total_clicks_count, -- use actual click count from click_events
             total_applications_count,
             COALESCE(rec.last_portal_visit, rec.last_job_click)
         );
@@ -213,26 +219,26 @@ BEGIN
             rec.agent_city,
             rec.agent_state,
             market_name,
-            COALESCE(rec.portal_visits, 0),
-            COALESCE(rec.job_clicks, 0),
+            0, -- portal_visits (deprecated, all clicks now counted together)
+            total_clicks_count, -- use actual click count from click_events
             total_applications_count,
             -- Calculate 14-day applications count from job_feedback table
             (SELECT COUNT(*) FROM job_feedback
              WHERE candidate_id = rec.agent_uuid
-               AND created_at >= NOW() - INTERVAL '14 days'
+               AND created_at >= CURRENT_TIMESTAMP - INTERVAL '14 days'
                AND feedback_type = 'i_applied_to_this_job'),
             -- Calculate 14-day job clicks count from click_events
             (SELECT COUNT(*) FROM click_events
              WHERE candidate_id = rec.agent_uuid
-               AND clicked_at >= NOW() - INTERVAL '14 days'),
+               AND clicked_at >= CURRENT_TIMESTAMP - INTERVAL '14 days'),
             rec.last_portal_visit,
             rec.last_job_click,
             rec.last_application_at,
             COALESCE(rec.search_config, '{}'::JSONB),
             COALESCE(rec.pathway_preferences, ARRAY[]::TEXT[]),
             CASE
-                WHEN COALESCE(rec.portal_visits, 0) > 0
-                THEN ROUND((COALESCE(rec.job_clicks, 0)::NUMERIC / rec.portal_visits * 100), 2)
+                WHEN total_clicks_count > 0
+                THEN ROUND((total_applications_count::NUMERIC / total_clicks_count * 100), 2)
                 ELSE 0
             END,
             engagement_score,
