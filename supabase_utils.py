@@ -351,7 +351,7 @@ def load_agent_profiles_from_supabase(coach_username: str, include_inactive: boo
             'agent_uuid, agent_name, agent_email, agent_city, agent_state, '
             'location, route_filter, fair_chance_only, max_jobs, match_level, '
             'search_config, custom_url, pathway_preferences, is_active, created_at, last_accessed, '
-            'admin_portal_url'
+            'admin_portal_url, lookback_hours'
         ).eq('coach_username', coach_username)
         
         # Only filter by is_active if we don't want to include inactive agents
@@ -367,7 +367,8 @@ def load_agent_profiles_from_supabase(coach_username: str, include_inactive: boo
             query_base = client.table('agent_profiles').select(
                 'agent_uuid, agent_name, agent_email, agent_city, agent_state, '
                 'location, route_filter, fair_chance_only, max_jobs, match_level, '
-                'search_config, custom_url, pathway_preferences, is_active, created_at, last_accessed'
+                'search_config, custom_url, pathway_preferences, is_active, created_at, last_accessed, '
+                'lookback_hours'
             ).eq('coach_username', coach_username)
             
             if not include_inactive:
@@ -467,7 +468,7 @@ def supabase_find_agents(query: str, coach_username: str, by: str = "name", limi
         base_query = client.table('agent_profiles').select(
             'agent_uuid, agent_name, agent_email, agent_city, agent_state, '
             'location, route_filter, fair_chance_only, max_jobs, match_level, '
-            'portal_clicks, last_portal_click, created_at, search_config'
+            'portal_clicks, last_portal_click, created_at, search_config, lookback_hours'
         ).eq('coach_username', coach_username).eq('is_active', True)
         
         # Add search filters based on search type
@@ -554,7 +555,7 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
                 'agent_uuid, agent_name, agent_email, agent_city, agent_state, '
                 'location, route_filter, fair_chance_only, max_jobs, match_level, '
                 'search_config, custom_url, is_active, created_at, last_accessed, '
-                'portal_clicks, last_portal_click, admin_portal_url, show_prepared_for'
+                'portal_clicks, last_portal_click, admin_portal_url, show_prepared_for, lookback_hours'
             ).eq('coach_username', coach_username).eq('is_active', True).order(
                 'created_at', desc=True
             ).execute()
@@ -564,7 +565,7 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
                 'agent_uuid, agent_name, agent_email, agent_city, agent_state, '
                 'location, route_filter, fair_chance_only, max_jobs, match_level, '
                 'search_config, custom_url, is_active, created_at, last_accessed, '
-                'portal_clicks, last_portal_click, show_prepared_for'
+                'portal_clicks, last_portal_click, show_prepared_for, lookback_hours'
             ).eq('coach_username', coach_username).eq('is_active', True).order(
                 'created_at', desc=True
             ).execute()

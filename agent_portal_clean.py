@@ -115,10 +115,14 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
 
             print(f"🛤️ CLEAN AGENT PORTAL: Agent pathway preferences: {pathway_preferences}")
 
+            # Get lookback hours from agent params, default to 72h (same as home page default)
+            lookback_hours = agent_params.get('lookback_hours', 72)
+            print(f"🕐 CLEAN AGENT PORTAL: Using lookback_hours={lookback_hours} from agent params")
+
             # Run direct memory search with feedback filtering
             jobs_list = instant_memory_search(
                 location=location,
-                hours=168,  # 7 days lookback
+                hours=lookback_hours,  # Use agent-specific lookback period
                 market=location,  # Use location as market
                 pathway_preferences=pathway_preferences
             )
@@ -185,7 +189,7 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
                 st.session_state.memory_search_params = {
                     'location': location,
                     'memory_only': True,
-                    'memory_hours': 168,
+                    'memory_hours': lookback_hours,
                     'feedback_filtering': True
                 }
                 

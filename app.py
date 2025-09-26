@@ -2173,6 +2173,7 @@ def show_free_agent_management_page(coach):
                     'Fair Chance': agent.get('fair_chance_only', False),
                     'Max Jobs': agent.get('max_jobs', 25),
                     'Quality': agent.get('match_level', 'good and so-so'),
+                    'Lookback': f"{agent.get('lookback_hours', 72)}h",
                     'Show Prepared For': agent.get('show_prepared_for', True),
                     # INDIVIDUAL PATHWAY CHECKBOXES (instead of ListColumn)
                     'CDL Jobs': 'cdl_pathway' in pathway_prefs,
@@ -2200,7 +2201,7 @@ def show_free_agent_management_page(coach):
         # Reorder columns with individual pathway checkboxes
         desired_order = [
             'Status', 'Name', 'Clicks (All)', 'Clicks (14d)', 'Apps (All)', 'Apps (14d)',
-            'Score', 'Activity', 'Last Applied', 'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Quality', 'Show Prepared For',
+            'Score', 'Activity', 'Last Applied', 'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Quality', 'Lookback', 'Show Prepared For',
             'CDL Jobs', 'Dock→Driver', 'CDL Training', 'Warehouse→Driver', 'Logistics', 'Non-CDL', 'Warehouse',
             'City', 'State', 'Created', 'Portal Link', 'Admin Portal', 'Delete', 'Restore',
             '_agent_uuid', '_created_at', '_original_data', '_is_active'
@@ -2256,6 +2257,13 @@ def show_free_agent_management_page(coach):
                 help="AI match quality filter for jobs",
                 width="small",
                 options=["good", "so-so", "good and so-so", "all"],
+                required=True
+            ),
+            'Lookback': st.column_config.SelectboxColumn(
+                "Lookback",
+                help="Memory search lookback period",
+                width="small",
+                options=["24h", "48h", "72h", "96h"],
                 required=True
             ),
             'Show Prepared For': st.column_config.CheckboxColumn(
@@ -2361,7 +2369,7 @@ def show_free_agent_management_page(coach):
         def get_editable_data_hash(df_row):
             """Get hash of just the editable fields for comparison"""
             editable_fields = [
-                'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Quality', 'Show Prepared For', 'City', 'State', 'Admin Portal',
+                'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Quality', 'Lookback', 'Show Prepared For', 'City', 'State', 'Admin Portal',
                 'CDL Jobs', 'Dock→Driver', 'CDL Training', 'Warehouse→Driver', 'Logistics', 'Non-CDL', 'Warehouse'
             ]
             # Only include fields that actually exist in the DataFrame (safety check for column name changes)
@@ -2435,12 +2443,17 @@ def show_free_agent_management_page(coach):
                             # Just save the pathway preferences - portal will filter based on pathways
                             updated_agent['pathway_preferences'] = pathway_preferences
 
+                            # Convert lookback period from string format ("72h") to integer
+                            lookback_str = str(edited['Lookback'])
+                            lookback_hours = int(lookback_str.replace('h', '').strip()) if lookback_str.endswith('h') else 72
+
                             updated_agent.update({
                                 'location': str(edited['Market']),  # Save as 'location' for legacy compatibility
                                 'route_filter': str(edited['Route']),
                                 'fair_chance_only': bool(edited['Fair Chance']),
                                 'max_jobs': convert_max_jobs(edited['Max Jobs']),
                                 'match_level': str(edited['Quality']),
+                                'lookback_hours': lookback_hours,  # Save as integer for database
                                 'show_prepared_for': bool(edited['Show Prepared For']),
                                 'agent_city': str(edited['City']),
                                 'agent_state': str(edited['State']),

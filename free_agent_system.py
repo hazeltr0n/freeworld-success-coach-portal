@@ -48,6 +48,7 @@ def encode_agent_params(params: Dict[str, Any]) -> str:
         'coach_username': params.get('coach_username', ''),
         'show_prepared_for': params.get('show_prepared_for', True),  # Include prepared message setting
         'pathway_preferences': params.get('pathway_preferences', []),  # Individual pathway checkboxes
+        'lookback_hours': params.get('lookback_hours', 72),  # Memory search lookback period (default 72h to match home page)
     }
     
     json_str = json.dumps(param_map, separators=(',', ':'))
@@ -71,6 +72,7 @@ def decode_agent_params(encoded: str) -> Dict[str, Any]:
             'coach_username': '',
             'show_prepared_for': True,  # Default to True when decoding fails
             'pathway_preferences': [],  # Default to empty pathways list
+            'lookback_hours': 72,  # Default to 72h when decoding fails
         }
 
 def generate_agent_url(agent_uuid: str, params: Dict[str, Any]) -> str:
