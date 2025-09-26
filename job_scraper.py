@@ -54,13 +54,24 @@ class FreeWorldJobScraper:
         
         # Handle multiple URLs or single URL
         if isinstance(indeed_url_or_urls, list):
-            # Multiple URLs - pass as list directly to Outscraper API
+            # Multiple URLs - each URL gets FULL limit, combined in one Outscraper call
             query_urls = indeed_url_or_urls
-            print(f"🔍 Searching {len(indeed_url_or_urls)} Indeed queries for {actual_limit} jobs each...")
-            # Calculate effective limit: multiply by number of queries for multi-market searches
-            effective_limit = actual_limit * len(indeed_url_or_urls) if len(indeed_url_or_urls) > 1 else actual_limit
-            if len(indeed_url_or_urls) > 1:
-                print(f"🔢 Multi-market search: {len(indeed_url_or_urls)} markets × {actual_limit} jobs = {effective_limit} total limit")
+            num_queries = len(indeed_url_or_urls)
+
+            if num_queries > 1:
+                print(f"🔍 Searching {num_queries} Indeed queries, {actual_limit} jobs EACH:")
+                for i, url in enumerate(query_urls, 1):
+                    # Extract search term from URL for display
+                    if 'q=' in url:
+                        term = url.split('q=')[1].split('&')[0].replace('+', ' ')
+                        print(f"   {i}. {term}: {actual_limit} jobs")
+
+                # Each query gets the specified limit automatically
+                effective_limit = actual_limit
+                print(f"   📊 API will return up to {actual_limit * num_queries} total jobs ({num_queries} × {actual_limit} each)")
+            else:
+                effective_limit = actual_limit
+                print(f"🔍 Searching single Indeed query for {actual_limit} jobs...")
         else:
             # Single URL (backward compatibility)
             query_urls = indeed_url_or_urls
@@ -109,10 +120,11 @@ class FreeWorldJobScraper:
 
                 jobs = all_jobs
                 if isinstance(indeed_url_or_urls, list) and len(indeed_url_or_urls) > 1:
-                    expected_total = actual_limit * len(indeed_url_or_urls)
-                    print(f"✅ Found {len(jobs)} total Indeed jobs from {len(data['data'])} queries (requested {actual_limit} per query = {expected_total} total)")
+                    num_queries = len(indeed_url_or_urls)
+                    expected_total = actual_limit * num_queries  # Each query gets the limit automatically
+                    print(f"✅ Found {len(jobs)} total Indeed jobs from {num_queries} queries (requested {actual_limit} × {num_queries} = {expected_total})")
                     if len(jobs) < expected_total * 0.5:  # Allow for some variance in API results
-                        print(f"⚠️  API returned significantly fewer jobs than expected ({len(jobs)} < {expected_total})")
+                        print(f"⚠️  API returned fewer jobs than expected ({len(jobs)} < {int(expected_total * 0.5)})")
                         print("   This might be an API limit or search result limit")
                 else:
                     print(f"✅ Found {len(jobs)} total Indeed jobs from {len(data['data'])} queries (requested {actual_limit})")
@@ -569,11 +581,20 @@ class FreeWorldJobScraper:
             print(f"🔍 Fetching {limit} raw jobs from Indeed API...")
 
         # Calculate effective limit: multiply by number of queries for multi-market searches
-        # Outscraper API distributes the total limit across all queries, so we need
-        # to multiply by query count to get the desired limit per query
+        # For multiple queries, each query gets FULL limit (Outscraper multiplies automatically)
         if isinstance(query_urls, list) and len(query_urls) > 1:
-            effective_limit = limit * len(query_urls)
-            print(f"🔢 Multi-market search: {len(query_urls)} markets × {limit} jobs = {effective_limit} total limit")
+            num_queries = len(query_urls)
+
+            print(f"🔍 Multiple search term queries: {num_queries} URLs × {limit} jobs each:")
+            for i, url in enumerate(query_urls, 1):
+                # Extract search term from URL for display
+                if 'q=' in url:
+                    term = url.split('q=')[1].split('&')[0].replace('+', ' ')
+                    print(f"   {i}. {term}: {limit} jobs")
+
+            # Each query gets the specified limit automatically
+            effective_limit = limit
+            print(f"   📊 API will return up to {limit * num_queries} total jobs ({num_queries} × {limit} each)")
         else:
             effective_limit = limit
 

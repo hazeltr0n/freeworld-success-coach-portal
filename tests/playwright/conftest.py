@@ -66,7 +66,7 @@ load_streamlit_secrets()
 
 # Test Configuration
 TEST_CONFIG = {
-    "base_url": "https://fwcareertest.streamlit.app",  # QA deployment
+    "base_url": "https://fwcareercoach.streamlit.app",  # Main deployment
     "timeout": 60000,  # 60 seconds for Streamlit apps
     "admin_username": os.getenv("TEST_ADMIN_USERNAME", "test_admin"),
     "admin_password": os.getenv("TEST_ADMIN_PASSWORD", "test_password"),
@@ -681,35 +681,104 @@ def check_permission_access(page: Page, feature: str) -> bool:
         return False
 
 def set_search_parameters(page: Page, params: Dict[str, Any]) -> bool:
-    """Set search parameters using current UI elements"""
+    """Set search parameters using current Streamlit UI elements"""
     try:
         iframe_locator = page.frame_locator('iframe[title="streamlitApp"]')
 
         # Navigate to Job Search if not already there
         navigate_to_tab(page, "🔍 Job Search")
 
-        # Set location
+        # Wait for the form to be ready
+        page.wait_for_timeout(2000)
+
+        # Get all Streamlit text inputs
+        text_inputs = iframe_locator.locator('[data-testid="stTextInput"] input').all()
+
+        print(f"Found {len(text_inputs)} text inputs")
+
+        # Set location (try different approaches)
         if "location" in params:
-            location_input = iframe_locator.locator('input[placeholder*="location"]').first
-            location_input.clear()
-            location_input.fill(params["location"])
+            location_set = False
 
-        # Set search terms
+            # Method 1: Try to find input near "Location" text
+            try:
+                location_input = iframe_locator.locator('*:has-text("Location") >> .. >> [data-testid="stTextInput"] input').first
+                location_input.clear()
+                location_input.fill(params["location"])
+                location_set = True
+                print(f"✅ Location set via context method: {params['location']}")
+            except Exception as e:
+                print(f"❌ Location context method failed: {e}")
+
+                # Method 2: Try first available text input (often location)
+                try:
+                    if text_inputs:
+                        first_input = text_inputs[0]
+                        current_value = first_input.input_value()
+                        print(f"First input current value: '{current_value}'")
+                        first_input.clear()
+                        first_input.fill(params["location"])
+                        location_set = True
+                        print(f"✅ Location set via first input: {params['location']}")
+                except Exception as e2:
+                    print(f"❌ First input method failed: {e2}")
+
+            if not location_set:
+                print(f"⚠️ Failed to set location: {params['location']}")
+
+        # Set search terms (try different approaches)
         if "search_terms" in params:
-            terms_input = iframe_locator.locator('input[placeholder*="search"]').first
-            terms_input.clear()
-            terms_input.fill(params["search_terms"])
+            terms_set = False
 
-        # Set classifier type if provided
+            # Method 1: Try to find input near "Search Terms" text
+            try:
+                terms_input = iframe_locator.locator('*:has-text("Search Terms") >> .. >> [data-testid="stTextInput"] input').first
+                terms_input.clear()
+                terms_input.fill(params["search_terms"])
+                terms_set = True
+                print(f"✅ Search terms set via context method: {params['search_terms']}")
+            except Exception as e:
+                print(f"❌ Search terms context method failed: {e}")
+
+                # Method 2: Try second available text input (often search terms)
+                try:
+                    if len(text_inputs) >= 2:
+                        second_input = text_inputs[1]
+                        current_value = second_input.input_value()
+                        print(f"Second input current value: '{current_value}'")
+                        second_input.clear()
+                        second_input.fill(params["search_terms"])
+                        terms_set = True
+                        print(f"✅ Search terms set via second input: {params['search_terms']}")
+                except Exception as e2:
+                    print(f"❌ Second input method failed: {e2}")
+
+            if not terms_set:
+                print(f"⚠️ Failed to set search terms: {params['search_terms']}")
+
+        # Set classifier type if provided (using radio buttons instead of select)
         if "classifier_type" in params:
-            classifier_select = iframe_locator.get_by_label("Classifier Type")
-            classifier_select.click()
-            classifier_select.select_option(params["classifier_type"])
+            try:
+                # Look for radio buttons for classifier type
+                classifier_radios = iframe_locator.locator('input[type="radio"]').all()
+                print(f"Found {len(classifier_radios)} radio buttons")
+
+                # Look for the specific classifier type text and click its radio button
+                classifier_element = iframe_locator.locator(f'*:has-text("{params["classifier_type"]}")').first
+                classifier_element.click()
+                print(f"✅ Classifier type set: {params['classifier_type']}")
+            except Exception as e:
+                print(f"⚠️ Failed to set classifier type: {e}")
 
         # Set job quantity if provided
         if "job_quantity" in params and params["job_quantity"] in TEST_CONFIG["job_quantity_options"]:
-            quantity_select = iframe_locator.locator('select').filter(has_text="jobs").first
-            quantity_select.select_option(params["job_quantity"])
+            try:
+                # Look for selectbox near quantity text
+                quantity_element = iframe_locator.locator(f'*:has-text("{params["job_quantity"]}")').first
+                quantity_element.click()
+                print(f"✅ Job quantity set: {params['job_quantity']}")
+            except Exception as e:
+                print(f"⚠️ Failed to set job quantity: {e}")
 
         time.sleep(2)  # Allow form to update
         print(f"✅ Search parameters set: {params}")

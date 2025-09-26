@@ -987,9 +987,13 @@ class FreeWorldPipelineV3:
         if effective_limit > 0 and search_sources.get('indeed', False):
             print(f"🔍 Searching Indeed API for {effective_limit} jobs...")
             try:
-                # Split search terms and create separate URLs for each term
+                # Split search terms and create separate URLs for each term - EACH gets FULL limit
                 search_terms_list = [term.strip() for term in search_terms.split(',') if term.strip()]
-                print(f"🔍 Creating {len(search_terms_list)} separate Indeed queries: {', '.join(search_terms_list)}")
+                num_queries = len(search_terms_list)
+
+                print(f"🔍 Creating {num_queries} separate Indeed queries: {', '.join(search_terms_list)}")
+                if num_queries > 1:
+                    print(f"   📊 Each query will get {effective_limit} jobs = up to {effective_limit * num_queries} total jobs")
 
                 encoded_location = query_location.replace(' ', '+').replace(',', '%2C')
                 indeed_urls = []

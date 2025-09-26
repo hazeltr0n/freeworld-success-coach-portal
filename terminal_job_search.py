@@ -434,7 +434,7 @@ class EnhancedTerminalJobSearch:
             pipeline_params = {
                 'location': location,
                 'mode_info': mode_info,
-                'search_terms': ' '.join(search_terms),  # v3 expects single string
+                'search_terms': ', '.join(search_terms),  # v3 expects comma-separated string
                 'route_filter': route_filter,
                 'radius': radius,
                 'no_experience': no_experience,
