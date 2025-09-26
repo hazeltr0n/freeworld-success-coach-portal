@@ -258,7 +258,7 @@ class JobMemoryDB:
                     'filter_reason': safe_str(job.get('route.final_status', job.get('filter_reason', ''))),
 
                     # System metadata (all TEXT)
-                    'classification_source': safe_str(job.get('classification_source', 'ai_classification')),
+                    'classification_source': safe_str(job.get('sys.classification_source', 'ai_classification')),
                     'classified_at': datetime.now().isoformat(),
                     'created_at': datetime.now().isoformat(),
                     'updated_at': datetime.now().isoformat(),
@@ -289,30 +289,51 @@ class JobMemoryDB:
                 logger.warning("❌ No valid records to store in memory database - all jobs were skipped")
                 return False
             
-            # Use batch insert with automatic deduplication
-            try:
-                result = self.supabase.rpc('batch_insert_jobs_with_dedup', {'p_jobs_data': records}).execute()
+            # Use batch processing to avoid timeouts with large datasets
+            batch_size = 100
+            total_stored = 0
+            total_batches = (len(records) + batch_size - 1) // batch_size
 
-                if result.data is not None:  # RPC returns count or error
-                    count = result.data if isinstance(result.data, int) else len(records)
-                    logger.info(f"✅ Stored {count} job classifications with deduplication in memory database")
-                    return True
-                else:
-                    logger.error("Failed to store job classifications with deduplication")
-                    return False
+            logger.info(f"🔄 Processing {len(records)} records in {total_batches} batches of {batch_size}")
 
-            except Exception as rpc_error:
-                logger.warning(f"Database deduplication failed, falling back to upsert: {rpc_error}")
+            for i in range(0, len(records), batch_size):
+                batch = records[i:i + batch_size]
+                batch_num = i // batch_size + 1
 
-                # Fallback to upsert since job_id is primary key and may have duplicates
-                result = self.supabase.table('jobs').upsert(records).execute()
+                try:
+                    # Try RPC first for deduplication
+                    result = self.supabase.rpc('batch_insert_jobs_with_dedup', {'p_jobs_data': batch}).execute()
 
-                if result.data:
-                    logger.info(f"✅ Stored {len(result.data)} job classifications in memory database (fallback mode)")
-                    return True
-                else:
-                    logger.error("Failed to store job classifications")
-                    return False
+                    if result.data is not None:  # RPC returns count or error
+                        count = result.data if isinstance(result.data, int) else len(batch)
+                        total_stored += count
+                        logger.info(f"✅ Stored {count} job classifications (batch {batch_num}/{total_batches}) with deduplication")
+                        continue
+                    else:
+                        logger.warning(f"⚠️ RPC failed for batch {batch_num}, trying fallback upsert")
+                        raise Exception("RPC returned no data")
+
+                except Exception as rpc_error:
+                    logger.warning(f"Database deduplication failed for batch {batch_num}, falling back to upsert: {rpc_error}")
+
+                    try:
+                        # Fallback to upsert for this batch
+                        result = self.supabase.table('jobs').upsert(batch).execute()
+
+                        if result.data:
+                            batch_count = len(result.data)
+                            total_stored += batch_count
+                            logger.info(f"✅ Stored {batch_count} job classifications (batch {batch_num}/{total_batches}) using fallback upsert")
+                        else:
+                            logger.error(f"❌ Failed to store batch {batch_num} using fallback upsert")
+                            return False
+
+                    except Exception as upsert_error:
+                        logger.error(f"❌ Both RPC and upsert failed for batch {batch_num}: {upsert_error}")
+                        return False
+
+            logger.info(f"✅ Successfully stored {total_stored} total job classifications across {total_batches} batches")
+            return True
                 
         except Exception as e:
             logger.error(f"Error storing job classifications: {e}")
