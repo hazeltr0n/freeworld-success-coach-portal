@@ -686,6 +686,61 @@ def get_free_agents_analytics_data(coach_username=None):
         print(f"❌ Error loading analytics data: {e}")
         return pd.DataFrame()
 
+
+def get_system_wide_agent_stats():
+    """Get system-wide Free Agent statistics across all coaches"""
+    client = get_client()
+    if not client:
+        print("❌ Supabase client not available")
+        return {
+            'total_agents': 0,
+            'total_clicks_all_time': 0,
+            'active_agents_14d': 0,
+            'avg_clicks_per_agent': 0.0
+        }
+
+    try:
+        # Get all analytics data (no coach filter for system-wide stats)
+        analytics_result = client.table('free_agents_analytics').select('*').execute()
+
+        if not analytics_result.data:
+            print("📊 No analytics data found for system-wide stats")
+            return {
+                'total_agents': 0,
+                'total_clicks_all_time': 0,
+                'active_agents_14d': 0,
+                'avg_clicks_per_agent': 0.0
+            }
+
+        analytics_df = pd.DataFrame(analytics_result.data)
+        print(f"📊 Calculating system-wide stats from {len(analytics_df)} total agents")
+
+        # Calculate system-wide stats
+        total_agents = len(analytics_df)
+        total_clicks_all_time = analytics_df['total_job_clicks'].sum() if 'total_job_clicks' in analytics_df.columns else 0
+        active_agents_14d = len(analytics_df[analytics_df.get('job_clicks_14d', 0) > 0]) if 'job_clicks_14d' in analytics_df.columns else 0
+        avg_clicks_per_agent = total_clicks_all_time / total_agents if total_agents > 0 else 0.0
+
+        system_stats = {
+            'total_agents': total_agents,
+            'total_clicks_all_time': int(total_clicks_all_time),
+            'active_agents_14d': active_agents_14d,
+            'avg_clicks_per_agent': avg_clicks_per_agent
+        }
+
+        print(f"📊 System-wide stats: {system_stats}")
+        return system_stats
+
+    except Exception as e:
+        print(f"❌ Error getting system-wide stats: {e}")
+        return {
+            'total_agents': 0,
+            'total_clicks_all_time': 0,
+            'active_agents_14d': 0,
+            'avg_clicks_per_agent': 0.0
+        }
+
+
 def refresh_free_agents_analytics_manual():
     """Manually trigger the free agents analytics refresh - using Python fallback if SQL function fails"""
     client = get_client()

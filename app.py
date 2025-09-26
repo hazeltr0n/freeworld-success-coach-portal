@@ -2681,22 +2681,53 @@ def show_free_agent_management_page(coach):
             if st.button("🗑️ Delete Selected", help="Delete multiple agents (not implemented yet)"):
                 st.info("Bulk delete functionality would be implemented here")
         
-        # Show summary stats using pre-loaded data (no individual API calls!)
-        st.markdown("### 📊 Summary")
+        # Show system-wide summary stats first
+        st.markdown("### 🌍 System-Wide Summary (All Free Agents)")
+
+        # Add refresh button for system-wide stats
+        col_refresh, col_spacer = st.columns([1, 6])
+        with col_refresh:
+            if st.button("🔄 Refresh System Stats", help="Refresh system-wide statistics"):
+                # Clear cache and reload
+                if 'system_wide_stats' in st.session_state:
+                    del st.session_state['system_wide_stats']
+                st.rerun()
+
+        # Cache system-wide stats to avoid repeated API calls
+        system_stats_cache_key = 'system_wide_stats'
+        if system_stats_cache_key not in st.session_state:
+            from supabase_utils import get_system_wide_agent_stats
+            st.session_state[system_stats_cache_key] = get_system_wide_agent_stats()
+
+        system_stats = st.session_state[system_stats_cache_key]
+
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Total Agents", len(agents))
+            st.metric("Total Agents (All Coaches)", system_stats['total_agents'])
+        with col2:
+            st.metric("Total Clicks (All-Time)", system_stats['total_clicks_all_time'])
+        with col3:
+            st.metric("Active Agents (14d)", system_stats['active_agents_14d'])
+        with col4:
+            avg_clicks_system = system_stats['avg_clicks_per_agent']
+            st.metric("Avg Clicks/Agent (All-Time)", f"{avg_clicks_system:.1f}")
+
+        # Show coach-specific summary stats
+        st.markdown(f"### 📊 Your Summary ({coach.username})")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Your Agents", len(agents))
         with col2:
             # Use analytics data for accurate all-time clicks
             total_clicks_all_time = sum(analytics_lookup.get(a.get('agent_uuid', ''), {}).get('total_clicks', 0) for a in agents)
-            st.metric("Total Clicks (All-Time)", total_clicks_all_time)
+            st.metric("Your Clicks (All-Time)", total_clicks_all_time)
         with col3:
             # Use analytics data for 14-day active agents
             active_agents_14d = len([uuid for uuid, stats in analytics_lookup.items() if stats.get('clicks_14d', 0) > 0])
-            st.metric("Active Agents (14d)", active_agents_14d)
+            st.metric("Your Active Agents (14d)", active_agents_14d)
         with col4:
             avg_clicks = total_clicks_all_time / len(agents) if agents else 0
-            st.metric("Avg Clicks/Agent (All-Time)", f"{avg_clicks:.1f}")
+            st.metric("Your Avg Clicks/Agent", f"{avg_clicks:.1f}")
                 
     
     else:
