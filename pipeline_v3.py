@@ -90,12 +90,15 @@ class FreeWorldPipelineV3:
     
     def __init__(self):
         """Initialize pipeline with all existing modules"""
-        
+
         # Generate unique run ID for this pipeline execution
         self.run_id = f"pipeline_v3_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
-        
+
         # Initialize custom location flag (defaults to False)
         self._is_custom_location = False
+
+        # Track Supabase upload count for UI display
+        self.supabase_upload_count = 0
         
         # Initialize all existing modules (preserve functionality)
         self.scraper = FreeWorldJobScraper()
@@ -669,7 +672,8 @@ class FreeWorldPipelineV3:
         pipeline_start_time = time.time()
         
         # Store custom location flag for market assignment
-        self._is_custom_location = custom_location is not None
+        # Detect custom locations: either explicitly passed OR location contains comma (city, state format)
+        self._is_custom_location = (custom_location is not None) or (',' in str(location))
         
         # Initialize canonical DataFrame
         canonical_df = build_empty_df()
@@ -1165,9 +1169,13 @@ class FreeWorldPipelineV3:
     
     def _stage3_business_rules(self, df: pd.DataFrame, market: str, filter_settings: Dict[str, bool] = None) -> pd.DataFrame:
         """Stage 3: Apply business rules and generate dedup keys"""
-        
+
         print("📋 STAGE 3: BUSINESS RULES")
-        
+
+        # Detect custom locations if not already set (for direct calls to this method)
+        if not hasattr(self, '_is_custom_location') or not self._is_custom_location:
+            self._is_custom_location = ',' in str(market)
+
         # Apply market assignment
         df = apply_market_assignment(df, market, is_custom_location=self._is_custom_location)
         
@@ -1808,10 +1816,13 @@ class FreeWorldPipelineV3:
                     
                     success = self.memory_db.store_classifications(supabase_df)
                     if success:
+                        self.supabase_upload_count = len(supabase_df)
                         print(f"✅ Stored {len(supabase_df)} truly fresh jobs in Supabase")
                     else:
+                        self.supabase_upload_count = 0
                         print("⚠️ Fresh job storage failed - check store_classifications method")
                 except Exception as e:
+                    self.supabase_upload_count = 0
                     print(f"❌ Fresh job storage error: {e}")
                     import traceback
                     traceback.print_exc()
@@ -2266,7 +2277,8 @@ class FreeWorldPipelineV3:
             # System info
             'run_id': self.run_id,
             'schema_version': self.schema_info['version'],
-            'completed_at': datetime.now().isoformat()
+            'completed_at': datetime.now().isoformat(),
+            'supabase_upload_count': self.supabase_upload_count
         }
         
         # Create summary string

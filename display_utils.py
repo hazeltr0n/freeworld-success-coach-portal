@@ -280,6 +280,21 @@ def render_quality_metrics(metrics: Dict[str, int]) -> None:
         st.metric("So-So Jobs", metrics['soso_jobs'])
 
 
+def render_supabase_upload_info(metadata: Dict) -> None:
+    """
+    Render Supabase upload confirmation information.
+    Args:
+        metadata: Pipeline metadata containing supabase_upload_count
+    """
+    upload_count = metadata.get('supabase_upload_count', 0)
+    if upload_count > 0:
+        st.success(f"✅ Successfully uploaded {upload_count} fresh jobs to Supabase database")
+    elif upload_count == 0:
+        st.info("ℹ️ No new jobs were uploaded to Supabase (jobs may be from memory cache)")
+    else:
+        st.warning("⚠️ Supabase upload status unknown")
+
+
 def calculate_route_distribution(df) -> Dict[str, int]:
     """
     Calculate route type distribution from job search results DataFrame.
@@ -946,23 +961,53 @@ def run_search_with_location_handling(pipeline, params, search_type_tab, coach, 
         combined_df = pd.DataFrame()
         combined_metadata = {'success': True, 'message': 'Multi-market search completed'}
 
-        with st.spinner(f"🔍 Searching {len(markets)} markets: {', '.join(markets)}..."):
-            for market in markets:
+        if search_type_tab == 'indeed_fresh':
+            # Use progressive output for multi-market indeed_fresh searches
+            st.markdown("### 🔍 Multi-Market Pipeline Execution Progress")
+            st.markdown("---")
+
+            for i, market in enumerate(markets):
+                st.markdown(f"#### 📍 Market {i+1}/{len(markets)}: {market}")
+
                 # Create single-market params for this iteration
                 single_market_params = params.copy()
                 single_market_params.update({
                     'location_type': 'markets',
                     'markets': [market],  # Pass as list, not string
-                    'location': market
+                    'location': market,
+                    'ui_direct': True  # Enable progressive output
                 })
 
-                # Run pipeline for this market
-                market_df, market_metadata = pipeline.run_pipeline(single_market_params)
+                # Run progressive pipeline for this market
+                market_df, market_metadata = run_progressive_pipeline(pipeline, single_market_params, market)
 
                 # Add market assignment to all jobs from this search
                 if not market_df.empty:
                     market_df['meta.market'] = market
                     combined_df = pd.concat([combined_df, market_df], ignore_index=True)
+
+                # Add separator between markets
+                if i < len(markets) - 1:
+                    st.markdown("---")
+        else:
+            # Use simple spinner for other search types
+            with st.spinner(f"🔍 Searching {len(markets)} markets: {', '.join(markets)}..."):
+                for market in markets:
+                    # Create single-market params for this iteration
+                    single_market_params = params.copy()
+                    single_market_params.update({
+                        'location_type': 'markets',
+                        'markets': [market],  # Pass as list, not string
+                        'location': market
+                    })
+
+                    # Run pipeline for this market
+                    market_df, market_metadata = pipeline.run_pipeline(single_market_params)
+
+                    # Add market assignment to all jobs from this search
+                    if not market_df.empty:
+                        market_df['meta.market'] = market
+                        combined_df = pd.concat([combined_df, market_df], ignore_index=True)
 
         df, metadata = combined_df, combined_metadata
     else:

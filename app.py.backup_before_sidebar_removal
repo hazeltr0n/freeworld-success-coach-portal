@@ -29,7 +29,6 @@ from display_utils import (
     render_search_summary_header,
     calculate_quality_metrics,
     render_quality_metrics,
-    render_supabase_upload_info,
     calculate_route_distribution,
     render_route_distribution,
     render_html_preview,
@@ -38,8 +37,7 @@ from display_utils import (
     render_portal_link_section,
     get_quality_display_dataframe,
     get_full_display_dataframe,
-    run_progressive_pipeline,
-    run_search_with_location_handling
+    run_progressive_pipeline
 )
 
 # === SHARED CONSTANTS (prevent duplication) ===
@@ -3314,7 +3312,6 @@ def main():
         "🔍 Job Search",
         "👥 Free Agents",
         "📊 Coach Analytics",
-        "📈 Market Analytics",
         "🏢 Companies"
     ]
     
@@ -3947,16 +3944,46 @@ def main():
                             params['candidate_id'] = candidate_id
                             params['candidate_name'] = candidate_name
                         
-                        # Use unified search function to eliminate duplicate multi-market handling
-                        coach = st.session_state.get('current_coach')
-                        df, metadata = run_search_with_location_handling(
-                            pipeline=pipeline,
-                            params=params,
-                            search_type_tab=search_type_tab,
-                            coach=coach,
-                            candidate_id=candidate_id,
-                            candidate_name=candidate_name
-                        )
+                        # Run full pipeline - handle multi-market searches
+                        if params.get('location_type') == 'multi_markets':
+                            # Multi-market search: run pipeline for each market and combine results
+                            import pandas as pd
+                            markets = params['markets']
+                            combined_df = pd.DataFrame()
+                            combined_metadata = {'success': True, 'message': 'Multi-market search completed'}
+
+                            with st.spinner(f"🔍 Searching {len(markets)} markets: {', '.join(markets)}..."):
+                                for market in markets:
+                                    # Create single-market params for this iteration
+                                    single_market_params = params.copy()
+                                    single_market_params.update({
+                                        'location_type': 'markets',
+                                        'markets': [market],  # Pass as list, not string
+                                        'location': market
+                                    })
+
+                                    # Run pipeline for this market
+                                    market_df, market_metadata = pipeline.run_pipeline(single_market_params)
+
+                                    # Add market assignment to all jobs from this search
+                                    if not market_df.empty:
+                                        market_df['meta.market'] = market
+                                        combined_df = pd.concat([combined_df, market_df], ignore_index=True)
+
+                                df, metadata = combined_df, combined_metadata
+                        else:
+                            # Single market/location search
+                            with st.spinner(search_messages.get(search_type_tab, "Searching...")):
+                                df, metadata = pipeline.run_pipeline(params)
+                            
+                            # Add coach and candidate info to ALL jobs in DataFrame (for link tracking and PDF)
+                            if not df.empty:
+                                coach = st.session_state.get('current_coach')
+                                if coach:
+                                    df['meta.coach_name'] = coach.full_name
+                                    df['meta.coach_username'] = coach.username
+                                    df['meta.candidate_name'] = candidate_name_tab if 'candidate_name_tab' in locals() else st.session_state.get('candidate_name', '')
+                                    df['meta.candidate_id'] = candidate_id_tab if 'candidate_id_tab' in locals() else st.session_state.get('candidate_id', '')
                         
                         # Jobs Report PDF button removed per user request
                     else:
@@ -3984,15 +4011,45 @@ def main():
                         for key in pdf_keys_to_clear:
                             del st.session_state[key]
                         
-                        # Use unified search function to eliminate duplicate multi-market handling
-                        df, metadata = run_search_with_location_handling(
-                            pipeline=pipeline,
-                            params=params,
-                            search_type_tab=search_type_tab,
-                            coach=coach,
-                            candidate_id=candidate_id,
-                            candidate_name=candidate_name
-                        )
+                        # Run pipeline - handle multi-market searches
+                        if params.get('location_type') == 'multi_markets':
+                            # Multi-market search: run pipeline for each market and combine results
+                            import pandas as pd
+                            markets = params['markets']
+                            combined_df = pd.DataFrame()
+                            combined_metadata = {'success': True, 'message': 'Multi-market search completed'}
+
+                            with st.spinner(f"🔍 Searching {len(markets)} markets: {', '.join(markets)}..."):
+                                for market in markets:
+                                    # Create single-market params for this iteration
+                                    single_market_params = params.copy()
+                                    single_market_params.update({
+                                        'location_type': 'markets',
+                                        'markets': [market],  # Pass as list, not string
+                                        'location': market
+                                    })
+
+                                    # Run pipeline for this market
+                                    market_df, market_metadata = pipeline.run_pipeline(single_market_params)
+
+                                    # Add market assignment to all jobs from this search
+                                    if not market_df.empty:
+                                        market_df['meta.market'] = market
+                                        combined_df = pd.concat([combined_df, market_df], ignore_index=True)
+
+                                df, metadata = combined_df, combined_metadata
+                        else:
+                            # Single market/location search
+                            with st.spinner(search_messages.get(search_type_tab, "Searching...")):
+                                df, metadata = pipeline.run_pipeline(params)
+                            
+                            # Add coach and candidate info to ALL jobs in DataFrame (for link tracking and PDF)
+                            if not df.empty:
+                                if coach:
+                                    df['meta.coach_name'] = coach.full_name
+                                    df['meta.coach_username'] = coach.username
+                                    df['meta.candidate_name'] = candidate_name
+                                    df['meta.candidate_id'] = candidate_id
                 else:
                     # For Google searches or when no search type, initialize empty results  
                     import pandas as pd
@@ -4036,22 +4093,17 @@ def main():
                 
                 # Unified results display for ALL search modes
                 if isinstance(df, pd.DataFrame) and not df.empty:
-                    # Check if this is a multi-market search
-                    is_multi_market = 'meta.market' in df.columns and df['meta.market'].nunique() > 1
-
-                    # 1. SUMMARY SECTION - Only show for multi-market searches
-                    if is_multi_market:
-                        render_search_summary_header()
-
-                        # Calculate and display quality metrics using shared functions
-                        metrics = calculate_quality_metrics(df)
-                        route_counts = calculate_route_distribution(df)
-                        render_quality_metrics(metrics)
-                        render_supabase_upload_info(metadata)
-
-                        render_route_distribution(route_counts)
-
-                        st.markdown("---")
+                    # 1. SUMMARY SECTION - Route counts and quality counts
+                    render_search_summary_header()
+                    
+                    # Calculate and display quality metrics using shared functions
+                    metrics = calculate_quality_metrics(df)
+                    route_counts = calculate_route_distribution(df)
+                    render_quality_metrics(metrics)
+                    
+                    render_route_distribution(route_counts)
+                    
+                    st.markdown("---")
                     
                     # 2. PDF DOWNLOAD BUTTON - Always generate PDF with all included jobs
                     coach = st.session_state.get('current_coach')
@@ -4151,15 +4203,34 @@ def main():
                                         except Exception:
                                             mdf_inc = mdf
 
-                                        # Use standardized display format matching combined summary
-                                        market_metrics = calculate_quality_metrics(mdf)
-                                        market_route_counts = calculate_route_distribution(mdf)
-                                        render_quality_metrics(market_metrics)
-                                        render_route_distribution(market_route_counts)
-
-                                        # Show quality jobs table for this market
+                                        # Show quality jobs for this market
                                         market_quality_display = get_quality_display_dataframe(mdf_inc)
                                         st.dataframe(market_quality_display, width="stretch", height=360, hide_index=True)
+
+                                        # Per-market metrics
+                                        try:
+                                            inc_count = len(mdf_inc)
+                                            total_count = len(mdf)
+                                            ai_good_m = int((mdf['ai.match'] == 'good').sum()) if 'ai.match' in mdf.columns else 0
+                                            ai_soso_m = int((mdf['ai.match'] == 'so-so').sum()) if 'ai.match' in mdf.columns else 0
+                                            local_routes_m = int((mdf['ai.route_type'] == 'Local').sum()) if 'ai.route_type' in mdf.columns else 0
+                                            otr_routes_m = int((mdf['ai.route_type'] == 'OTR').sum()) if 'ai.route_type' in mdf.columns else 0
+                                            colA, colB, colC, colD = st.columns(4)
+                                            with colA:
+                                                st.metric("Quality Jobs Found", inc_count)
+                                            with colB:
+                                                st.metric("Total Jobs Analyzed", total_count)
+                                            with colC:
+                                                st.metric("Excellent Matches", ai_good_m)
+                                            with colD:
+                                                st.metric("Possible Fits", ai_soso_m)
+                                            colE, colF = st.columns(2)
+                                            with colE:
+                                                st.metric("Local Routes", local_routes_m)
+                                            with colF:
+                                                st.metric("OTR Routes", otr_routes_m)
+                                        except Exception:
+                                            pass
 
                                         # Full results for this market
                                         with st.expander(f"🔎 Full Results — {mk}", expanded=False):
@@ -4218,8 +4289,7 @@ def main():
                             'show_prepared_for': show_prepared_for_tab,
                             'location_type': location_type_tab,
                             'memory_hours': int(memory_time_period_tab.replace('h','') or 72) if search_type_tab == 'memory' else 72,
-                            'coach_username': st.session_state.get('current_coach').username if st.session_state.get('current_coach') else '',
-                            'coach_name': st.session_state.get('current_coach').full_name if st.session_state.get('current_coach') else ''
+                            'coach_username': get_current_coach_name()
                         }
 
                         render_portal_link_section(
@@ -4262,8 +4332,7 @@ def main():
                             'show_prepared_for': st.session_state.get('tab_show_prepared_for', True),
                             'location_type': location_type_tab,
                             'memory_hours': int(memory_time_period_tab.replace('h','') or 72) if search_type_tab == 'memory' else 72,
-                            'coach_username': st.session_state.get('current_coach').username if st.session_state.get('current_coach') else '',
-                            'coach_name': st.session_state.get('current_coach').full_name if st.session_state.get('current_coach') else ''
+                            'coach_username': get_current_coach_name()
                         }
 
                         render_portal_link_section(
@@ -4576,11 +4645,7 @@ def main():
         except ImportError as e:
             st.error(f"Coach analytics not available: {e}")
             st.info("Coach analytics require the analytics modules to be properly set up.")
-
-    elif selected_tab == "📈 Market Analytics":
-        from admin_market_dashboard import show_admin_market_dashboard
-        show_admin_market_dashboard()
-
+    
     elif selected_tab == "🏢 Companies":
         try:
             from companies_dashboard import show_companies_dashboard
@@ -4601,7 +4666,7 @@ def main():
             st.header("👑 Admin Panel")
             
             # Initialize session state for admin function selection
-            admin_function_options = ["Manage Coaches", "System Settings"]
+            admin_function_options = ["Manage Coaches", "View Analytics", "System Settings"]
             if 'admin_function_index' not in st.session_state:
                 st.session_state.admin_function_index = 0
             
@@ -4758,6 +4823,10 @@ def main():
                                 else:
                                     st.error("❌ Could not delete coach")
             
+            elif admin_tab_select == "View Analytics":
+                from admin_market_dashboard import show_admin_market_dashboard
+                show_admin_market_dashboard()
+                
             elif admin_tab_select == "System Settings":
                 st.markdown("### 🔧 System Settings")
                 
@@ -5186,8 +5255,7 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                         'fair_chance_only': params.get('fair_chance_only', fair_chance_only),
                         'max_jobs': params.get('max_jobs', max_jobs),
                         'memory_hours': params.get('memory_hours', _mem_hours),
-                        'coach_username': st.session_state.get('current_coach').username if st.session_state.get('current_coach') else '',
-                        'coach_name': st.session_state.get('current_coach').full_name if st.session_state.get('current_coach') else ''
+                        'coach_username': get_current_coach_name()
                     }
 
                     render_portal_link_section(
@@ -5201,22 +5269,17 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                     )
                 
                 # Unified results display for Memory Only searches
-                # Check if this is a multi-market search
-                is_multi_market = 'meta.market' in df.columns and df['meta.market'].nunique() > 1
-
-                # 1. SUMMARY SECTION - Only show for multi-market searches
-                if is_multi_market:
-                    render_search_summary_header()
-
-                    # Calculate and display quality metrics using shared functions
-                    metrics = calculate_quality_metrics(df)
-                    route_counts = calculate_route_distribution(df)
-                    render_quality_metrics(metrics)
-                    render_supabase_upload_info(metadata)
-
-                    render_route_distribution(route_counts)
-
-                    st.markdown("---")
+                # 1. SUMMARY SECTION - Route counts and quality counts
+                render_search_summary_header()
+                
+                # Calculate and display quality metrics using shared functions
+                metrics = calculate_quality_metrics(df)
+                route_counts = calculate_route_distribution(df)
+                render_quality_metrics(metrics)
+                
+                render_route_distribution(route_counts)
+                
+                st.markdown("---")
                 
                 # 2. PDF DOWNLOAD BUTTON - Always generate PDF with all included jobs
                 if coach:
@@ -5315,15 +5378,34 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                                     except Exception:
                                         mdf_inc = mdf
 
-                                    # Use standardized display format matching combined summary
-                                    market_metrics = calculate_quality_metrics(mdf)
-                                    market_route_counts = calculate_route_distribution(mdf)
-                                    render_quality_metrics(market_metrics)
-                                    render_route_distribution(market_route_counts)
-
-                                    # Show quality jobs table for this market
+                                    # Show quality jobs for this market
                                     market_quality_display = get_quality_display_dataframe(mdf_inc)
                                     st.dataframe(market_quality_display, width="stretch", height=360, hide_index=True)
+
+                                    # Per-market metrics
+                                    try:
+                                        inc_count = len(mdf_inc)
+                                        total_count = len(mdf)
+                                        ai_good_m = int((mdf['ai.match'] == 'good').sum()) if 'ai.match' in mdf.columns else 0
+                                        ai_soso_m = int((mdf['ai.match'] == 'so-so').sum()) if 'ai.match' in mdf.columns else 0
+                                        local_routes_m = int((mdf['ai.route_type'] == 'Local').sum()) if 'ai.route_type' in mdf.columns else 0
+                                        otr_routes_m = int((mdf['ai.route_type'] == 'OTR').sum()) if 'ai.route_type' in mdf.columns else 0
+                                        colA, colB, colC, colD = st.columns(4)
+                                        with colA:
+                                            st.metric("Quality Jobs Found", inc_count)
+                                        with colB:
+                                            st.metric("Total Jobs Analyzed", total_count)
+                                        with colC:
+                                            st.metric("Excellent Matches", ai_good_m)
+                                        with colD:
+                                            st.metric("Possible Fits", ai_soso_m)
+                                        colE, colF = st.columns(2)
+                                        with colE:
+                                            st.metric("Local Routes", local_routes_m)
+                                        with colF:
+                                            st.metric("OTR Routes", otr_routes_m)
+                                    except Exception:
+                                        pass
 
                                     # Full results for this market
                                     with st.expander(f"🔎 Full Results — {mk}", expanded=False):
@@ -5370,6 +5452,355 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
         
         # Google ordering removed from Job Search sidebar
         
+        elif search_type in ['indeed', 'indeed_fresh']:
+            # Indeed searches (with or without memory) 
+            # Clear any previous results first since we're running a new search
+            for key in ['memory_search_df', 'memory_search_metadata', 'memory_search_params', 'indeed_pdf_bytes', 'indeed_pdf_filename']:
+                if hasattr(st.session_state, key):
+                    delattr(st.session_state, key)
+            # Keep last_results for persistence across tab navigation
+            
+            is_fresh_only = (search_type == 'indeed_fresh')
+            
+            # Build parameters for existing pipeline
+            params = {
+                'mode': search_mode,
+                'route_filter': route_filter,
+                'search_terms': search_terms,
+                'push_to_airtable': push_to_airtable,
+                'generate_pdf': enable_pdf_generation_tab,  # Use PDF toggle value
+                'search_radius': search_radius,
+                'classifier_type': 'cdl',  # Default to CDL for sidebar search
+                'no_experience': no_experience,
+                'force_fresh': is_fresh_only,  # Force fresh for indeed_fresh, regular behavior for indeed
+                'force_fresh_classification': force_fresh_classification,
+                'coach_name': coach.full_name,
+                'coach_username': coach.username,
+                'memory_only': not can_pull_fresh,  # Test accounts use memory only
+                'candidate_id': candidate_id.strip() if candidate_id else "",
+                'candidate_name': candidate_name.strip() if candidate_name else "",
+                'search_sources': {'indeed': True, 'google': False},  # Indeed API only
+                'search_strategy': 'fresh_only' if is_fresh_only else 'indeed_first'
+            }
+            
+            
+            # Add location parameters based on type (support single or multi market without stopping)
+            if location_type == "Select Market":
+                if 'selected_markets' in locals() and selected_markets:
+                    params['markets'] = selected_markets
+                    params['location'] = location
+                else:
+                    params['location'] = location
+            else:
+                params['custom_location'] = custom_location
+                params['location'] = custom_location
+            
+            # Determine display-friendly location
+            try:
+                if location_type == "Select Market" and 'selected_markets' in locals() and selected_markets:
+                    display_location = ", ".join(selected_markets)
+                else:
+                    display_location = final_location
+            except Exception:
+                display_location = final_location
+
+            # Run pipeline with appropriate spinner text and capture logs
+            spinner_text = (
+                f"🔍 Searching Indeed fresh only for jobs in {display_location}..."
+                if is_fresh_only else
+                f"🔍 Searching Indeed + memory for jobs in {display_location}..."
+            )
+            
+            # Add coach information to params for PDF generation
+            coach = st.session_state.get('current_coach')
+            if coach:
+                params['coach_name'] = coach.full_name
+                params['coach_username'] = coach.username
+
+            # Run pipeline with progressive UI feedback (like CSV classifier)
+            st.markdown("### 🔍 Pipeline Execution Progress")
+            st.markdown("---")
+
+            # Set ui_direct for stage-by-stage execution
+            params['ui_direct'] = True
+
+            try:
+                # Use progressive pipeline for live stage updates
+                df, metadata = run_progressive_pipeline(pipeline, params, display_location)
+
+                # Add coach and candidate info to ALL jobs in DataFrame (for link tracking and PDF)
+                if not df.empty:
+                    df['meta.coach_name'] = coach.full_name
+                    df['meta.coach_username'] = coach.username
+                    # NUCLEAR FIX: Only set meta fields if we have actual data, don't wipe out agent.* fields
+                    candidate_name_session = st.session_state.get('candidate_name', '')
+                    candidate_id_session = st.session_state.get('candidate_id', '')
+                    # Only override if we have actual non-empty values, otherwise keep pipeline data
+                    if candidate_name_session and candidate_name_session.strip():
+                        df['meta.candidate_name'] = candidate_name_session
+                    if candidate_id_session and candidate_id_session.strip():
+                        df['meta.candidate_id'] = candidate_id_session
+
+            except Exception as e:
+                # pandas already imported globally
+                df = pd.DataFrame()
+                metadata = {'success': False, 'error': str(e)}
+
+            # Create empty log buffer for compatibility with existing debug code
+            indeed_log_buffer = None
+            indeed_logs = ""
+
+            # Build concise debug summary for Indeed searches
+            try:
+                idbg = []
+                idbg.append("=== Indeed Search Debug Summary ===")
+                idbg.append(f"success={metadata.get('success', False)} error={metadata.get('error', '')}")
+                idbg.append(f"df.shape={getattr(df, 'shape', None)} cols={len(getattr(df, 'columns', []))}")
+                if not df.empty:
+                    cols = list(df.columns)[:12]
+                    idbg.append(f"columns(sample)={cols}")
+                    for key in ['ai.match', 'route.final_status', 'meta.market', 'source.title']:
+                        idbg.append(f"has[{key}]={key in df.columns}")
+                    try:
+                        sample_titles = df.get('source.title').dropna().astype(str).head(5).tolist()
+                        if sample_titles:
+                            idbg.append(f"titles(sample)={sample_titles}")
+                    except Exception:
+                        pass
+                    try:
+                        if 'ai.match' in df.columns:
+                            vc = df['ai.match'].value_counts().to_dict()
+                            idbg.append(f"ai.match={vc}")
+                    except Exception:
+                        pass
+                # Metadata hints
+                for k in ['csv_path','parquet_path','included_jobs','total_jobs','run_id']:
+                    if k in metadata:
+                        idbg.append(f"meta[{k}]={metadata.get(k)}")
+                indeed_debug_summary = "\n".join(idbg) + "\n\n"
+            except Exception:
+                indeed_debug_summary = "(debug summary unavailable)\n\n"
+            
+            # Store results in session state (with HTML/portal data)
+            st.session_state.last_results = {
+                'df': df,
+                'metadata': metadata,
+                'params': params,
+                'timestamp': datetime.now(),
+                'html_preview_enabled': show_html_preview_tab,
+                'portal_link_enabled': generate_portal_link_tab,
+                'html_preview_data': None,  # Will be populated if HTML preview is generated
+                'portal_link_data': None   # Will be populated if portal link is generated
+            }
+            
+            # Add visual separation between pipeline execution and results
+            st.markdown("---")
+            st.markdown("### 📊 Search Results")
+
+            # Show results and update coach stats
+            if metadata.get('success', False):
+                try:
+                    ai_series = df.get('ai.match')
+                    if ai_series is not None:
+                        _q = int((ai_series == 'good').sum() + (ai_series == 'so-so').sum())
+                    elif 'route.final_status' in df.columns:
+                        _q = int(df['route.final_status'].astype(str).str.startswith('included').sum())
+                    else:
+                        _q = len(df)
+                except Exception:
+                    _q = metadata.get('quality_jobs', 0)
+                st.success(f"✅ Search completed! Found {_q} quality jobs")
+                
+                # HTML Preview if enabled (should work for non-Indeed searches)
+                if show_html_preview_tab and jobs_dataframe_to_dicts and render_jobs_html and not df.empty:
+                    render_html_preview(
+                        df=df,
+                        location=preview_location,
+                        candidate_name=candidate_name_tab,
+                        candidate_id=candidate_id_tab,
+                        max_jobs=max_jobs_pdf_tab,
+                        pdf_fair_chance_only=False,  # This variant uses simplified filtering
+                        is_memory_search=True,  # Use simplified memory-style logic
+                        title="HTML Preview"
+                    )
+                
+                # Inline results table + on-demand PDF - using standardized filtering
+                quality_df = filter_quality_jobs(df)
+                debug_dataframe_info(df, "Indeed Fresh Only - All Jobs")
+                debug_dataframe_info(quality_df, "Indeed Fresh Only - Quality Jobs")
+                show_all_rows_indeed = st.checkbox("Show all rows (no filters)", value=False, key="indeed_show_all_rows_main")
+# Import already handled at top of file
+                if show_all_rows_indeed:
+                    display_df = get_full_display_dataframe(df)
+                else:
+                    display_df = get_quality_display_dataframe(df)
+                st.dataframe(display_df, width="stretch", height=420, hide_index=True)
+
+                col_pdf2, _ = st.columns([1, 3])
+                with col_pdf2:
+                    if st.button("📄 Generate PDF", key="indeed_generate_pdf_btn"):
+                        market_name = 'Multiple Markets'
+                        try:
+                            if 'meta.market' in quality_df.columns:
+                                mkts = [m for m in quality_df['meta.market'].dropna().unique().tolist() if str(m).strip()]
+                                if len(mkts) == 1:
+                                    market_name = mkts[0]
+                                elif len(mkts) == 0:
+                                    market_name = params.get('location') or 'Market'
+                            else:
+                                market_name = params.get('location') or 'Market'
+                        except Exception:
+                            market_name = params.get('location') or 'Market'
+
+                        # Apply reasonable default limit since sidebar PDF options are disabled
+                        limited_quality_df = quality_df.head(50)  # Default to 50 jobs for PDF
+
+                        # Add coach and candidate info to DataFrame so it travels with the data
+                        pdf_df = limited_quality_df.copy()
+                        if len(pdf_df) > 0:
+                            pdf_df['meta.coach_name'] = coach.full_name
+                            pdf_df['meta.coach_username'] = coach.username
+                            # Use same source as HTML (text input values, not just session state)
+                            pdf_df['meta.candidate_name'] = candidate_name_tab if 'candidate_name_tab' in locals() else st.session_state.get('candidate_name', '')
+                            pdf_df['meta.candidate_id'] = candidate_id_tab if 'candidate_id_tab' in locals() else st.session_state.get('candidate_id', '')
+                        
+                        pdf_bytes = pipeline.generate_pdf_from_canonical(
+                            pdf_df,
+                            market_name=market_name,
+                            coach_name=coach.full_name,
+                            coach_username=coach.username,
+                            candidate_name=candidate_name_tab if 'candidate_name_tab' in locals() else st.session_state.get('candidate_name', ''),
+                            candidate_id=candidate_id_tab if 'candidate_id_tab' in locals() else st.session_state.get('candidate_id', ''),
+                            show_prepared_for=st.session_state.get('tab_show_prepared_for', True)
+                        )
+                        if pdf_bytes:
+                            # Store PDF bytes in session state so download button persists
+                            st.session_state.indeed_pdf_bytes = pdf_bytes
+                            st.session_state.indeed_pdf_filename = f"freeworld_jobs_{str(market_name).replace(' ', '_')}.pdf"
+                            st.success("✅ PDF generated successfully!")
+                        else:
+                            st.error("PDF generation failed")
+                
+                # Show PDF download button if PDF has been generated (persistent across page refreshes)
+                if hasattr(st.session_state, 'indeed_pdf_bytes') and st.session_state.indeed_pdf_bytes:
+                    render_download_button(
+                        data=st.session_state.indeed_pdf_bytes,
+                        label="📥 Download PDF",
+                        filename=st.session_state.indeed_pdf_filename,
+                        mime_type="application/pdf",
+                        key="indeed_persistent_pdf_download"
+                    )
+
+                # Record search in coach's usage stats
+                coach_manager.record_search(
+                    coach.username, 
+                    metadata.get('included_jobs', 0),
+                    metadata.get('total_cost', 0.0)
+                )
+            # Always show debug logs for Indeed searches (collapsed)
+            if indeed_logs.strip() or indeed_debug_summary:
+                with st.expander("🧪 Debug logs (Indeed)", expanded=False):
+                    text = indeed_debug_summary + (indeed_logs[-8000:] if indeed_logs else '')
+                    st.code(text, language="text")
+            else:
+                if isinstance(df, pd.DataFrame) and not df.empty:
+                    st.warning("⚠️ Metadata reported failure, but results contain rows. Showing data.")
+# Import already handled at top of file
+                    display_df = get_quality_display_dataframe(df)
+                    st.dataframe(display_df, width="stretch", height=420, hide_index=True)
+                else:
+                    st.error(f"❌ Search failed: {metadata.get('error', 'Unknown error')}")
+    
+    # Configuration Preview
+    if location:
+        mode_limits = MODE_LIMITS
+        
+        st.markdown("""
+            <div style="background: var(--fw-card-bg); 
+                        border: 3px solid var(--fw-roots); border-radius: 12px; padding: 0.75rem; 
+                        margin: 1rem 0; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);">
+                <h2 style="margin: 0; color: var(--fw-freedom-green); font-family: 'Outfit', sans-serif; 
+                           display: flex; align-items: center; font-weight: 600; font-size: 1.25rem;">
+                    ⚙️ Search Configuration
+                </h2>
+            """, unsafe_allow_html=True)
+        
+        col1, col2 = st.columns([1, 1], gap="small")
+        with col1:
+            st.markdown(f"""
+            <div style="margin-bottom: 0.75rem;">
+                <span style="color: var(--fw-freedom-green); font-weight: 500; font-size: 0.875rem;">📍 LOCATION</span><br>
+                <span style="color: var(--fw-text-light); font-weight: 600; font-size: 1rem;">
+                    {location if location_type == "Custom Location" else f"{len(selected_markets) if 'selected_markets' in locals() and selected_markets else 0} market{'s' if 'selected_markets' in locals() and len(selected_markets) > 1 else ''}"}
+                </span>
+                {f"<br><small style='color: var(--fw-text-muted);'>{', '.join(selected_markets) if 'selected_markets' in locals() and selected_markets else ''}</small>" if location_type == "Select Market" and 'selected_markets' in locals() and selected_markets else ""}
+            </div>
+            <div style="margin-bottom: 0.75rem;">
+                <span style="color: var(--fw-freedom-green); font-weight: 500; font-size: 0.875rem;">🔍 SEARCH MODE</span><br>
+                <span style="color: var(--fw-text-light); font-weight: 600; font-size: 1rem;">{search_mode.title()}</span>
+                <span style="color: var(--fw-text-muted); font-size: 0.875rem;"> ({mode_limits[search_mode]} jobs)</span>
+            </div>
+            <div style="margin-bottom: 0.75rem;">
+                <span style="color: var(--fw-freedom-green); font-weight: 500; font-size: 0.875rem;">🛣️ ROUTE FILTER</span><br>
+                <span style="color: var(--fw-text-light); font-weight: 600; font-size: 1rem;">{route_filter}</span>
+            </div>
+            <div style="margin-bottom: 0.75rem;">
+                <span style="color: var(--fw-freedom-green); font-weight: 500; font-size: 0.875rem;">📏 SEARCH RADIUS</span><br>
+                <span style="color: var(--fw-text-light); font-weight: 600; font-size: 1rem;">{search_radius} miles</span>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            no_exp_status = '<span style="color: var(--fw-freedom-green);">✅ Enabled</span>' if no_experience else '<span style="color: #dc3545;">❌ Disabled</span>'
+            pdf_status = '<span style="color: var(--fw-freedom-green);">✅ Enabled</span>' if generate_pdf else '<span style="color: #dc3545;">❌ Disabled</span>'
+            csv_status = '<span style="color: var(--fw-freedom-green);">✅ Enabled</span>' if generate_csv else '<span style="color: #dc3545;">❌ Disabled</span>'
+            airtable_status = '<span style="color: #dc3545;">❌ Disabled</span>'
+            fresh_status = '<span style="color: var(--fw-freedom-green);">✅ Enabled</span>' if force_fresh else '<span style="color: #dc3545;">❌ Disabled</span>'
+            
+            st.markdown(f"""
+            <div style="margin-bottom: 0.75rem;">
+                <span style="color: var(--fw-freedom-green); font-weight: 500; font-size: 0.875rem;">👤 NO EXPERIENCE</span><br>
+                {no_exp_status}
+            </div>
+            <div style="margin-bottom: 0.75rem;">
+                <span style="color: var(--fw-freedom-green); font-weight: 500; font-size: 0.875rem;">📄 PDF GENERATION</span><br>
+                {pdf_status}
+            </div>
+            <div style="margin-bottom: 0.75rem;">
+                <span style="color: var(--fw-freedom-green); font-weight: 500; font-size: 0.875rem;">📊 CSV EXPORT</span><br>
+                {csv_status}
+            </div>
+            <div style="margin-bottom: 0.375rem;">
+                <span style="color: var(--fw-freedom-green); font-weight: 500; font-size: 0.875rem;">📋 AIRTABLE SYNC</span><br>
+                {airtable_status}
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Search terms and additional options
+        st.markdown(f"""
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #dee2e6;">
+            <div style="margin-bottom: 0.75rem;">
+                <span style="color: #6c757d; font-weight: 500; font-size: 0.875rem;">💼 SEARCH TERMS</span><br>
+                <span style="color: var(--fw-text-light); font-weight: 600; font-size: 1rem;">{search_terms or 'CDL driver'}</span>
+            </div>
+            <div style="display: flex; gap: 2rem;">
+                <div>
+                    <span style="color: #6c757d; font-weight: 500; font-size: 0.875rem;">🔄 FORCE FRESH:</span>
+                    {fresh_status}
+                </div>
+            </div>
+        </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # (Removed large persistent results section - original results now persist properly)
+    
+    # (Removed bottom Pipeline Analytics — consolidated at top of Search Results)
+
+        # Link Analytics removed (will be rebuilt in Free Agent Management)
+
+    # Removed redundant end-of-file CSS/JS overrides to reduce conflicts
+
 def show_combined_batches_and_scheduling_page(coach):
     """Combined page for async batches and scheduled searches"""
     # Ensure pandas is available in this function scope before any usage
@@ -5413,7 +5844,7 @@ def show_combined_batches_and_scheduling_page(coach):
         async_manager = AsyncJobManager()
         
         # Create radio buttons for inner tabs (persistent navigation)
-        inner_tab_options = ["📦 Async Batches", "🏁 DriverPulse Batches", "📄 CSV Classification"]
+        inner_tab_options = ["📦 Async Batches", "📄 CSV Classification"]
         
         # Initialize session state for inner tab if not exists
         if 'inner_tab_index' not in st.session_state:
@@ -6072,237 +6503,7 @@ def show_combined_batches_and_scheduling_page(coach):
             # Scheduled batches table
             st.markdown("### 📊 Scheduled Batches Table")
             show_simple_batch_table(coach)
-
-        elif selected_inner_tab == "🏁 DriverPulse Batches":
-            st.markdown("### 🏁 DriverPulse Entry-Level CDL Scraper")
-            st.caption("Scrape entry-level CDL jobs from DriverPulse across all major markets. Authenticate once, then quickly pull jobs for No CDL, CDL School Grads, and 0-6 months experience.")
-
-            # Check for required environment variables
-            required_vars = ['DRIVER_PULSE_EMAIL', 'DRIVER_PULSE_FIRST_NAME', 'DRIVER_PULSE_LAST_NAME', 'DRIVER_PULSE_PHONE']
-            missing_vars = [var for var in required_vars if not os.getenv(var)]
-
-            if missing_vars:
-                st.error(f"❌ Missing DriverPulse credentials: {', '.join(missing_vars)}")
-                st.info("💡 Set these environment variables to use DriverPulse integration")
-                return
-            else:
-                st.success("✅ DriverPulse credentials configured")
-
-            # DriverPulse scraping form
-            with st.expander("🚀 Run DriverPulse Entry-Level CDL Scrape", expanded=True):
-                with st.form("driver_pulse_scraper"):
-                    st.markdown("**Experience Levels:** No CDL (training provided), CDL School Graduates, 0-6 Months Experience")
-
-                    # Location Selection (same as main search)
-                    st.markdown("##### 📍 Location Selection")
-                    dp_location_type = st.radio(
-                        "Location Type:",
-                        ["Select Markets", "Custom Location"],
-                        index=0,
-                        help="Choose predefined markets or enter custom location",
-                        key="dp_location_type",
-                        horizontal=True
-                    )
-
-                    if dp_location_type == "Select Markets":
-                        try:
-                            from pipeline_v3 import FreeWorldPipelineV3
-                            pipeline = FreeWorldPipelineV3()
-                            markets = pipeline.get_markets()
-                            dp_selected_markets = st.multiselect(
-                                "Target Markets:",
-                                markets,
-                                default=["Dallas", "Houston", "Bay Area", "Phoenix"],
-                                help="Select one or multiple markets to search"
-                            )
-                            if dp_selected_markets:
-                                st.success(f"📍 Selected Markets: {', '.join(dp_selected_markets)}")
-                            else:
-                                st.warning("👆 Please select at least one market")
-                        except Exception as e:
-                            st.error(f"Could not load markets: {e}")
-                            dp_selected_markets = ["Dallas", "Houston", "Bay Area", "Phoenix"]
-                    else:
-                        dp_custom_location = st.text_input(
-                            "Enter ZIP code, city, or state:",
-                            placeholder="e.g., 90210, Austin TX, California",
-                            help="Enter any US location - ZIP code, city name, or state",
-                            key="dp_custom_location"
-                        )
-                        if dp_custom_location:
-                            st.success(f"📍 Custom Location: {dp_custom_location}")
-                        else:
-                            st.warning("👆 Please enter a location")
-
-                    # Settings
-                    st.markdown("##### ⚙️ Scraping Settings")
-                    col1, col2, col3 = st.columns(3)
-
-                    with col1:
-                        dp_radius = st.selectbox(
-                            "🎯 Search Radius:",
-                            [25, 50, 75, 100],
-                            index=1,  # Default to 50 miles
-                            help="Search radius in miles for each market"
-                        )
-
-                    with col2:
-                        dp_enable_ai = st.checkbox(
-                            "🧠 Enable AI Classification",
-                            value=True,
-                            help="Run CDL job classification on results (slower but higher quality)"
-                        )
-
-                    with col3:
-                        dp_enable_pdf = st.checkbox(
-                            "📄 Generate PDF",
-                            value=False,
-                            help="Generate PDF report of results"
-                        )
-
-                    # Submit button
-                    dp_submitted = st.form_submit_button(
-                        "🏁 Start DriverPulse Scrape",
-                        help="This will authenticate with DriverPulse and scrape all markets"
-                    )
-
-                    if dp_submitted:
-                        # Validate location selection
-                        if dp_location_type == "Select Markets":
-                            if not dp_selected_markets:
-                                st.error("❌ Please select at least one market")
-                                st.stop()
-                            target_locations = dp_selected_markets
-                            location_display = ", ".join(dp_selected_markets)
-                        else:
-                            if not dp_custom_location or not dp_custom_location.strip():
-                                st.error("❌ Please enter a custom location")
-                                st.stop()
-                            target_locations = [dp_custom_location.strip()]
-                            location_display = dp_custom_location.strip()
-
-                        st.info(f"🏁 Starting DriverPulse scrape for: {location_display}")
-
-                        # Create progress containers
-                        progress_container = st.container()
-                        results_container = st.container()
-
-                        try:
-                            from driver_pulse_adapter import DriverPulsePipelineIntegration
-                            from datetime import datetime
-
-                            with progress_container:
-                                progress_bar = st.progress(0)
-                                status_text = st.empty()
-
-                                # Initialize integration
-                                integration = DriverPulsePipelineIntegration()
-
-                                # Run scraper with progress updates
-                                status_text.text("🔐 Authenticating with DriverPulse...")
-                                progress_bar.progress(10)
-
-                                # Configure filter settings
-                                filter_settings = {
-                                    'enable_ai_classification': dp_enable_ai
-                                }
-
-                                status_text.text(f"🚀 Running scrape for {len(target_locations)} location(s)...")
-                                progress_bar.progress(30)
-
-                                # Run the integration
-                                results = integration.run_driver_pulse_through_pipeline(
-                                    radius_miles=dp_radius,
-                                    coach_username=coach.username,
-                                    search_terms="CDL Driver Entry Level",
-                                    filter_settings=filter_settings,
-                                    target_locations=target_locations
-                                )
-
-                                progress_bar.progress(80)
-                                status_text.text("📊 Processing results...")
-
-                                df = results['jobs_df']
-                                metadata = results['metadata']
-
-                                progress_bar.progress(100)
-                                status_text.text("✅ DriverPulse scrape completed!")
-
-                                if metadata['success'] and not df.empty:
-                                    with results_container:
-                                        st.success(f"🎉 Found {metadata['total_jobs']} jobs from DriverPulse!")
-
-                                        # Show summary metrics
-                                        col1, col2, col3, col4 = st.columns(4)
-                                        with col1:
-                                            st.metric("Total Jobs", metadata['total_jobs'])
-                                        with col2:
-                                            st.metric("Quality Jobs", metadata.get('included_jobs', 0))
-                                        with col3:
-                                            st.metric("Data Source", "DriverPulse")
-                                        with col4:
-                                            st.metric("Markets", "10")
-
-                                        # Show results table preview
-                                        st.markdown("### 📋 Results Preview")
-                                        if len(df) > 10:
-                                            st.dataframe(df.head(10))
-                                            st.caption(f"Showing first 10 of {len(df)} jobs")
-                                        else:
-                                            st.dataframe(df)
-
-                                        # Export options
-                                        st.markdown("### 💾 Export Options")
-                                        col1, col2 = st.columns(2)
-
-                                        with col1:
-                                            # CSV download
-                                            csv_data = df.to_csv(index=False)
-                                            st.download_button(
-                                                label="📄 Download CSV",
-                                                data=csv_data,
-                                                file_name=f"driver_pulse_jobs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                                                mime="text/csv"
-                                            )
-
-                                        with col2:
-                                            # PDF generation (if enabled)
-                                            if dp_enable_pdf:
-                                                try:
-                                                    from fpdf_pdf_generator_v2 import generate_pdf_bytes_from_dataframe
-                                                    pdf_bytes = generate_pdf_bytes_from_dataframe(
-                                                        df=df,
-                                                        market="Multi-Market DriverPulse",
-                                                        coach_name=coach.full_name,
-                                                        coach_username=coach.username,
-                                                        candidate_name="",
-                                                        candidate_id="",
-                                                        show_prepared_for=False
-                                                    )
-
-                                                    if pdf_bytes:
-                                                        st.download_button(
-                                                            label="📄 Download PDF",
-                                                            data=pdf_bytes,
-                                                            file_name=f"driver_pulse_jobs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                                                            mime="application/pdf"
-                                                        )
-                                                    else:
-                                                        st.warning("⚠️ PDF generation failed")
-                                                except Exception as pdf_e:
-                                                    st.warning(f"⚠️ PDF generation error: {pdf_e}")
-
-                                else:
-                                    with results_container:
-                                        error_msg = metadata.get('error', 'Unknown error')
-                                        st.error(f"❌ DriverPulse scrape failed: {error_msg}")
-
-                        except Exception as e:
-                            st.error(f"❌ DriverPulse integration error: {e}")
-                            import traceback
-                            with st.expander("🔍 Error Details"):
-                                st.code(traceback.format_exc())
-
+        
         elif selected_inner_tab == "📄 CSV Classification":
             st.markdown("### 📄 Classify CSV (Outscraper → Pipeline)")
             st.caption("Drop an Outscraper CSV (Google or Indeed). We will map fields, classify with AI, and generate outputs. Markets are tracked as plain names (e.g., Dallas, Bay Area, Inland Empire). City,ST is used only for scraping — not here.")
