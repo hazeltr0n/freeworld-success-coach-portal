@@ -15,6 +15,12 @@ streamlit_secrets*.txt
 *secrets*
 *secret*
 
+# Authentication files - NEVER COMMIT
+auth.json
+gmail_token.json
+gmail_credentials.json
+driver_pulse_2fa.py
+
 # Generated outputs
 FreeWorld_Jobs/
 *.csv

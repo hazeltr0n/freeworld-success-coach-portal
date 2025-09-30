@@ -70,7 +70,7 @@ class FastMarketScraper:
         print(f"📍 Markets: {', '.join(self.markets)}")
         print(f"🔄 Radius: {radius_miles} miles per market")
 
-        # Remove any cached auth to force fresh login
+        # Remove any cached auth to force fresh login (only affects local files, not secrets)
         auth_file = "auth.json"
         if os.path.exists(auth_file):
             os.remove(auth_file)

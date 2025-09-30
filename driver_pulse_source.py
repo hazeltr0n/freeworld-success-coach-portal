@@ -16,6 +16,9 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 import logging
 
+# Import secrets loader
+from driver_pulse_secrets import load_auth_data, save_auth_data
+
 # Playwright for authentication
 try:
     from playwright.sync_api import sync_playwright
@@ -146,11 +149,10 @@ class DriverPulseSource:
             DriverPulseAuthError: If auth file is missing or invalid
         """
         try:
-            if not os.path.exists(self.config.auth_file):
-                raise DriverPulseAuthError(f"Authentication file not found: {self.config.auth_file}")
-
-            with open(self.config.auth_file, 'r') as f:
-                auth_data = json.load(f)
+            # Try to load from secrets first, then fallback to local file
+            auth_data = load_auth_data()
+            if not auth_data:
+                raise DriverPulseAuthError(f"Authentication data not found in secrets or local file: {self.config.auth_file}")
 
             # Extract cookies and set in session
             cookies = auth_data.get('cookies', [])
@@ -354,10 +356,11 @@ class DriverPulseSource:
                     }
                 }
 
-                with open(self.config.auth_file, 'w') as f:
-                    json.dump(auth_data, f, indent=2)
-
-                logger.info(f"✅ Authentication saved to {self.config.auth_file}")
+                # Save auth data (for development - in production use secrets)
+                if save_auth_data(auth_data):
+                    logger.info(f"✅ Authentication saved to {self.config.auth_file}")
+                else:
+                    logger.warning(f"⚠️ Failed to save authentication to {self.config.auth_file}")
 
                 # Load the new authentication
                 self.load_authentication()
