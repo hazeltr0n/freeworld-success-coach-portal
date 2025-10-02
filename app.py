@@ -443,12 +443,94 @@ def airtable_find_candidates(query: str, by: str = "name", limit: int = 10):
                 "city": f.get("city") or f.get("City") or "",
                 "state": f.get("state") or f.get("State") or "",
                 "admin_portal_url": f.get("Admin Portal Record") or f.get("admin_portal_url") or "",
+                "placement_status": f.get("placementStatus") or f.get("Placement Status") or "",
+                "employment_status": f.get("employmentStatus") or f.get("Employment Status") or "",
             })
 
         return results[:limit]
     except Exception:
         # Avoid crashing caller
         return []
+
+def sync_agent_airtable_status(agent_uuid: str) -> dict:
+    """Sync placement and employment status from Airtable for a specific agent
+
+    Returns updated status dict with placement_status, employment_status, and sync timestamp
+    """
+    if not agent_uuid:
+        return {}
+
+    try:
+        # Look up agent in Airtable by UUID
+        airtable_results = airtable_find_candidates(agent_uuid, by="uuid", limit=1)
+
+        if not airtable_results:
+            print(f"⚠️ Agent {agent_uuid} not found in Airtable")
+            return {}
+
+        agent_data = airtable_results[0]
+        placement_status = agent_data.get('placement_status', '')
+        employment_status = agent_data.get('employment_status', '')
+
+        # Update agent_profiles in Supabase with latest Airtable data
+        from supabase_utils import get_client
+        from datetime import datetime, timezone
+
+        client = get_client()
+        if client:
+            update_data = {
+                'placement_status': placement_status,
+                'employment_status': employment_status,
+                'airtable_synced_at': datetime.now(timezone.utc).isoformat()
+            }
+
+            client.table('agent_profiles').update(update_data).eq('agent_uuid', agent_uuid).execute()
+            print(f"✅ Synced Airtable status for {agent_uuid}: placement={placement_status}, employment={employment_status}")
+
+            return update_data
+
+        return {}
+
+    except Exception as e:
+        print(f"❌ Error syncing Airtable status for {agent_uuid}: {e}")
+        return {}
+
+def sync_all_agents_airtable_status(coach_username: str = None) -> int:
+    """Sync placement and employment status from Airtable for all agents (or specific coach's agents)
+
+    Returns count of successfully synced agents
+    """
+    try:
+        from supabase_utils import get_client
+        client = get_client()
+        if not client:
+            return 0
+
+        # Get all active agents (optionally filtered by coach)
+        query = client.table('agent_profiles').select('agent_uuid').eq('is_active', True)
+        if coach_username:
+            query = query.eq('coach_username', coach_username)
+
+        result = query.execute()
+        agents = result.data
+
+        if not agents:
+            return 0
+
+        sync_count = 0
+        for agent in agents:
+            agent_uuid = agent.get('agent_uuid')
+            if agent_uuid:
+                synced_data = sync_agent_airtable_status(agent_uuid)
+                if synced_data:
+                    sync_count += 1
+
+        print(f"✅ Synced {sync_count}/{len(agents)} agents from Airtable")
+        return sync_count
+
+    except Exception as e:
+        print(f"❌ Error in bulk Airtable sync: {e}")
+        return 0
 
 # Function to encode image as base64
 def get_base64_of_image(path):
@@ -1540,6 +1622,9 @@ def show_manage_agents_tab(coach, coach_manager):
                             'agent_city': chosen.get('city', ''),
                             'agent_state': chosen.get('state', ''),
                             'admin_portal_url': chosen.get('admin_portal_url', ''),
+                            'placement_status': chosen.get('placement_status', ''),
+                            'employment_status': chosen.get('employment_status', ''),
+                            'airtable_synced_at': datetime.now(timezone.utc).isoformat(),
                             'location': 'Houston',  # Default market
                             'route_filter': 'both',
                             'fair_chance_only': False,
@@ -1925,7 +2010,7 @@ def show_manage_agents_tab(coach, coach_manager):
                 st.error(f"CSV parse error: {e}")
     
     # Add refresh button, deleted agents, and status indicator
-    col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
+    col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 1])
 
     # Define show_deleted FIRST before using it in cache keys
     with col3:
@@ -1975,6 +2060,20 @@ def show_manage_agents_tab(coach, coach_manager):
             st.rerun()
 
     with col4:
+        if st.button("🔄 Sync Airtable", help="Sync placement & employment status from Airtable"):
+            with st.spinner("🔄 Syncing Airtable statuses..."):
+                synced_count = sync_all_agents_airtable_status(coach.username)
+                if synced_count > 0:
+                    st.success(f"✅ Synced {synced_count} agents from Airtable!")
+                    # Clear caches to show updated data
+                    agents_cache_key = f'agents_{coach.username}_{show_deleted}'
+                    if agents_cache_key in st.session_state:
+                        del st.session_state[agents_cache_key]
+                    st.rerun()
+                else:
+                    st.warning("⚠️ No agents synced. Check Airtable connection.")
+
+    with col5:
         # Show data source indicator
         try:
             from supabase_utils import get_client
@@ -2134,9 +2233,15 @@ def show_manage_agents_tab(coach, coach_manager):
             if classifier_type == 'cdl' and 'cdl_pathway' not in pathway_prefs:
                 pathway_prefs = ['cdl_pathway'] + pathway_prefs
 
+            # Get all coaches assigned to this agent (multi-coach support)
+            assigned_coaches = agent.get('all_coaches', coach.username)  # Fallback to current coach
+
             agent_row = {
                 'Status': status,
                     'Name': agent.get('agent_name', 'Unknown'),
+                    'Placement': agent.get('placement_status', ''),
+                    'Employment': agent.get('employment_status', ''),
+                    'Coaches': assigned_coaches,
                     'Clicks (All)': stats['total_clicks'],
                     'Clicks (14d)': stats['clicks_14d'],
                     'Apps (All)': stats['total_applications'],
@@ -2174,9 +2279,10 @@ def show_manage_agents_tab(coach, coach_manager):
             agent_data.append(agent_row)
 
         df = pd.DataFrame(agent_data)
-        # Reorder columns with individual pathway checkboxes
+        # Reorder columns with new placement/employment/coaches columns at the front
         desired_order = [
-            'Status', 'Name', 'Clicks (All)', 'Clicks (14d)', 'Apps (All)', 'Apps (14d)',
+            'Status', 'Name', 'Placement', 'Employment', 'Coaches',
+            'Clicks (All)', 'Clicks (14d)', 'Apps (All)', 'Apps (14d)',
             'Score', 'Activity', 'Last Applied', 'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Quality', 'Lookback', 'Show Prepared For',
             'CDL Jobs', 'Dock→Driver', 'CDL Training', 'Warehouse→Driver', 'Logistics', 'Non-CDL', 'Warehouse',
             'City', 'State', 'Created', 'Portal Link', 'Admin Portal', 'Delete', 'Restore',
@@ -2189,6 +2295,24 @@ def show_manage_agents_tab(coach, coach_manager):
             'Name': st.column_config.TextColumn(
                 "Name",
                 help="Free Agent's full name",
+                disabled=True,
+                width="medium"
+            ),
+            'Placement': st.column_config.TextColumn(
+                "Placement",
+                help="Airtable placement status (synced)",
+                disabled=True,
+                width="small"
+            ),
+            'Employment': st.column_config.TextColumn(
+                "Employment",
+                help="Airtable employment status (synced)",
+                disabled=True,
+                width="small"
+            ),
+            'Coaches': st.column_config.TextColumn(
+                "Coaches",
+                help="All coaches assigned to this agent",
                 disabled=True,
                 width="medium"
             ),

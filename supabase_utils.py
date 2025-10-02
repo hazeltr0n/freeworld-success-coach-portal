@@ -318,7 +318,7 @@ def save_agent_profile_to_supabase(coach_username: str, agent_data: Dict) -> Tup
         # Upsert (insert or update) with fallback for missing admin_portal_url column
         try:
             result = client.table('agent_profiles').upsert(
-                profile_data, 
+                profile_data,
                 on_conflict='coach_username,agent_uuid'
             ).execute()
         except Exception as e:
@@ -333,7 +333,24 @@ def save_agent_profile_to_supabase(coach_username: str, agent_data: Dict) -> Tup
                 ).execute()
             else:
                 raise e
-        
+
+        # Also create/update entry in agent_coaches junction table (for multi-coach support)
+        try:
+            junction_data = {
+                'agent_uuid': agent_data.get('agent_uuid', ''),
+                'coach_username': coach_username,
+                'is_active': True,
+                'assigned_at': 'NOW()'
+            }
+            client.table('agent_coaches').upsert(
+                junction_data,
+                on_conflict='agent_uuid,coach_username'
+            ).execute()
+            print(f"✅ Updated agent_coaches junction table for {coach_username} → {agent_data.get('agent_uuid', '')}")
+        except Exception as junction_error:
+            # If junction table doesn't exist yet, continue without error
+            print(f"⚠️ agent_coaches table not found (migration pending): {junction_error}")
+
         return True, None
         
     except Exception as e:
@@ -412,20 +429,39 @@ def load_agent_profiles_from_supabase(coach_username: str, include_inactive: boo
         return [], str(e)
 
 def delete_agent_profile_from_supabase(coach_username: str, agent_uuid: str) -> Tuple[bool, str | None]:
-    """Delete an agent profile from Supabase (soft delete by marking inactive)"""
+    """Remove coach's assignment to an agent (soft delete from agent_coaches junction table)
+
+    This does NOT delete the agent profile, only the coach-agent relationship.
+    If other coaches have this agent, they retain access.
+    """
     client = get_client()
     if client is None:
         return False, "Supabase client not available"
-    
+
     try:
-        # Soft delete by marking inactive
-        result = client.table('agent_profiles').update({
-            'is_active': False,
-            'updated_at': 'NOW()'
-        }).eq('coach_username', coach_username).eq('agent_uuid', agent_uuid).execute()
-        
-        return True, None
-        
+        # First check if agent_coaches table exists (for backwards compatibility)
+        try:
+            # Soft delete the coach-agent relationship from junction table
+            result = client.table('agent_coaches').update({
+                'is_active': False,
+                'updated_at': 'NOW()'
+            }).eq('coach_username', coach_username).eq('agent_uuid', agent_uuid).execute()
+
+            print(f"✅ Removed coach assignment: {coach_username} → {agent_uuid}")
+            return True, None
+
+        except Exception as junction_error:
+            # Fallback to old method if junction table doesn't exist yet
+            print(f"⚠️ agent_coaches table not found, using legacy delete: {junction_error}")
+
+            # Legacy soft delete by marking agent_profiles inactive
+            result = client.table('agent_profiles').update({
+                'is_active': False,
+                'updated_at': 'NOW()'
+            }).eq('coach_username', coach_username).eq('agent_uuid', agent_uuid).execute()
+
+            return True, None
+
     except Exception as e:
         return False, str(e)
 
