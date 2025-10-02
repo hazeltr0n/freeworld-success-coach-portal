@@ -4,7 +4,7 @@
 
 -- Add the column with a default value of TRUE (show the message by default)
 ALTER TABLE agent_profiles
-ADD COLUMN show_prepared_for BOOLEAN DEFAULT TRUE;
+ADD COLUMN IF NOT EXISTS show_prepared_for BOOLEAN DEFAULT TRUE;
 
 -- Add a comment to explain the column
 COMMENT ON COLUMN agent_profiles.show_prepared_for IS

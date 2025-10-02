@@ -403,6 +403,40 @@ python -m pytest test_master_efficient.py::TestMasterEfficient::test_cherry_pick
 
 ## 🔄 Maintenance & Operations
 
+### Database Migrations (Supabase CLI)
+
+**Quick Reference Script**: Use `./scripts/migrate.sh` for all migration tasks
+
+```bash
+# Common Commands
+./scripts/migrate.sh new <migration_name>  # Create new migration
+./scripts/migrate.sh push                   # Push migrations to remote
+./scripts/migrate.sh diff                   # Check for schema differences
+./scripts/migrate.sh status                 # Show migration history
+./scripts/migrate.sh pull                   # Pull latest schema from remote
+```
+
+**Manual Process** (if needed):
+```bash
+# 1. Link to project (auto-detects from .streamlit/secrets.toml)
+PROJECT_REF=$(grep "SUPABASE_URL" .streamlit/secrets.toml | sed 's/.*https:\/\///' | sed 's/\.supabase\.co.*//')
+supabase link --project-ref $PROJECT_REF
+
+# 2. Create migration
+supabase migration new my_migration_name
+
+# 3. Edit the SQL file in supabase/migrations/
+
+# 4. Push to remote database
+supabase db push
+```
+
+**Important Notes**:
+- All migrations are in `supabase/migrations/` with timestamp prefixes
+- Use `IF NOT EXISTS` and `ADD COLUMN IF NOT EXISTS` for idempotent migrations
+- Test migrations locally first with `supabase db reset` (destructive)
+- The script automatically extracts project reference from secrets file
+
 ### Automated Systems
 - **Memory Cleanup**: Automatic 72-hour expiry for job cache
 - **Performance Monitoring**: Real-time pipeline speed tracking
@@ -416,4 +450,4 @@ python -m pytest test_master_efficient.py::TestMasterEfficient::test_cherry_pick
 
 ---
 
-*Last Updated: September 25, 2025 - Reflects current system architecture with Supabase-native infrastructure, revolutionary test suite, Google Jobs integration, and Free Agent Management optimization with automatic portal link generation.*
+*Last Updated: October 2, 2025 - Added multi-coach support, Airtable placement status tracking, and comprehensive Supabase CLI migration workflow.*
