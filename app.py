@@ -1439,11 +1439,48 @@ def show_free_agent_management_page(coach):
     from user_management import get_coach_manager
     coach_manager = get_coach_manager()
     from free_agent_system import (
-        save_agent_profile, load_agent_profiles, load_agent_profiles_with_stats, delete_agent_profile, 
+        save_agent_profile, load_agent_profiles, load_agent_profiles_with_stats, delete_agent_profile,
         get_agent_click_stats, get_all_agents_click_stats, encode_agent_params, get_market_options
     )
-    
+
     st.header("👥 Free Agent Management")
+
+    # Create tabs for different management functions
+    agent_tab_options = ["📋 Manage Agents", "🎯 Track Applications"]
+
+    # Initialize session state for tab selection
+    if 'agent_management_tab' not in st.session_state:
+        st.session_state.agent_management_tab = 0
+
+    # Tab selection using radio buttons
+    selected_agent_tab = st.radio(
+        "Management Function",
+        options=agent_tab_options,
+        index=st.session_state.agent_management_tab,
+        key="agent_management_tab_radio",
+        horizontal=True
+    )
+
+    # Update session state
+    if selected_agent_tab in agent_tab_options:
+        st.session_state.agent_management_tab = agent_tab_options.index(selected_agent_tab)
+
+    st.markdown("---")
+
+    # Show content based on selected tab
+    if selected_agent_tab == "📋 Manage Agents":
+        show_manage_agents_tab(coach, coach_manager)
+    elif selected_agent_tab == "🎯 Track Applications":
+        show_track_applications_tab(coach, coach_manager)
+
+
+def show_manage_agents_tab(coach, coach_manager):
+    """Show the Manage Agents tab (original Free Agent management interface)"""
+    from free_agent_system import (
+        save_agent_profile, load_agent_profiles, load_agent_profiles_with_stats, delete_agent_profile,
+        get_agent_click_stats, get_all_agents_click_stats, encode_agent_params, get_market_options
+    )
+
     st.markdown("*Configure job searches for your Free Agents and manage their custom job feeds*")
 
     # Note about analytics periods
@@ -2677,6 +2714,355 @@ def show_free_agent_management_page(coach):
             st.json(weekly_report)
 
 
+def show_track_applications_tab(coach, coach_manager):
+    """Show the Track Applications tab for viewing agent job click history and success tracking"""
+    st.markdown("*Track which jobs your Free Agents have applied to and measure platform success*")
+    st.info("📊 **Success Metric**: When an agent gets hired by a company from their application list, that's our platform success signal!")
+
+    # Agent selection section
+    st.markdown("### 🔍 Select Free Agent")
+
+    # Load all agents for this coach
+    from free_agent_system import load_agent_profiles_with_stats
+
+    with st.spinner("Loading Free Agents..."):
+        agents = load_agent_profiles_with_stats(coach.username, lookback_days=90)  # 90 days for comprehensive tracking
+
+    if not agents:
+        st.warning("No Free Agents found for your account. Add agents in the 'Manage Agents' tab first.")
+        return
+
+    # Create agent selection dropdown
+    agent_options = {f"{agent['agent_name']} ({agent['agent_uuid'][:8]})": agent for agent in agents}
+
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        selected_agent_display = st.selectbox(
+            "Select Agent to Track",
+            options=list(agent_options.keys()),
+            key="track_applications_agent_select"
+        )
+
+    with col2:
+        st.markdown("<div style='height: 1.75rem;'></div>", unsafe_allow_html=True)
+        refresh_button = st.button("🔄 Refresh Data", key="refresh_agent_data")
+
+    if not selected_agent_display:
+        return
+
+    selected_agent = agent_options[selected_agent_display]
+    agent_uuid = selected_agent['agent_uuid']
+    agent_name = selected_agent['agent_name']
+
+    st.markdown("---")
+
+    # Agent Summary Section
+    st.markdown(f"### 📊 {agent_name}'s Activity Summary")
+
+    # Get click stats - use exact same field names as manage agents table
+    total_clicks = selected_agent.get('total_clicks', 0)
+    recent_clicks = selected_agent.get('recent_clicks', 0)
+    total_applications = selected_agent.get('total_applications', 0)
+    portal_clicks = selected_agent.get('portal_clicks', 0)
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Total Job Clicks", total_clicks)
+    with col2:
+        st.metric("Last 14 Days", recent_clicks)
+    with col3:
+        st.metric("Applications", total_applications)
+    with col4:
+        st.metric("Portal Visits", portal_clicks)
+
+    # Portal Link Management Section
+    with st.expander("🔗 Portal Link & Search Parameters", expanded=False):
+        st.markdown("### Edit Agent's Job Search Settings")
+
+        from free_agent_system import save_agent_profile, get_market_options
+        # Note: generate_dynamic_portal_link is defined in app.py, already available
+
+        # Get current settings
+        current_location = selected_agent.get('location', 'Houston')
+        current_route = selected_agent.get('route_filter', 'both')
+        current_fair_chance = selected_agent.get('fair_chance_only', False)
+        current_max_jobs = selected_agent.get('max_jobs', 25)
+        current_experience = selected_agent.get('experience_level', 'both')
+
+        col1, col2 = st.columns(2)
+        with col1:
+            markets = get_market_options()
+            new_location = st.selectbox("Market/Location", markets, index=markets.index(current_location) if current_location in markets else 0, key="edit_location")
+            new_route = st.selectbox("Route Type", ["both", "local", "regional"], index=["both", "local", "regional"].index(current_route), key="edit_route")
+            new_fair_chance = st.checkbox("Fair Chance Only", value=current_fair_chance, key="edit_fair_chance")
+
+        with col2:
+            max_jobs_options = [15, 25, 50, 100, 250]
+            current_max_jobs_index = max_jobs_options.index(current_max_jobs) if current_max_jobs in max_jobs_options else 1  # Default to 25
+            new_max_jobs = st.selectbox("Maximum Jobs", max_jobs_options, index=current_max_jobs_index, key="edit_max_jobs")
+            new_experience = st.selectbox("Experience Level", ["both", "no_experience", "experienced"], index=["both", "no_experience", "experienced"].index(current_experience), key="edit_experience")
+
+        # Show current portal link
+        current_portal_url = selected_agent.get('portal_url', 'Not generated')
+        st.markdown("**Current Portal Link:**")
+        st.code(current_portal_url, language=None)
+
+        # Save changes button
+        if st.button("💾 Save Changes & Regenerate Portal Link", key="save_agent_settings", type="primary"):
+            with st.spinner("Saving changes and regenerating portal link..."):
+                # Update agent data
+                updated_agent = selected_agent.copy()
+                updated_agent.update({
+                    'location': new_location,
+                    'route_filter': new_route,
+                    'fair_chance_only': new_fair_chance,
+                    'max_jobs': new_max_jobs,
+                    'experience_level': new_experience
+                })
+
+                # Regenerate portal link
+                full_portal_url = generate_dynamic_portal_link(updated_agent)
+
+                # Create Short.io link
+                try:
+                    from link_tracker import LinkTracker
+                    link_tracker = LinkTracker()
+
+                    portal_tags = [
+                        f"coach:{coach.username}",
+                        f"candidate:{agent_uuid}",
+                        f"market:{new_location.lower().replace(' ', '_')}",
+                        "type:portal_access"
+                    ]
+
+                    edge_function_url = link_tracker.generate_edge_function_url(
+                        target_url=full_portal_url,
+                        candidate_id=agent_uuid,
+                        tags=portal_tags
+                    )
+
+                    shortened_url = link_tracker.create_short_link(edge_function_url, title=f"Portal - {agent_name}", tags=portal_tags, candidate_id=agent_uuid)
+                    updated_agent['portal_url'] = shortened_url
+
+                except Exception as e:
+                    st.warning(f"⚠️ Could not generate short link: {e}")
+                    updated_agent['portal_url'] = full_portal_url
+
+                # Save to database
+                from free_agent_system import save_agent_profile
+                success, message = save_agent_profile(coach.username, updated_agent)
+
+                if success:
+                    st.success("✅ Settings saved and portal link regenerated!")
+                    st.info(f"🔗 New Portal Link: {updated_agent['portal_url']}")
+                    st.rerun()
+                else:
+                    st.error(f"❌ Failed to save: {message}")
+
+    # Application History Section
+    st.markdown("### 📋 Application History")
+    st.markdown("Jobs this agent has marked as **'I applied to this job'**")
+
+    # Date range selector for application history
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        days_back = st.selectbox("Time Period", [7, 14, 30, 60, 90, 180, 365], index=3, key="apps_days_back")
+    with col2:
+        st.markdown("<div style='height: 1.75rem;'></div>", unsafe_allow_html=True)
+        export_csv = st.button("📥 Export CSV", key="export_apps_csv")
+
+    # Fetch job feedback (applications) for this agent
+    from supabase_utils import get_client
+    from datetime import datetime, timedelta, timezone
+    import pandas as pd
+
+    try:
+        client = get_client()
+        if client is None:
+            st.error("❌ Cannot connect to Supabase database")
+            return
+
+        # Calculate date range
+        end_date = datetime.now(timezone.utc)
+        start_date = end_date - timedelta(days=days_back)
+
+        # Query job_feedback table for applications (feedback_type = 'i_applied_to_this_job')
+        response = client.table("job_feedback").select(
+            "id, created_at, job_title, company, application_status"
+        ).eq(
+            "candidate_id", agent_uuid
+        ).eq(
+            "feedback_type", "i_applied_to_this_job"
+        ).gte(
+            "created_at", start_date.isoformat()
+        ).lte(
+            "created_at", end_date.isoformat()
+        ).order("created_at", desc=True).execute()
+
+        applications = response.data
+
+        if not applications:
+            st.info(f"No job applications found for {agent_name} in the last {days_back} days.")
+            st.markdown("💡 Applications are tracked when the agent clicks **'I applied to this job'** in their portal.")
+        else:
+            # Convert to DataFrame
+            df = pd.DataFrame(applications)
+
+            # Format created_at for display
+            df['created_at'] = pd.to_datetime(df['created_at']).dt.strftime('%Y-%m-%d')
+
+            # Default status to 'applied' if None
+            df['application_status'] = df['application_status'].fillna('applied')
+
+            # Show metrics
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Total Applications", len(df))
+            with col2:
+                unique_companies = df['company'].nunique()
+                st.metric("Unique Companies", unique_companies)
+            with col3:
+                hired_count = len(df[df['application_status'] == 'hired'])
+                st.metric("Hired", hired_count)
+            with col4:
+                # Calculate recent applications (last 14 days)
+                recent_apps = len(df[pd.to_datetime(df['created_at']) >= (datetime.now() - timedelta(days=14))])
+                st.metric("Last 14 Days", recent_apps)
+
+            # Create editable dataframe with status dropdown
+            st.markdown("**💼 Application Status Tracking**")
+            st.markdown("*Update application status by selecting from the dropdown in each row*")
+
+            # Prepare data for editable table
+            df_editable = df[['id', 'created_at', 'application_status', 'company', 'job_title']].copy()
+            df_editable = df_editable.rename(columns={
+                'id': 'ID',
+                'created_at': 'Applied Date',
+                'application_status': 'Status',
+                'company': 'Company',
+                'job_title': 'Job Title'
+            })
+
+            # Configure editable dataframe
+            edited_df = st.data_editor(
+                df_editable,
+                column_config={
+                    'ID': st.column_config.NumberColumn('ID', disabled=True, width="small"),
+                    'Applied Date': st.column_config.TextColumn('Applied Date', disabled=True, width="medium"),
+                    'Status': st.column_config.SelectboxColumn(
+                        'Status',
+                        options=['applied', 'haven\'t heard back', 'rejected', 'hired'],
+                        required=True,
+                        width="medium"
+                    ),
+                    'Company': st.column_config.TextColumn('Company', disabled=True, width="medium"),
+                    'Job Title': st.column_config.TextColumn('Job Title', disabled=True, width="large")
+                },
+                use_container_width=True,
+                height=400,
+                hide_index=True,
+                key="applications_editor"
+            )
+
+            # Save changes button
+            if st.button("💾 Save Status Changes", key="save_app_status", type="primary"):
+                with st.spinner("Saving status updates..."):
+                    try:
+                        # Find changed rows
+                        changes_made = 0
+                        for idx, row in edited_df.iterrows():
+                            original_status = df_editable.iloc[idx]['Status']
+                            new_status = row['Status']
+
+                            if original_status != new_status:
+                                # Update in Supabase
+                                app_id = int(row['ID'])
+                                client.table("job_feedback").update({
+                                    'application_status': new_status
+                                }).eq('id', app_id).execute()
+                                changes_made += 1
+
+                        if changes_made > 0:
+                            st.success(f"✅ Updated {changes_made} application status(es)!")
+                            st.rerun()
+                        else:
+                            st.info("No changes detected")
+
+                    except Exception as e:
+                        st.error(f"❌ Error saving status: {e}")
+
+            # Export CSV functionality
+            if export_csv:
+                csv = df.to_csv(index=False)
+                st.download_button(
+                    label="📥 Download Application History CSV",
+                    data=csv,
+                    file_name=f"{agent_name}_applications_{datetime.now().strftime('%Y%m%d')}.csv",
+                    mime="text/csv",
+                    key="download_apps_csv"
+                )
+
+            # Success Tracking Section
+            st.markdown("---")
+            st.markdown("### 🎯 Success Tracking")
+            st.markdown("**Has this agent been hired?** If yes, select the company below to mark this as a platform success!")
+
+            # Get unique companies from application history
+            companies_applied = sorted(df['company'].unique().tolist())
+
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                hired_company = st.selectbox(
+                    "Company that hired this agent",
+                    options=["Not hired yet"] + companies_applied,
+                    key="hired_company_select"
+                )
+
+            with col2:
+                st.markdown("<div style='height: 1.75rem;'></div>", unsafe_allow_html=True)
+                mark_success_button = st.button("✅ Mark as Success", key="mark_success_btn", type="primary", disabled=(hired_company == "Not hired yet"))
+
+            if mark_success_button and hired_company != "Not hired yet":
+                # Save success to database
+                try:
+                    success_data = {
+                        'agent_uuid': agent_uuid,
+                        'agent_name': agent_name,
+                        'hired_company': hired_company,
+                        'coach_username': coach.username,
+                        'hired_date': datetime.now(timezone.utc).isoformat(),
+                        'application_count': len(df),
+                        'unique_companies_applied': unique_companies
+                    }
+
+                    # Insert into agent_success_tracking table
+                    response = client.table("agent_success_tracking").insert(success_data).execute()
+
+                    if response.data:
+                        st.success(f"🎉 Success! {agent_name} hired by {hired_company}!")
+                        st.balloons()
+
+                        # Also update agent profile with success flag
+                        client.table("agent_profiles").update({
+                            'hired': True,
+                            'hired_company': hired_company,
+                            'hired_date': datetime.now(timezone.utc).isoformat()
+                        }).eq('agent_uuid', agent_uuid).execute()
+
+                    else:
+                        st.error("❌ Failed to save success tracking data")
+
+                except Exception as e:
+                    st.error(f"❌ Error saving success data: {e}")
+                    st.info("💡 The agent_success_tracking table may need to be created in Supabase")
+
+            # Show if agent has been marked as successfully hired
+            if selected_agent.get('hired'):
+                st.success(f"✅ **Success Story**: {agent_name} was hired by {selected_agent.get('hired_company', 'Unknown')} on {selected_agent.get('hired_date', 'Unknown date')}")
+
+    except Exception as e:
+        st.error(f"❌ Error loading application history: {e}")
+        st.exception(e)
 
 
 # Mobile-friendly HTML helpers for Free Agent Portal
