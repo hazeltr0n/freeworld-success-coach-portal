@@ -1031,16 +1031,28 @@ def apply_market_assignment(df: pd.DataFrame, market: str, is_custom_location: b
     - For standard markets, meta.market must be the plain market name (no ", ST").
     - For custom locations, clone the exact custom location string into meta.market
       so deduplication still works.
+    - If market parameter is empty/blank AND meta.market already has per-row values,
+      preserve the existing per-row values (for multi-market sources like DriverPulse).
     """
-    
+
     # VALIDATION: Non-custom locations should NOT have ", ST" format
     if not is_custom_location and isinstance(market, str) and ',' in market:
         raise ValueError(f"❌ NON-CUSTOM LOCATION ERROR: Received '{market}' with ', ST' format. "
                         f"Standard markets should be in Airtable format (e.g., 'Dallas', 'Phoenix'). "
                         f"Only custom locations should have ', ST' format. "
                         f"Check upstream code - something is passing location format instead of market format.")
-    
-    # Enforce market formatting
+
+    # Check if meta.market already has per-row values (multi-market case)
+    if 'meta.market' in df.columns:
+        existing_markets = df['meta.market'].dropna().unique()
+        # If market param is empty/blank AND we have existing per-row markets, preserve them
+        if (not market or str(market).strip() == '') and len(existing_markets) > 0:
+            print(f"✅ Preserving existing per-row meta.market values: {existing_markets.tolist()}")
+            return df.assign(**{
+                'sys.updated_at': datetime.now().isoformat()
+            })
+
+    # Enforce market formatting for global market assignment
     market_value = market if is_custom_location else market.split(',')[0] if isinstance(market, str) else market
 
     return df.assign(**{

@@ -1256,12 +1256,12 @@ def show_analytics_dashboard(coach, coach_manager):
         <p style="color: var(--fw-text-light); margin: 0.5rem 0 0 0;">Track click activity and engagement across your Free Agents</p>
     </div>
     """, unsafe_allow_html=True)
-    
+
     # Import required modules
     from datetime import datetime, timedelta, timezone
     # pandas already imported globally
     from supabase_utils import fetch_click_events, fetch_candidate_clicks
-    
+
     # Default analytics settings - no user controls needed
     since_days = 14  # Default to last 2 weeks
     coach_filter = "My Free Agents"  # Default to current coach's agents
@@ -6584,7 +6584,17 @@ def show_combined_batches_and_scheduling_page(coach):
             show_simple_batch_table(coach)
 
         elif selected_inner_tab == "🏁 DriverPulse Batches":
-            st.markdown("### 🏁 DriverPulse Entry-Level CDL Scraper")
+            # Display logo with header
+            logo_col, header_col = st.columns([1, 20])
+            with logo_col:
+                dp_logo_path = "assets/driver_pulse_logo.png"
+                if os.path.exists(dp_logo_path):
+                    st.image(dp_logo_path, width=40)
+                else:
+                    st.markdown("### 🏁")
+            with header_col:
+                st.markdown("### DriverPulse Entry-Level CDL Scraper")
+
             st.caption("Scrape entry-level CDL jobs from DriverPulse across all major markets. Authenticate once, then quickly pull jobs for No CDL, CDL School Grads, and 0-6 months experience.")
 
             # Check for required environment variables
@@ -6601,7 +6611,18 @@ def show_combined_batches_and_scheduling_page(coach):
             # DriverPulse scraping form
             with st.expander("🚀 Run DriverPulse Entry-Level CDL Scrape", expanded=True):
                 with st.form("driver_pulse_scraper"):
-                    st.markdown("**Experience Levels:** No CDL (training provided), CDL School Graduates, 0-6 Months Experience")
+                    # Experience Level Selection
+                    st.markdown("##### 🎓 Experience Levels")
+                    dp_experience_levels = st.multiselect(
+                        "Select Experience Levels:",
+                        ["No CDL (training provided)", "CDL School Graduates", "0-6 Months Experience"],
+                        default=["No CDL (training provided)", "CDL School Graduates", "0-6 Months Experience"],
+                        help="Select which experience levels to scrape from DriverPulse"
+                    )
+                    if dp_experience_levels:
+                        st.success(f"📚 Selected: {', '.join(dp_experience_levels)}")
+                    else:
+                        st.warning("👆 Please select at least one experience level")
 
                     # Location Selection (same as main search)
                     st.markdown("##### 📍 Location Selection")
@@ -6616,9 +6637,8 @@ def show_combined_batches_and_scheduling_page(coach):
 
                     if dp_location_type == "Select Markets":
                         try:
-                            from pipeline_v3 import FreeWorldPipelineV3
-                            pipeline = FreeWorldPipelineV3()
-                            markets = pipeline.get_markets()
+                            from free_agent_system import get_market_options
+                            markets = get_market_options()
                             dp_selected_markets = st.multiselect(
                                 "Target Markets:",
                                 markets,
@@ -6672,146 +6692,212 @@ def show_combined_batches_and_scheduling_page(coach):
 
                     # Submit button
                     dp_submitted = st.form_submit_button(
-                        "🏁 Start DriverPulse Scrape",
+                        "▶️ Start DriverPulse Scrape",
                         help="This will authenticate with DriverPulse and scrape all markets"
                     )
 
-                    if dp_submitted:
-                        # Validate location selection
-                        if dp_location_type == "Select Markets":
-                            if not dp_selected_markets:
-                                st.error("❌ Please select at least one market")
-                                st.stop()
-                            target_locations = dp_selected_markets
-                            location_display = ", ".join(dp_selected_markets)
-                        else:
-                            if not dp_custom_location or not dp_custom_location.strip():
-                                st.error("❌ Please enter a custom location")
-                                st.stop()
-                            target_locations = [dp_custom_location.strip()]
-                            location_display = dp_custom_location.strip()
+                # Handle form submission OUTSIDE the form
+                if dp_submitted:
+                    # Validate experience levels
+                    if not dp_experience_levels:
+                        st.error("❌ Please select at least one experience level")
+                        st.stop()
 
-                        st.info(f"🏁 Starting DriverPulse scrape for: {location_display}")
+                    # Validate location selection
+                    if dp_location_type == "Select Markets":
+                        if not dp_selected_markets:
+                            st.error("❌ Please select at least one market")
+                            st.stop()
+                        target_locations = dp_selected_markets
+                        location_display = ", ".join(dp_selected_markets)
+                    else:
+                        if not dp_custom_location or not dp_custom_location.strip():
+                            st.error("❌ Please enter a custom location")
+                            st.stop()
+                        target_locations = [dp_custom_location.strip()]
+                        location_display = dp_custom_location.strip()
 
-                        # Create progress containers
-                        progress_container = st.container()
-                        results_container = st.container()
+                    st.info(f"▶️ Starting DriverPulse scrape for: {location_display} | Experience Levels: {', '.join(dp_experience_levels)}")
 
-                        try:
-                            from driver_pulse_adapter import DriverPulsePipelineIntegration
-                            from datetime import datetime
+                    # Create progress containers
+                    progress_container = st.container()
+                    results_container = st.container()
 
-                            with progress_container:
-                                progress_bar = st.progress(0)
-                                status_text = st.empty()
+                    try:
+                        from driver_pulse_adapter import DriverPulsePipelineIntegration
+                        from datetime import datetime
 
-                                # Initialize integration
-                                integration = DriverPulsePipelineIntegration()
+                        with progress_container:
+                            progress_bar = st.progress(0)
+                            status_text = st.empty()
 
-                                # Run scraper with progress updates
-                                status_text.text("🔐 Authenticating with DriverPulse...")
-                                progress_bar.progress(10)
+                            # Initialize integration
+                            integration = DriverPulsePipelineIntegration()
 
-                                # Configure filter settings
-                                filter_settings = {
-                                    'enable_ai_classification': dp_enable_ai
-                                }
+                            # Run scraper with progress updates
+                            status_text.text("🔐 Authenticating with DriverPulse...")
+                            progress_bar.progress(10)
 
-                                status_text.text(f"🚀 Running scrape for {len(target_locations)} location(s)...")
-                                progress_bar.progress(30)
+                            # Configure filter settings
+                            filter_settings = {
+                                'enable_ai_classification': dp_enable_ai,
+                                'experience_levels': dp_experience_levels
+                            }
 
-                                # Run the integration
-                                results = integration.run_driver_pulse_through_pipeline(
-                                    radius_miles=dp_radius,
-                                    coach_username=coach.username,
-                                    search_terms="CDL Driver Entry Level",
-                                    filter_settings=filter_settings,
-                                    target_locations=target_locations
+                            status_text.text(f"🚀 Running scrape for {len(target_locations)} location(s)...")
+                            progress_bar.progress(30)
+
+                            # Run the integration
+                            results = integration.run_driver_pulse_through_pipeline(
+                                radius_miles=dp_radius,
+                                coach_username=coach.username,
+                                search_terms="CDL Driver Entry Level",
+                                filter_settings=filter_settings,
+                                target_locations=target_locations
+                            )
+
+                            progress_bar.progress(80)
+                            status_text.text("📊 Processing results...")
+
+                            df = results['jobs_df']
+                            metadata = results['metadata']
+
+                            progress_bar.progress(100)
+                            status_text.text("✅ DriverPulse scrape completed!")
+
+                        if metadata['success'] and not df.empty:
+                            with results_container:
+                                st.success(f"🎉 Found {metadata['total_jobs']} jobs from DriverPulse!")
+
+                                # Show summary metrics
+                                col1, col2, col3, col4 = st.columns(4)
+                                with col1:
+                                    st.metric("Total Jobs", metadata['total_jobs'])
+                                with col2:
+                                    st.metric("Quality Jobs", metadata.get('included_jobs', 0))
+                                with col3:
+                                    st.metric("Data Source", "DriverPulse")
+                                with col4:
+                                    st.metric("Markets Scraped", len(target_locations))
+
+                                # Use EXACT same display as regular search - NO DUPLICATION
+                                quality_display = get_quality_display_dataframe(df)
+                                full_display = get_full_display_dataframe(df)
+                                total_jobs = len(df)
+
+                                try:
+                                    if 'meta.market' in df.columns and df['meta.market'].notna().any():
+                                        unique_markets = [m for m in df['meta.market'].dropna().unique() if str(m).strip()]
+
+                                        if len(unique_markets) > 1:
+                                            st.markdown(f"### 🌍 Multi-Market Results ({len(unique_markets)} markets)")
+
+                                            for mk in sorted(unique_markets):
+                                                try:
+                                                    with st.expander(f"📍 {mk}", expanded=True):
+                                                        mdf = df[df['meta.market'] == mk]
+
+                                                        # Quality subset for this market
+                                                        try:
+                                                            if 'route.final_status' in mdf.columns:
+                                                                mask_m = mdf['route.final_status'].astype(str).str.startswith('included')
+                                                                mdf_inc = mdf[mask_m] if mask_m.any() else mdf
+                                                            elif 'ai.match' in mdf.columns:
+                                                                mdf_inc = mdf[mdf['ai.match'].isin(['good', 'so-so'])]
+                                                            else:
+                                                                mdf_inc = mdf
+                                                        except Exception:
+                                                            mdf_inc = mdf
+
+                                                        # Use standardized display format matching combined summary
+                                                        market_metrics = calculate_quality_metrics(mdf)
+                                                        market_route_counts = calculate_route_distribution(mdf)
+                                                        render_quality_metrics(market_metrics)
+                                                        render_route_distribution(market_route_counts)
+
+                                                        # Show quality jobs table for this market
+                                                        market_quality_display = get_quality_display_dataframe(mdf_inc)
+                                                        st.dataframe(market_quality_display, width="stretch", height=360, hide_index=True)
+
+                                                        # Full results for this market
+                                                        with st.expander(f"🔎 Full Results — {mk}", expanded=False):
+                                                            market_full_display = get_full_display_dataframe(mdf)
+                                                            st.dataframe(market_full_display, width="stretch", height=480, hide_index=True)
+                                                except Exception as e:
+                                                    st.warning(f"⚠️ Display error for {mk}: {e}")
+                                        else:
+                                            # Single market - use simple quality view
+                                            st.markdown("### 🎯 Quality Jobs")
+                                            st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
+                                            with st.expander(f"🔍 All Processed Jobs ({total_jobs} total)", expanded=False):
+                                                st.dataframe(full_display, width="stretch", height=500, hide_index=True)
+                                    else:
+                                        # No markets detected - show single quality view
+                                        st.markdown("### 🎯 Quality Jobs")
+                                        st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
+                                        with st.expander(f"🔍 All Processed Jobs ({total_jobs} total)", expanded=False):
+                                            st.dataframe(full_display, width="stretch", height=500, hide_index=True)
+                                except Exception as e:
+                                    st.warning(f"⚠️ Multi-market display error: {e}")
+                                    # Fallback to simple display
+                                    st.markdown("### 🎯 Quality Jobs")
+                                    st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
+                                    with st.expander(f"🔍 All Processed Jobs ({total_jobs} total)", expanded=False):
+                                        st.dataframe(full_display, width="stretch", height=500, hide_index=True)
+
+                        # Export options - OUTSIDE THE FORM
+                        if dp_submitted and 'df' in locals() and not df.empty:
+                            st.markdown("### 💾 Export Options")
+                            col1, col2 = st.columns(2)
+
+                            with col1:
+                                # CSV download
+                                csv_data = df.to_csv(index=False)
+                                st.download_button(
+                                    label="📄 Download CSV",
+                                    data=csv_data,
+                                    file_name=f"driver_pulse_jobs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                                    mime="text/csv"
                                 )
 
-                                progress_bar.progress(80)
-                                status_text.text("📊 Processing results...")
+                            with col2:
+                                # PDF generation (if enabled)
+                                if dp_enable_pdf:
+                                    try:
+                                        from fpdf_pdf_generator_v2 import generate_pdf_bytes_from_dataframe
+                                        pdf_bytes = generate_pdf_bytes_from_dataframe(
+                                            df=df,
+                                            market="Multi-Market DriverPulse",
+                                            coach_name=coach.full_name,
+                                            coach_username=coach.username,
+                                            candidate_name="",
+                                            candidate_id="",
+                                            show_prepared_for=False
+                                        )
 
-                                df = results['jobs_df']
-                                metadata = results['metadata']
-
-                                progress_bar.progress(100)
-                                status_text.text("✅ DriverPulse scrape completed!")
-
-                                if metadata['success'] and not df.empty:
-                                    with results_container:
-                                        st.success(f"🎉 Found {metadata['total_jobs']} jobs from DriverPulse!")
-
-                                        # Show summary metrics
-                                        col1, col2, col3, col4 = st.columns(4)
-                                        with col1:
-                                            st.metric("Total Jobs", metadata['total_jobs'])
-                                        with col2:
-                                            st.metric("Quality Jobs", metadata.get('included_jobs', 0))
-                                        with col3:
-                                            st.metric("Data Source", "DriverPulse")
-                                        with col4:
-                                            st.metric("Markets", "10")
-
-                                        # Show results table preview
-                                        st.markdown("### 📋 Results Preview")
-                                        if len(df) > 10:
-                                            st.dataframe(df.head(10))
-                                            st.caption(f"Showing first 10 of {len(df)} jobs")
-                                        else:
-                                            st.dataframe(df)
-
-                                        # Export options
-                                        st.markdown("### 💾 Export Options")
-                                        col1, col2 = st.columns(2)
-
-                                        with col1:
-                                            # CSV download
-                                            csv_data = df.to_csv(index=False)
+                                        if pdf_bytes:
                                             st.download_button(
-                                                label="📄 Download CSV",
-                                                data=csv_data,
-                                                file_name=f"driver_pulse_jobs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                                                mime="text/csv"
+                                                label="📄 Download PDF",
+                                                data=pdf_bytes,
+                                                file_name=f"driver_pulse_jobs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                                                mime="application/pdf"
                                             )
+                                        else:
+                                            st.warning("⚠️ PDF generation failed")
+                                    except Exception as pdf_e:
+                                        st.warning(f"⚠️ PDF generation error: {pdf_e}")
 
-                                        with col2:
-                                            # PDF generation (if enabled)
-                                            if dp_enable_pdf:
-                                                try:
-                                                    from fpdf_pdf_generator_v2 import generate_pdf_bytes_from_dataframe
-                                                    pdf_bytes = generate_pdf_bytes_from_dataframe(
-                                                        df=df,
-                                                        market="Multi-Market DriverPulse",
-                                                        coach_name=coach.full_name,
-                                                        coach_username=coach.username,
-                                                        candidate_name="",
-                                                        candidate_id="",
-                                                        show_prepared_for=False
-                                                    )
+                        else:
+                            if dp_submitted:
+                                with results_container:
+                                    error_msg = metadata.get('error', 'Unknown error')
+                                    st.error(f"❌ DriverPulse scrape failed: {error_msg}")
 
-                                                    if pdf_bytes:
-                                                        st.download_button(
-                                                            label="📄 Download PDF",
-                                                            data=pdf_bytes,
-                                                            file_name=f"driver_pulse_jobs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                                                            mime="application/pdf"
-                                                        )
-                                                    else:
-                                                        st.warning("⚠️ PDF generation failed")
-                                                except Exception as pdf_e:
-                                                    st.warning(f"⚠️ PDF generation error: {pdf_e}")
-
-                                else:
-                                    with results_container:
-                                        error_msg = metadata.get('error', 'Unknown error')
-                                        st.error(f"❌ DriverPulse scrape failed: {error_msg}")
-
-                        except Exception as e:
-                            st.error(f"❌ DriverPulse integration error: {e}")
-                            import traceback
-                            with st.expander("🔍 Error Details"):
-                                st.code(traceback.format_exc())
+                    except Exception as e:
+                        st.error(f"❌ DriverPulse integration error: {e}")
+                        import traceback
+                        with st.expander("🔍 Error Details"):
+                            st.code(traceback.format_exc())
 
         elif selected_inner_tab == "📄 CSV Classification":
             st.markdown("### 📄 Classify CSV (Outscraper → Pipeline)")

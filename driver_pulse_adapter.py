@@ -95,7 +95,10 @@ class DriverPulseToPipelineAdapter:
                 # Technical metadata
                 'scraped_at': job.get('scraped_at', datetime.now().isoformat()),
                 'scraper_version': job.get('scraper_version', 'driver_pulse_v1.0'),
-                'data_source': 'driver_pulse'
+                'data_source': 'driver_pulse',
+
+                # CRITICAL: Set meta.market directly so it survives ensure_schema()
+                'meta.market': job.get('market_scraped', '')
             }
 
             # Ensure we have basic required fields
@@ -164,7 +167,8 @@ class DriverPulsePipelineIntegration:
 
             # Convert to pipeline format
             print(f"🔄 Converting to pipeline format...")
-            df = self.adapter.convert_to_pipeline_format(driver_pulse_results, "Multi-Market")
+            # Don't pass a global market - each job has its own market_scraped field
+            df = self.adapter.convert_to_pipeline_format(driver_pulse_results, "")
 
             if df.empty:
                 return {
@@ -179,13 +183,17 @@ class DriverPulsePipelineIntegration:
             # Add pipeline metadata
             df = self.adapter.add_pipeline_metadata(df, coach_username, search_terms)
 
+            # Note: meta.market is already set per-row in _convert_to_outscraper_format()
+            # and will be preserved through ensure_schema() since it's in the schema
+
             # Process through pipeline stages (normalization, business rules, AI classification)
             print(f"🧠 Processing through pipeline stages...")
             pipeline = FreeWorldPipelineV3()
 
             # Run through pipeline stages
+            # Pass empty market string since we already set meta.market directly
             df = pipeline._stage2_normalization(df)
-            df = pipeline._stage3_business_rules(df, "Multi-Market", filter_settings or {})
+            df = pipeline._stage3_business_rules(df, "", filter_settings or {})
             df = pipeline._stage4_deduplication(df)
 
             # AI Classification (optional - can be expensive)
@@ -195,8 +203,8 @@ class DriverPulsePipelineIntegration:
             except Exception as e:
                 print(f"⚠️ AI classification skipped: {e}")
 
-            # Final routing
-            df = pipeline._stage6_routing(df, "Multi-Market")
+            # Final routing - use empty string since each job has individual market
+            df = pipeline._stage6_routing(df, "")
 
             # Generate metadata
             total_jobs = len(df)
