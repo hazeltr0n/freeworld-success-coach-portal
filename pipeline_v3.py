@@ -1334,16 +1334,11 @@ class FreeWorldPipelineV3:
         except Exception:
             pass
         
-        # ACTUALLY REMOVE filtered duplicates from DataFrame (don't just mark them)
-        initial_total = len(df)
-        df_clean = df[df.get('route.filtered', False) != True]  # Keep only non-filtered jobs
-        final_total = len(df_clean)
-        actually_removed = initial_total - final_total
-        
-        if actually_removed > 0:
-            print(f"🗑️ REMOVED {actually_removed} filtered duplicate jobs from DataFrame")
-        
-        return df_clean
+        # KEEP ALL JOBS - don't remove filtered ones, just mark them with route.filtered
+        # Filtered jobs will have their filter reason in route.final_status
+        print(f"✅ Keeping all {len(df)} jobs in DataFrame (filtered jobs marked, not removed)")
+
+        return df
     
     def _stage5_ai_classification(self, df: pd.DataFrame, force_fresh_classification: bool = False, classifier_type: str = "cdl") -> pd.DataFrame:
         """Stage 5: AI classification of jobs"""
