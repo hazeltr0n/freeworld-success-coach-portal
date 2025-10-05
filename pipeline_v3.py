@@ -974,10 +974,24 @@ class FreeWorldPipelineV3:
         if effective_limit > 0 and search_sources.get('google', False):
             print(f"🔍 Searching Google Jobs API for {effective_limit} jobs...")
             try:
+                # Market searches: Always use radius=0 (exact location mode)
+                # Custom location searches: Use radius parameter
+                from market_config import MARKET_CENTER_ZIPS
+                is_market_search = location in MARKET_CENTER_ZIPS
+
+                if is_market_search:
+                    # Market search - always use radius=0 for exact location
+                    google_radius = 0
+                    print(f"   📍 Market search mode: {location} (exact location, no radius)")
+                else:
+                    # Custom location search - use radius parameter
+                    google_radius = radius
+                    print(f"   📍 Custom location mode: '{query_location}' + {radius} mile radius")
+
                 google_result = self.scraper.search_google_jobs_api(
                     search_terms=search_terms,
-                    location=query_location, 
-                    radius=radius,
+                    location=query_location,
+                    radius=google_radius,
                     limit=effective_limit
                 )
                 google_jobs = google_result['jobs'] if isinstance(google_result, dict) else google_result
@@ -999,12 +1013,27 @@ class FreeWorldPipelineV3:
                 if num_queries > 1:
                     print(f"   📊 Each query will get {effective_limit} jobs = up to {effective_limit * num_queries} total jobs")
 
-                encoded_location = query_location.replace(' ', '+').replace(',', '%2C')
+                # Market searches: Use center ZIP + 100 mile radius
+                # Custom location searches: Use location string + custom radius
+                from market_config import get_market_center_zip
+                market_zip = get_market_center_zip(location)
+
+                if market_zip:
+                    # Market search - use ZIP + 100 miles
+                    encoded_location = market_zip
+                    indeed_radius = 100
+                    print(f"   📍 Market search mode: {location} center ZIP {market_zip} + 100 mile radius")
+                else:
+                    # Custom location search - use location string + custom radius
+                    encoded_location = query_location.replace(' ', '+').replace(',', '%2C')
+                    indeed_radius = radius
+                    print(f"   📍 Custom location mode: '{query_location}' + {radius} mile radius")
+
                 indeed_urls = []
 
                 for term in search_terms_list:
                     encoded_term = term.replace(' ', '+')
-                    indeed_url = f"https://www.indeed.com/jobs?q={encoded_term}&l={encoded_location}&radius={int(radius)}"
+                    indeed_url = f"https://www.indeed.com/jobs?q={encoded_term}&l={encoded_location}&radius={int(indeed_radius)}"
                     if no_experience:
                         # Add "no experience" search context
                         indeed_url += "&sc=0kf%3Aattr%28D7S5D%29%3B"

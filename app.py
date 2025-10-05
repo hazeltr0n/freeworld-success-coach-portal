@@ -2267,7 +2267,7 @@ def show_manage_agents_tab(coach, coach_manager):
                     'City': agent.get('agent_city', ''),
                     'State': agent.get('agent_state', ''),
                     'ZIP': agent.get('zip_code', ''),
-                    'Radius (mi)': agent.get('zip_radius_miles', 25),
+                    'Radius (mi)': agent.get('zip_radius_miles', 50),
                     'Created': agent.get('created_at', '')[:10] if agent.get('created_at') else '',
                     'Portal Link': agent.get('portal_url', 'No link generated'),
                     'Admin Portal': agent.get('admin_portal_url', ''),
@@ -2333,13 +2333,12 @@ def show_manage_agents_tab(coach, coach_manager):
                 help="Agent's ZIP code for radius filtering - editable",
                 width="small"
             ),
-            'Radius (mi)': st.column_config.NumberColumn(
+            'Radius (mi)': st.column_config.SelectboxColumn(
                 "Radius (mi)",
-                help="Job search radius in miles from ZIP code (default 25)",
+                help="Job search radius in miles from ZIP code (default 50)",
                 width="small",
-                min_value=5,
-                max_value=100,
-                step=5
+                options=[10, 25, 50, 75, 100],
+                required=True
             ),
             'Market': st.column_config.SelectboxColumn(
                 "Market",
@@ -2573,7 +2572,7 @@ def show_manage_agents_tab(coach, coach_manager):
                                 'agent_city': str(edited['City']),
                                 'agent_state': str(edited['State']),
                                 'zip_code': str(edited['ZIP']) if edited.get('ZIP') else '',
-                                'zip_radius_miles': int(edited['Radius (mi)']) if edited.get('Radius (mi)') else 25,
+                                'zip_radius_miles': int(edited['Radius (mi)']) if edited.get('Radius (mi)') else 50,
                                 'admin_portal_url': str(edited['Admin Portal'])
                             })
 
