@@ -2266,6 +2266,8 @@ def show_manage_agents_tab(coach, coach_manager):
                     'Warehouse': 'general_warehouse' in pathway_prefs,
                     'City': agent.get('agent_city', ''),
                     'State': agent.get('agent_state', ''),
+                    'ZIP': agent.get('zip_code', ''),
+                    'Radius (mi)': agent.get('zip_radius_miles', 25),
                     'Created': agent.get('created_at', '')[:10] if agent.get('created_at') else '',
                     'Portal Link': agent.get('portal_url', 'No link generated'),
                     'Admin Portal': agent.get('admin_portal_url', ''),
@@ -2285,7 +2287,7 @@ def show_manage_agents_tab(coach, coach_manager):
             'Clicks (All)', 'Clicks (14d)', 'Apps (All)', 'Apps (14d)',
             'Score', 'Activity', 'Last Applied', 'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Quality', 'Lookback', 'Show Prepared For',
             'CDL Jobs', 'Dock→Driver', 'CDL Training', 'Warehouse→Driver', 'Logistics', 'Non-CDL', 'Warehouse',
-            'City', 'State', 'Created', 'Portal Link', 'Admin Portal', 'Delete', 'Restore',
+            'City', 'State', 'ZIP', 'Radius (mi)', 'Created', 'Portal Link', 'Admin Portal', 'Delete', 'Restore',
             '_agent_uuid', '_created_at', '_original_data', '_is_active'
         ]
         df = df[[c for c in desired_order if c in df.columns]]
@@ -2325,6 +2327,19 @@ def show_manage_agents_tab(coach, coach_manager):
                 "State",
                 help="Agent's state - editable",
                 width="small"
+            ),
+            'ZIP': st.column_config.TextColumn(
+                "ZIP",
+                help="Agent's ZIP code for radius filtering - editable",
+                width="small"
+            ),
+            'Radius (mi)': st.column_config.NumberColumn(
+                "Radius (mi)",
+                help="Job search radius in miles from ZIP code (default 25)",
+                width="small",
+                min_value=5,
+                max_value=100,
+                step=5
             ),
             'Market': st.column_config.SelectboxColumn(
                 "Market",
@@ -2469,7 +2484,7 @@ def show_manage_agents_tab(coach, coach_manager):
         def get_editable_data_hash(df_row):
             """Get hash of just the editable fields for comparison"""
             editable_fields = [
-                'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Quality', 'Lookback', 'Show Prepared For', 'City', 'State', 'Admin Portal',
+                'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Quality', 'Lookback', 'Show Prepared For', 'City', 'State', 'ZIP', 'Radius (mi)', 'Admin Portal',
                 'CDL Jobs', 'Dock→Driver', 'CDL Training', 'Warehouse→Driver', 'Logistics', 'Non-CDL', 'Warehouse'
             ]
             # Only include fields that actually exist in the DataFrame (safety check for column name changes)
@@ -2557,6 +2572,8 @@ def show_manage_agents_tab(coach, coach_manager):
                                 'show_prepared_for': bool(edited['Show Prepared For']),
                                 'agent_city': str(edited['City']),
                                 'agent_state': str(edited['State']),
+                                'zip_code': str(edited['ZIP']) if edited.get('ZIP') else '',
+                                'zip_radius_miles': int(edited['Radius (mi)']) if edited.get('Radius (mi)') else 25,
                                 'admin_portal_url': str(edited['Admin Portal'])
                             })
 
