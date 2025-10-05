@@ -373,23 +373,118 @@ def get_market_company_breakdown(market: str) -> pd.DataFrame:
     result = client.table('companies').select('*').contains('markets', [market]).order('total_jobs', desc=True).execute()
     return pd.DataFrame(result.data or [])
 
-def update_company_blacklist(company_id: int, is_blacklisted: bool, reason: str = None) -> bool:
-    """Update blacklist status for a company"""
+def update_company_blacklist(company_id: int, is_blacklisted: bool, reason: str = None) -> tuple[bool, str]:
+    """Update blacklist status for a company
+
+    Returns:
+        tuple: (success: bool, error_message: str)
+    """
     client = get_client()
     if not client:
-        raise Exception("Supabase client not available")
+        return False, "Supabase client not available"
 
     update_data = {
-        'is_blacklisted': is_blacklisted,
-        'blacklist_reason': reason if is_blacklisted else None
+        'is_blacklisted': bool(is_blacklisted),
+        'blacklist_reason': str(reason) if (is_blacklisted and reason) else None
     }
 
     try:
         result = client.table('companies').update(update_data).eq('id', company_id).execute()
-        return True
+        return True, ""
     except Exception as e:
-        print(f"Error updating company blacklist: {e}")
-        return False
+        error_msg = str(e)
+        print(f"Error updating company blacklist: {error_msg}")
+        return False, error_msg
+
+def update_company_employer_uuid(company_id: int, employer_uuid: str = None) -> tuple[bool, str]:
+    """Update employer_uuid for a company
+
+    Returns:
+        tuple: (success: bool, error_message: str)
+    """
+    client = get_client()
+    if not client:
+        return False, "Supabase client not available"
+
+    # Validate UUID format if provided
+    if employer_uuid and employer_uuid.strip():
+        import uuid
+        try:
+            uuid.UUID(str(employer_uuid).strip())
+            clean_uuid = str(employer_uuid).strip()
+        except ValueError:
+            return False, "Invalid UUID format"
+    else:
+        clean_uuid = None
+
+    update_data = {'employer_uuid': clean_uuid}
+
+    try:
+        result = client.table('companies').update(update_data).eq('id', company_id).execute()
+        return True, ""
+    except Exception as e:
+        error_msg = str(e)
+        print(f"Error updating company employer_uuid: {error_msg}")
+        return False, error_msg
+
+def merge_companies(primary_company_id: int, duplicate_company_ids: list[int]) -> tuple[bool, str]:
+    """Merge duplicate companies into a primary company using parent/child hierarchy
+
+    This will:
+    1. Set duplicate companies as children of the primary company (parent_company_id)
+    2. Update canonical_company_name for all duplicates to point to primary
+    3. Existing jobs keep their original company names
+    4. Future jobs from child companies will automatically roll up to parent
+
+    Args:
+        primary_company_id: ID of the company to keep as parent
+        duplicate_company_ids: List of company IDs to set as children
+
+    Returns:
+        tuple: (success: bool, error_message: str)
+    """
+    client = get_client()
+    if not client:
+        return False, "Supabase client not available"
+
+    try:
+        # Get primary company name for reference
+        primary = client.table('companies').select('company_name').eq('id', primary_company_id).execute()
+        if not primary.data:
+            return False, f"Primary company ID {primary_company_id} not found"
+        primary_name = primary.data[0]['company_name']
+
+        # Get duplicate company names
+        duplicates = client.table('companies').select('id, company_name').in_('id', duplicate_company_ids).execute()
+        if not duplicates.data:
+            return False, "No duplicate companies found"
+
+        # Prevent setting a company as its own parent
+        if primary_company_id in duplicate_company_ids:
+            return False, "Cannot set a company as a child of itself"
+
+        # Set duplicates as children of primary company
+        for dup_id in duplicate_company_ids:
+            client.table('companies').update({
+                'parent_company_id': primary_company_id,
+                'canonical_company_name': primary_name
+            }).eq('id', dup_id).execute()
+
+        # Ensure primary company has canonical name set to itself
+        client.table('companies').update({
+            'canonical_company_name': primary_name
+        }).eq('id', primary_company_id).execute()
+
+        # Trigger companies refresh to recalculate stats
+        client.rpc('scheduled_companies_refresh').execute()
+
+        merged_count = len(duplicate_company_ids)
+        return True, f"Set {merged_count} companies as children of '{primary_name}'. Future jobs will automatically roll up to parent."
+
+    except Exception as e:
+        error_msg = str(e)
+        print(f"Error merging companies: {error_msg}")
+        return False, error_msg
 
 def get_blacklisted_companies() -> pd.DataFrame:
     """Get all blacklisted companies for pipeline filtering"""

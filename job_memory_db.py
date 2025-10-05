@@ -231,6 +231,7 @@ class JobMemoryDB:
                     'job_title': safe_str(job.get('source.title', job.get('job_title', ''))),
                     'company': safe_str(job.get('source.company', job.get('company', ''))),
                     'location': safe_str(job.get('source.location_raw', job.get('location', ''))),
+                    'zip_code': safe_str(job.get('norm.zip_code', job.get('zip_code', ''))),
                     'job_description': safe_str(job.get('source.description_raw', job.get('job_description', '')))[:5000],
                     'apply_url': safe_str(job.get('source.indeed_url', job.get('apply_url', ''))),
                     'salary': safe_str(job.get('source.salary_raw', job.get('salary', ''))),

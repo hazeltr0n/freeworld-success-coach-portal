@@ -1,0 +1,327 @@
+{
+  "statistics": {
+    "total_companies": 459,
+    "companies_with_highlights": 459,
+    "total_highlights": 1479
+  },
+  "samples": [
+    {
+      "company_id": "2338306",
+      "company_name": "Zimmerman Transfer, Inc.",
+      "highlights": [
+        {
+          "section": "Company Profile",
+          "value": "our customers and our <em>driver</em>s at every level.",
+          "search_term": "driver",
+          "job_id": "99468",
+          "is_pulse_match_posting": true,
+          "job_title": "Home Daily Milk Hauler"
+        },
+        {
+          "section": "Company Profile",
+          "value": "our customers and our <em>driver</em>s at every level.",
+          "search_term": "driver",
+          "job_id": "99242",
+          "is_pulse_match_posting": true,
+          "job_title": "Dedicated Milk Hauler"
+        },
+        {
+          "section": "Company Profile",
+          "value": "our customers and our <em>driver</em>s at every level.",
+          "search_term": "driver",
+          "job_id": "98963",
+          "is_pulse_match_posting": true,
+          "job_title": "Milk Hauler"
+        },
+        {
+          "section": "Company Profile",
+          "value": "our customers and our <em>driver</em>s at every level.",
+          "search_term": "driver",
+          "job_id": "95557",
+          "is_pulse_match_posting": false,
+          "job_title": "Dedicated Tanker Driver (Limited ELOG)"
+        },
+        {
+          "section": "Company Profile",
+          "value": "our customers and our <em>driver</em>s at every level.",
+          "search_term": "driver",
+          "job_id": "95137",
+          "is_pulse_match_posting": false,
+          "job_title": "Dedicated Tanker Driver (Limited ELOG)"
+        },
+        {
+          "section": "Company Profile",
+          "value": "our customers and our <em>driver</em>s at every level.",
+          "search_term": "driver",
+          "job_id": "90699",
+          "is_pulse_match_posting": false,
+          "job_title": "Part Time Cream Hauler"
+        },
+        {
+          "section": "Company Profile",
+          "value": "our customers and our <em>driver</em>s at every level.",
+          "search_term": "driver",
+          "job_id": "88604",
+          "is_pulse_match_posting": false,
+          "job_title": "Dedicated Tanker Driver (Limited ELOG)"
+        },
+        {
+          "section": "Company Profile",
+          "value": "our customers and our <em>driver</em>s at every level.",
+          "search_term": "driver",
+          "job_id": "84518",
+          "is_pulse_match_posting": false,
+          "job_title": "Dedicated Tanker Driver (Limited ELOG)"
+        },
+        {
+          "section": "Company Profile",
+          "value": "our customers and our <em>driver</em>s at every level.",
+          "search_term": "driver",
+          "job_id": "99822",
+          "is_pulse_match_posting": false,
+          "job_title": "Full Time Milk Hauler"
+        },
+        {
+          "section": "Company Profile",
+          "value": "our customers and our <em>driver</em>s at every level.",
+          "search_term": "driver",
+          "job_id": "98465",
+          "is_pulse_match_posting": false,
+          "job_title": "Milk Hauler (Full Time)"
+        },
+        {
+          "section": "Company Profile",
+          "value": "our customers and our <em>driver</em>s at every level.",
+          "search_term": "driver",
+          "job_id": "98408",
+          "is_pulse_match_posting": false,
+          "job_title": "Full Time Cream Hauler"
+        },
+        {
+          "section": "Company Profile",
+          "value": "our customers and our <em>driver</em>s at every level.",
+          "search_term": "driver",
+          "job_id": "94932",
+          "is_pulse_match_posting": false,
+          "job_title": "Full Time Milk Hauler"
+        },
+        {
+          "section": "Company Profile",
+          "value": "our customers and our <em>driver</em>s at every level.",
+          "search_term": "driver",
+          "job_id": "89475",
+          "is_pulse_match_posting": false,
+          "job_title": "Full Time Milk Hauler"
+        },
+        {
+          "section": "Company Profile",
+          "value": "our customers and our <em>driver</em>s at every level.",
+          "search_term": "driver",
+          "job_id": "71620",
+          "is_pulse_match_posting": false,
+          "job_title": "Milk Hauler (Part Time)"
+        },
+        {
+          "section": "Company Profile",
+          "value": "our customers and our <em>driver</em>s at every level.",
+          "search_term": "driver",
+          "job_id": "70757",
+          "is_pulse_match_posting": false,
+          "job_title": "Milk Hauler (Part Time)"
+        },
+        {
+          "section": "Company Profile",
+          "value": "our customers and our <em>driver</em>s at every level.",
+          "search_term": "driver",
+          "job_id": "50089",
+          "is_pulse_match_posting": false,
+          "job_title": "Milk Hauler"
+        }
+      ],
+      "all_keys": [
+        "company_id",
+        "alias_company_to",
+        "company_name",
+        "logo_link",
+        "url_part",
+        "highlighted_content"
+      ]
+    },
+    {
+      "company_id": "996",
+      "company_name": "Zeitner & Sons, Inc",
+      "highlights": [
+        {
+          "section": "Job Description",
+          "value": "Our <em>CDL</em> A OTR <em>Driver</em>s Earn $1,500 - $1,900 Average",
+          "search_term": "CDL",
+          "job_id": "16234",
+          "is_pulse_match_posting": true,
+          "job_title": "Regional CDL A 60 CPM"
+        }
+      ],
+      "all_keys": [
+        "company_id",
+        "alias_company_to",
+        "company_name",
+        "logo_link",
+        "url_part",
+        "highlighted_content"
+      ]
+    },
+    {
+      "company_id": "2548822",
+      "company_name": "Young's Heavy Hauling",
+      "highlights": [
+        {
+          "section": "Job Description",
+          "value": "Hiring Experienced Local Flatbed <em>Driver</em>s\n\nEarn Between $1,100 - $1,300",
+          "search_term": "Driver",
+          "job_id": "58767",
+          "is_pulse_match_posting": true,
+          "job_title": "Class A CDL Driver - Local"
+        }
+      ],
+      "all_keys": [
+        "company_id",
+        "alias_company_to",
+        "company_name",
+        "logo_link",
+        "url_part",
+        "highlighted_content"
+      ]
+    },
+    {
+      "company_id": "3484876",
+      "company_name": "Yandell Truckaway, Inc.",
+      "highlights": [
+        {
+          "section": "Job Description",
+          "value": "<em>CDL</em> A\u00a0 \u00a0TRUCK <em>DRIVER</em> OWNER OPERATORS UP TO",
+          "search_term": "CDL",
+          "job_id": "96196",
+          "is_pulse_match_posting": true,
+          "job_title": "CDL A  Truck Driver Owner Operator Local"
+        }
+      ],
+      "all_keys": [
+        "company_id",
+        "alias_company_to",
+        "company_name",
+        "logo_link",
+        "url_part",
+        "highlighted_content"
+      ]
+    },
+    {
+      "company_id": "2232871",
+      "company_name": "Xpress Natural Gas, LLC",
+      "highlights": [
+        {
+          "section": "Job Description",
+          "value": "<em>CDL</em> A TRUCK <em>DRIVER</em> LOCAL HOME DAILY - ELMA,",
+          "search_term": "CDL",
+          "job_id": "47756",
+          "is_pulse_match_posting": true,
+          "job_title": "CDL A Company Driver Local"
+        },
+        {
+          "section": "Job Title",
+          "value": "<em>CDL</em> A Company <em>Driver</em> Seasonal Nights",
+          "search_term": "CDL",
+          "job_id": "49259",
+          "is_pulse_match_posting": true,
+          "job_title": "CDL A Company Driver Seasonal Nights"
+        },
+        {
+          "section": "Job Description",
+          "value": "For CDL A Truck <em>Driver</em>\nValid <em>CDL</em> A\nHazmat and Tanker",
+          "search_term": "Driver",
+          "job_id": "67655",
+          "is_pulse_match_posting": false,
+          "job_title": "CDL A HazMat Truck Driver Local"
+        },
+        {
+          "section": "Job Description",
+          "value": "For CDL A Truck <em>Driver</em>\nValid <em>CDL</em> A\nHazmat and Tanker",
+          "search_term": "Driver",
+          "job_id": "67654",
+          "is_pulse_match_posting": false,
+          "job_title": "CDL A HazMat Driver Local"
+        },
+        {
+          "section": "Job Description",
+          "value": "For CDL A Truck <em>Driver</em>\nValid <em>CDL</em> A\nHazmat and Tanker",
+          "search_term": "Driver",
+          "job_id": "67652",
+          "is_pulse_match_posting": false,
+          "job_title": "CDL A Truck Driver Haz Mat Local"
+        },
+        {
+          "section": "Job Description",
+          "value": "For CDL A Truck <em>Driver</em>\nValid <em>CDL</em> A\nHazmat and Tanker",
+          "search_term": "Driver",
+          "job_id": "47739",
+          "is_pulse_match_posting": false,
+          "job_title": "CDL A Company Driver - Local Home Daily"
+        },
+        {
+          "section": "Job Description",
+          "value": "For CDL A Truck <em>Driver</em>\nValid <em>CDL</em> A\nHazmat and Tanker",
+          "search_term": "Driver",
+          "job_id": "47738",
+          "is_pulse_match_posting": false,
+          "job_title": "CDL A Truck Driver Haz Mat Local"
+        },
+        {
+          "section": "Job Description",
+          "value": "<em>CDL</em> A TRUCK <em>DRIVER</em> HAZ MAT LOCAL\nNow Hiring Night <em>Driver</em>s in Montrose, PA\nXNG",
+          "search_term": "CDL",
+          "job_id": "47740",
+          "is_pulse_match_posting": false,
+          "job_title": "CDL A TRUCK DRIVER HAZMAT"
+        },
+        {
+          "section": "Job Title",
+          "value": "<em>CDL</em> A HazMat <em>Driver</em> Local",
+          "search_term": "CDL",
+          "job_id": "67651",
+          "is_pulse_match_posting": false,
+          "job_title": "CDL A HazMat Driver Local"
+        },
+        {
+          "section": "Job Description",
+          "value": "pay\n\nBenefits/Incentives we offer <em>CDL</em> A <em>DRIVER</em>S\n\n\n\tHealth, Dental, and Vision",
+          "search_term": "CDL",
+          "job_id": "47737",
+          "is_pulse_match_posting": false,
+          "job_title": "CDL A Truck Driver Local Haz Mat"
+        },
+        {
+          "section": "Job Title",
+          "value": "<em>CDL</em> A Company <em>Driver</em> - Local Home Daily",
+          "search_term": "CDL",
+          "job_id": "93635",
+          "is_pulse_match_posting": false,
+          "job_title": "CDL A Company Driver - Local Home Daily"
+        },
+        {
+          "section": "Job Description",
+          "value": "<em>CDL</em> A HAZMAT LOCAL <em>DRIVER</em>\n\nNow Hiring Night <em>Driver</em>s in Baileyville ME!!\nXNG",
+          "search_term": "CDL",
+          "job_id": "47742",
+          "is_pulse_match_posting": false,
+          "job_title": "CDL A HazMat Local Driver"
+        }
+      ],
+      "all_keys": [
+        "company_id",
+        "alias_company_to",
+        "company_name",
+        "logo_link",
+        "url_part",
+        "highlighted_content"
+      ]
+    }
+  ]
+}

@@ -20,7 +20,7 @@ except ImportError:
 class FastMarketScraper:
     """Fast scraper that authenticates once and pulls all markets quickly"""
 
-    def __init__(self, target_locations=None):
+    def __init__(self, target_locations=None, experience_levels=None):
         # Default target markets if none provided
         default_markets = [
             "Dallas, TX",
@@ -42,23 +42,50 @@ class FastMarketScraper:
             self.markets = default_markets
 
         # Entry-level search configurations
-        self.experience_configs = {
+        all_experience_configs = {
             "no_cdl": {
                 "search_text": "CDL training no experience new driver recent grad student",
                 "experience_level": "new",
-                "description": "No CDL Required - Training Provided"
+                "description": "No CDL Required - Training Provided",
+                "ui_name": "No CDL (training provided)"
             },
             "cdl_school": {
                 "search_text": "CDL school graduate recent grad new driver training",
                 "experience_level": "new",
-                "description": "CDL School Graduates"
+                "description": "CDL School Graduates",
+                "ui_name": "CDL School Graduates"
             },
             "0_6_months": {
                 "search_text": "CDL 0-6 months new driver entry level recent experience",
                 "experience_level": "entry",
-                "description": "0-6 Months Experience"
+                "description": "0-6 Months Experience",
+                "ui_name": "0-6 Months Experience"
             }
         }
+
+        # Filter configs based on user selection
+        if experience_levels:
+            # Map UI names to config keys
+            ui_to_key = {
+                "No CDL (training provided)": "no_cdl",
+                "CDL School Graduates": "cdl_school",
+                "0-6 Months Experience": "0_6_months"
+            }
+
+            # Only include selected experience levels
+            self.experience_configs = {}
+            for ui_name in experience_levels:
+                config_key = ui_to_key.get(ui_name)
+                if config_key and config_key in all_experience_configs:
+                    self.experience_configs[config_key] = all_experience_configs[config_key]
+
+            # If no valid mapping found, use all configs as fallback
+            if not self.experience_configs:
+                print(f"⚠️ No valid experience levels matched, using all configs")
+                self.experience_configs = all_experience_configs
+        else:
+            # No filter provided - use all experience levels
+            self.experience_configs = all_experience_configs
 
     def scrape_all_markets_fast(self, radius_miles: int = 50) -> Dict[str, Dict[str, List[Dict]]]:
         """

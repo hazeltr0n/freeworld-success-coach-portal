@@ -1,7 +1,21 @@
 class MarketMapper:
-    """Maps cities to major metropolitan markets for job clustering"""
-    
-    def __init__(self):
+    """Maps cities to major metropolitan markets for job clustering and analytics
+
+    Markets are used for:
+    - Organizing scraping boundaries (which areas to search)
+    - Analytics and reporting (grouping jobs by market)
+    - NOT for agent-level filtering (that's ZIP + radius)
+    """
+
+    def __init__(self, use_supabase=True):
+        # Try to connect to Supabase for location_markets table
+        self.supabase_client = None
+        if use_supabase:
+            try:
+                from companies_rollup import get_client
+                self.supabase_client = get_client()
+            except ImportError:
+                pass
         # Comprehensive market lookup from Colab version
         self.market_lookup = {
             "acampo, ca": ["Stockton"],
@@ -1376,11 +1390,33 @@ class MarketMapper:
 }
     
     def map_market(self, location_string):
-        """Map a location string to its primary market"""
+        """Map a location string to its primary market
+
+        Args:
+            location_string: "City, ST" format (e.g., "Dallas, TX")
+
+        Returns:
+            str: Market name or empty string if not found
+        """
         if not isinstance(location_string, str):
             return ""
+
         location_string = location_string.lower().strip()
-        return self.market_lookup.get(location_string, [""])[0]
+
+        # Try Supabase first (supports multiple markets, returns first)
+        if self.supabase_client:
+            try:
+                result = self.supabase_client.table('location_markets').select('markets').eq('location_string', location_string).eq('location_type', 'city').execute()
+                if result.data and len(result.data) > 0:
+                    db_markets = result.data[0].get('markets', [])
+                    if db_markets:
+                        return db_markets[0]  # Return first market
+            except Exception:
+                pass  # Fallback to hardcoded lookup
+
+        # Fallback to hardcoded market_lookup
+        markets = self.market_lookup.get(location_string, [])
+        return markets[0] if markets else ""
     
     def map_markets(self, df):
         """Map markets for a DataFrame of jobs"""

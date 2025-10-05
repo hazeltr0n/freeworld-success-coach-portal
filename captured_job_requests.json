@@ -1,0 +1,602 @@
+[
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_passcard_info&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_passcard_info&portal_user_id=19880939&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_portal_user_theme&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_portal_user_theme&portal_user_id=19880939&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_passcard_info&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_passcard_info&portal_user_id=19880939&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=sync_badge_number&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=sync_badge_number&portal_user_id=19880939&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_home_screen_info&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_home_screen_info&portal_user_id=19880939&initial_load=true&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_home_spotlight_content&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_home_spotlight_content&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=log_pulse_usage&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=log_pulse_usage&portal_user_id=19880939&info%5Bobj%5D%5Bitem%5D=screen-home&info%5Bobj%5D%5Bnav_type%5D=main_nav&info%5Bobj%5D%5Binitial_load%5D=true&info%5Bprevious_screen%5D=screen-home&info%5Bprevious_screen_start_time%5D=false&info%5Bsession_id%5D=UdVpTQIGLLk34YnDfffBsm3R3zz3V0KYr9ZrxmLXayntP1h-Erf5vh20YT0JCm%2C98bz-LHECj1NDHQV6YE-yGQQz3dceMNq-rBOWg9U8teYQTBOqOX67A%2Cg5W2Rc9gNq&info%5Bdevice_guid%5D=browser_64424a955b8b2644a150&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=log_pulse_usage&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=log_pulse_usage&portal_user_id=19880939&info%5Bobj%5D%5Bitem%5D=screen-offers&info%5Bprevious_screen%5D=screen-home&info%5Bprevious_screen_start_time%5D=1759559628&info%5Bsession_id%5D=UdVpTQIGLLk34YnDfffBsm3R3zz3V0KYr9ZrxmLXayntP1h-Erf5vh20YT0JCm%2C98bz-LHECj1NDHQV6YE-yGQQz3dceMNq-rBOWg9U8teYQTBOqOX67A%2Cg5W2Rc9gNq&info%5Bdevice_guid%5D=browser_64424a955b8b2644a150&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_recommended_jobs&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_recommended_jobs&portal_user_id=19880939&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_recommended_carriers&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_recommended_carriers&portal_user_id=19880939&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=log_index_location_recommended_carrier&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=log_index_location_recommended_carrier&portal_user_id=19880939&index_location=2&company_id=2935511&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_carrier_active_jobs&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_carrier_active_jobs&portal_user_id=19880939&company_id=2935511&pulse_source=recommended_carrier&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=log_pulse_usage&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=log_pulse_usage&portal_user_id=19880939&info%5Bobj%5D%5Bitem%5D=screen-carrier_active_jobs&info%5Bobj%5D%5Bpulse_source%5D=recommended_carrier&info%5Bobj%5D%5Bcompany_id%5D=2935511&info%5Bprevious_screen%5D=screen-offers&info%5Bprevious_screen_start_time%5D=1759559630&info%5Bsession_id%5D=UdVpTQIGLLk34YnDfffBsm3R3zz3V0KYr9ZrxmLXayntP1h-Erf5vh20YT0JCm%2C98bz-LHECj1NDHQV6YE-yGQQz3dceMNq-rBOWg9U8teYQTBOqOX67A%2Cg5W2Rc9gNq&info%5Bdevice_guid%5D=browser_64424a955b8b2644a150&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_carrier_active_job_detail_meta_info&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_carrier_active_job_detail_meta_info&portal_user_id=19880939&company_id=2935511&active_job_id=73858&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_carrier_active_job_detail&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_carrier_active_job_detail&portal_user_id=19880939&company_id=2935511&active_job_id=73858&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=log_pulse_usage&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=log_pulse_usage&portal_user_id=19880939&info%5Bobj%5D%5Bitem%5D=screen-carrier_active_job_detail&info%5Bobj%5D%5Bactive_job_id%5D=73858&info%5Bobj%5D%5Bnav_type%5D=sub_nav&info%5Bobj%5D%5Bcompany_id%5D=2935511&info%5Bprevious_screen%5D=screen-carrier_active_jobs&info%5Bprevious_screen_start_time%5D=1759559637&info%5Bsession_id%5D=UdVpTQIGLLk34YnDfffBsm3R3zz3V0KYr9ZrxmLXayntP1h-Erf5vh20YT0JCm%2C98bz-LHECj1NDHQV6YE-yGQQz3dceMNq-rBOWg9U8teYQTBOqOX67A%2Cg5W2Rc9gNq&info%5Bdevice_guid%5D=browser_64424a955b8b2644a150&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_recent_search_results&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_recent_search_results&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=search_carriers&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=search_carriers&search_text=concrete&portal_user_id=19880939&page_number=1&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_search_detail_info&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_search_detail_info&result_info%5Bitem%5D=screen-search_results_detail&result_info%5Bcompany_id%5D=37318&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=log_pulse_usage&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=log_pulse_usage&portal_user_id=19880939&info%5Bobj%5D%5Bitem%5D=screen-search_results_detail&info%5Bobj%5D%5Bcompany_id%5D=37318&info%5Bprevious_screen%5D=screen-offers&info%5Bprevious_screen_start_time%5D=1759559639&info%5Bsession_id%5D=UdVpTQIGLLk34YnDfffBsm3R3zz3V0KYr9ZrxmLXayntP1h-Erf5vh20YT0JCm%2C98bz-LHECj1NDHQV6YE-yGQQz3dceMNq-rBOWg9U8teYQTBOqOX67A%2Cg5W2Rc9gNq&info%5Bdevice_guid%5D=browser_64424a955b8b2644a150&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_search_detail_info&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_search_detail_info&result_info%5Bitem%5D=screen-search_results_detail&result_info%5Bcompany_id%5D=279224&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=log_pulse_usage&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=log_pulse_usage&portal_user_id=19880939&info%5Bobj%5D%5Bitem%5D=screen-search_results_detail&info%5Bobj%5D%5Bcompany_id%5D=279224&info%5Bprevious_screen%5D=screen-offers&info%5Bprevious_screen_start_time%5D=1759559653&info%5Bsession_id%5D=UdVpTQIGLLk34YnDfffBsm3R3zz3V0KYr9ZrxmLXayntP1h-Erf5vh20YT0JCm%2C98bz-LHECj1NDHQV6YE-yGQQz3dceMNq-rBOWg9U8teYQTBOqOX67A%2Cg5W2Rc9gNq&info%5Bdevice_guid%5D=browser_64424a955b8b2644a150&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_search_detail_info&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_search_detail_info&result_info%5Bitem%5D=screen-search_results_detail&result_info%5Bcompany_id%5D=232567&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=log_pulse_usage&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=log_pulse_usage&portal_user_id=19880939&info%5Bobj%5D%5Bitem%5D=screen-search_results_detail&info%5Bobj%5D%5Bcompany_id%5D=232567&info%5Bprevious_screen%5D=screen-offers&info%5Bprevious_screen_start_time%5D=1759559658&info%5Bsession_id%5D=UdVpTQIGLLk34YnDfffBsm3R3zz3V0KYr9ZrxmLXayntP1h-Erf5vh20YT0JCm%2C98bz-LHECj1NDHQV6YE-yGQQz3dceMNq-rBOWg9U8teYQTBOqOX67A%2Cg5W2Rc9gNq&info%5Bdevice_guid%5D=browser_64424a955b8b2644a150&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_carrier_active_jobs&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_carrier_active_jobs&portal_user_id=19880939&company_id=232567&pulse_source=recommended_carrier&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=log_pulse_usage&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=log_pulse_usage&portal_user_id=19880939&info%5Bobj%5D%5Bitem%5D=screen-carrier_active_jobs&info%5Bobj%5D%5Bpulse_source%5D=recommended_carrier&info%5Bobj%5D%5Bcompany_id%5D=232567&info%5Bprevious_screen%5D=screen-search_results_detail&info%5Bprevious_screen_start_time%5D=1759559664&info%5Bsession_id%5D=UdVpTQIGLLk34YnDfffBsm3R3zz3V0KYr9ZrxmLXayntP1h-Erf5vh20YT0JCm%2C98bz-LHECj1NDHQV6YE-yGQQz3dceMNq-rBOWg9U8teYQTBOqOX67A%2Cg5W2Rc9gNq&info%5Bdevice_guid%5D=browser_64424a955b8b2644a150&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_carrier_active_job_detail_meta_info&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_carrier_active_job_detail_meta_info&portal_user_id=19880939&company_id=232567&active_job_id=26713&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_carrier_active_job_detail&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_carrier_active_job_detail&portal_user_id=19880939&company_id=232567&active_job_id=26713&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=log_pulse_usage&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=log_pulse_usage&portal_user_id=19880939&info%5Bobj%5D%5Bitem%5D=screen-carrier_active_job_detail&info%5Bobj%5D%5Bactive_job_id%5D=26713&info%5Bobj%5D%5Bnav_type%5D=sub_nav&info%5Bobj%5D%5Bcompany_id%5D=232567&info%5Bprevious_screen%5D=screen-carrier_active_jobs&info%5Bprevious_screen_start_time%5D=1759559666&info%5Bsession_id%5D=UdVpTQIGLLk34YnDfffBsm3R3zz3V0KYr9ZrxmLXayntP1h-Erf5vh20YT0JCm%2C98bz-LHECj1NDHQV6YE-yGQQz3dceMNq-rBOWg9U8teYQTBOqOX67A%2Cg5W2Rc9gNq&info%5Bdevice_guid%5D=browser_64424a955b8b2644a150&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=log_pulse_usage&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=log_pulse_usage&portal_user_id=19880939&info%5Bobj%5D%5Bitem%5D=screen-offers&info%5Bprevious_screen%5D=screen-home&info%5Bprevious_screen_start_time%5D=1759559670&info%5Bsession_id%5D=UdVpTQIGLLk34YnDfffBsm3R3zz3V0KYr9ZrxmLXayntP1h-Erf5vh20YT0JCm%2C98bz-LHECj1NDHQV6YE-yGQQz3dceMNq-rBOWg9U8teYQTBOqOX67A%2Cg5W2Rc9gNq&info%5Bdevice_guid%5D=browser_64424a955b8b2644a150&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_recommended_jobs&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_recommended_jobs&portal_user_id=19880939&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=log_index_location_recommended_carrier&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=log_index_location_recommended_carrier&portal_user_id=19880939&index_location=2&company_id=1293837&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_carrier_active_jobs&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_carrier_active_jobs&portal_user_id=19880939&company_id=1293837&pulse_source=recommended_carrier&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=log_pulse_usage&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=log_pulse_usage&portal_user_id=19880939&info%5Bobj%5D%5Bitem%5D=screen-carrier_active_jobs&info%5Bobj%5D%5Bpulse_source%5D=recommended_carrier&info%5Bobj%5D%5Bcompany_id%5D=1293837&info%5Bprevious_screen%5D=screen-offers&info%5Bprevious_screen_start_time%5D=1759559683&info%5Bsession_id%5D=UdVpTQIGLLk34YnDfffBsm3R3zz3V0KYr9ZrxmLXayntP1h-Erf5vh20YT0JCm%2C98bz-LHECj1NDHQV6YE-yGQQz3dceMNq-rBOWg9U8teYQTBOqOX67A%2Cg5W2Rc9gNq&info%5Bdevice_guid%5D=browser_64424a955b8b2644a150&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_carrier_active_job_detail_meta_info&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_carrier_active_job_detail_meta_info&portal_user_id=19880939&company_id=1293837&active_job_id=87270&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_carrier_active_job_detail&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_carrier_active_job_detail&portal_user_id=19880939&company_id=1293837&active_job_id=87270&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=log_pulse_usage&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=log_pulse_usage&portal_user_id=19880939&info%5Bobj%5D%5Bitem%5D=screen-carrier_active_job_detail&info%5Bobj%5D%5Bactive_job_id%5D=87270&info%5Bobj%5D%5Bnav_type%5D=sub_nav&info%5Bobj%5D%5Bcompany_id%5D=1293837&info%5Bprevious_screen%5D=screen-carrier_active_jobs&info%5Bprevious_screen_start_time%5D=1759559692&info%5Bsession_id%5D=UdVpTQIGLLk34YnDfffBsm3R3zz3V0KYr9ZrxmLXayntP1h-Erf5vh20YT0JCm%2C98bz-LHECj1NDHQV6YE-yGQQz3dceMNq-rBOWg9U8teYQTBOqOX67A%2Cg5W2Rc9gNq&info%5Bdevice_guid%5D=browser_64424a955b8b2644a150&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_carrier_active_job_detail_meta_info&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_carrier_active_job_detail_meta_info&portal_user_id=19880939&company_id=1293837&active_job_id=97000&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_carrier_active_job_detail&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=get_carrier_active_job_detail&portal_user_id=19880939&company_id=1293837&active_job_id=97000&user_timezone=America%2FChicago"
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=log_pulse_usage&portal_user_id=19880939",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+      "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-requested-with": "XMLHttpRequest",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "accept": "application/json, text/javascript, */*; q=0.01",
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+    },
+    "post_data": "mode=mobileapp&misc_function=log_pulse_usage&portal_user_id=19880939&info%5Bobj%5D%5Bitem%5D=screen-carrier_active_job_detail&info%5Bobj%5D%5Bactive_job_id%5D=97000&info%5Bobj%5D%5Bnav_type%5D=sub_nav&info%5Bobj%5D%5Bcompany_id%5D=1293837&info%5Bprevious_screen%5D=screen-carrier_active_jobs&info%5Bprevious_screen_start_time%5D=1759559693&info%5Bsession_id%5D=UdVpTQIGLLk34YnDfffBsm3R3zz3V0KYr9ZrxmLXayntP1h-Erf5vh20YT0JCm%2C98bz-LHECj1NDHQV6YE-yGQQz3dceMNq-rBOWg9U8teYQTBOqOX67A%2Cg5W2Rc9gNq&info%5Bdevice_guid%5D=browser_64424a955b8b2644a150&user_timezone=America%2FChicago"
+  }
+]

@@ -10,6 +10,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import json
+import uuid as uuid_lib
 
 def show_companies_dashboard():
     """Display the companies analytics dashboard"""
@@ -22,7 +23,7 @@ def show_companies_dashboard():
         from companies_rollup import (
             get_company_analytics, get_fair_chance_companies,
             get_market_company_breakdown, update_companies_table,
-            update_company_blacklist, get_client
+            update_company_blacklist, update_company_employer_uuid, get_client
         )
     except ImportError:
         st.error("❌ Companies rollup module not available")
@@ -114,7 +115,86 @@ def show_companies_dashboard():
     
     # Note about filtering
     st.info("📋 **Data Note**: Only showing companies with 'good' or 'so-so' quality jobs. Companies with only 'bad' jobs are filtered out.")
-    
+
+    # Company Merge Tool
+    with st.expander("🔀 Merge Duplicate Companies", expanded=False):
+        st.markdown("**Consolidate companies with different names that are actually the same employer**")
+        st.markdown("Example: '1-800-GOT-JUNK?' and '1-800-GOT-JUNK? - San Francisco Bay' → Keep one, merge the other")
+
+        from companies_rollup import merge_companies
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("**Primary Company (Keep This One)**")
+            primary_search = st.text_input("Search primary company:", key="primary_search")
+
+            if primary_search:
+                primary_matches = companies_df[companies_df['company_name'].str.contains(primary_search, case=False, na=False)]
+                if len(primary_matches) > 0:
+                    primary_company = st.selectbox(
+                        "Select primary company:",
+                        options=primary_matches['company_name'].tolist(),
+                        key="primary_select"
+                    )
+                    primary_id = primary_matches[primary_matches['company_name'] == primary_company]['id'].iloc[0]
+                    st.info(f"Primary ID: {primary_id} | Jobs: {primary_matches[primary_matches['company_name'] == primary_company]['total_jobs'].iloc[0]}")
+                else:
+                    st.warning("No matches found")
+                    primary_company = None
+                    primary_id = None
+            else:
+                primary_company = None
+                primary_id = None
+
+        with col2:
+            st.markdown("**Duplicate Companies (Will Be Merged)**")
+            duplicate_search = st.text_input("Search duplicates:", key="duplicate_search")
+
+            if duplicate_search:
+                duplicate_matches = companies_df[companies_df['company_name'].str.contains(duplicate_search, case=False, na=False)]
+                if len(duplicate_matches) > 0:
+                    duplicate_companies = st.multiselect(
+                        "Select companies to merge:",
+                        options=duplicate_matches['company_name'].tolist(),
+                        key="duplicate_select"
+                    )
+                    if duplicate_companies:
+                        duplicate_ids = [int(duplicate_matches[duplicate_matches['company_name'] == name]['id'].iloc[0]) for name in duplicate_companies]
+                        total_dup_jobs = sum([int(duplicate_matches[duplicate_matches['company_name'] == name]['total_jobs'].iloc[0]) for name in duplicate_companies])
+                        st.info(f"Selected: {len(duplicate_companies)} companies | {total_dup_jobs} jobs")
+                    else:
+                        duplicate_ids = []
+                else:
+                    st.warning("No matches found")
+                    duplicate_companies = []
+                    duplicate_ids = []
+            else:
+                duplicate_companies = []
+                duplicate_ids = []
+
+        st.markdown("---")
+
+        if primary_company and duplicate_companies:
+            st.warning(f"⚠️ **Preview**: Set {len(duplicate_companies)} companies as children of '{primary_company}'")
+            st.markdown("**What will happen:**")
+            st.markdown(f"1. {duplicate_companies} will be marked as child companies of '{primary_company}'")
+            st.markdown(f"2. **Existing jobs keep their original company names** (preserved for historical accuracy)")
+            st.markdown(f"3. **Future jobs** from child company names will automatically roll up to '{primary_company}'")
+            st.markdown(f"4. Analytics will show parent company name for all variants")
+
+            if st.button("🔀 Confirm Merge", type="primary"):
+                with st.spinner("Merging companies..."):
+                    success, message = merge_companies(primary_id, duplicate_ids)
+                    if success:
+                        st.success(f"✅ {message}")
+                        st.info("⏳ Refreshing company data...")
+                        st.rerun()
+                    else:
+                        st.error(f"❌ Merge failed: {message}")
+        elif primary_company or duplicate_companies:
+            st.info("👆 Select both a primary company and at least one duplicate to merge")
+
     # Market breakdown
     if 'markets' in companies_df.columns:
         st.markdown("### 🌍 Geographic Distribution")
@@ -248,6 +328,28 @@ def show_companies_dashboard():
     if 'is_blacklisted' in companies_df.columns:
         display_columns.append('is_blacklisted')
 
+    # Blacklist reason (show when company is blacklisted)
+    if 'blacklist_reason' in companies_df.columns:
+        # Convert existing reasons to single value from comma-separated
+        def parse_blacklist_reason(reason):
+            if pd.isna(reason) or reason == '' or reason is None:
+                return None
+            # If it's a timestamp-based reason, return None (will show as blank)
+            if 'Manually blacklisted via dashboard' in str(reason):
+                return None
+            # If it's comma-separated, take the first one
+            reason_str = str(reason).strip()
+            if ',' in reason_str:
+                return reason_str.split(',')[0].strip()
+            return reason_str
+
+        companies_df['blacklist_tags'] = companies_df['blacklist_reason'].apply(parse_blacklist_reason)
+        display_columns.append('blacklist_tags')
+
+    # Employer UUID for matching with internal database
+    if 'employer_uuid' in companies_df.columns:
+        display_columns.append('employer_uuid')
+
     # Add ID for editing
     if 'id' in companies_df.columns:
         display_columns.insert(0, 'id')
@@ -263,7 +365,18 @@ def show_companies_dashboard():
         'fair_chance_jobs': st.column_config.NumberColumn('FC Jobs', format='%d', width='small'),
         'agent_feedback': st.column_config.TextColumn('Free Agent Activity', width='medium'),
         'quality_summary': st.column_config.TextColumn('Job Quality', width='medium'),
-        'is_blacklisted': st.column_config.CheckboxColumn('Blacklisted', help='Check to blacklist company (auto-marks jobs as bad)', width='small')
+        'is_blacklisted': st.column_config.CheckboxColumn('Blacklisted', help='Check to blacklist company (auto-marks jobs as bad)', width='small'),
+        'blacklist_tags': st.column_config.SelectboxColumn(
+            'Blacklist Reason',
+            width='medium',
+            help='Select reason for blacklisting',
+            options=['Spam Agency', 'Experience Required', 'Not Fair Chance Friendly', 'Possible Scam']
+        ),
+        'employer_uuid': st.column_config.TextColumn(
+            'FW Employer ID',
+            width='medium',
+            help='UUID linking to FreeWorld Admin Portal employer database (manual entry)'
+        )
     }
     
     # Search functionality
@@ -288,30 +401,73 @@ def show_companies_dashboard():
             on_change=None
         )
 
-        # Check for blacklist changes
-        if not edited_df.equals(display_df):
-            # Find changes in blacklist column
-            for idx in edited_df.index:
-                if idx < len(display_df):
-                    old_blacklist = display_df.loc[idx, 'is_blacklisted']
-                    new_blacklist = edited_df.loc[idx, 'is_blacklisted']
+        # Check for changes and show save button
+        has_changes = not edited_df.equals(display_df)
 
-                    if old_blacklist != new_blacklist:
-                        company_id = edited_df.loc[idx, 'id']
-                        company_name = edited_df.loc[idx, 'company_name']
+        if has_changes:
+            st.warning("⚠️ You have unsaved changes")
 
-                        # Update blacklist status
-                        reason = f"Manually blacklisted via dashboard on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}" if new_blacklist else None
-                        success = update_company_blacklist(company_id, new_blacklist, reason)
+            col1, col2 = st.columns([1, 5])
+            with col1:
+                if st.button("💾 Save Changes", type="primary"):
+                    # Process all changes
+                    changes_made = 0
+                    errors = []
 
-                        if success:
-                            if new_blacklist:
-                                st.success(f"✅ {company_name} has been blacklisted. Future jobs will be marked as 'bad'.")
-                            else:
-                                st.success(f"✅ {company_name} has been removed from blacklist.")
-                            st.rerun()
-                        else:
-                            st.error(f"❌ Failed to update blacklist status for {company_name}")
+                    for idx in edited_df.index:
+                        if idx < len(display_df):
+                            company_id = int(edited_df.loc[idx, 'id'])
+                            company_name = str(edited_df.loc[idx, 'company_name'])
+
+                            # Check for blacklist changes
+                            old_blacklist = display_df.loc[idx, 'is_blacklisted']
+                            new_blacklist = edited_df.loc[idx, 'is_blacklisted']
+                            old_tag = display_df.loc[idx, 'blacklist_tags'] if 'blacklist_tags' in display_df.columns else None
+                            new_tag = edited_df.loc[idx, 'blacklist_tags'] if 'blacklist_tags' in edited_df.columns else None
+
+                            if old_blacklist != new_blacklist or old_tag != new_tag:
+                                # Use selected reason or default timestamp
+                                if new_blacklist:
+                                    if new_tag and pd.notna(new_tag) and str(new_tag).strip():
+                                        reason = str(new_tag).strip()
+                                    else:
+                                        reason = f"Manually blacklisted via dashboard on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                                else:
+                                    reason = None
+
+                                success, error_msg = update_company_blacklist(company_id, new_blacklist, reason)
+
+                                if success:
+                                    changes_made += 1
+                                else:
+                                    errors.append(f"{company_name} (blacklist): {error_msg}")
+
+                            # Check for employer_uuid changes
+                            if 'employer_uuid' in display_df.columns:
+                                old_uuid = display_df.loc[idx, 'employer_uuid'] if pd.notna(display_df.loc[idx, 'employer_uuid']) else None
+                                new_uuid = edited_df.loc[idx, 'employer_uuid'] if pd.notna(edited_df.loc[idx, 'employer_uuid']) else None
+
+                                if old_uuid != new_uuid:
+                                    success, error_msg = update_company_employer_uuid(company_id, new_uuid)
+
+                                    if success:
+                                        changes_made += 1
+                                    else:
+                                        errors.append(f"{company_name} (UUID): {error_msg}")
+
+                    # Show results
+                    if changes_made > 0:
+                        st.success(f"✅ Successfully updated {changes_made} field(s)")
+                    if errors:
+                        for error in errors:
+                            st.error(f"❌ {error}")
+
+                    if changes_made > 0:
+                        st.rerun()
+
+            with col2:
+                if st.button("🔄 Discard Changes"):
+                    st.rerun()
     else:
         # Display regular dataframe
         st.dataframe(

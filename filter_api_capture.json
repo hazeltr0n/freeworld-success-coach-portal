@@ -1,0 +1,1004 @@
+[
+  {
+    "url": "https://pulse.tenstreet.com/",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556565.986497
+  },
+  {
+    "url": "https://pulse.tenstreet.com/?action=dashboard&uri_b=pulse_100",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.247138
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/css/octicons/octicons.css",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4045749
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/css/default/jquery-ui.css?v=1.03",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4048681
+  },
+  {
+    "url": "https://cdn.tenstreet.com/bootstrap/4.5.0/bootstrap.min.css",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.405154
+  },
+  {
+    "url": "https://cdn.tenstreet.com/tenstreet/tenstreet.css",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.40538
+  },
+  {
+    "url": "https://cdn.tenstreet.com/tenstreet/themes/theme-default.css",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.405613
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/css/main.css?v=1757358002",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.406472
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/css/shared.css?v=1756211403",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.406946
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/css/driver_pulse.css?v=1758054602",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.407167
+  },
+  {
+    "url": "https://dashboard.tenstreet.com/global/js/jquery.min.js",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.407979
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js/jquery-ui.min.js",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4083252
+  },
+  {
+    "url": "https://cdn.tenstreet.com/bootstrap/4.5.0/bootstrap.min.js?v=11573757005",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.409195
+  },
+  {
+    "url": "https://dashboard.tenstreet.com/cdn/js/chart.js",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.409769
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/chart_builder.js?v=1.0",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.410953
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/jquery.touchSwipe.min.js",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.411097
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js/jq_mobile_modal/mobile_modal.js",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.411181
+  },
+  {
+    "url": "https://cdn.tenstreet.com/sortablejs/1.15.2/sortable.min.js",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4113579
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/jquery.lazyload.min.js",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.411553
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/image_exif/exif-reader.js",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.41165
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/mobileapp_global.js?v=1758639602",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4117482
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/carriers.js?v=1757358002",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.411864
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/carrier_detail_cards.js?v=1749745802",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.411975
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/activity.js?v=1757358002",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4120672
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/messages.js?v=1758639602",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.412129
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/privacy.js?v=1689287410",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4122071
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/settings.js?v=1754948702",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4124339
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/refer.js?v=1689287410",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.412638
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/feedback.js?v=1689287410",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.412747
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/pulse_portal_class.js?v=1726263004",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.412832
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/profile.js?v=1756098904",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4129019
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/my_stuff.js?v=1754918102",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4130409
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/offers.js?v=1756242902",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.413118
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/documents.js?v=1759343402",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.413228
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/active_jobs.js?v=1741038302",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4132962
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/background_resources.js?v=1689287410",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4133701
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/drug_screening.js?v=1756303202",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4134378
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/qrcode.min.js?v=1689287410",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4134998
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/home.js?v=1758305702",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4135602
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/story_mode_functions.js?v=1758305702",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.413622
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/parking.js?v=1693509296",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.413725
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/search.js?v=1751470202",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.413806
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/xchange_response.js?v=1689287410",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.413877
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/fmcsa.js?v=1689287410",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4139462
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/social.js?v=1746024302",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.414015
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/social_message.js?v=1757941202",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.414081
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/edit_pulse_profile.js?v=1701118069",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.414151
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/csa_overview.js?v=1689287410",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.414252
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/video_chat.js?v=1689287410",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.414349
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/shipper_survey.js?v=1689287410",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.414434
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/tasks.js?v=1742401803",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4145448
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/broadcast.js?v=1732647602",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.414631
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/dlp.js?v=1689287410",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.41471
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/wallet.js?v=1749745802",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4147809
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/true_fuel.js?v=1739546103",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.41485
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/carrier_accidents.js?v=1738162804",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.414915
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/form_in_pulse.js?v=1689287410",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4149818
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/dqf.js?v=1745951409",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.415049
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/year_in_review.js?v=1702324805",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.415123
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/sockets.js?v=1722610807",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.415185
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/truck_map.js?v=1738618204",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4152498
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/news.js?v=1750959901",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4153259
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/job_pref_quick_messages.js?v=1723646705",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4154181
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/leaderboard.js?v=1709846103",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.415481
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/equipment.js?v=1731699003",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.415544
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/nsfw/tf.min.js?v=1718300705",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.415607
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/nsfw/nsfwjs.min.js?v=1718300705",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.415667
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/electronic_permit_book.js?v=1727187526",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.415728
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/policies.js?v=1724352304",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.415791
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/pdf_webviewer.min.js?v=1723646706",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.415854
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/document_viewer.js?v=1759247102",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.415918
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/community.js?v=1746639002",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.415997
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/microfleet.js?v=1739993404",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.416074
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/truckers_against_trafficking.js?v=1741789803",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4161391
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/detention.js?v=1758044702",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4162009
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/uc_passport.js?v=1745335802",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.416262
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/validation_request.js?v=1754918102",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4163241
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/expand_left_black.svg?v=1",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.416512
+  },
+  {
+    "url": "https://pulse.tenstreet.com/images/pulse_grey.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4165728
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/home_duotone.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4166331
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/search_duotone_line_black.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.416693
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/messages_duotone_line.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.416754
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/file_dock_duotone_line_dark.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.416812
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/e-mail.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4168699
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/setting_line_duotone_line_dark.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.41693
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/menu_home.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.416988
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/menu_jobs.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.417046
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/menu_grey.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4171038
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/desk_alt_duotone_line.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.417161
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/file_dock_duotone_line_light.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.417218
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/bell_light.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.417278
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/jobs_color.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.417352
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/Newspaper.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.417411
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/truck_map.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.417469
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/Pulse_Home_Messages.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.417526
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/wallet_color.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4175858
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/true_fuel_color.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4176729
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/Hourglass.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4177458
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/training_color.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.417818
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/Community.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.417899
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/driving_color.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.417964
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/safety_color.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4180381
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/fmcsa_color.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.418116
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/chevron_right.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.418189
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/dlp_star_color.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.418261
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/edit_duotone_line_light.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.418334
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/lightning_ring_light_color.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.418407
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/light_theme.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.418472
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/dark_theme.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.418533
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/system_theme.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4185972
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/expand_right_light_grey.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.418658
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/camera_message.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.418719
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/Arrow_alt_ltop.svg?v=1",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.418777
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/Grid_square.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.418835
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/chevron_right.svg?v=1",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.418895
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/Chield_check_duotone_line.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.418953
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/job_screen_filter_dark.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.419011
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/user_duotone_dark.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.419072
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/award.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.419133
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/Star_dark.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4192069
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/camera_light.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.419265
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/edit_square_blue.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.419323
+  },
+  {
+    "url": "https://pulse.tenstreet.com/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.419382
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/link_alt.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.421082
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/external_logos/dlp_logo.png",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.437164
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/chevron_right_light.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.437245
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/Ticket.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4689438
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/wallet_duotone.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.469038
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/phone_duotone_line.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4691808
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/chat_alt_3_duotone_line.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.469242
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/company_permission_request.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4693062
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/truck_car_crash.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.469373
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/add_duotone_line.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4694378
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/Highway_angel.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.469501
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/Truckers_against_trafficking.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.469562
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/Sun_duotone_color.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.469623
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/Tow_truck.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.469683
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/external_logos/harriet_tubman_award_logo.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.469748
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/Tenstreet_logo_color.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.469811
+  },
+  {
+    "url": "https://pulse.tenstreet.com/images/hand_drawn_arrow.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.469873
+  },
+  {
+    "url": "https://pulse.tenstreet.com/images/highlight-circle.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.469934
+  },
+  {
+    "url": "https://pulse.tenstreet.com/images/bent_arrow.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.469992
+  },
+  {
+    "url": "https://pulse.tenstreet.com/images/thumbs_up_gold_medal.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.470051
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/Progress_light_red.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.4951282
+  },
+  {
+    "url": "https://pulse.tenstreet.com/images/apple_badge.png",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.5845811
+  },
+  {
+    "url": "https://pulse.tenstreet.com/images/play_badge.png",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.5869162
+  },
+  {
+    "url": "https://pulse.tenstreet.com/images/pulse_svg.svg?v=.04",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.58702
+  },
+  {
+    "url": "https://dashboard.tenstreet.com/unsubscribe.php?s=cG9ydGFsX3VzZXJfaWQ9MTk4ODA5Mzk=",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.924011
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/fonts/avenir.ttf",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556566.9581351
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/keep_alive.php?uri_b=pulse_100&portal_user_id=19880939&last_ui_cache_update=1759556566957",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556567.1873379
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_passcard_info&portal_user_id=19880939",
+    "method": "POST",
+    "post_data": "mode=mobileapp&misc_function=get_passcard_info&portal_user_id=19880939&user_timezone=America%2FChicago",
+    "timestamp": 1759556567.196094
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_portal_user_theme&portal_user_id=19880939",
+    "method": "POST",
+    "post_data": "mode=mobileapp&misc_function=get_portal_user_theme&portal_user_id=19880939&user_timezone=America%2FChicago",
+    "timestamp": 1759556567.1962008
+  },
+  {
+    "url": "https://cdn.tenstreet.com/bootstrap/5.0.2/bootstrap.min.css",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556567.209889
+  },
+  {
+    "url": "https://dashboard.tenstreet.com/cdn/css/tenstreet.css",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556567.210187
+  },
+  {
+    "url": "https://dashboard.tenstreet.com/cdn/css/themes/theme-default.css",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556567.210426
+  },
+  {
+    "url": "https://cdn.tenstreet.com/jquery/latest/jquery.min.js",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556567.210506
+  },
+  {
+    "url": "https://cdn.tenstreet.com/bootstrap/5.0.2/bootstrap.min.js",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556567.210678
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js/jquery.min.js",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556567.2437289
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_passcard_info&portal_user_id=19880939",
+    "method": "POST",
+    "post_data": "mode=mobileapp&misc_function=get_passcard_info&portal_user_id=19880939&user_timezone=America%2FChicago",
+    "timestamp": 1759556567.297547
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=sync_badge_number&portal_user_id=19880939",
+    "method": "POST",
+    "post_data": "mode=mobileapp&misc_function=sync_badge_number&portal_user_id=19880939&user_timezone=America%2FChicago",
+    "timestamp": 1759556567.297684
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/badge_3.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556567.358968
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_home_screen_info&portal_user_id=19880939",
+    "method": "POST",
+    "post_data": "mode=mobileapp&misc_function=get_home_screen_info&portal_user_id=19880939&initial_load=true&user_timezone=America%2FChicago",
+    "timestamp": 1759556567.7023501
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_home_spotlight_content&portal_user_id=19880939",
+    "method": "POST",
+    "post_data": "mode=mobileapp&misc_function=get_home_spotlight_content&user_timezone=America%2FChicago",
+    "timestamp": 1759556567.7855291
+  },
+  {
+    "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=log_pulse_usage&portal_user_id=19880939",
+    "method": "POST",
+    "post_data": "mode=mobileapp&misc_function=log_pulse_usage&portal_user_id=19880939&info%5Bobj%5D%5Bitem%5D=screen-home&info%5Bobj%5D%5Bnav_type%5D=main_nav&info%5Bobj%5D%5Binitial_load%5D=true&info%5Bprevious_screen%5D=screen-home&info%5Bprevious_screen_start_time%5D=false&info%5Bsession_id%5D=CRBKj4neB3zX6jJhXwf3P082-DdNYNRsv37W74CqDnJ6pIsgYW1uWWDLFme-fW6wlDncZx7FjvGa%2CmWn4kfBCXwA%2C997C33sSzC6AmLXwR06X3WCtAnfUXkPLWcWJBaW&info%5Bdevice_guid%5D=browser_1932a302584bdbcb9152&user_timezone=America%2FChicago",
+    "timestamp": 1759556567.7856681
+  },
+  {
+    "url": "https://images.tenstreet.com/company/logos/3193915_logo.png",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556567.785771
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/js/pdf.js",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556567.844639
+  },
+  {
+    "url": "https://pulse.tenstreet.com/includes/icons/edit_underline.svg",
+    "method": "GET",
+    "post_data": null,
+    "timestamp": 1759556567.845645
+  }
+]

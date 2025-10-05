@@ -9,12 +9,86 @@ from datetime import datetime
 from typing import List, Dict, Any
 from jobs_schema import build_empty_df
 from canonical_transforms import transform_ingest_outscraper
+from market_mapper import MarketMapper
 
 class DriverPulseToPipelineAdapter:
     """Adapter to convert DriverPulse results to pipeline format"""
 
     def __init__(self, run_id: str = None):
         self.run_id = run_id or f"driver_pulse_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        self.market_mapper = MarketMapper()
+
+    def _combine_job_content(self, job: Dict) -> str:
+        """Combine description, requirements, and benefits into single HTML block
+
+        This creates a structured description with clear sections that AI can parse:
+        - Main job description
+        - Requirements section (CDL class, experience, endorsements)
+        - Benefits section (fair chance info, perks)
+        """
+        parts = []
+
+        # Main description
+        description = job.get('job_description', '')
+        if description:
+            parts.append(description)
+
+        # Requirements section (CRITICAL for classification)
+        requirements = job.get('job_requirements', '')
+        if requirements:
+            parts.append('<h3>Requirements</h3>')
+            parts.append(requirements)
+
+        # Benefits section
+        benefits = job.get('job_general_benefits', '')
+        if benefits:
+            parts.append('<h3>Benefits</h3>')
+            parts.append(benefits)
+
+        return '\n\n'.join(parts)
+
+    def _format_salary(self, job: Dict) -> str:
+        """Format salary from DriverPulse structured fields"""
+        min_pay = job.get('job_min_pay', '')
+        max_pay = job.get('job_max_pay', '')
+        single_pay = job.get('job_pay', '')
+        unit = job.get('job_min_max_pay_unit', '')
+
+        # Handle range
+        if min_pay and max_pay:
+            return f"${min_pay} - ${max_pay} {unit}"
+
+        # Handle single value
+        if single_pay:
+            return f"${single_pay} {unit}"
+
+        # Handle min only
+        if min_pay:
+            return f"${min_pay}+ {unit}"
+
+        return ''
+
+    def _format_location(self, job: Dict) -> str:
+        """Format location from DriverPulse geo fields"""
+        zip_code = job.get('zip', '')
+        state = job.get('state', '')
+
+        if zip_code and state:
+            return f"{zip_code}, {state}"
+        elif state:
+            return state
+
+        return ''
+
+    def _build_application_url(self, job: Dict) -> str:
+        """Construct DriverPulse application URL"""
+        company_url = job.get('company_url_part', '')
+        job_id = job.get('active_job_id', '')
+
+        if company_url and job_id:
+            return f"https://pulse.tenstreet.com/{company_url}/job/{job_id}"
+
+        return ''
 
     def convert_to_pipeline_format(self, driver_pulse_results: Dict[str, Dict[str, List[Dict]]],
                                  search_location: str = "") -> pd.DataFrame:
@@ -48,57 +122,70 @@ class DriverPulseToPipelineAdapter:
         # Use existing pipeline ingestion transform
         df = transform_ingest_outscraper(outscraper_format, self.run_id, search_location)
 
+        # Auto-assign market for analytics (use normalized location)
+        if 'norm.location' in df.columns:
+            df['metadata.market'] = df['norm.location'].apply(self.market_mapper.map_market)
+
         return df
 
     def _convert_to_outscraper_format(self, jobs: List[Dict]) -> List[Dict]:
-        """Convert DriverPulse job format to Outscraper-compatible format"""
+        """Convert DriverPulse job format to Outscraper-compatible format
+
+        ZERO SCHEMA CHANGES: Combines description + requirements + benefits into
+        source.description_raw field using HTML sections.
+        """
+        import json
+
         outscraper_jobs = []
 
         for job in jobs:
-            # Map DriverPulse fields to Outscraper format
-            # The actual DriverPulse scraper outputs these fields (from driver_pulse_source.py):
-            # 'source_title', 'source_company', 'source_description', 'source_url', etc.
             outscraper_job = {
-                # Basic job info - map to exact Outscraper field names that pipeline expects
-                'title': job.get('source_title', job.get('normalized_title', '')),
-                'company': job.get('source_company', job.get('normalized_company', '')),
-                'snippet': job.get('source_description', ''),  # This maps to source.description_raw
-                'formattedLocation': job.get('source_location', job.get('normalized_location', '')),
+                # Basic fields - use new DriverPulse V2 API fields
+                'title': job.get('job_title', ''),
+                'company': job.get('company_name', ''),
 
-                # URLs and IDs - use exact Outscraper field names
-                'viewJobLink': job.get('application_url', job.get('source_url', '')),  # This maps to source.url
-                'job_id': job.get('driver_pulse_job_id', job.get('job_id', '')),
+                # COMBINED: description + requirements + benefits
+                'snippet': self._combine_job_content(job),
 
-                # Salary and employment details - use exact Outscraper field names
-                'salarySnippet': job.get('salary_info', job.get('source_salary', '')),
-                'employment_type': job.get('employment_type', ''),
+                # FORMATTED: location from zip + state
+                'formattedLocation': self._format_location(job),
+
+                # CONSTRUCTED: DriverPulse URL
+                'viewJobLink': self._build_application_url(job),
+
+                # Job ID (maps to id.source_row)
+                'job_id': job.get('active_job_id', ''),
+
+                # FORMATTED: Salary from structured fields
+                'salarySnippet': self._format_salary(job),
 
                 # Date and metadata
-                'date_posted': job.get('source_posted_date', job.get('date_posted', '')),
+                'date_posted': '',  # Not available from DriverPulse API
                 'source': 'driver_pulse',
 
-                # Company details (these may come from metadata added by fast_market_scraper)
-                'company_website': job.get('company_website', ''),
-                'company_phone': job.get('company_phone', ''),
-                'company_address': job.get('company_address', ''),
-                'company_rating': job.get('company_rating', ''),
+                # Store lat/lng as top-level fields for market mapping
+                'latitude': job.get('lat', ''),
+                'longitude': job.get('lng', ''),
+                'zip_code': job.get('zip', ''),
 
-                # DriverPulse specific metadata (added by fast_market_scraper)
-                'experience_category': job.get('experience_category', ''),
-                'search_keywords': job.get('search_keywords', ''),
-                'location_searched': job.get('location_searched', job.get('search_location', '')),
-                'market_scraped': job.get('market_scraped', ''),
-                'radius_miles': job.get('radius_miles', ''),
-                'requirements': job.get('requirements', ''),
-                'benefits': job.get('benefits', ''),
+                # Store DriverPulse metadata as JSON string
+                'company_metadata': json.dumps({
+                    'driver_pulse_company_id': job.get('company_id', ''),
+                    'company_logo': job.get('company_logo', ''),
+                    'company_url_part': job.get('company_url_part', ''),
+                    'location_type': job.get('location_type', ''),
+                    'zip': job.get('zip', ''),
+                    'state': job.get('state', ''),
+                }),
 
                 # Technical metadata
                 'scraped_at': job.get('scraped_at', datetime.now().isoformat()),
-                'scraper_version': job.get('scraper_version', 'driver_pulse_v1.0'),
+                'scraper_version': 'driver_pulse_v2.0',
                 'data_source': 'driver_pulse',
+                'search_term': job.get('search_term', ''),
 
                 # CRITICAL: Set meta.market directly so it survives ensure_schema()
-                'meta.market': job.get('market_scraped', '')
+                'meta.market': job.get('market_scraped', job.get('state', ''))
             }
 
             # Ensure we have basic required fields
@@ -107,7 +194,7 @@ class DriverPulseToPipelineAdapter:
             if not outscraper_job['company']:
                 outscraper_job['company'] = 'Unknown Company'
             if not outscraper_job['formattedLocation']:
-                outscraper_job['formattedLocation'] = job.get('location_searched', 'Unknown Location')
+                outscraper_job['formattedLocation'] = 'Unknown Location'
 
             outscraper_jobs.append(outscraper_job)
 
@@ -196,12 +283,31 @@ class DriverPulsePipelineIntegration:
             df = pipeline._stage3_business_rules(df, "", filter_settings or {})
             df = pipeline._stage4_deduplication(df)
 
-            # AI Classification (optional - can be expensive)
-            try:
-                df = pipeline._stage5_ai_classification(df, classifier_type="cdl")
-                print(f"✅ AI classification completed")
-            except Exception as e:
-                print(f"⚠️ AI classification skipped: {e}")
+            # AI Classification (based on user selection)
+            classifier_selection = filter_settings.get('classifier_type', 'CDL Job Classifier')
+
+            if classifier_selection == "None (No AI)":
+                print(f"⚠️ AI classification skipped (user selected None)")
+            elif classifier_selection == "Both (CDL + Pathway)":
+                try:
+                    df = pipeline._stage5_ai_classification(df, classifier_type="cdl")
+                    print(f"✅ CDL classification completed")
+                    df = pipeline._stage5_ai_classification(df, classifier_type="pathway")
+                    print(f"✅ Pathway classification completed")
+                except Exception as e:
+                    print(f"⚠️ AI classification error: {e}")
+            elif classifier_selection == "Pathway Classifier":
+                try:
+                    df = pipeline._stage5_ai_classification(df, classifier_type="pathway")
+                    print(f"✅ Pathway classification completed")
+                except Exception as e:
+                    print(f"⚠️ AI classification error: {e}")
+            else:  # Default to CDL
+                try:
+                    df = pipeline._stage5_ai_classification(df, classifier_type="cdl")
+                    print(f"✅ CDL classification completed")
+                except Exception as e:
+                    print(f"⚠️ AI classification error: {e}")
 
             # Final routing - use empty string since each job has individual market
             df = pipeline._stage6_routing(df, "")

@@ -1,0 +1,41 @@
+{
+  "initial_storage": {},
+  "final_storage": {},
+  "api_calls": [
+    {
+      "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_passcard_info&portal_user_id=19880939",
+      "post_data": "mode=mobileapp&misc_function=get_passcard_info&portal_user_id=19880939&user_timezone=America%2FChicago",
+      "timestamp": 1759534855.4882162
+    },
+    {
+      "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_portal_user_theme&portal_user_id=19880939",
+      "post_data": "mode=mobileapp&misc_function=get_portal_user_theme&portal_user_id=19880939&user_timezone=America%2FChicago",
+      "timestamp": 1759534855.488388
+    },
+    {
+      "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_passcard_info&portal_user_id=19880939",
+      "post_data": "mode=mobileapp&misc_function=get_passcard_info&portal_user_id=19880939&user_timezone=America%2FChicago",
+      "timestamp": 1759534855.603325
+    },
+    {
+      "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=sync_badge_number&portal_user_id=19880939",
+      "post_data": "mode=mobileapp&misc_function=sync_badge_number&portal_user_id=19880939&user_timezone=America%2FChicago",
+      "timestamp": 1759534855.603436
+    },
+    {
+      "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_home_screen_info&portal_user_id=19880939",
+      "post_data": "mode=mobileapp&misc_function=get_home_screen_info&portal_user_id=19880939&initial_load=true&user_timezone=America%2FChicago",
+      "timestamp": 1759534855.995498
+    },
+    {
+      "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=get_home_spotlight_content&portal_user_id=19880939",
+      "post_data": "mode=mobileapp&misc_function=get_home_spotlight_content&user_timezone=America%2FChicago",
+      "timestamp": 1759534856.0923579
+    },
+    {
+      "url": "https://pulse.tenstreet.com/global/js2php_transfer.php?uri_b=pulse_100&misc_function=log_pulse_usage&portal_user_id=19880939",
+      "post_data": "mode=mobileapp&misc_function=log_pulse_usage&portal_user_id=19880939&info%5Bobj%5D%5Bitem%5D=screen-home&info%5Bobj%5D%5Bnav_type%5D=main_nav&info%5Bobj%5D%5Binitial_load%5D=true&info%5Bprevious_screen%5D=screen-home&info%5Bprevious_screen_start_time%5D=false&info%5Bsession_id%5D=vUpIpX1ynpBDhcC5oS92CWnW7o5RJtAoX-GKsimKvlCjT3NgyBvV7eIYhfbUbK%2CGv8kJUwFwBvtCZDXmNbKi%2CkOcVS4%2CsspGhhkfyvvRHcqkfppRSJ339ccaJ%2Cj4NN1R&info%5Bdevice_guid%5D=browser_e69119ce453fb2b3f91d&user_timezone=America%2FChicago",
+      "timestamp": 1759534856.092575
+    }
+  ]
+}

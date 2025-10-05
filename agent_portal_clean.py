@@ -119,12 +119,21 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
             lookback_hours = agent_params.get('lookback_hours', 72)
             print(f"🕐 CLEAN AGENT PORTAL: Using lookback_hours={lookback_hours} from agent params")
 
+            # Get ZIP radius filtering params
+            agent_zip = agent_params.get('zip_code')
+            zip_radius_miles = agent_params.get('zip_radius_miles', 25)  # Default 25 miles
+
+            if agent_zip:
+                print(f"📍 CLEAN AGENT PORTAL: ZIP radius filtering enabled - {agent_zip} within {zip_radius_miles} miles")
+
             # Run direct memory search with feedback filtering
             jobs_list = instant_memory_search(
                 location=location,
                 hours=lookback_hours,  # Use agent-specific lookback period
                 market=location,  # Use location as market
-                pathway_preferences=pathway_preferences
+                pathway_preferences=pathway_preferences,
+                agent_zip=agent_zip,
+                zip_radius_miles=zip_radius_miles if agent_zip else None
             )
 
             if jobs_list:

@@ -474,27 +474,33 @@ def transform_normalize(df: pd.DataFrame) -> pd.DataFrame:
         text = text.replace('&nbsp;', ' ').replace('&amp;', '&')
         return text.strip()
     
-    def parse_location(location: str) -> Tuple[str, str, str]:
-        """Parse location into city, state, full format"""
+    def parse_location(location: str) -> Tuple[str, str, str, str]:
+        """Parse location into city, state, full format, and ZIP code"""
         if pd.isna(location) or location == '':
-            return '', '', ''
-        
+            return '', '', '', ''
+
         location = str(location).strip()
-        
+        zip_code = ''
+
         # Handle "City, State ZIP" format
         if ',' in location:
             parts = location.split(',')
             city = parts[0].strip()
             state_part = parts[1].strip() if len(parts) > 1 else ''
-            
+
             # Extract state from "State ZIP" format
             state_match = re.match(r'^([A-Z]{2})', state_part)
             state = state_match.group(1) if state_match else state_part[:2].upper()
-            
-            return city, state, f"{city}, {state}"
+
+            # Extract ZIP code (5 digits, optionally with -XXXX)
+            zip_match = re.search(r'\b(\d{5}(?:-\d{4})?)\b', state_part)
+            if zip_match:
+                zip_code = zip_match.group(1)
+
+            return city, state, f"{city}, {state}", zip_code
         else:
             # Single word - assume it's a city
-            return location, '', location
+            return location, '', location, ''
     
     def parse_salary(salary_text: str) -> Dict[str, Any]:
         """Parse salary text into structured components"""
@@ -597,11 +603,38 @@ def transform_normalize(df: pd.DataFrame) -> pd.DataFrame:
     normalized_fields['norm.company'] = df['source.company'].apply(clean_html)
     normalized_fields['norm.description'] = df['source.description_raw'].apply(clean_html)
     
-    # Parse locations
+    # Parse locations (now returns city, state, full_location, zip_code)
     location_data = df['source.location_raw'].apply(parse_location)
     normalized_fields['norm.city'] = location_data.apply(lambda x: x[0])
     normalized_fields['norm.state'] = location_data.apply(lambda x: x[1])
     normalized_fields['norm.location'] = location_data.apply(lambda x: x[2])
+    normalized_fields['norm.zip_code'] = location_data.apply(lambda x: x[3])
+
+    # Fallback: Use ZIP API for jobs without ZIPs
+    def get_zip_with_fallback(row):
+        if row['norm.zip_code']:
+            return row['norm.zip_code']
+
+        # Try ZIP API lookup
+        city = row['norm.city']
+        state = row['norm.state']
+
+        if city and state:
+            try:
+                import requests
+                url = f"https://api.zippopotam.us/us/{state}/{city.replace(' ', '%20')}"
+                response = requests.get(url, timeout=3)
+                if response.status_code == 200:
+                    data = response.json()
+                    if 'places' in data and len(data['places']) > 0:
+                        return data['places'][0].get('post code', '')
+            except:
+                pass
+
+        return ''
+
+    # Apply fallback to empty ZIPs
+    normalized_fields['norm.zip_code'] = df.apply(get_zip_with_fallback, axis=1)
     
     # Parse salaries
     salary_data = df['source.salary_raw'].apply(parse_salary)
@@ -703,40 +736,75 @@ def transform_business_rules(df: pd.DataFrame, filter_settings: Dict[str, bool] 
             'no experience necessary - will train', 'easy money',
             'MLM', 'multi-level marketing', 'pyramid'
         ]
-        
+
         text = f"{company} {description}".lower()
         return any(indicator in text for indicator in spam_indicators)
+
+    def generate_description_content_hash(description: str) -> str:
+        """Generate hash from description content for NEW R2 deduplication
+
+        This is used to detect jobs with identical descriptions but different titles
+        (e.g., "CDL A Driver Local", "Local CDL Truck Driver", etc.)
+        """
+        if pd.isna(description) or description == '':
+            return 'no_description'
+
+        # Clean description (already stripped of HTML in norm.description)
+        desc_clean = str(description).lower()[:500]  # First 500 chars
+
+        # Remove common filler words that don't change job essence
+        for word in ['driver', 'cdl', 'class', 'truck', 'a', 'b', 'the', 'and', 'or', 'our', 'we', 'you', 'your']:
+            desc_clean = desc_clean.replace(f' {word} ', ' ')
+
+        # Normalize whitespace
+        desc_clean = ' '.join(desc_clean.split())
+
+        return hashlib.md5(desc_clean.encode()).hexdigest()[:12]
     
-    def generate_dedup_keys(row: pd.Series, market: str) -> Dict[str, str]:
-        """Generate deduplication keys - CONSERVATIVE approach to handle empty fields"""
+    def generate_dedup_keys(row: pd.Series, market: str, is_blacklisted: bool = False) -> Dict[str, str]:
+        """Generate deduplication keys - HYBRID approach for blacklisted vs legitimate companies
+
+        Args:
+            row: Job row data
+            market: Market location
+            is_blacklisted: Whether company is blacklisted (spam agency)
+
+        Returns:
+            Dict with r1 and r2 dedup keys
+        """
         company = str(row.get('norm.company', '') or row.get('source.company', '')).lower().strip()
         title = str(row.get('norm.title', '') or row.get('source.title', '')).lower().strip()
-        location = str(row.get('norm.location', '') or row.get('source.location_raw', '')).lower().strip()
-        
+        description = str(row.get('norm.description', ''))
+
         # SAFETY CHECK: If company OR title is empty, make key unique by adding job index
         if not company or not title:
             # Use job_id or row index to make empty jobs unique
             unique_id = str(row.get('id.job', row.name if hasattr(row, 'name') else 'unknown'))
             company = company or f'empty_company_{unique_id}'
             title = title or f'empty_title_{unique_id}'
-        
+
         # Debug first few rows to verify field availability
         if hasattr(generate_dedup_keys, 'debug_count'):
             generate_dedup_keys.debug_count += 1
         else:
             generate_dedup_keys.debug_count = 1
-            
+
         if generate_dedup_keys.debug_count <= 3:
-            print(f"🔍 DEDUP KEY #{generate_dedup_keys.debug_count}: company='{company}' title='{title}' market='{market}'")
-            available_fields = [col for col in row.index if 'company' in col.lower() or 'title' in col.lower() or 'market' in col.lower()]
-            print(f"   Available fields: {available_fields}")
-        
-        # Round 1: Company + Title + Market (market is vital ingredient!)
+            blacklist_status = "BLACKLISTED" if is_blacklisted else "LEGITIMATE"
+            print(f"🔍 DEDUP KEY #{generate_dedup_keys.debug_count} ({blacklist_status}): company='{company}' title='{title}' market='{market}'")
+
+        # Round 1: Company + Title + Market (same for all companies)
         r1_key = f"{company}|{title}|{market.lower()}"
 
-        # Round 2: Company + Market (same company, same market, any job title)
-        r2_key = f"{company}|{market.lower()}"
-        
+        # Round 2: HYBRID APPROACH
+        if is_blacklisted:
+            # OLD R2 for blacklisted companies: Company + Market only (max 1 job per company+market)
+            r2_key = f"{company}|{market.lower()}"
+        else:
+            # NEW R2 for legitimate companies: Company + Market + Description Hash (preserve diversity)
+            content_hash = generate_description_content_hash(description)
+            r2_key = f"{company}|{market.lower()}|{content_hash}"
+
         return {
             'rules.duplicate_r1': hashlib.md5(r1_key.encode()).hexdigest()[:16],
             'rules.duplicate_r2': hashlib.md5(r2_key.encode()).hexdigest()[:16]
@@ -799,12 +867,25 @@ def transform_business_rules(df: pd.DataFrame, filter_settings: Dict[str, bool] 
     
     rules_fields['rules.is_spam_source'] = df.apply(apply_spam_rule, axis=1)
     
-    # Deduplication keys (using individual row markets instead of first market for all jobs)
+    # Get blacklisted companies for hybrid R2 deduplication
+    blacklisted_companies_set = set()
+    try:
+        from companies_rollup import get_blacklisted_companies
+        blacklisted_df = get_blacklisted_companies()
+        if not blacklisted_df.empty and 'company_name' in blacklisted_df.columns:
+            blacklisted_companies_set = set(blacklisted_df['company_name'].str.lower())
+            print(f"🚫 Loaded {len(blacklisted_companies_set)} blacklisted companies for hybrid R2 deduplication")
+    except Exception as e:
+        print(f"⚠️  Could not load blacklisted companies (continuing with NEW R2 for all): {e}")
+
+    # Deduplication keys (HYBRID: OLD R2 for blacklisted, NEW R2 for legitimate)
     def generate_row_dedup_keys(row):
         row_market = row.get('meta.market', 'Unknown')
-        return generate_dedup_keys(row, row_market)
+        company_name = str(row.get('norm.company', '')).lower().strip()
+        is_blacklisted = company_name in blacklisted_companies_set
+        return generate_dedup_keys(row, row_market, is_blacklisted)
 
-    print(f"🔍 DEDUP DEBUG: Using individual row markets for deduplication key generation")
+    print(f"🔍 DEDUP DEBUG: Using HYBRID R2 (OLD for blacklisted, NEW for legitimate)")
     dedup_data = df.apply(generate_row_dedup_keys, axis=1)
     rules_fields['rules.duplicate_r1'] = dedup_data.apply(lambda x: x['rules.duplicate_r1'])
     rules_fields['rules.duplicate_r2'] = dedup_data.apply(lambda x: x['rules.duplicate_r2'])

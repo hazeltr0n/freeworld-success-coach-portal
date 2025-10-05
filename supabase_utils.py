@@ -845,12 +845,13 @@ def _format_agent_profile(row: Dict) -> Dict:
 def instant_memory_search(location: str, search_terms: str = "", hours: int = 72,
                          coach_username: Optional[str] = None, market: Optional[str] = None,
                          agent_uuid: Optional[str] = None, agent_name: Optional[str] = None,
-                         pathway_preferences: Optional[List[str]] = None) -> List[Dict]:
+                         pathway_preferences: Optional[List[str]] = None,
+                         agent_zip: Optional[str] = None, zip_radius_miles: Optional[int] = None) -> List[Dict]:
     """Ultra-fast memory search using clean deduplicated data from Supabase.
-    
+
     This function bypasses the full pipeline for memory-only searches, providing
     sub-second results by querying the deduplicated jobs table directly.
-    
+
     Args:
         location: Location to search for (e.g., "Houston", "Dallas, TX")
         search_terms: Optional search terms (not implemented yet - for future use)
@@ -860,7 +861,9 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
         agent_uuid: Agent UUID for tracking
         agent_name: Agent name for tracking
         pathway_preferences: List of career pathways to filter by (e.g., ['cdl_pathway', 'dock_to_driver'])
-        
+        agent_zip: Agent's ZIP code for radius filtering
+        zip_radius_miles: Search radius in miles from agent ZIP
+
     Returns:
         List of job dictionaries ready for display/export
     """
@@ -928,9 +931,19 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
             if jobs_filtered > 0:
                 print(f"🚫 Filtered out {jobs_filtered} reported jobs")
 
+        # ZIP radius filtering (agent-level location filtering)
+        if agent_zip and zip_radius_miles:
+            print(f"📍 Applying ZIP radius filter: {agent_zip} within {zip_radius_miles} miles")
+            from zip_radius_filter import filter_jobs_by_zip_radius
+            jobs_before = len(jobs)
+            jobs = filter_jobs_by_zip_radius(jobs, agent_zip, zip_radius_miles)
+            jobs_filtered = jobs_before - len(jobs)
+            if jobs_filtered > 0:
+                print(f"📍 Filtered out {jobs_filtered} jobs outside radius")
+
         # Expired feedback filtering is now handled at database level
-        
-        print(f"📦 Found {len(jobs)} quality jobs in Supabase memory (after feedback filtering)")
+
+        print(f"📦 Found {len(jobs)} quality jobs in Supabase memory (after all filtering)")
         
         # EXPORT CSV FIRST - before any link generation bullshit
         if jobs:

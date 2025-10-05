@@ -35,6 +35,7 @@ COLUMN_REGISTRY = {
     'norm.city': str,                 # Extracted city
     'norm.state': str,                # Extracted state
     'norm.location': str,             # Standardized "City, State"
+    'norm.zip_code': str,             # Extracted ZIP code (5 or 5+4 digits)
     'norm.description': str,          # Cleaned description (HTML stripped)
     'norm.salary_display': str,       # Human readable salary
     'norm.salary_min': float,         # Parsed minimum salary

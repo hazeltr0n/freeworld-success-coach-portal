@@ -6595,7 +6595,7 @@ def show_combined_batches_and_scheduling_page(coach):
             with header_col:
                 st.markdown("### DriverPulse Entry-Level CDL Scraper")
 
-            st.caption("Scrape entry-level CDL jobs from DriverPulse across all major markets. Authenticate once, then quickly pull jobs for No CDL, CDL School Grads, and 0-6 months experience.")
+            st.caption("Scrape CDL jobs from DriverPulse across all major markets using custom search terms. Note: DriverPulse experience filters don't work via API - use search keywords instead.")
 
             # Check for required environment variables
             required_vars = ['DRIVER_PULSE_EMAIL', 'DRIVER_PULSE_FIRST_NAME', 'DRIVER_PULSE_LAST_NAME', 'DRIVER_PULSE_PHONE']
@@ -6611,28 +6611,26 @@ def show_combined_batches_and_scheduling_page(coach):
             # DriverPulse scraping form
             with st.expander("🚀 Run DriverPulse Entry-Level CDL Scrape", expanded=True):
                 with st.form("driver_pulse_scraper"):
-                    # Experience Level Selection
-                    st.markdown("##### 🎓 Experience Levels")
-                    dp_experience_levels = st.multiselect(
-                        "Select Experience Levels:",
-                        ["No CDL (training provided)", "CDL School Graduates", "0-6 Months Experience"],
-                        default=["No CDL (training provided)", "CDL School Graduates", "0-6 Months Experience"],
-                        help="Select which experience levels to scrape from DriverPulse"
+                    # Search Term Input
+                    st.markdown("##### 🔍 Search Term")
+                    dp_search_term = st.text_input(
+                        "Enter search keywords:",
+                        value="CDL driver",
+                        help="Enter keywords to search for in DriverPulse (e.g., 'CDL driver', 'truck driver', 'no experience', etc.)"
                     )
-                    if dp_experience_levels:
-                        st.success(f"📚 Selected: {', '.join(dp_experience_levels)}")
+                    if dp_search_term:
+                        st.success(f"🔍 Searching for: {dp_search_term}")
                     else:
-                        st.warning("👆 Please select at least one experience level")
+                        st.warning("👆 Please enter a search term")
 
                     # Location Selection (same as main search)
                     st.markdown("##### 📍 Location Selection")
-                    dp_location_type = st.radio(
+                    dp_location_type = st.selectbox(
                         "Location Type:",
                         ["Select Markets", "Custom Location"],
                         index=0,
                         help="Choose predefined markets or enter custom location",
-                        key="dp_location_type",
-                        horizontal=True
+                        key="dp_location_type"
                     )
 
                     if dp_location_type == "Select Markets":
@@ -6666,29 +6664,26 @@ def show_combined_batches_and_scheduling_page(coach):
 
                     # Settings
                     st.markdown("##### ⚙️ Scraping Settings")
-                    col1, col2, col3 = st.columns(3)
+                    dp_enable_pdf = st.checkbox(
+                        "📄 Generate PDF",
+                        value=False,
+                        help="Generate PDF report of results"
+                    )
 
-                    with col1:
-                        dp_radius = st.selectbox(
-                            "🎯 Search Radius:",
-                            [25, 50, 75, 100],
-                            index=1,  # Default to 50 miles
-                            help="Search radius in miles for each market"
-                        )
+                    # AI Classification Settings
+                    st.markdown("##### 🧠 AI Classification")
+                    dp_classifier_type = st.selectbox(
+                        "Select Classifier:",
+                        ["CDL Job Classifier", "Pathway Classifier", "Both (CDL + Pathway)", "None (No AI)"],
+                        index=0,
+                        help="Choose which AI classifier to run on results",
+                        key="dp_classifier_type"
+                    )
 
-                    with col2:
-                        dp_enable_ai = st.checkbox(
-                            "🧠 Enable AI Classification",
-                            value=True,
-                            help="Run CDL job classification on results (slower but higher quality)"
-                        )
-
-                    with col3:
-                        dp_enable_pdf = st.checkbox(
-                            "📄 Generate PDF",
-                            value=False,
-                            help="Generate PDF report of results"
-                        )
+                    if dp_classifier_type != "None (No AI)":
+                        st.info(f"✨ Will run: {dp_classifier_type}")
+                    else:
+                        st.warning("⚠️ No AI classification - faster but unfiltered results")
 
                     # Submit button
                     dp_submitted = st.form_submit_button(
@@ -6698,9 +6693,9 @@ def show_combined_batches_and_scheduling_page(coach):
 
                 # Handle form submission OUTSIDE the form
                 if dp_submitted:
-                    # Validate experience levels
-                    if not dp_experience_levels:
-                        st.error("❌ Please select at least one experience level")
+                    # Validate search term
+                    if not dp_search_term or not dp_search_term.strip():
+                        st.error("❌ Please enter a search term")
                         st.stop()
 
                     # Validate location selection
@@ -6717,7 +6712,7 @@ def show_combined_batches_and_scheduling_page(coach):
                         target_locations = [dp_custom_location.strip()]
                         location_display = dp_custom_location.strip()
 
-                    st.info(f"▶️ Starting DriverPulse scrape for: {location_display} | Experience Levels: {', '.join(dp_experience_levels)}")
+                    st.info(f"▶️ Starting DriverPulse scrape for: {location_display} | Search Term: {dp_search_term}")
 
                     # Create progress containers
                     progress_container = st.container()
@@ -6738,10 +6733,10 @@ def show_combined_batches_and_scheduling_page(coach):
                             status_text.text("🔐 Authenticating with DriverPulse...")
                             progress_bar.progress(10)
 
-                            # Configure filter settings
+                            # Configure filter settings based on classifier selection
                             filter_settings = {
-                                'enable_ai_classification': dp_enable_ai,
-                                'experience_levels': dp_experience_levels
+                                'search_term': dp_search_term,
+                                'classifier_type': dp_classifier_type
                             }
 
                             status_text.text(f"🚀 Running scrape for {len(target_locations)} location(s)...")
@@ -6749,9 +6744,9 @@ def show_combined_batches_and_scheduling_page(coach):
 
                             # Run the integration
                             results = integration.run_driver_pulse_through_pipeline(
-                                radius_miles=dp_radius,
+                                radius_miles=50,  # Default radius (not actually used by DriverPulse API)
                                 coach_username=coach.username,
-                                search_terms="CDL Driver Entry Level",
+                                search_terms=dp_search_term,
                                 filter_settings=filter_settings,
                                 target_locations=target_locations
                             )
