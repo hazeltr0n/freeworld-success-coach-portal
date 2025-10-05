@@ -1084,16 +1084,9 @@ def transform_routing(df: pd.DataFrame, route_filter: str = 'both') -> pd.DataFr
         routing_fields['route.final_status'].astype(str).str.startswith('processing_error:')
     )
     
-    # Ready for export: ALL jobs that have been fully processed and classified
-    # Quality filtering happens at export time, not routing time
-    routing_fields['route.ready_for_export'] = (
-        # Jobs with 'included' status (good/so-so matches)
-        routing_fields['route.final_status'].astype(str).str.startswith('included:') |
-        # OR jobs that passed all filters but no AI classification yet
-        (routing_fields['route.final_status'] == 'passed_all_filters') |
-        # OR jobs classified as bad but still fully processed (for complete DataFrame)
-        (routing_fields['route.final_status'].astype(str).str.startswith('AI classified as bad'))
-    )
+    # Ready for export: ALL jobs - no filtering, all jobs make it to final output
+    # Filter reasons are tracked in route.final_status and route.filtered
+    routing_fields['route.ready_for_export'] = True  # All jobs ready for export
     
     # Update stage and timestamp
     routing_fields['route.stage'] = 'routed'

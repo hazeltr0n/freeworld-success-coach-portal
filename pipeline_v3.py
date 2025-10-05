@@ -602,8 +602,8 @@ class FreeWorldPipelineV3:
         
         # Export relevant columns for CSV
         export_cols = [
-            'source.title', 'source.company', 'source.location', 'ai.summary',
-            'ai.match', 'ai.route_type', 'source.url', 'norm.salary_display'
+            'source.title', 'source.company', 'source.location', 'norm.zip_code', 'ai.summary',
+            'ai.match', 'ai.route_type', 'route.final_status', 'source.url', 'norm.salary_display'
         ]
         available_cols = [col for col in export_cols if col in df.columns]
         df[available_cols].to_csv(filepath, index=False)
