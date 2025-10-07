@@ -8,8 +8,18 @@ import pandas as pd
 from datetime import datetime
 from typing import List, Dict, Any
 from jobs_schema import build_empty_df
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from canonical_transforms import transform_ingest_outscraper
 from market_mapper import MarketMapper
+
+# Import precomputed ZIP lookup for instant filtering
+try:
+    from zip_market_lookup import VALID_ZIPS, ZIP_TO_MARKETS
+    ZIP_LOOKUP_AVAILABLE = True
+except ImportError:
+    ZIP_LOOKUP_AVAILABLE = False
+    VALID_ZIPS = set()
+    ZIP_TO_MARKETS = {}
 
 class DriverPulseToPipelineAdapter:
     """Adapter to convert DriverPulse results to pipeline format"""
@@ -122,9 +132,8 @@ class DriverPulseToPipelineAdapter:
         # Use existing pipeline ingestion transform
         df = transform_ingest_outscraper(outscraper_format, self.run_id, search_location)
 
-        # Auto-assign market for analytics (use normalized location)
-        if 'norm.location' in df.columns:
-            df['metadata.market'] = df['norm.location'].apply(self.market_mapper.map_market)
+        # Skip market mapping for DriverPulse - locations are already ZIP-based
+        df['metadata.market'] = 'DriverPulse'
 
         return df
 
@@ -140,9 +149,9 @@ class DriverPulseToPipelineAdapter:
 
         for job in jobs:
             outscraper_job = {
-                # Basic fields - use new DriverPulse V2 API fields
+                # Basic fields - Use fields set by scraper in lines 413-420
                 'title': job.get('job_title', ''),
-                'company': job.get('company_name', ''),
+                'company': job.get('company_name', ''),  # Set by scraper from company_data
 
                 # COMBINED: description + requirements + benefits
                 'snippet': self._combine_job_content(job),
@@ -230,6 +239,45 @@ class DriverPulsePipelineIntegration:
     def __init__(self):
         self.adapter = DriverPulseToPipelineAdapter()
 
+    def _load_location_markets(self, filter_mode: str, custom_zips: List[str] = None) -> set:
+        """
+        Load target ZIP codes based on filter mode
+
+        Args:
+            filter_mode: "all_markets" or "custom_zips"
+            custom_zips: List of custom ZIP codes (if filter_mode = "custom_zips")
+
+        Returns:
+            Set of ZIP codes to filter to
+        """
+        if filter_mode == "custom_zips":
+            if not custom_zips:
+                return set()
+            # Normalize ZIPs to 5 digits
+            return {str(z).zfill(5) for z in custom_zips}
+
+        # "all_markets" mode - use precomputed ZIP lookup for instant filtering
+        if ZIP_LOOKUP_AVAILABLE:
+            print(f"📍 Using precomputed ZIP lookup ({len(VALID_ZIPS)} ZIPs)", flush=True)
+            return VALID_ZIPS
+
+        # Fallback to database query if lookup not available
+        print("⚠️ Precomputed ZIP lookup not available, querying database...", flush=True)
+        try:
+            from companies_rollup import get_client
+            client = get_client()
+
+            # Get all ZIPs from location_markets table
+            zips_result = client.table('location_markets').select('location_string').eq('location_type', 'zip').execute()
+            zip_codes = {row['location_string'] for row in zips_result.data}
+
+            print(f"📍 Loaded {len(zip_codes)} ZIPs from location_markets for filtering", flush=True)
+            return zip_codes
+
+        except Exception as e:
+            print(f"⚠️ Error loading location_markets: {e}", flush=True)
+            return set()
+
     def run_driver_pulse_through_pipeline(self,
                                         radius_miles: int = 50,
                                         coach_username: str = "",
@@ -239,23 +287,204 @@ class DriverPulsePipelineIntegration:
         """
         Run DriverPulse scraper and process through pipeline
 
+        NEW APPROACH (v2):
+        1. Scrape ALL jobs nationwide (API ignores location parameter)
+        2. Filter to target ZIP codes BEFORE AI classification
+        3. Run AI classification only on filtered jobs (cost savings)
+
         Returns:
             Dict with 'jobs_df' and 'metadata' keys like other pipeline sources
         """
         try:
-            from fast_market_scraper import FastMarketScraper
+            from driver_pulse_source import DriverPulseSource, DriverPulseConfig
             from pipeline_v3 import FreeWorldPipelineV3
 
-            # Run DriverPulse scraper
-            scraper = FastMarketScraper(target_locations)
-            print(f"🏁 Running DriverPulse fast market scraper...")
+            filter_settings = filter_settings or {}
+            filter_mode = filter_settings.get('filter_mode', 'all_markets')
+            custom_zips = filter_settings.get('custom_zips', None)
 
-            driver_pulse_results = scraper.scrape_all_markets_fast(radius_miles)
+            # Load target ZIP codes for filtering
+            target_zips = self._load_location_markets(filter_mode, custom_zips)
+            if not target_zips:
+                print(f"⚠️ No target ZIPs loaded - will process all jobs")
 
-            # Convert to pipeline format
-            print(f"🔄 Converting to pipeline format...")
-            # Don't pass a global market - each job has its own market_scraped field
-            df = self.adapter.convert_to_pipeline_format(driver_pulse_results, "")
+            # Step 1: Authenticate with fresh credentials via Playwright
+            print(f"🔐 Creating fresh DriverPulse authentication...")
+
+            # Load credentials from Streamlit secrets
+            import streamlit as st
+            email = st.secrets.get('DRIVER_PULSE_EMAIL')
+            first_name = st.secrets.get('DRIVER_PULSE_FIRST_NAME')
+            last_name = st.secrets.get('DRIVER_PULSE_LAST_NAME')
+            phone = st.secrets.get('DRIVER_PULSE_PHONE')
+
+            if not all([email, first_name, last_name, phone]):
+                raise ValueError("Missing DriverPulse credentials in secrets")
+
+            config = DriverPulseConfig(search_text=search_terms, location="", max_companies=1)
+            source = DriverPulseSource(config)
+
+            # Create fresh authentication using Playwright
+            success = source.create_new_authentication(
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                phone=phone
+            )
+
+            if not success:
+                raise Exception("Authentication failed")
+
+            print(f"🔍 Searching for: '{search_terms}'")
+            print(f"📄 Paginating through ALL companies...")
+
+            # Use the source's search_companies method with pagination
+            all_companies = {}
+            page_num = 1
+            max_pages = 13  # Stop at page 13 (page 14+ returns no results)
+
+            while page_num <= max_pages:
+                result = source.search_companies(search_text=search_terms, page_number=page_num)
+
+                if not result or 'response' not in result:
+                    print(f"   ❌ Page {page_num} failed or returned no response")
+                    # Show last few companies from previous page for debugging
+                    if all_companies:
+                        last_5 = list(all_companies.values())[-5:]
+                        print(f"   🔍 Last 5 companies from page {page_num-1}:")
+                        for c in last_5:
+                            print(f"      - {c.get('company_name', 'Unknown')} (ID: {c.get('company_id', 'N/A')})")
+                    break
+
+                companies = result['response']
+                company_ids = [k for k in companies.keys()
+                              if k not in ['default_companies_selected', 'has_results', 'result_count']]
+
+                if not company_ids:
+                    print(f"   ✅ Reached end at page {page_num} (no more companies)")
+                    break
+
+                for company_id in company_ids:
+                    all_companies[company_id] = companies[company_id]
+
+                print(f"   Page {page_num}: +{len(company_ids)} companies (total: {len(all_companies)})")
+
+                # Show sample companies for debugging page 13 specifically
+                if page_num == 13:
+                    print(f"   🔍 Last 3 companies on page 13:")
+                    page_13_companies = [companies[cid] for cid in company_ids[-3:]]
+                    for c in page_13_companies:
+                        print(f"      - {c.get('company_name', 'Unknown')} (ID: {c.get('company_id', 'N/A')})")
+
+                has_more = companies.get('has_results', True)
+                if not has_more:
+                    print(f"   ✅ No more results after page {page_num}")
+                    break
+
+                page_num += 1
+
+            print(f"\n🔍 DEBUG: Pagination loop ended at page {page_num}", flush=True)
+            print(f"🔍 DEBUG: all_companies type: {type(all_companies)}, count: {len(all_companies)}", flush=True)
+            print(f"\n✅ Found {len(all_companies)} total companies", flush=True)
+
+            # Step 2: Get full job details for ALL jobs (PARALLEL)
+            all_jobs = []
+            print(f"🔍 DEBUG: About to calculate total_job_ids from {len(all_companies)} companies...", flush=True)
+            total_job_ids = sum(len(c.get('highlighted_content', [])) for c in all_companies.values())
+            print(f"🔍 DEBUG: Calculated total_job_ids = {total_job_ids}", flush=True)
+            print(f"📊 Fetching full details for {total_job_ids} jobs (20 workers in parallel)...", flush=True)
+
+            # Helper function for parallel execution
+            def fetch_job_detail(job_info):
+                company_id, company_data, job_snippet = job_info
+                job_id = job_snippet.get('job_id')
+                if not job_id:
+                    return None
+
+                detail_params = {
+                    "company_id": company_id,
+                    "active_job_id": job_id,
+                    "user_timezone": "America/Chicago"
+                }
+
+                result = source._call_api("get_carrier_active_job_detail", detail_params)
+
+                if result and result.get('response') and len(result['response']) > 0:
+                    full_job = result['response'][0]
+                    full_job['company_id'] = company_id
+                    full_job['company_name'] = company_data.get('company_name', 'Unknown')
+                    full_job['company_logo'] = company_data.get('logo_link')
+                    full_job['company_url_part'] = company_data.get('url_part')
+                    full_job['scraped_at'] = datetime.now().isoformat()
+                    full_job['search_term'] = search_terms
+                    return full_job
+                return None
+
+            # Build list of jobs to fetch
+            jobs_to_fetch = []
+            for company_id, company_data in all_companies.items():
+                highlighted = company_data.get('highlighted_content', [])
+                for job_snippet in highlighted:
+                    jobs_to_fetch.append((company_id, company_data, job_snippet))
+
+            # Parallel fetch with progress updates
+            processed = 0
+            with ThreadPoolExecutor(max_workers=20) as executor:
+                futures = {executor.submit(fetch_job_detail, job_info): job_info for job_info in jobs_to_fetch}
+
+                for future in as_completed(futures):
+                    processed += 1
+                    job = future.result()
+                    if job:
+                        all_jobs.append(job)
+
+                    if processed % 50 == 0:
+                        print(f"   {processed}/{total_job_ids} jobs fetched...", flush=True)
+
+            print(f"✅ Fetched {len(all_jobs)} complete jobs", flush=True)
+
+            # Step 3: Convert to Outscraper-compatible format for adapter
+            outscraper_jobs = self.adapter._convert_to_outscraper_format(all_jobs)
+
+            # Step 4: Filter to target ZIP codes BEFORE pipeline processing
+            if target_zips:
+                print(f"\n🎯 Filtering to target ZIP codes...")
+                jobs_before = len(outscraper_jobs)
+
+                filtered_jobs = []
+                for job in outscraper_jobs:
+                    job_zip = str(job.get('zip_code', '')).zfill(5)
+                    if job_zip in target_zips:
+                        filtered_jobs.append(job)
+
+                outscraper_jobs = filtered_jobs
+                jobs_after = len(outscraper_jobs)
+
+                print(f"   Before filter: {jobs_before} jobs")
+                print(f"   After filter: {jobs_after} jobs")
+                if jobs_before > 0:
+                    print(f"   💰 Filtered out: {jobs_before - jobs_after} jobs ({(jobs_before - jobs_after) / jobs_before * 100:.1f}% cost savings)")
+                else:
+                    print(f"   💰 No jobs to filter")
+            else:
+                print(f"⚠️ No ZIP filter applied - processing all {len(outscraper_jobs)} jobs")
+
+            if not outscraper_jobs:
+                return {
+                    'jobs_df': build_empty_df(),
+                    'metadata': {
+                        'success': False,
+                        'total_jobs': 0,
+                        'error': 'No jobs found in target locations'
+                    }
+                }
+
+            # Step 5: Convert to pipeline DataFrame
+            # NOTE: outscraper_jobs is ALREADY in Outscraper format from line 455
+            # So we skip convert_to_pipeline_format() and go directly to transform_ingest_outscraper()
+            print(f"\n🔄 Converting {len(outscraper_jobs)} jobs to pipeline format...")
+            from canonical_transforms import transform_ingest_outscraper
+            df = transform_ingest_outscraper(outscraper_jobs, self.adapter.run_id, "")
 
             if df.empty:
                 return {
@@ -270,58 +499,64 @@ class DriverPulsePipelineIntegration:
             # Add pipeline metadata
             df = self.adapter.add_pipeline_metadata(df, coach_username, search_terms)
 
-            # Note: meta.market is already set per-row in _convert_to_outscraper_format()
-            # and will be preserved through ensure_schema() since it's in the schema
-
-            # Process through pipeline stages (normalization, business rules, AI classification)
-            print(f"🧠 Processing through pipeline stages...")
+            # Step 6: Process through pipeline stages (normalization, business rules, AI classification)
+            print(f"\n🧠 Processing through pipeline stages...")
             pipeline = FreeWorldPipelineV3()
 
             # Run through pipeline stages
-            # Pass empty market string since we already set meta.market directly
             df = pipeline._stage2_normalization(df)
             df = pipeline._stage3_business_rules(df, "", filter_settings or {})
             df = pipeline._stage4_deduplication(df)
 
-            # AI Classification (based on user selection)
+            print(f"   After deduplication: {len(df)} jobs")
+
+            # Step 7: AI Classification (based on user selection)
             classifier_selection = filter_settings.get('classifier_type', 'CDL Job Classifier')
 
             if classifier_selection == "None (No AI)":
-                print(f"⚠️ AI classification skipped (user selected None)")
+                print(f"\n⚠️ AI classification skipped (user selected None)")
             elif classifier_selection == "Both (CDL + Pathway)":
                 try:
+                    print(f"\n🤖 Running CDL classification...")
                     df = pipeline._stage5_ai_classification(df, classifier_type="cdl")
                     print(f"✅ CDL classification completed")
+                    print(f"\n🤖 Running Pathway classification...")
                     df = pipeline._stage5_ai_classification(df, classifier_type="pathway")
                     print(f"✅ Pathway classification completed")
                 except Exception as e:
                     print(f"⚠️ AI classification error: {e}")
             elif classifier_selection == "Pathway Classifier":
                 try:
+                    print(f"\n🤖 Running Pathway classification...")
                     df = pipeline._stage5_ai_classification(df, classifier_type="pathway")
                     print(f"✅ Pathway classification completed")
                 except Exception as e:
                     print(f"⚠️ AI classification error: {e}")
             else:  # Default to CDL
                 try:
+                    print(f"\n🤖 Running CDL classification...")
                     df = pipeline._stage5_ai_classification(df, classifier_type="cdl")
                     print(f"✅ CDL classification completed")
                 except Exception as e:
                     print(f"⚠️ AI classification error: {e}")
 
-            # Final routing - use empty string since each job has individual market
+            # Step 8: Final routing
             df = pipeline._stage6_routing(df, "")
 
             # Generate metadata
             total_jobs = len(df)
             quality_jobs = len(df[df.get('ai.match', 'unknown').isin(['good', 'so-so'])]) if 'ai.match' in df.columns else total_jobs
 
+            print(f"\n✅ COMPLETE!")
+            print(f"   Total jobs: {total_jobs}")
+            print(f"   Quality jobs (good/so-so): {quality_jobs}")
+
             metadata = {
                 'success': True,
                 'total_jobs': total_jobs,
                 'included_jobs': quality_jobs,
                 'data_source': 'driver_pulse',
-                'pipeline_version': 'v3_driver_pulse',
+                'pipeline_version': 'v3.1_driver_pulse_v2',
                 'run_id': self.adapter.run_id,
                 'processing_time': 0,  # TODO: Add timing
                 'memory_efficiency': 0,  # N/A for fresh scrape
@@ -334,7 +569,9 @@ class DriverPulsePipelineIntegration:
             }
 
         except Exception as e:
+            import traceback
             print(f"❌ DriverPulse pipeline integration error: {e}")
+            traceback.print_exc()
             return {
                 'jobs_df': build_empty_df(),
                 'metadata': {

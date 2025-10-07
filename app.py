@@ -2569,11 +2569,11 @@ def show_manage_agents_tab(coach, coach_manager):
                                 'match_level': str(edited['Quality']),
                                 'lookback_hours': lookback_hours,  # Save as integer for database
                                 'show_prepared_for': bool(edited['Show Prepared For']),
-                                'agent_city': str(edited['City']),
-                                'agent_state': str(edited['State']),
-                                'zip_code': str(edited['ZIP']) if edited.get('ZIP') else '',
-                                'zip_radius_miles': int(edited['Radius (mi)']) if edited.get('Radius (mi)') else 50,
-                                'admin_portal_url': str(edited['Admin Portal'])
+                                'agent_city': str(edited.get('City', '')),
+                                'agent_state': str(edited.get('State', '')),
+                                'zip_code': str(edited.get('ZIP', '')),
+                                'zip_radius_miles': int(edited.get('Radius (mi)', 50)),
+                                'admin_portal_url': str(edited.get('Admin Portal', ''))
                             })
 
                             # DEBUG: Print what we're about to save
@@ -2692,8 +2692,13 @@ def show_manage_agents_tab(coach, coach_manager):
                             # Clear agents cache to reload fresh data after successful saves
                             # This ensures the table shows the updated data from Supabase
                             agents_cache_key = f'agents_{coach.username}_{show_deleted}'
+                            analytics_cache_key = f'analytics_{coach.username}'
                             if agents_cache_key in st.session_state:
                                 del st.session_state[agents_cache_key]
+                            if analytics_cache_key in st.session_state:
+                                del st.session_state[analytics_cache_key]
+                            # Also clear the hash tracking to reset change detection
+                            st.session_state.agent_table_last_saved = {}
 
                         if error_count > 0:
                             st.error(f"❌ Failed to update {error_count} agent(s)")
@@ -6611,7 +6616,8 @@ def show_combined_batches_and_scheduling_page(coach):
             with header_col:
                 st.markdown("### DriverPulse Entry-Level CDL Scraper")
 
-            st.caption("Scrape CDL jobs from DriverPulse across all major markets using custom search terms. Note: DriverPulse experience filters don't work via API - use search keywords instead.")
+            st.info("ℹ️ **How it works**: DriverPulse API returns jobs nationwide. We filter to your target locations after scraping using ZIP codes.")
+            st.caption("Note: DriverPulse experience filters don't work via API - use search keywords instead (e.g., 'no experience CDL', 'entry level driver').")
 
             # Check for required environment variables
             required_vars = ['DRIVER_PULSE_EMAIL', 'DRIVER_PULSE_FIRST_NAME', 'DRIVER_PULSE_LAST_NAME', 'DRIVER_PULSE_PHONE']
@@ -6639,44 +6645,31 @@ def show_combined_batches_and_scheduling_page(coach):
                     else:
                         st.warning("👆 Please enter a search term")
 
-                    # Location Selection (same as main search)
-                    st.markdown("##### 📍 Location Selection")
-                    dp_location_type = st.selectbox(
-                        "Location Type:",
-                        ["Select Markets", "Custom Location"],
+                    # Filter Mode Selection
+                    st.markdown("##### 📍 Filter Mode")
+                    dp_filter_mode = st.radio(
+                        "How to filter job locations:",
+                        ["All FreeWorld Markets", "Custom ZIP Codes"],
                         index=0,
-                        help="Choose predefined markets or enter custom location",
-                        key="dp_location_type"
+                        help="Choose whether to filter to all FreeWorld markets or specific ZIP codes",
+                        key="dp_filter_mode"
                     )
 
-                    if dp_location_type == "Select Markets":
-                        try:
-                            from free_agent_system import get_market_options
-                            markets = get_market_options()
-                            dp_selected_markets = st.multiselect(
-                                "Target Markets:",
-                                markets,
-                                default=["Dallas", "Houston", "Bay Area", "Phoenix"],
-                                help="Select one or multiple markets to search"
-                            )
-                            if dp_selected_markets:
-                                st.success(f"📍 Selected Markets: {', '.join(dp_selected_markets)}")
-                            else:
-                                st.warning("👆 Please select at least one market")
-                        except Exception as e:
-                            st.error(f"Could not load markets: {e}")
-                            dp_selected_markets = ["Dallas", "Houston", "Bay Area", "Phoenix"]
-                    else:
-                        dp_custom_location = st.text_input(
-                            "Enter ZIP code, city, or state:",
-                            placeholder="e.g., 90210, Austin TX, California",
-                            help="Enter any US location - ZIP code, city name, or state",
-                            key="dp_custom_location"
+                    if dp_filter_mode == "Custom ZIP Codes":
+                        dp_custom_zips = st.text_area(
+                            "Enter ZIP codes (comma-separated):",
+                            placeholder="e.g., 75060, 77007, 85009, 80218",
+                            help="Enter one or more ZIP codes separated by commas. Jobs will be filtered to only these ZIPs.",
+                            key="dp_custom_zips",
+                            height=100
                         )
-                        if dp_custom_location:
-                            st.success(f"📍 Custom Location: {dp_custom_location}")
+                        if dp_custom_zips:
+                            zip_list = [z.strip() for z in dp_custom_zips.split(',') if z.strip()]
+                            st.success(f"📍 Will filter to {len(zip_list)} ZIP code(s): {', '.join(zip_list[:5])}{' ...' if len(zip_list) > 5 else ''}")
                         else:
-                            st.warning("👆 Please enter a location")
+                            st.warning("👆 Please enter at least one ZIP code")
+                    else:
+                        st.info("✅ Will filter to all FreeWorld market locations (4,209 cities + 6,710 ZIPs)")
 
                     # Settings
                     st.markdown("##### ⚙️ Scraping Settings")
@@ -6714,21 +6707,25 @@ def show_combined_batches_and_scheduling_page(coach):
                         st.error("❌ Please enter a search term")
                         st.stop()
 
-                    # Validate location selection
-                    if dp_location_type == "Select Markets":
-                        if not dp_selected_markets:
-                            st.error("❌ Please select at least one market")
+                    # Validate filter mode and prepare target locations
+                    if dp_filter_mode == "Custom ZIP Codes":
+                        if not dp_custom_zips or not dp_custom_zips.strip():
+                            st.error("❌ Please enter at least one ZIP code")
                             st.stop()
-                        target_locations = dp_selected_markets
-                        location_display = ", ".join(dp_selected_markets)
+                        target_zips = [z.strip().zfill(5) for z in dp_custom_zips.split(',') if z.strip()]
+                        if not target_zips:
+                            st.error("❌ No valid ZIP codes found")
+                            st.stop()
+                        filter_mode = "custom_zips"
+                        target_locations = target_zips
+                        location_display = f"{len(target_zips)} custom ZIP code(s)"
                     else:
-                        if not dp_custom_location or not dp_custom_location.strip():
-                            st.error("❌ Please enter a custom location")
-                            st.stop()
-                        target_locations = [dp_custom_location.strip()]
-                        location_display = dp_custom_location.strip()
+                        # All FreeWorld Markets mode
+                        filter_mode = "all_markets"
+                        target_locations = None  # Will use location_markets table
+                        location_display = "All FreeWorld Markets"
 
-                    st.info(f"▶️ Starting DriverPulse scrape for: {location_display} | Search Term: {dp_search_term}")
+                    st.info(f"▶️ Starting DriverPulse scrape | Search: '{dp_search_term}' | Filter: {location_display}")
 
                     # Create progress containers
                     progress_container = st.container()
@@ -6749,22 +6746,22 @@ def show_combined_batches_and_scheduling_page(coach):
                             status_text.text("🔐 Authenticating with DriverPulse...")
                             progress_bar.progress(10)
 
-                            # Configure filter settings based on classifier selection
+                            # Configure filter settings based on classifier selection and filter mode
                             filter_settings = {
                                 'search_term': dp_search_term,
-                                'classifier_type': dp_classifier_type
+                                'classifier_type': dp_classifier_type,
+                                'filter_mode': filter_mode,  # "all_markets" or "custom_zips"
+                                'custom_zips': target_locations if filter_mode == "custom_zips" else None
                             }
 
-                            status_text.text(f"🚀 Running scrape for {len(target_locations)} location(s)...")
-                            progress_bar.progress(30)
+                            status_text.text(f"🚀 Scraping DriverPulse (all jobs nationwide)...")
+                            progress_bar.progress(10)
 
                             # Run the integration
                             results = integration.run_driver_pulse_through_pipeline(
-                                radius_miles=50,  # Default radius (not actually used by DriverPulse API)
                                 coach_username=coach.username,
                                 search_terms=dp_search_term,
-                                filter_settings=filter_settings,
-                                target_locations=target_locations
+                                filter_settings=filter_settings
                             )
 
                             progress_bar.progress(80)
@@ -6789,7 +6786,7 @@ def show_combined_batches_and_scheduling_page(coach):
                                 with col3:
                                     st.metric("Data Source", "DriverPulse")
                                 with col4:
-                                    st.metric("Markets Scraped", len(target_locations))
+                                    st.metric("Markets Scraped", len(target_locations) if target_locations else "All")
 
                                 # Use EXACT same display as regular search - NO DUPLICATION
                                 quality_display = get_quality_display_dataframe(df)
@@ -7344,9 +7341,13 @@ def show_combined_batches_and_scheduling_page(coach):
                             # Store validated jobs to Supabase directly (same as classify_csv.py)
                             st.info(f"💾 Storing {len(df_validated)} QC-validated jobs to Supabase...")
                             from job_memory_db import JobMemoryDB
+                            from jobs_schema import prepare_for_supabase
+
+                            # Transform to Supabase format (filters out extra columns like search.*, qa.*)
+                            df_supabase = prepare_for_supabase(df_validated)
+
                             memory_db = JobMemoryDB()
-                            
-                            success = memory_db.store_classifications(df_validated)
+                            success = memory_db.store_classifications(df_supabase)
                             error_count = (df_validated.get('ai.match', '') == 'error').sum() if 'ai.match' in df_validated.columns else 0
                             
                             if success:

@@ -486,15 +486,29 @@ class DriverPulseSource:
             "user_timezone": self.config.user_timezone
         }
 
-        logger.info(f"🔍 Searching companies: '{search_params['search_text']}'")
+        logger.info(f"🔍 Searching companies: '{search_params['search_text']}' (page {page_number})")
         result = self._call_api("search_carriers", search_params)
+        logger.info(f"🔍 DEBUG: API returned, result type: {type(result)}, has response: {'response' in result if result else 'None'}")
+
+        # Handle end of results: API returns {'response': False} when no more data
+        if result and result.get('response') == False:
+            logger.info(f"✅ Reached end of results at page {page_number}")
+            return None
 
         if result and result.get('response'):
-            companies_count = len(result['response'])
-            logger.info(f"✅ Found {companies_count} companies")
+            companies = result['response']
+            # Extract actual company data (exclude meta keys)
+            company_ids = [k for k in companies.keys()
+                          if k not in ['default_companies_selected', 'has_results', 'result_count']]
+
+            companies_count = len(company_ids)
+            logger.info(f"✅ Found {companies_count} companies on page {page_number}")
+
             return result
         else:
-            logger.error("❌ Company search failed")
+            logger.error(f"❌ Company search failed on page {page_number}")
+            logger.error(f"   Request params: {search_params}")
+            logger.error(f"   Result: {result}")
             return None
 
     def get_company_details(self, company_id: str) -> Optional[Dict]:
@@ -595,7 +609,8 @@ class DriverPulseSource:
                            job_info: Optional[Dict],
                            company_data: Dict,
                            company_details: Optional[Dict],
-                           company_id: str) -> Dict:
+                           company_id: str,
+                           job_details: Optional[Dict] = None) -> Dict:
         """
         Normalize job data to match FreeWorld pipeline schema.
 
@@ -604,6 +619,7 @@ class DriverPulseSource:
             company_data: Company search result data
             company_details: Detailed company information
             company_id: Company identifier
+            job_details: Full job details with ZIP, lat/lng (optional)
 
         Returns:
             Dict: Normalized job data
@@ -640,6 +656,25 @@ class DriverPulseSource:
             apply_url = f"https://intelliapp.driverapponline.com/c/{url_part}"
         else:
             apply_url = f"https://intelliapp.driverapponline.com/c/company{company_id}"
+
+        # Extract location data from job_details if available (has ZIP, lat/lng)
+        job_zip = None
+        job_lat = None
+        job_lng = None
+        job_state = None
+        job_location_str = self.config.location  # fallback to config location
+
+        if job_details:
+            job_zip = job_details.get('zip')
+            job_lat = job_details.get('lat')
+            job_lng = job_details.get('lng')
+            job_state = job_details.get('state')
+
+            # Build location string from job details if available
+            if job_zip and job_state:
+                job_location_str = f"{job_zip}, {job_state}"
+            elif job_state:
+                job_location_str = job_state
 
         # Build normalized job data matching FreeWorld schema expectations
         normalized_job = {
