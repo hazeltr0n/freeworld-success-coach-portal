@@ -7,7 +7,6 @@ Loads authentication credentials from Streamlit secrets or local files
 import json
 import os
 from typing import Dict, Any, Optional
-import streamlit as st
 
 
 def load_auth_data() -> Optional[Dict[str, Any]]:
@@ -30,6 +29,7 @@ def load_auth_data() -> Optional[Dict[str, Any]]:
 
     # Try Streamlit secrets second
     try:
+        import streamlit as st
         if hasattr(st, 'secrets') and 'DRIVER_PULSE_AUTH' in st.secrets:
             auth_data = st.secrets['DRIVER_PULSE_AUTH']
             if isinstance(auth_data, str):
@@ -57,6 +57,7 @@ def load_gmail_credentials() -> Optional[Dict[str, Any]]:
     """
     try:
         # Try Streamlit secrets first
+        import streamlit as st
         if hasattr(st, 'secrets') and 'DRIVER_PULSE_GMAIL_CREDENTIALS' in st.secrets:
             creds_data = st.secrets['DRIVER_PULSE_GMAIL_CREDENTIALS']
             if isinstance(creds_data, str):
@@ -84,6 +85,7 @@ def load_gmail_token() -> Optional[Dict[str, Any]]:
     """
     try:
         # Try Streamlit secrets first
+        import streamlit as st
         if hasattr(st, 'secrets') and 'DRIVER_PULSE_GMAIL_TOKEN' in st.secrets:
             token_data = st.secrets['DRIVER_PULSE_GMAIL_TOKEN']
             if isinstance(token_data, str):

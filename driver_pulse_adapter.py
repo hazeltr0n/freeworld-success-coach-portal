@@ -403,32 +403,17 @@ class DriverPulsePipelineIntegration:
             if not target_zips:
                 print(f"⚠️ No target ZIPs loaded - will process all jobs")
 
-            # Step 1: Authenticate with fresh credentials via Playwright
-            print(f"🔐 Creating fresh DriverPulse authentication...")
-
-            # Load credentials from Streamlit secrets
-            import streamlit as st
-            email = st.secrets.get('DRIVER_PULSE_EMAIL')
-            first_name = st.secrets.get('DRIVER_PULSE_FIRST_NAME')
-            last_name = st.secrets.get('DRIVER_PULSE_LAST_NAME')
-            phone = st.secrets.get('DRIVER_PULSE_PHONE')
-
-            if not all([email, first_name, last_name, phone]):
-                raise ValueError("Missing DriverPulse credentials in secrets")
+            # Step 1: Load existing authentication (created by GitHub Actions workflow)
+            print(f"🔐 Loading DriverPulse authentication from storage...")
 
             config = DriverPulseConfig(search_text=search_terms, location="", max_companies=1)
             source = DriverPulseSource(config)
 
-            # Create fresh authentication using Playwright
-            success = source.create_new_authentication(
-                email=email,
-                first_name=first_name,
-                last_name=last_name,
-                phone=phone
-            )
+            # Load auth from storage (Supabase > local file)
+            success = source.load_auth_from_storage()
 
             if not success:
-                raise Exception("Authentication failed")
+                raise Exception("Authentication not found. Fresh auth should be created by GitHub Actions workflow first.")
 
             print(f"🔍 Searching for: '{search_terms}'")
             print(f"📄 Paginating through ALL companies...")
