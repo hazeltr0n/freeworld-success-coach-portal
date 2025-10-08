@@ -18,16 +18,11 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+          cache: 'pip'
 
-      - name: Install dependencies
+      - name: Install minimal dependencies for auth
         run: |
-          pip install -r requirements.txt
-          python -m playwright install chromium
-          python -m playwright install-deps
-
-      - name: Install Gmail API dependencies
-        run: |
-          pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib
+          pip install -r requirements-auth.txt
 
       - name: Create Gmail credentials file
         run: |

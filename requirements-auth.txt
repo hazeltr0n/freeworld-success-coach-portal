@@ -1,0 +1,8 @@
+# Minimal requirements for DriverPulse authentication workflow
+# This file is used by GitHub Actions to speed up auth refresh
+
+playwright>=1.40.0
+google-api-python-client>=2.100.0
+google-auth-httplib2>=0.1.1
+google-auth-oauthlib>=1.1.0
+supabase>=2.0.0

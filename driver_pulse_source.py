@@ -224,9 +224,17 @@ class DriverPulseSource:
 
         with sync_playwright() as p:
             # Launch browser in headless or headed mode
+            # Use system Chrome if available (GitHub Actions), fallback to Chromium
+            import os
+            use_system_chrome = os.environ.get('GITHUB_ACTIONS') == 'true'
+
             if headless:
                 logger.info("🚀 Starting Playwright in HEADLESS mode (no browser window)")
-                browser = p.chromium.launch(headless=True, slow_mo=100)
+                if use_system_chrome:
+                    logger.info("   Using system Chrome (GitHub Actions)")
+                    browser = p.chromium.launch(headless=True, slow_mo=100, channel="chrome")
+                else:
+                    browser = p.chromium.launch(headless=True, slow_mo=100)
             else:
                 logger.info("🚀 Starting Playwright in HEADED mode (browser window visible)")
                 browser = p.chromium.launch(headless=False, slow_mo=500)

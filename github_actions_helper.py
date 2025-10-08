@@ -49,12 +49,12 @@ def trigger_auth_refresh(github_token: str, repo_owner: str, repo_name: str) -> 
         return False, f"❌ Error triggering workflow: {str(e)}"
 
 
-def wait_for_fresh_auth(max_wait_seconds: int = 180, poll_interval: int = 5) -> Tuple[bool, str]:
+def wait_for_fresh_auth(max_wait_seconds: int = 240, poll_interval: int = 5) -> Tuple[bool, str]:
     """
     Poll Supabase system_config table waiting for fresh auth data
 
     Args:
-        max_wait_seconds: Maximum time to wait (default 3 minutes)
+        max_wait_seconds: Maximum time to wait (default 4 minutes)
         poll_interval: Seconds between polls (default 5)
 
     Returns:
@@ -163,9 +163,9 @@ def refresh_auth_and_wait(progress_callback=None) -> Tuple[bool, str]:
         return False, msg
 
     if progress_callback:
-        progress_callback("⏳ Waiting for fresh auth (up to 3 minutes)...")
+        progress_callback("⏳ Waiting for fresh auth (up to 4 minutes)...")
 
     # Wait for fresh auth
-    success, msg = wait_for_fresh_auth(max_wait_seconds=180, poll_interval=5)
+    success, msg = wait_for_fresh_auth(max_wait_seconds=240, poll_interval=5)
 
     return success, msg
