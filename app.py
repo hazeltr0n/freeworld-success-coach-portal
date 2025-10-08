@@ -6748,9 +6748,35 @@ def show_combined_batches_and_scheduling_page(coach):
 
                             try:
                                 from async_job_manager import AsyncJobManager
+                                from github_actions_helper import refresh_auth_and_wait, get_auth_age
                                 dp_manager = AsyncJobManager()
 
                                 if dp_run_now:
+                                    # Check if we need fresh auth (> 3 minutes old)
+                                    auth_age = get_auth_age()
+                                    needs_refresh = auth_age is None or auth_age > 180
+
+                                    if needs_refresh:
+                                        st.info("🔄 Getting fresh DriverPulse authentication...")
+
+                                        # Create a placeholder for status updates
+                                        status_placeholder = st.empty()
+
+                                        def update_status(msg):
+                                            status_placeholder.info(msg)
+
+                                        with st.spinner("Authenticating with DriverPulse (this takes 1-2 minutes)..."):
+                                            success, msg = refresh_auth_and_wait(progress_callback=update_status)
+
+                                        status_placeholder.empty()
+
+                                        if not success:
+                                            st.error(msg)
+                                            st.error("❌ Cannot run batch without fresh authentication")
+                                            st.stop()
+
+                                        st.success("✅ Fresh authentication ready!")
+
                                     # Run immediately - submit the job for immediate execution
                                     dp_search_params['run_immediately'] = True
                                     job = dp_manager.submit_driver_pulse_search(dp_search_params, coach.username)

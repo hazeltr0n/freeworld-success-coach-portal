@@ -12,11 +12,24 @@ import streamlit as st
 
 def load_auth_data() -> Optional[Dict[str, Any]]:
     """
-    Load auth.json data from Streamlit secrets or local file
+    Load auth.json data from Supabase, Streamlit secrets, or local file
+    Priority: Supabase > Streamlit secrets > Local file
     Returns None if not found
     """
+    # Try Supabase first (refreshed by GitHub Actions)
     try:
-        # Try Streamlit secrets first
+        from supabase_utils import get_client
+        client = get_client()
+        if client:
+            result = client.table('system_config').select('config_value').eq('config_key', 'driver_pulse_auth').execute()
+            if result.data and len(result.data) > 0:
+                auth_json = result.data[0]['config_value']
+                return json.loads(auth_json)
+    except Exception:
+        pass
+
+    # Try Streamlit secrets second
+    try:
         if hasattr(st, 'secrets') and 'DRIVER_PULSE_AUTH' in st.secrets:
             auth_data = st.secrets['DRIVER_PULSE_AUTH']
             if isinstance(auth_data, str):

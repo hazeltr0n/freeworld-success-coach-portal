@@ -1,0 +1,74 @@
+name: Scheduled Batch Job Scraper
+
+on:
+  schedule:
+    # Run every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  scrape-jobs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install playwright
+          playwright install chromium
+          playwright install-deps
+
+      - name: Install Gmail API dependencies
+        run: |
+          pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib
+
+      - name: Create Gmail credentials file
+        run: |
+          echo '${{ secrets.DRIVER_PULSE_GMAIL_CREDENTIALS }}' > gmail_credentials.json
+
+      - name: Create Gmail token file
+        run: |
+          echo '${{ secrets.DRIVER_PULSE_GMAIL_TOKEN }}' > gmail_token.json
+
+      # STEP 1: Refresh Authentication
+      - name: Refresh DriverPulse authentication
+        env:
+          DRIVER_PULSE_EMAIL: ${{ secrets.DRIVER_PULSE_EMAIL }}
+          DRIVER_PULSE_FIRST_NAME: ${{ secrets.DRIVER_PULSE_FIRST_NAME }}
+          DRIVER_PULSE_LAST_NAME: ${{ secrets.DRIVER_PULSE_LAST_NAME }}
+          DRIVER_PULSE_PHONE: ${{ secrets.DRIVER_PULSE_PHONE }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          python refresh_driverpulse_auth.py
+
+      # STEP 2: Run Batch Scraper
+      - name: Run batch job scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OUTSCRAPER_API_KEY: ${{ secrets.OUTSCRAPER_API_KEY }}
+          SHORTIO_API_KEY: ${{ secrets.SHORTIO_API_KEY }}
+          SHORTIO_DOMAIN: ${{ secrets.SHORTIO_DOMAIN }}
+        run: |
+          python run_scheduled_batches.py
+
+      - name: Upload logs (for debugging)
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: batch-logs
+          path: |
+            *.log
+            *.png
+          retention-days: 7

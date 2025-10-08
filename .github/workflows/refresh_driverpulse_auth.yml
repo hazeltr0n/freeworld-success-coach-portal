@@ -1,0 +1,59 @@
+name: Refresh DriverPulse Authentication
+
+on:
+  schedule:
+    # Run every day at 2 AM UTC (9 PM EST)
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  refresh-auth:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install playwright requests supabase python-dotenv
+          playwright install chromium
+          playwright install-deps
+
+      - name: Install Gmail API dependencies
+        run: |
+          pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib
+
+      - name: Create Gmail credentials file
+        run: |
+          echo '${{ secrets.DRIVER_PULSE_GMAIL_CREDENTIALS }}' > gmail_credentials.json
+
+      - name: Create Gmail token file
+        run: |
+          echo '${{ secrets.DRIVER_PULSE_GMAIL_TOKEN }}' > gmail_token.json
+
+      - name: Run auth refresh script
+        env:
+          DRIVER_PULSE_EMAIL: ${{ secrets.DRIVER_PULSE_EMAIL }}
+          DRIVER_PULSE_FIRST_NAME: ${{ secrets.DRIVER_PULSE_FIRST_NAME }}
+          DRIVER_PULSE_LAST_NAME: ${{ secrets.DRIVER_PULSE_LAST_NAME }}
+          DRIVER_PULSE_PHONE: ${{ secrets.DRIVER_PULSE_PHONE }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          python refresh_driverpulse_auth.py
+
+      - name: Upload auth artifact (for debugging)
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: auth-logs
+          path: |
+            *.png
+            auth.json
+          retention-days: 7
