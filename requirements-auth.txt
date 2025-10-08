@@ -1,8 +1,20 @@
-# Minimal requirements for DriverPulse authentication workflow
-# This file is used by GitHub Actions to speed up auth refresh
+# Requirements for DriverPulse workflow (auth + scraping + pipeline)
+# This file is used by GitHub Actions
 
+# Authentication
 playwright>=1.40.0
 google-api-python-client>=2.100.0
 google-auth-httplib2>=0.1.1
 google-auth-oauthlib>=1.1.0
+
+# Database
 supabase>=2.0.0
+
+# Data processing (required by adapter and pipeline)
+pandas>=2.0.0
+
+# AI classification
+openai>=1.0.0
+
+# HTTP requests
+requests>=2.31.0
