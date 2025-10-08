@@ -129,12 +129,13 @@ class DriverPulseToPipelineAdapter:
         return ''
 
     def _build_application_url(self, job: Dict) -> str:
-        """Construct DriverPulse application URL"""
-        company_url = job.get('company_url_part', '')
-        job_id = job.get('active_job_id', '')
+        """Construct IntelliApp application URL for DriverPulse jobs"""
+        # Use company url_part from company data, not company_url_part from job
+        url_part = job.get('company_url_part', '')
 
-        if company_url and job_id:
-            return f"https://pulse.tenstreet.com/{company_url}/job/{job_id}"
+        if url_part:
+            # Build IntelliApp URL with the company's url_part
+            return f"https://intelliapp.driverapponline.com/c/{url_part}"
 
         return ''
 
@@ -410,7 +411,7 @@ class DriverPulsePipelineIntegration:
             source = DriverPulseSource(config)
 
             # Load auth from storage (Supabase > local file)
-            success = source.load_auth_from_storage()
+            success = source.load_authentication()
 
             if not success:
                 raise Exception("Authentication not found. Fresh auth should be created by GitHub Actions workflow first.")
