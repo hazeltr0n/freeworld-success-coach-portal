@@ -336,11 +336,10 @@ class DriverPulseSource:
                                 logger.error("❌ Could not extract 2FA code from Gmail")
                                 return False
                         else:
-                            logger.warning("⚠️ Gmail 2FA not available - manual intervention needed")
-                            if headless:
-                                # In headless mode (GitHub Actions), we can't do manual entry
-                                raise DriverPulseAuthError("Gmail 2FA failed in headless mode - cannot retrieve verification code")
-                            time.sleep(30)  # Give time for manual code entry
+                            logger.warning("⚠️ Gmail 2FA not available - continuing without it")
+                            # Don't fail immediately - DriverPulse might not require 2FA
+                            # Just wait and see if login completes
+                            time.sleep(15 if headless else 30)
 
                 except Exception as e:
                     logger.warning(f"⚠️ 2FA step failed or not required: {e}")

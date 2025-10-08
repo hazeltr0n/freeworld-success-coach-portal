@@ -35,6 +35,20 @@ jobs:
         run: |
           echo '${{ secrets.DRIVER_PULSE_GMAIL_TOKEN }}' > gmail_token.json
 
+      - name: Refresh Gmail token
+        run: |
+          python -c "
+          from driver_pulse_2fa import GmailCodeExtractor
+
+          print('🔍 Refreshing Gmail token...')
+          extractor = GmailCodeExtractor()
+          if extractor.setup_gmail_api():
+              print('✅ Gmail token refreshed and ready')
+          else:
+              print('❌ Gmail token refresh failed')
+              exit(1)
+          "
+
       - name: Update job status to processing
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
