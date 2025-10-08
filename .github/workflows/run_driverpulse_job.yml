@@ -114,28 +114,44 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           python -c "
-          from driver_pulse_source import DriverPulseSource
+          from driver_pulse_adapter import DriverPulseSourceAdapter
           import json
 
           # Load job params
           with open('job_params.json', 'r') as f:
               params = json.load(f)
 
-          source = DriverPulseSource()
-          source.load_authentication()
+          adapter = DriverPulseSourceAdapter()
 
-          # Search for jobs
-          search_query = params.get('search_query', 'CDL driver')
-          max_results = params.get('max_results', 100)
+          # Extract search parameters
+          search_terms = params.get('search_terms', 'CDL driver')
+          filter_settings = params.get('filter_settings', {})
+          coach_username = params.get('coach_username', '')
 
-          print(f'🔍 Searching DriverPulse: {search_query} (max {max_results} jobs)')
-          results = source.search_jobs(search_query, max_results=max_results)
+          print(f'🔍 Searching DriverPulse: {search_terms}')
+          print(f'🎯 Filter mode: {filter_settings.get(\"filter_mode\", \"all_markets\")}')
+          if filter_settings.get('custom_zips'):
+              print(f'📍 Target ZIPs: {len(filter_settings.get(\"custom_zips\"))} ZIP codes')
 
-          print(f'✅ Found {len(results)} jobs from DriverPulse')
+          # Run the scraper through pipeline
+          result = adapter.run_driver_pulse_through_pipeline(
+              search_terms=search_terms,
+              filter_settings=filter_settings,
+              coach_username=coach_username
+          )
+
+          # Extract DataFrame and convert to dict for JSON serialization
+          jobs_df = result.get('jobs_df')
+          if jobs_df is not None:
+              jobs_list = jobs_df.to_dict('records')
+              print(f'✅ Found {len(jobs_list)} jobs from DriverPulse')
+          else:
+              jobs_list = []
+              print(f'⚠️ No jobs found')
 
           # Save results to file
           with open('driverpulse_results.json', 'w') as f:
-              json.dump(results, f, indent=2)
+              json.dump(jobs_list, f, indent=2)
           "
 
       - name: Update job status to completed
