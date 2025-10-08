@@ -1,9 +1,9 @@
 name: Refresh DriverPulse Authentication
 
 on:
-  schedule:
-    # Run every day at 2 AM UTC (9 PM EST)
-    - cron: '0 2 * * *'
+  # schedule:
+  #   # Run every day at 2 AM UTC (9 PM EST)
+  #   - cron: '0 2 * * *'
   workflow_dispatch:  # Allow manual trigger
 
 jobs:
