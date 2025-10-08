@@ -177,16 +177,32 @@ jobs:
           with open('driverpulse_results.json', 'r') as f:
               results = json.load(f)
 
+          # Clean results recursively to remove any NaN/null values that might cause issues
+          def clean_for_json(obj):
+              if isinstance(obj, dict):
+                  return {k: clean_for_json(v) for k, v in obj.items() if v is not None and v == v}  # v == v filters NaN
+              elif isinstance(obj, list):
+                  return [clean_for_json(item) for item in obj if item is not None and (not isinstance(item, float) or item == item)]
+              elif isinstance(obj, float):
+                  import math
+                  if math.isnan(obj) or math.isinf(obj):
+                      return None
+                  return obj
+              return obj
+
+          cleaned_results = clean_for_json(results)
+
+          # Store just the count and summary, not the full job list (too large for JSONB field)
           client.table('async_job_queue').update({
               'status': 'completed',
               'completed_at': datetime.now(timezone.utc).isoformat(),
               'result_data': {
-                  'job_count': len(results),
-                  'jobs': results
+                  'job_count': len(cleaned_results),
+                  'message': f'Successfully processed {len(cleaned_results)} jobs from DriverPulse'
               }
           }).eq('id', '${{ inputs.job_id }}').execute()
 
-          print(f'✅ Job completed with {len(results)} jobs')
+          print(f'✅ Job completed with {len(cleaned_results)} jobs')
           "
 
       - name: Update job status to failed
