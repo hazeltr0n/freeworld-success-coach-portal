@@ -3646,6 +3646,30 @@ def show_loan_calculator():
 def main():
     """Main Streamlit application"""
 
+    # 🤖 BACKGROUND: Check for submitted batches and execute them
+    # This runs silently in the background whenever anyone visits the app
+    try:
+        from async_job_manager import AsyncJobManager
+        manager = AsyncJobManager()
+
+        # Check for batches marked as 'submitted' by the Edge Function
+        submitted = manager.supabase_client.table('async_job_queue').select('*').eq('status', 'submitted').execute()
+
+        if submitted.data:
+            for job_data in submitted.data:
+                try:
+                    # Execute the batch based on job type
+                    if job_data['job_type'] == 'driver_pulse':
+                        manager.submit_driver_pulse_search(job_data['search_params'], job_data['coach_username'])
+                    elif job_data['job_type'] == 'google_jobs':
+                        manager.submit_google_search(job_data['search_params'], job_data['coach_username'])
+                    elif job_data['job_type'] == 'indeed_jobs':
+                        manager.submit_indeed_search(job_data['search_params'], job_data['coach_username'])
+                except Exception:
+                    pass  # Silently fail - don't interrupt user experience
+    except Exception:
+        pass  # Silently fail - don't break the app if this fails
+
     # Check for public-facing agent portal link FIRST
     try:
         params = st.query_params
@@ -5944,7 +5968,7 @@ def show_combined_batches_and_scheduling_page(coach):
         async_manager = AsyncJobManager()
         
         # Create radio buttons for inner tabs (persistent navigation)
-        inner_tab_options = ["📦 Async Batches", "🏁 DriverPulse Batches", "📄 CSV Classification"]
+        inner_tab_options = ["📦 Async Batches", "📄 CSV Classification"]
         
         # Initialize session state for inner tab if not exists
         if 'inner_tab_index' not in st.session_state:
@@ -5981,38 +6005,41 @@ def show_combined_batches_and_scheduling_page(coach):
                         )
 
                     with col2:
-                        if batch_location_type == "Select Market":
-                            # Get markets from pipeline (same as main search)
-                            try:
-                                from pipeline_wrapper import StreamlitPipelineWrapper
-                                pipeline = StreamlitPipelineWrapper()
-                                markets = pipeline.get_markets()
-                                batch_selected_markets = st.multiselect(
-                                    "Target Markets:",
-                                    markets,
-                                    help="Select one or multiple markets to search"
-                                )
-                                if batch_selected_markets:
-                                    if len(batch_selected_markets) == 1:
-                                        batch_location = pipeline.get_market_location(batch_selected_markets[0])
-                                    else:
-                                        # Multi-market: use first market for legacy location field
-                                        batch_location = pipeline.get_market_location(batch_selected_markets[0])
-                                else:
-                                    batch_location = "Houston, TX"
-                            except Exception as e:
-                                st.error(f"Could not load markets: {e}")
-                                batch_selected_markets = ["Houston"]
-                                batch_location = "Houston, TX"
-                        else:
-                            batch_custom_location = st.text_input(
-                                "Enter ZIP code, city, or state:",
-                                placeholder="e.g., 90210, Austin TX, California",
-                                help="Enter any US location - ZIP code, city name, or state"
+                        # Get markets from pipeline (same as main search)
+                        try:
+                            from pipeline_wrapper import StreamlitPipelineWrapper
+                            pipeline = StreamlitPipelineWrapper()
+                            markets = pipeline.get_markets()
+                            batch_selected_markets = st.multiselect(
+                                "Target Markets:",
+                                markets,
+                                help="Select one or multiple markets to search",
+                                disabled=(batch_location_type == "Custom Location")
                             )
-                            batch_location = batch_custom_location.strip() if batch_custom_location else "Houston, TX"
+                            if batch_selected_markets:
+                                if len(batch_selected_markets) == 1:
+                                    batch_location = pipeline.get_market_location(batch_selected_markets[0])
+                                else:
+                                    # Multi-market: use first market for legacy location field
+                                    batch_location = pipeline.get_market_location(batch_selected_markets[0])
+                            else:
+                                batch_location = "Houston, TX"
+                        except Exception as e:
+                            st.error(f"Could not load markets: {e}")
+                            batch_selected_markets = ["Houston"]
+                            batch_location = "Houston, TX"
 
                     with col3:
+                        batch_custom_location = st.text_input(
+                            "Custom Location:",
+                            placeholder="e.g., 90210, Austin TX",
+                            help="Enter ZIP code, city, or state (only used if Custom Location is selected)",
+                            disabled=(batch_location_type == "Select Market")
+                        )
+                        if batch_location_type == "Custom Location" and batch_custom_location:
+                            batch_location = batch_custom_location.strip()
+
+                    with col4:
                         # Use same job limits as main search
                         job_limit_options = ["10 jobs", "50 jobs", "100 jobs", "250 jobs", "500 jobs"]
                         if check_coach_permission('can_access_full_mode'):
@@ -6207,98 +6234,54 @@ def show_combined_batches_and_scheduling_page(coach):
                             manager = AsyncJobManager()
 
                             if run_now:
-                                # Handle multi-market execution
-                                if search_params.get('multi_market') and search_params.get('selected_markets'):
-                                    # Multi-market: create separate job for each market
-                                    markets = search_params['selected_markets']
-                                    st.success(f"🚀 Indeed batch running NOW for {len(markets)} markets!")
+                                # Create ONE batch for all markets (no per-market splitting)
+                                search_params['run_immediately'] = True
+                                job = manager.submit_indeed_search(search_params, coach.username)
 
-                                    for market in markets:
-                                        # Create single-market params for this job
-                                        single_market_params = search_params.copy()
-                                        single_market_params.update({
-                                            'location': pipeline.get_market_location(market),
-                                            'selected_markets': [market],
-                                            'multi_market': False,
-                                            'run_immediately': True
-                                        })
+                                markets = search_params.get('selected_markets', [])
+                                market_count = len(markets) if markets else 1
 
-                                        job = manager.submit_indeed_search(single_market_params, coach.username)
-                                        st.info(f"📋 Job ID: {job.id} - Market: {market}")
-
-                                    st.info(f"🔍 Terms: {batch_search_terms}")
-                                    st.info(f"🎯 Classifier: {batch_classifier_type}")
-                                    st.info(f"📊 Job Limit: {batch_job_limit}")
-                                    st.info("⚡ One-time execution (ignoring schedule settings)")
+                                st.success(f"🚀 Indeed batch running NOW!")
+                                st.info(f"📋 Job ID: {job.id}")
+                                if search_params.get('multi_market'):
+                                    st.info(f"📍 Markets: {market_count} selected")
                                 else:
-                                    # Single market execution
-                                    search_params['run_immediately'] = True
-                                    job = manager.submit_indeed_search(search_params, coach.username)
-
-                                    st.success(f"🚀 Indeed batch running NOW!")
-                                    st.info(f"📋 Job ID: {job.id}")
                                     st.info(f"📍 Location: {batch_location}")
-                                    st.info(f"🔍 Terms: {batch_search_terms}")
-                                    st.info(f"🎯 Classifier: {batch_classifier_type}")
-                                    st.info(f"📊 Job Limit: {batch_job_limit}")
-                                    st.info("⚡ One-time execution (ignoring schedule settings)")
+                                st.info(f"🔍 Terms: {batch_search_terms}")
+                                st.info(f"🎯 Classifier: {batch_classifier_type}")
+                                st.info(f"📊 Job Limit: {batch_job_limit}")
+                                st.info("⚡ One-time execution (ignoring schedule settings)")
 
                             else:
                                 # Schedule recurring batch - create scheduled job entry without immediate execution
                                 search_params['run_immediately'] = False
                                 search_params['status'] = 'scheduled'  # Mark as scheduled, not running
 
-                                # Handle multi-market scheduled jobs
-                                if search_params.get('multi_market') and search_params.get('selected_markets'):
-                                    # Multi-market: create separate scheduled job for each market
-                                    markets = search_params['selected_markets']
-                                    st.success(f"📅 Indeed recurring batch scheduled for {len(markets)} markets!")
+                                # Create ONE scheduled job for all markets (no per-market splitting)
+                                try:
+                                    # Create scheduled job with all selected markets
+                                    job = manager.create_scheduled_job(search_params, coach.username)
 
-                                    for market in markets:
-                                        # Create single-market params for this scheduled job
-                                        single_market_params = search_params.copy()
-                                        single_market_params.update({
-                                            'location': pipeline.get_market_location(market),
-                                            'selected_markets': [market],
-                                            'multi_market': False,
-                                            'run_immediately': False,
-                                            'status': 'scheduled'
-                                        })
+                                    markets = search_params.get('selected_markets', [])
+                                    market_count = len(markets) if markets else 1
 
-                                        try:
-                                            job = manager.create_scheduled_job(single_market_params, coach.username)
-                                            st.info(f"📋 Schedule ID: {job.id} - Market: {market}")
-                                        except Exception as e:
-                                            st.error(f"❌ Scheduling failed for {market}: {str(e)}")
-
+                                    st.success(f"📅 Indeed recurring batch scheduled successfully!")
+                                    st.info(f"📋 Schedule ID: {job.id}")
+                                    if search_params.get('multi_market'):
+                                        st.info(f"📍 Markets: {market_count} selected")
+                                    else:
+                                        st.info(f"📍 Location: {batch_location}")
                                     st.info(f"🔍 Terms: {batch_search_terms}")
                                     st.info(f"🎯 Classifier: {batch_classifier_type}")
                                     st.info(f"📅 Schedule: {batch_frequency}")
                                     if batch_frequency == "Weekly":
                                         st.info(f"🗓️ Days: {', '.join(batch_days)}")
                                     st.info(f"⏰ Time: {batch_time.strftime('%H:%M')} Central")
-                                    st.info("🔮 Jobs will run at scheduled time - they have NOT been executed yet")
-                                else:
-                                    # Single market scheduled job
-                                    try:
-                                        # Try to save as scheduled job (not immediately execute)
-                                        job = manager.create_scheduled_job(search_params, coach.username)
+                                    st.info("🔮 Job will run at scheduled time - it has NOT been executed yet")
 
-                                        st.success(f"📅 Indeed recurring batch scheduled successfully!")
-                                        st.info(f"📋 Schedule ID: {job.id}")
-                                        st.info(f"📍 Location: {batch_location}")
-                                        st.info(f"🔍 Terms: {batch_search_terms}")
-                                        st.info(f"🎯 Classifier: {batch_classifier_type}")
-                                        st.info(f"📅 Schedule: {batch_frequency}")
-                                        if batch_frequency == "Weekly":
-                                            st.info(f"🗓️ Days: {', '.join(batch_days)}")
-                                        st.info(f"⏰ Time: {batch_time.strftime('%H:%M')} Central")
-                                        st.info("🔮 Job will run at scheduled time - it has NOT been executed yet")
-
-                                    except Exception as e:
-                                        # If create_scheduled_job fails, show error message
-                                        st.error(f"❌ Scheduling failed: {str(e)}")
-                                        st.info("💡 Jobs will only run when explicitly triggered. Use 'Run Now' button to execute immediately.")
+                                except Exception as e:
+                                    # If create_scheduled_job fails, show error message
+                                    st.error(f"❌ Scheduling failed: {str(e)}")
 
                             st.rerun()  # Refresh to show the job in table
 
@@ -6317,8 +6300,8 @@ def show_combined_batches_and_scheduling_page(coach):
                     with st.form("google_batch_scheduler"):
                         st.markdown("**Google Jobs Batch Configuration**")
 
-                        # Row 1: Location and Job Limit
-                        col1, col2, col3, col4 = st.columns(4)
+                        # Row 1: Location
+                        col1, col2, col3 = st.columns(3)
 
                         with col1:
                             google_location_type = st.selectbox(
@@ -6329,29 +6312,44 @@ def show_combined_batches_and_scheduling_page(coach):
                             )
 
                         with col2:
+                            from market_mapper import MarketMapper
+                            mapper = MarketMapper()
+                            markets = mapper.get_all_markets()
+                            google_selected_market = st.selectbox(
+                                "🎯 Select Market:",
+                                markets,
+                                index=markets.index('Dallas') if 'Dallas' in markets else 0,
+                                key="google_selected_market",
+                                disabled=(google_location_type == "Custom Location")
+                            )
                             if google_location_type == "Select Market":
-                                from market_mapper import MarketMapper
-                                mapper = MarketMapper()
-                                markets = mapper.get_all_markets()
-                                google_selected_market = st.selectbox(
-                                    "🎯 Select Market:",
-                                    markets,
-                                    index=markets.index('Dallas') if 'Dallas' in markets else 0,
-                                    key="google_selected_market"
-                                )
                                 google_location = google_selected_market
                                 google_custom_location = None
-                            else:
-                                google_custom_location = st.text_input(
-                                    "🌍 Custom Location:",
-                                    value="Dallas, TX",
-                                    help="Enter city, state (e.g., 'Phoenix, AZ')",
-                                    key="google_custom_location"
-                                )
+
+                        with col3:
+                            google_custom_location = st.text_input(
+                                "🌍 Custom Location:",
+                                value="Dallas, TX",
+                                help="Enter city, state (e.g., 'Phoenix, AZ')",
+                                key="google_custom_location",
+                                disabled=(google_location_type == "Select Market")
+                            )
+                            if google_location_type == "Custom Location":
                                 google_location = google_custom_location
                                 google_selected_market = None
 
-                        with col3:
+                        # Row 1b: Search parameters
+                        col1, col2 = st.columns(2)
+
+                        with col1:
+                            google_search_terms = st.text_input(
+                                "🔍 Search Terms:",
+                                value="CDL Driver No Experience",
+                                help="Job search keywords. Use commas for multiple terms",
+                                key="google_search_terms"
+                            )
+
+                        with col2:
                             google_job_quantity = st.selectbox(
                                 "📊 Job Limit:",
                                 ["100 jobs", "250 jobs", "500 jobs", "1000 jobs"],
@@ -6361,14 +6359,6 @@ def show_combined_batches_and_scheduling_page(coach):
                             )
                             job_quantity_map = {"100 jobs": 100, "250 jobs": 250, "500 jobs": 500, "1000 jobs": 1000}
                             google_job_limit = job_quantity_map[google_job_quantity]
-
-                        with col4:
-                            google_search_terms = st.text_input(
-                                "🔍 Search Terms:",
-                                value="CDL Driver No Experience",
-                                help="Job search keywords. Use commas for multiple terms",
-                                key="google_search_terms"
-                            )
 
                         # Row 2: Search Filters
                         col1, col2, col3, col4 = st.columns(4)
@@ -6600,312 +6590,223 @@ def show_combined_batches_and_scheduling_page(coach):
                                 st.error(f"❌ Failed to create Google batch: {e}")
                                 st.error(f"Error details: {str(e)}")
 
+            # DriverPulse Batch Schedule Section
+            with st.expander("➕ Create New DriverPulse Batch Schedule", expanded=False):
+                st.caption("Schedule DriverPulse searches to run automatically on selected days. Filters jobs to target markets after scraping.")
+
+                # Check for required DriverPulse credentials
+                required_vars = ['DRIVER_PULSE_EMAIL', 'DRIVER_PULSE_FIRST_NAME', 'DRIVER_PULSE_LAST_NAME', 'DRIVER_PULSE_PHONE']
+                missing_vars = [var for var in required_vars if not os.getenv(var)]
+
+                if missing_vars:
+                    st.error(f"❌ Missing DriverPulse credentials: {', '.join(missing_vars)}")
+                    st.info("💡 Set these environment variables to use DriverPulse batch scheduling")
+                else:
+                    with st.form("driverpulse_batch_scheduler"):
+                        st.markdown("**DriverPulse Batch Configuration**")
+
+                        # Row 1: Search Term and Filter Mode
+                        col1, col2, col3 = st.columns(3)
+
+                        with col1:
+                            dp_batch_search_term = st.text_input(
+                                "🔍 Search Term:",
+                                value="CDL driver",
+                                help="Keywords to search in DriverPulse (e.g., 'CDL driver', 'truck driver', 'no experience')",
+                                key="dp_batch_search_term"
+                            )
+
+                        with col2:
+                            dp_batch_filter_mode = st.selectbox(
+                                "📍 Filter Mode:",
+                                ["All FreeWorld Markets", "Custom ZIP Codes"],
+                                index=0,
+                                help="Choose whether to filter to all markets or specific ZIPs",
+                                key="dp_batch_filter_mode"
+                            )
+
+                        with col3:
+                            dp_batch_classifier_type = st.selectbox(
+                                "🧠 AI Classifier:",
+                                ["CDL Job Classifier", "Pathway Classifier", "Both (CDL + Pathway)", "None (No AI)"],
+                                index=0,
+                                help="Choose which AI classifier to run",
+                                key="dp_batch_classifier_type"
+                            )
+
+                        # Row 2: Custom ZIP codes (always show but disable when not selected)
+                        dp_batch_custom_zips = st.text_area(
+                            "📍 Custom ZIP Codes (comma-separated):",
+                            placeholder="e.g., 75060, 77007, 85009, 80218",
+                            help="Enter one or more ZIP codes separated by commas (only used if Custom ZIP Codes filter mode is selected)",
+                            key="dp_batch_custom_zips",
+                            height=100,
+                            disabled=(dp_batch_filter_mode != "Custom ZIP Codes")
+                        )
+
+                        if dp_batch_filter_mode == "Custom ZIP Codes":
+                            if dp_batch_custom_zips:
+                                zip_list = [z.strip() for z in dp_batch_custom_zips.split(',') if z.strip()]
+                                st.success(f"📍 Will filter to {len(zip_list)} ZIP code(s): {', '.join(zip_list[:5])}{' ...' if len(zip_list) > 5 else ''}")
+                            else:
+                                st.warning("👆 Please enter ZIP codes above")
+                        else:
+                            st.info("✅ Will filter to all FreeWorld market locations (6,710 ZIPs)")
+                            dp_batch_custom_zips = None
+
+                        # Row 3: Schedule Settings
+                        st.markdown("**Schedule Configuration**")
+                        col1, col2, col3 = st.columns(3)
+
+                        with col1:
+                            dp_batch_frequency = st.selectbox(
+                                "Frequency:",
+                                ["Once", "Daily", "Weekly"],
+                                index=2,  # default to Weekly
+                                help="How often to run this search",
+                                key="dp_batch_frequency"
+                            )
+
+                        with col2:
+                            dp_batch_time_str = st.text_input(
+                                "Run Time (Central):",
+                                value="03:00",
+                                help="Time in Central Time Zone (CT/CST) - Format: HH:MM",
+                                key="dp_batch_time"
+                            )
+                            # Convert string to time object for compatibility
+                            try:
+                                dp_batch_time = pd.Timestamp(dp_batch_time_str).time()
+                            except:
+                                dp_batch_time = pd.Timestamp("03:00").time()
+
+                        with col3:
+                            if dp_batch_frequency == "Weekly":
+                                st.write("**Days of Week to Run:**")
+                                day_cols = st.columns(7)
+                                dp_batch_days = []
+                                days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+                                default_days = ["Mon", "Thu"]  # Different from Indeed/Google
+
+                                for i, day in enumerate(days):
+                                    with day_cols[i]:
+                                        if st.checkbox(day, value=day in default_days, key=f"dp_batch_day_{day}"):
+                                            dp_batch_days.append(day)
+                            else:
+                                dp_batch_days = None
+
+                        # Submit buttons
+                        col_save, col_run = st.columns(2)
+                        with col_save:
+                            dp_submitted = st.form_submit_button("📅 Schedule Recurring Batch", width='stretch')
+                        with col_run:
+                            dp_run_now = st.form_submit_button("🚀 Run Now", width='stretch', type="secondary")
+
+                        if dp_submitted or dp_run_now:
+                            # Validation
+                            if not dp_batch_search_term.strip():
+                                st.error("❌ Please enter a search term")
+                                st.stop()
+
+                            # Validate custom ZIPs if selected
+                            if dp_batch_filter_mode == "Custom ZIP Codes":
+                                if not dp_batch_custom_zips or not dp_batch_custom_zips.strip():
+                                    st.error("❌ Please enter at least one ZIP code for custom mode")
+                                    st.stop()
+                                target_zips = [z.strip().zfill(5) for z in dp_batch_custom_zips.split(',') if z.strip()]
+                                if not target_zips:
+                                    st.error("❌ No valid ZIP codes found")
+                                    st.stop()
+                            else:
+                                target_zips = None
+
+                            # Only validate scheduling parameters for "Schedule Recurring Batch"
+                            if dp_submitted and dp_batch_frequency == "Weekly" and not dp_batch_days:
+                                st.error("❌ Please select at least one day for weekly schedule")
+                                st.stop()
+
+                            # Create search parameters for DriverPulse
+                            dp_search_params = {
+                                # Core search parameters
+                                'search_terms': dp_batch_search_term.strip(),
+
+                                # Filter settings (nested object for DriverPulse adapter)
+                                'filter_settings': {
+                                    'search_term': dp_batch_search_term.strip(),
+                                    'classifier_type': dp_batch_classifier_type,
+                                    'filter_mode': 'custom_zips' if dp_batch_filter_mode == "Custom ZIP Codes" else 'all_markets',
+                                    'custom_zips': target_zips if dp_batch_filter_mode == "Custom ZIP Codes" else None
+                                },
+
+                                # Pipeline parameters
+                                'coach_username': coach.username,
+                                'coach_name': coach.full_name,
+
+                                # Source type
+                                'source_type': 'DriverPulse'
+                            }
+
+                            # Only add scheduling metadata for "Schedule Recurring Batch" (not Run Now)
+                            if dp_submitted:  # Schedule Recurring Batch
+                                dp_search_params.update({
+                                    'frequency': dp_batch_frequency,
+                                    'scheduled_time': dp_batch_time.strftime('%H:%M'),
+                                    'scheduled_days': dp_batch_days if dp_batch_frequency == "Weekly" else None,
+                                })
+                            else:  # Run Now - ignore scheduling
+                                dp_search_params.update({
+                                    'frequency': 'Once',  # Force to one-time execution
+                                    'scheduled_time': None,
+                                    'scheduled_days': None,
+                                })
+
+                            try:
+                                from async_job_manager import AsyncJobManager
+                                dp_manager = AsyncJobManager()
+
+                                if dp_run_now:
+                                    # Run immediately - submit the job for immediate execution
+                                    dp_search_params['run_immediately'] = True
+                                    job = dp_manager.submit_driver_pulse_search(dp_search_params, coach.username)
+
+                                    st.success(f"🚀 DriverPulse batch running NOW!")
+                                    st.info(f"📋 Job ID: {job.id}")
+                                    st.info(f"🔍 Search: '{dp_batch_search_term}' | Filter: {dp_batch_filter_mode}")
+                                    if dp_batch_filter_mode == "Custom ZIP Codes":
+                                        st.info(f"📍 Target ZIPs: {len(target_zips)} ZIP codes")
+                                    else:
+                                        st.info(f"📍 Target: All FreeWorld Markets (6,710 ZIPs)")
+                                    st.info(f"🧠 Classifier: {dp_batch_classifier_type}")
+                                    st.info("⚡ One-time execution (ignoring schedule settings)")
+
+                                    # Rerun to show updated table
+                                    st.rerun()
+
+                                if dp_submitted:
+                                    # Schedule recurring batch - create scheduled job entry without immediate execution
+                                    dp_search_params['run_immediately'] = False
+                                    dp_search_params['status'] = 'scheduled'
+                                    dp_search_params['job_type'] = 'driver_pulse_jobs'
+
+                                    try:
+                                        # Create scheduled job
+                                        job = dp_manager.create_scheduled_job(dp_search_params, coach.username)
+
+                                        # Rerun immediately to refresh the table - success message will show after rerun
+                                        st.rerun()
+
+                                    except Exception as e:
+                                        # If create_scheduled_job fails, show error
+                                        st.error(f"❌ DriverPulse scheduling failed: {str(e)}")
+                                        st.info("💡 Check the logs for more details")
+
+                            except Exception as e:
+                                st.error(f"❌ Failed to create DriverPulse batch: {e}")
+                                st.error(f"Error details: {str(e)}")
+
             # Scheduled batches table
             st.markdown("### 📊 Scheduled Batches Table")
             show_simple_batch_table(coach)
-
-        elif selected_inner_tab == "🏁 DriverPulse Batches":
-            # Display logo with header
-            logo_col, header_col = st.columns([1, 20])
-            with logo_col:
-                dp_logo_path = "assets/driver_pulse_logo.png"
-                if os.path.exists(dp_logo_path):
-                    st.image(dp_logo_path, width=40)
-                else:
-                    st.markdown("### 🏁")
-            with header_col:
-                st.markdown("### DriverPulse Entry-Level CDL Scraper")
-
-            st.info("ℹ️ **How it works**: DriverPulse API returns jobs nationwide. We filter to your target locations after scraping using ZIP codes.")
-            st.caption("Note: DriverPulse experience filters don't work via API - use search keywords instead (e.g., 'no experience CDL', 'entry level driver').")
-
-            # Check for required environment variables
-            required_vars = ['DRIVER_PULSE_EMAIL', 'DRIVER_PULSE_FIRST_NAME', 'DRIVER_PULSE_LAST_NAME', 'DRIVER_PULSE_PHONE']
-            missing_vars = [var for var in required_vars if not os.getenv(var)]
-
-            if missing_vars:
-                st.error(f"❌ Missing DriverPulse credentials: {', '.join(missing_vars)}")
-                st.info("💡 Set these environment variables to use DriverPulse integration")
-                return
-            else:
-                st.success("✅ DriverPulse credentials configured")
-
-            # DriverPulse scraping form
-            with st.expander("🚀 Run DriverPulse Entry-Level CDL Scrape", expanded=True):
-                with st.form("driver_pulse_scraper"):
-                    # Search Term Input
-                    st.markdown("##### 🔍 Search Term")
-                    dp_search_term = st.text_input(
-                        "Enter search keywords:",
-                        value="CDL driver",
-                        help="Enter keywords to search for in DriverPulse (e.g., 'CDL driver', 'truck driver', 'no experience', etc.)"
-                    )
-                    if dp_search_term:
-                        st.success(f"🔍 Searching for: {dp_search_term}")
-                    else:
-                        st.warning("👆 Please enter a search term")
-
-                    # Filter Mode Selection
-                    st.markdown("##### 📍 Filter Mode")
-                    dp_filter_mode = st.radio(
-                        "How to filter job locations:",
-                        ["All FreeWorld Markets", "Custom ZIP Codes"],
-                        index=0,
-                        help="Choose whether to filter to all FreeWorld markets or specific ZIP codes",
-                        key="dp_filter_mode"
-                    )
-
-                    if dp_filter_mode == "Custom ZIP Codes":
-                        dp_custom_zips = st.text_area(
-                            "Enter ZIP codes (comma-separated):",
-                            placeholder="e.g., 75060, 77007, 85009, 80218",
-                            help="Enter one or more ZIP codes separated by commas. Jobs will be filtered to only these ZIPs.",
-                            key="dp_custom_zips",
-                            height=100
-                        )
-                        if dp_custom_zips:
-                            zip_list = [z.strip() for z in dp_custom_zips.split(',') if z.strip()]
-                            st.success(f"📍 Will filter to {len(zip_list)} ZIP code(s): {', '.join(zip_list[:5])}{' ...' if len(zip_list) > 5 else ''}")
-                        else:
-                            st.warning("👆 Please enter at least one ZIP code")
-                    else:
-                        st.info("✅ Will filter to all FreeWorld market locations (4,209 cities + 6,710 ZIPs)")
-
-                    # Settings
-                    st.markdown("##### ⚙️ Scraping Settings")
-                    dp_enable_pdf = st.checkbox(
-                        "📄 Generate PDF",
-                        value=False,
-                        help="Generate PDF report of results"
-                    )
-
-                    # AI Classification Settings
-                    st.markdown("##### 🧠 AI Classification")
-                    dp_classifier_type = st.selectbox(
-                        "Select Classifier:",
-                        ["CDL Job Classifier", "Pathway Classifier", "Both (CDL + Pathway)", "None (No AI)"],
-                        index=0,
-                        help="Choose which AI classifier to run on results",
-                        key="dp_classifier_type"
-                    )
-
-                    if dp_classifier_type != "None (No AI)":
-                        st.info(f"✨ Will run: {dp_classifier_type}")
-                    else:
-                        st.warning("⚠️ No AI classification - faster but unfiltered results")
-
-                    # Submit button
-                    dp_submitted = st.form_submit_button(
-                        "▶️ Start DriverPulse Scrape",
-                        help="This will authenticate with DriverPulse and scrape all markets"
-                    )
-
-                # Handle form submission OUTSIDE the form
-                if dp_submitted:
-                    # Validate search term
-                    if not dp_search_term or not dp_search_term.strip():
-                        st.error("❌ Please enter a search term")
-                        st.stop()
-
-                    # Validate filter mode and prepare target locations
-                    if dp_filter_mode == "Custom ZIP Codes":
-                        if not dp_custom_zips or not dp_custom_zips.strip():
-                            st.error("❌ Please enter at least one ZIP code")
-                            st.stop()
-                        target_zips = [z.strip().zfill(5) for z in dp_custom_zips.split(',') if z.strip()]
-                        if not target_zips:
-                            st.error("❌ No valid ZIP codes found")
-                            st.stop()
-                        filter_mode = "custom_zips"
-                        target_locations = target_zips
-                        location_display = f"{len(target_zips)} custom ZIP code(s)"
-                    else:
-                        # All FreeWorld Markets mode
-                        filter_mode = "all_markets"
-                        target_locations = None  # Will use location_markets table
-                        location_display = "All FreeWorld Markets"
-
-                    st.info(f"▶️ Starting DriverPulse scrape | Search: '{dp_search_term}' | Filter: {location_display}")
-
-                    # Create progress containers
-                    progress_container = st.container()
-                    results_container = st.container()
-
-                    try:
-                        from driver_pulse_adapter import DriverPulsePipelineIntegration
-                        from datetime import datetime
-
-                        with progress_container:
-                            progress_bar = st.progress(0)
-                            status_text = st.empty()
-
-                            # Initialize integration
-                            integration = DriverPulsePipelineIntegration()
-
-                            # Run scraper with progress updates
-                            status_text.text("🔐 Authenticating with DriverPulse...")
-                            progress_bar.progress(10)
-
-                            # Configure filter settings based on classifier selection and filter mode
-                            filter_settings = {
-                                'search_term': dp_search_term,
-                                'classifier_type': dp_classifier_type,
-                                'filter_mode': filter_mode,  # "all_markets" or "custom_zips"
-                                'custom_zips': target_locations if filter_mode == "custom_zips" else None
-                            }
-
-                            status_text.text(f"🚀 Scraping DriverPulse (all jobs nationwide)...")
-                            progress_bar.progress(10)
-
-                            # Run the integration
-                            results = integration.run_driver_pulse_through_pipeline(
-                                coach_username=coach.username,
-                                search_terms=dp_search_term,
-                                filter_settings=filter_settings
-                            )
-
-                            progress_bar.progress(80)
-                            status_text.text("📊 Processing results...")
-
-                            df = results['jobs_df']
-                            metadata = results['metadata']
-
-                            progress_bar.progress(100)
-                            status_text.text("✅ DriverPulse scrape completed!")
-
-                        if metadata['success'] and not df.empty:
-                            with results_container:
-                                st.success(f"🎉 Found {metadata['total_jobs']} jobs from DriverPulse!")
-
-                                # Show summary metrics
-                                col1, col2, col3, col4 = st.columns(4)
-                                with col1:
-                                    st.metric("Total Jobs", metadata['total_jobs'])
-                                with col2:
-                                    st.metric("Quality Jobs", metadata.get('included_jobs', 0))
-                                with col3:
-                                    st.metric("Data Source", "DriverPulse")
-                                with col4:
-                                    st.metric("Markets Scraped", len(target_locations) if target_locations else "All")
-
-                                # Use EXACT same display as regular search - NO DUPLICATION
-                                quality_display = get_quality_display_dataframe(df)
-                                full_display = get_full_display_dataframe(df)
-                                total_jobs = len(df)
-
-                                try:
-                                    if 'meta.market' in df.columns and df['meta.market'].notna().any():
-                                        unique_markets = [m for m in df['meta.market'].dropna().unique() if str(m).strip()]
-
-                                        if len(unique_markets) > 1:
-                                            st.markdown(f"### 🌍 Multi-Market Results ({len(unique_markets)} markets)")
-
-                                            for mk in sorted(unique_markets):
-                                                try:
-                                                    with st.expander(f"📍 {mk}", expanded=True):
-                                                        mdf = df[df['meta.market'] == mk]
-
-                                                        # Quality subset for this market
-                                                        try:
-                                                            if 'route.final_status' in mdf.columns:
-                                                                mask_m = mdf['route.final_status'].astype(str).str.startswith('included')
-                                                                mdf_inc = mdf[mask_m] if mask_m.any() else mdf
-                                                            elif 'ai.match' in mdf.columns:
-                                                                mdf_inc = mdf[mdf['ai.match'].isin(['good', 'so-so'])]
-                                                            else:
-                                                                mdf_inc = mdf
-                                                        except Exception:
-                                                            mdf_inc = mdf
-
-                                                        # Use standardized display format matching combined summary
-                                                        market_metrics = calculate_quality_metrics(mdf)
-                                                        market_route_counts = calculate_route_distribution(mdf)
-                                                        render_quality_metrics(market_metrics)
-                                                        render_route_distribution(market_route_counts)
-
-                                                        # Show quality jobs table for this market
-                                                        market_quality_display = get_quality_display_dataframe(mdf_inc)
-                                                        st.dataframe(market_quality_display, width="stretch", height=360, hide_index=True)
-
-                                                        # Full results for this market
-                                                        with st.expander(f"🔎 Full Results — {mk}", expanded=False):
-                                                            market_full_display = get_full_display_dataframe(mdf)
-                                                            st.dataframe(market_full_display, width="stretch", height=480, hide_index=True)
-                                                except Exception as e:
-                                                    st.warning(f"⚠️ Display error for {mk}: {e}")
-                                        else:
-                                            # Single market - use simple quality view
-                                            st.markdown("### 🎯 Quality Jobs")
-                                            st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
-                                            with st.expander(f"🔍 All Processed Jobs ({total_jobs} total)", expanded=False):
-                                                st.dataframe(full_display, width="stretch", height=500, hide_index=True)
-                                    else:
-                                        # No markets detected - show single quality view
-                                        st.markdown("### 🎯 Quality Jobs")
-                                        st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
-                                        with st.expander(f"🔍 All Processed Jobs ({total_jobs} total)", expanded=False):
-                                            st.dataframe(full_display, width="stretch", height=500, hide_index=True)
-                                except Exception as e:
-                                    st.warning(f"⚠️ Multi-market display error: {e}")
-                                    # Fallback to simple display
-                                    st.markdown("### 🎯 Quality Jobs")
-                                    st.dataframe(quality_display, width="stretch", height=400, hide_index=True)
-                                    with st.expander(f"🔍 All Processed Jobs ({total_jobs} total)", expanded=False):
-                                        st.dataframe(full_display, width="stretch", height=500, hide_index=True)
-
-                        # Export options - OUTSIDE THE FORM
-                        if dp_submitted and 'df' in locals() and not df.empty:
-                            st.markdown("### 💾 Export Options")
-                            col1, col2 = st.columns(2)
-
-                            with col1:
-                                # CSV download
-                                csv_data = df.to_csv(index=False)
-                                st.download_button(
-                                    label="📄 Download CSV",
-                                    data=csv_data,
-                                    file_name=f"driver_pulse_jobs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                                    mime="text/csv"
-                                )
-
-                            with col2:
-                                # PDF generation (if enabled)
-                                if dp_enable_pdf:
-                                    try:
-                                        from fpdf_pdf_generator_v2 import generate_pdf_bytes_from_dataframe
-                                        pdf_bytes = generate_pdf_bytes_from_dataframe(
-                                            df=df,
-                                            market="Multi-Market DriverPulse",
-                                            coach_name=coach.full_name,
-                                            coach_username=coach.username,
-                                            candidate_name="",
-                                            candidate_id="",
-                                            show_prepared_for=False
-                                        )
-
-                                        if pdf_bytes:
-                                            st.download_button(
-                                                label="📄 Download PDF",
-                                                data=pdf_bytes,
-                                                file_name=f"driver_pulse_jobs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                                                mime="application/pdf"
-                                            )
-                                        else:
-                                            st.warning("⚠️ PDF generation failed")
-                                    except Exception as pdf_e:
-                                        st.warning(f"⚠️ PDF generation error: {pdf_e}")
-
-                        else:
-                            if dp_submitted:
-                                with results_container:
-                                    error_msg = metadata.get('error', 'Unknown error')
-                                    st.error(f"❌ DriverPulse scrape failed: {error_msg}")
-
-                    except Exception as e:
-                        st.error(f"❌ DriverPulse integration error: {e}")
-                        import traceback
-                        with st.expander("🔍 Error Details"):
-                            st.code(traceback.format_exc())
 
         elif selected_inner_tab == "📄 CSV Classification":
             st.markdown("### 📄 Classify CSV (Outscraper → Pipeline)")
@@ -7869,9 +7770,12 @@ def show_simple_batch_table(coach):
         from async_job_manager import AsyncJobManager
         from datetime import datetime, timedelta
         import pandas as pd
-        
+        from job_memory_db import JobMemoryDB
+        import io
+
         manager = AsyncJobManager()
-        
+        memory_db = JobMemoryDB()
+
         # Get all jobs for this coach using the available methods
         pending_jobs = manager.get_pending_jobs(None if coach.role == 'admin' else coach.username)
         completed_jobs = manager.get_completed_jobs(None if coach.role == 'admin' else coach.username)
@@ -7881,11 +7785,19 @@ def show_simple_batch_table(coach):
 
         # Combine all job types
         all_jobs = pending_jobs + completed_jobs + failed_jobs + retrieved_jobs + scheduled_jobs
-        
+
         if not all_jobs:
-            st.info("📝 No scheduled batches found. Create your first batch above!")
+            st.info("📝 No batches found. Create your first batch above!")
             return
-        
+
+        # Radio button filter for batch type/status
+        filter_option = st.radio(
+            "Filter batches:",
+            ["🔄 Recurring", "1️⃣ One-off", "✅ Completed", "❌ Failed", "📋 All"],
+            horizontal=True,
+            key="batch_filter_radio"
+        )
+
         st.info("💡 **Batch Types**: One-off batches run once, Recurring batches run on schedule. All times shown in Central Time.")
         
         # Prepare table data with enhanced information
@@ -7914,32 +7826,255 @@ def show_simple_batch_table(coach):
             
             # Get search parameters safely
             params = job.search_params if isinstance(job.search_params, dict) else {}
-            location = params.get('location', 'Unknown')
             search_terms = params.get('search_terms', 'Unknown')
             limit = params.get('limit', params.get('max_jobs', 'Unknown'))
             frequency = params.get('frequency', 'Once')
-            
+
+            # Determine location/market display
+            if job.job_type == 'driver_pulse':
+                # DriverPulse stores config in filter_settings
+                filter_settings = params.get('filter_settings', {})
+                filter_mode = filter_settings.get('filter_mode', 'all_markets')
+
+                if filter_mode == 'custom_zips':
+                    location = "Custom Location"
+                else:
+                    location = "All Markets"
+            else:
+                # Indeed/Google Jobs location handling
+                selected_markets = params.get('selected_markets', [])
+                if selected_markets:
+                    # Multi-market or single market from market selection
+                    location = selected_markets[0] if len(selected_markets) == 1 else "Multiple"
+                elif params.get('location'):
+                    # Custom location or fallback
+                    location = params.get('location')
+                else:
+                    # No location data - show Custom Location instead of Unknown
+                    location = "Custom Location"
+
             # Determine batch type
             batch_type = "🔄 Recurring" if frequency != "Once" else "1️⃣ One-off"
             
-            table_data.append({
-                'ID': job.id,
-                'Coach': job.coach_username,
-                'Type': batch_type,
-                'Source': 'Google Jobs' if job.job_type == 'google_jobs' else 'Indeed',
-                'Location': location,
-                'Terms': search_terms,
-                'Limit': limit,
-                'Status': display_status,
-                'Total Jobs': job.result_count or 0,
-                'Quality Jobs': job.quality_job_count or 0,
-                'Created': created_time.strftime('%m/%d %H:%M'),
-                'Frequency': frequency,
-                'job_obj': job  # Store full job object for actions
-            })
-        
+            # Apply filter
+            should_include = False
+            if filter_option == "📋 All":
+                should_include = True
+            elif filter_option == "🔄 Recurring":
+                should_include = frequency != "Once"
+            elif filter_option == "1️⃣ One-off":
+                should_include = frequency == "Once"
+            elif filter_option == "✅ Completed":
+                should_include = display_status == "✅ Complete"
+            elif filter_option == "❌ Failed":
+                should_include = display_status == "❌ Failed"
+
+            if should_include:
+                # Determine source display name
+                if job.job_type == 'driver_pulse':
+                    source_display = 'DriverPulse'
+                elif job.job_type == 'google_jobs':
+                    source_display = 'Google Jobs'
+                elif job.job_type == 'indeed_jobs':
+                    source_display = 'Indeed'
+                else:
+                    source_display = job.job_type  # Fallback to raw job_type
+
+                # Get run_id from search_params (stored as 'sys.run_id')
+                run_id = params.get('sys.run_id', None)
+
+                table_data.append({
+                    'ID': job.id,
+                    'Coach': job.coach_username,
+                    'Type': batch_type,
+                    'Source': source_display,
+                    'Location': location,
+                    'Terms': search_terms,
+                    'Limit': limit,
+                    'Status': display_status,
+                    'Total Jobs': job.result_count or 0,
+                    'Quality Jobs': job.quality_job_count or 0,
+                    'Created': created_time.strftime('%m/%d %H:%M'),
+                    'Frequency': frequency,
+                    'run_id': run_id,  # Get run_id from search_params for downloading results
+                    'job_obj': job  # Store full job object for actions
+                })
+
+        # Display count of filtered batches
+        total_count = len(all_jobs)
+        filtered_count = len(table_data)
+        if filter_option != "📋 All":
+            st.caption(f"Showing {filtered_count} of {total_count} total batches")
+
+        # Group recurring batches by unique configuration
+        if filter_option == "🔄 Recurring":
+            # Group by recurring_batch_group_id to identify unique recurring batches
+            from collections import defaultdict
+            recurring_groups = defaultdict(list)
+
+            for data in table_data:
+                job_obj = data['job_obj']
+                group_id = job_obj.recurring_batch_group_id if hasattr(job_obj, 'recurring_batch_group_id') else None
+
+                # Only group if there's a valid group_id, otherwise use a unique fallback key
+                if group_id:
+                    key = group_id
+                else:
+                    # Fallback to old grouping for batches created before recurring_batch_group_id was added
+                    key = f"legacy_{data['Location']}_{data['Terms']}_{data['Source']}_{data['Frequency']}"
+
+                recurring_groups[key].append(data)
+
+            st.caption(f"📊 {len(recurring_groups)} unique recurring batch configurations")
+
+            # Display grouped recurring batches
+            for group_key, runs in recurring_groups.items():
+                # Sort runs by created date (newest first)
+                runs = sorted(runs, key=lambda x: x['Created'], reverse=True)
+                latest_run = runs[0]
+
+                # Get display info from latest run
+                location = latest_run['Location']
+                terms = latest_run['Terms']
+                source = latest_run['Source']
+                frequency = latest_run['Frequency']
+
+                with st.expander(f"🔄 **{source}** - {location} - {terms[:40]}{'...' if len(terms) > 40 else ''}", expanded=False):
+                    # Header with edit button
+                    header_cols = st.columns([3, 1])
+                    with header_cols[0]:
+                        st.markdown(f"**Schedule:** {frequency}")
+                        if latest_run['Frequency'] == 'Weekly':
+                            params = latest_run['job_obj'].search_params
+                            days = params.get('scheduled_days', [])
+                            time = params.get('scheduled_time', 'N/A')
+                            st.caption(f"🗓️ {', '.join(days)} at {time}")
+
+                    with header_cols[1]:
+                        if st.button("✏️ Edit", key=f"edit_recurring_{latest_run['ID']}", help="Edit schedule settings"):
+                            st.session_state[f'editing_batch_{latest_run["ID"]}'] = True
+                            st.rerun()
+
+                    # Show edit form if editing
+                    if st.session_state.get(f'editing_batch_{latest_run["ID"]}', False):
+                        st.markdown("#### Edit Schedule")
+                        params = latest_run['job_obj'].search_params
+
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            new_frequency = st.selectbox(
+                                "Frequency",
+                                ["Weekly", "Daily", "Once"],
+                                index=["Weekly", "Daily", "Once"].index(params.get('frequency', 'Weekly')),
+                                key=f"freq_{latest_run['ID']}"
+                            )
+
+                        with col2:
+                            new_time = st.time_input(
+                                "Time",
+                                value=datetime.strptime(params.get('scheduled_time', '09:00'), '%H:%M').time(),
+                                key=f"time_{latest_run['ID']}"
+                            )
+
+                        if new_frequency == "Weekly":
+                            new_days = st.multiselect(
+                                "Days",
+                                ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+                                default=params.get('scheduled_days', []),
+                                key=f"days_{latest_run['ID']}"
+                            )
+
+                        save_col, cancel_col = st.columns(2)
+                        with save_col:
+                            if st.button("💾 Save", key=f"save_{latest_run['ID']}"):
+                                # Update search_params in database
+                                updated_params = params.copy()
+                                updated_params['frequency'] = new_frequency
+                                updated_params['scheduled_time'] = new_time.strftime('%H:%M')
+                                if new_frequency == "Weekly":
+                                    updated_params['scheduled_days'] = new_days
+
+                                # Update the job in database
+                                manager.supabase_client.table('async_job_queue').update({
+                                    'search_params': updated_params
+                                }).eq('id', latest_run['ID']).execute()
+
+                                st.success("✅ Schedule updated")
+                                st.session_state[f'editing_batch_{latest_run["ID"]}'] = False
+                                st.rerun()
+
+                        with cancel_col:
+                            if st.button("❌ Cancel", key=f"cancel_edit_{latest_run['ID']}"):
+                                st.session_state[f'editing_batch_{latest_run["ID"]}'] = False
+                                st.rerun()
+
+                    # Separate upcoming runs from past runs
+                    scheduled_runs = [r for r in runs if '⏰' in r['Status'] or '📋' in r['Status']]
+                    past_runs = [r for r in runs if '✅' in r['Status'] or '❌' in r['Status'] or '🔄' in r['Status']]
+
+                    # Show next scheduled run
+                    if scheduled_runs:
+                        st.markdown("**📅 Next Scheduled Run**")
+                        next_run = scheduled_runs[0]
+                        next_run_obj = next_run['job_obj']
+                        scheduled_run_at = next_run_obj.scheduled_run_at
+
+                        if scheduled_run_at:
+                            from datetime import datetime, timezone
+                            if isinstance(scheduled_run_at, str):
+                                scheduled_dt = datetime.fromisoformat(scheduled_run_at.replace('Z', '+00:00'))
+                            else:
+                                scheduled_dt = scheduled_run_at
+
+                            now = datetime.now(timezone.utc)
+                            time_until = scheduled_dt - now
+                            hours_until = time_until.total_seconds() / 3600
+
+                            if hours_until > 24:
+                                time_str = f"in {int(hours_until / 24)} days"
+                            elif hours_until > 1:
+                                time_str = f"in {int(hours_until)} hours"
+                            elif hours_until > 0:
+                                time_str = f"in {int(hours_until * 60)} minutes"
+                            else:
+                                time_str = "overdue (will run at top of next hour)"
+
+                            st.info(f"⏰ Batch #{next_run['ID']} scheduled for {scheduled_dt.strftime('%m/%d %H:%M UTC')} ({time_str})")
+                        else:
+                            st.caption(f"Batch #{next_run['ID']} - {next_run['Status']}")
+
+                    # Show past runs
+                    if past_runs:
+                        st.markdown(f"**📊 Past Runs** ({len(past_runs)} completed)")
+                        for run in past_runs[:5]:  # Show last 5 past runs
+                            run_cols = st.columns([2, 2, 1])
+                            with run_cols[0]:
+                                st.caption(f"Run #{run['ID']} - {run['Created']}")
+                            with run_cols[1]:
+                                st.caption(f"{run['Status']} - {run['Total Jobs']} jobs ({run['Quality Jobs']} quality)")
+                            with run_cols[2]:
+                                if "Complete" in run['Status'] and run.get('run_id'):
+                                    if st.button("📥", key=f"dl_hist_{run['ID']}", help="Download"):
+                                        jobs_df = memory_db.query_jobs_by_run_id(run['run_id'])
+                                        if not jobs_df.empty:
+                                            csv_buffer = io.StringIO()
+                                            jobs_df.to_csv(csv_buffer, index=False)
+                                            st.download_button(
+                                                "💾 CSV",
+                                                csv_buffer.getvalue(),
+                                                f"batch_{run['ID']}.csv",
+                                                "text/csv",
+                                                key=f"dl_btn_hist_{run['ID']}"
+                                            )
+
+                        if len(past_runs) > 5:
+                            st.caption(f"... and {len(past_runs) - 5} more past runs")
+
+                    if not scheduled_runs and not past_runs:
+                        st.caption("No runs yet")
+
         # Display enhanced table with better management - RESPONSIVE DESIGN
-        if table_data:
+        elif table_data:
             # Mobile-friendly responsive table with grouped information
             for data in table_data:
                 job_id = data['ID']
@@ -8013,15 +8148,35 @@ def show_simple_batch_table(coach):
                             elif "Complete" in status:
                                 if st.button("📊", key=f"download_{job_id}", help="Download results"):
                                     try:
-                                        # Try to get results from the job
-                                        if hasattr(job, 'result_data') and job.result_data:
-                                            st.success(f"📊 Results available for batch {job_id}")
-                                            # TODO: Implement actual CSV download
-                                            st.info("💡 CSV download functionality coming soon!")
+                                        run_id = data.get('run_id')
+                                        if not run_id:
+                                            st.warning(f"⚠️ No run_id found for batch {job_id}")
                                         else:
-                                            st.warning(f"⚠️ No results data found for batch {job_id}")
+                                            # Query jobs from Supabase using run_id
+                                            jobs_df = memory_db.query_jobs_by_run_id(run_id)
+
+                                            if jobs_df.empty:
+                                                st.warning(f"⚠️ No jobs found for batch {job_id} (run_id: {run_id})")
+                                            else:
+                                                # Generate CSV
+                                                csv_buffer = io.StringIO()
+                                                jobs_df.to_csv(csv_buffer, index=False)
+                                                csv_data = csv_buffer.getvalue()
+
+                                                # Offer download
+                                                st.download_button(
+                                                    label=f"💾 Download {len(jobs_df)} jobs as CSV",
+                                                    data=csv_data,
+                                                    file_name=f"batch_{job_id}_{run_id}.csv",
+                                                    mime="text/csv",
+                                                    key=f"dl_btn_{job_id}"
+                                                )
+                                                st.success(f"✅ {len(jobs_df)} jobs ready for download")
                                     except Exception as e:
                                         st.error(f"❌ Download failed: {e}")
+                                        import traceback
+                                        with st.expander("Error details"):
+                                            st.code(traceback.format_exc())
                             elif "Failed" in status:
                                 if st.button("🔄", key=f"retry_{job_id}", help="Retry batch"):
                                     st.info(f"🔄 Retry functionality for batch {job_id} - coming soon!")
