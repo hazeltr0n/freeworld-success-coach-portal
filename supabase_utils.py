@@ -31,8 +31,8 @@ def get_client() -> "Client | None":
                 return None
             url = st.secrets.get("SUPABASE_URL")
             key = st.secrets.get("SUPABASE_ANON_KEY")
-    except (AttributeError, ImportError):
-        pass  # Streamlit secrets not available
+    except Exception:
+        pass  # Streamlit secrets not available or no secrets file found
     
     # Fallback to environment variables
     if not url or not key:
