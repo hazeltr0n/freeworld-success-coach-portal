@@ -163,14 +163,14 @@ class JobMemoryDB:
             skipped_jobs = []
             for idx, job in jobs_df.iterrows():
                 # Handle jobs with different routing statuses
-                # Check both canonical (route.final_status) and Supabase field names (filter_reason)
-                final_status = job.get('route.final_status', '') or job.get('filter_reason', '')
-                job_id = job.get('id.job', job.get('job_id', f'job_{idx}'))
+                # IMPORTANT: After prepare_for_supabase(), columns use FLAT names (e.g., 'filter_reason'), NOT canonical (e.g., 'route.final_status')
+                final_status = job.get('filter_reason', '')
+                job_id = job.get('job_id', f'job_{idx}')
                 
-                # Try canonical fields first (ai.match, ai.reason, ai.summary), then fallback to legacy field names
-                match = job.get('ai.match', job.get('match_level', job.get('match', '')))
-                reason = job.get('ai.reason', job.get('match_reason', job.get('reason', '')))
-                summary = job.get('ai.summary', job.get('summary', ''))
+                # After prepare_for_supabase(), use FLAT field names
+                match = job.get('match_level', '')
+                reason = job.get('match_reason', '')
+                summary = job.get('summary', '')
                 
                 # If route.final_status is included or passed_all_filters, ALWAYS store to Supabase
                 if final_status == 'passed_all_filters' or final_status.startswith('included'):
@@ -225,50 +225,52 @@ class JobMemoryDB:
                         return ''
                     return str(val)
 
+                # Build record using FLAT Supabase field names (after prepare_for_supabase transformation)
                 record = {
                     # Core job information (all TEXT as per RPC function)
-                    'job_id': safe_str(job.get('id.job', job.get('job_id', ''))),
-                    'job_title': safe_str(job.get('source.title', job.get('job_title', ''))),
-                    'company': safe_str(job.get('source.company', job.get('company', ''))),
-                    'location': safe_str(job.get('source.location_raw', job.get('location', ''))),
-                    'zip_code': safe_str(job.get('norm.zip_code', job.get('zip_code', ''))),
-                    'job_description': safe_str(job.get('source.description_raw', job.get('job_description', '')))[:5000],
-                    'apply_url': safe_str(job.get('source.indeed_url', job.get('apply_url', ''))),
-                    'salary': safe_str(job.get('source.salary_raw', job.get('salary', ''))),
+                    'job_id': safe_str(job.get('job_id', '')),
+                    'job_title': safe_str(job.get('job_title', '')),
+                    'company': safe_str(job.get('company', '')),
+                    'location': safe_str(job.get('location', '')),
+                    'zip_code': safe_str(job.get('zip_code', '')),
+                    'job_description': safe_str(job.get('job_description', ''))[:5000],
+                    'apply_url': safe_str(job.get('apply_url', '')),
+                    'salary': safe_str(job.get('salary', '')),
 
                     # AI Classification results (all TEXT)
                     'match_level': safe_str(match),
                     'match_reason': safe_str(reason),
                     'summary': safe_str(summary),
-                    'fair_chance': safe_str(job.get('ai.fair_chance', job.get('fair_chance', 'unknown'))),
-                    'endorsements': safe_str(job.get('ai.endorsements', job.get('endorsements', 'unknown'))),
-                    'route_type': safe_str(job.get('ai.route_type', job.get('route_type', ''))),
+                    'fair_chance': safe_str(job.get('fair_chance', 'unknown')),
+                    'endorsements': safe_str(job.get('endorsements', 'unknown')),
+                    'route_type': safe_str(job.get('route_type', '')),
 
                     # Career pathway fields (new for pathway classifier)
-                    'career_pathway': safe_str(job.get('ai.career_pathway', job.get('career_pathway', 'cdl_pathway'))),
-                    'training_provided': str(job.get('ai.training_provided', job.get('training_provided', False))).lower(),
+                    'career_pathway': safe_str(job.get('career_pathway', 'cdl_pathway')),
+                    'training_provided': str(job.get('training_provided', False)).lower(),
 
                     # Organization and tracking (all TEXT)
-                    'market': safe_str(_sanitize_market(job.get('meta.market', job.get('market', '')))),
-                    'tracked_url': safe_str(job.get('meta.tracked_url', job.get('tracked_url', ''))),
+                    'market': safe_str(_sanitize_market(job.get('market', ''))),
+                    'tracked_url': safe_str(job.get('tracked_url', '')),  # ← CRITICAL FIX!
 
                     # Recall context fields (all TEXT)
-                    'indeed_job_url': safe_str(job.get('source.indeed_url', job.get('indeed_job_url', ''))),
-                    'search_query': safe_str(job.get('meta.query', job.get('search_query', ''))),
-                    'source': safe_str(job.get('id.source', job.get('source', 'outscraper'))),
-                    'filter_reason': safe_str(job.get('route.final_status', job.get('filter_reason', ''))),
+                    'indeed_job_url': safe_str(job.get('indeed_job_url', '')),
+                    'search_query': safe_str(job.get('search_query', '')),
+                    'source': safe_str(job.get('source', 'outscraper')),
+                    'filter_reason': safe_str(job.get('filter_reason', '')),
 
                     # System metadata (all TEXT)
-                    'classification_source': safe_str(job.get('sys.classification_source', 'ai_classification')),
+                    'classification_source': safe_str(job.get('classification_source', 'ai_classification')),
                     'classified_at': datetime.now().isoformat(),
                     'created_at': datetime.now().isoformat(),
                     'updated_at': datetime.now().isoformat(),
 
                     # Deduplication fields (all TEXT) - these are critical for the RPC function
-                    'rules_duplicate_r1': safe_str(job.get('rules.duplicate_r1', '')),
-                    'rules_duplicate_r2': safe_str(job.get('rules.duplicate_r2', '')),
+                    'rules_duplicate_r1': safe_str(job.get('rules_duplicate_r1', '')),
+                    'rules_duplicate_r2': safe_str(job.get('rules_duplicate_r2', '')),
+                    'rules_duplicate_r3': safe_str(job.get('rules_duplicate_r3', '')),
                     'clean_apply_url': safe_str(job.get('clean_apply_url', '')),
-                    'job_id_hash': safe_str(job.get('sys.hash', ''))
+                    'job_id_hash': safe_str(job.get('sys.hash', ''))  # Keep sys.hash (not in SUPABASE_FIELDS)
                 }
                 
                 if record['job_id']:  # Only store if we have a job_id
@@ -474,66 +476,76 @@ class JobMemoryDB:
             # Calculate cutoff time
             cutoff_time = datetime.now() - timedelta(hours=hours)
             cutoff_str = cutoff_time.isoformat()
-            
+
             # Query for matching job IDs within time window - ALL classified jobs
             # (Used to avoid re-classifying jobs, regardless of quality)
-            result = self.supabase.table('jobs').select('*').in_(
-                'job_id', job_ids
-            ).gte('classified_at', cutoff_str).execute()
-            
-            if not result.data:
-                return {}
-            
-            # Convert to lookup dictionary with all comprehensive fields
+            # IMPORTANT: Batch queries to avoid massive IN clauses that timeout
             memory_dict = {}
-            for job in result.data:
-                memory_dict[job['job_id']] = {
-                    # Core job information
-                    'job_title': job['job_title'],
-                    'company': job['company'],
-                    'location': job['location'],
-                    'job_description': job['job_description'],
-                    'job_id': job['job_id'],
-                    
-                    # Original fields
-                    'job_title_original': job.get('job_title_original', ''),
-                    'company_original': job.get('company_original', ''),
-                    'location_original': job.get('location_original', ''),
-                    
-                    # Comprehensive salary fields
-                    'salary': job.get('salary', ''),
-                    'salary_display_text': job.get('salary_display_text', ''),
-                    'salary_estimated_currency': job.get('salary_estimated_currency', ''),
-                    'salary_estimated_unit': job.get('salary_estimated_unit', ''),
-                    'salary_estimated_min': job.get('salary_estimated_min', ''),
-                    'salary_estimated_max': job.get('salary_estimated_max', ''),
-                    'salary_base_currency': job.get('salary_base_currency', ''),
-                    'salary_base_unit': job.get('salary_base_unit', ''),
-                    'salary_base_min': job.get('salary_base_min', ''),
-                    'salary_base_max': job.get('salary_base_max', ''),
-                    
-                    # Classification results
-                    'match': job['match_level'],
-                    'reason': job['match_reason'],
-                    'summary': job.get('summary', ''),
-                    'route_type': job['route_type'],
-                    'fair_chance': job.get('fair_chance', 'unknown'),
-                    'endorsements': job.get('endorsements', 'unknown'),
-                    
-                    # Processing status and metadata
-                    'final_status': job.get('filter_reason', ''),  # Map Supabase filter_reason to DataFrame final_status
-                    'classification_source': job.get('classification_source', 'memory_database'),
-                    
-                    # URLs and source tracking
-                    'apply_url': job['apply_url'],
-                    'indeed_job_url': job.get('indeed_job_url', ''),
-                    'source': job.get('source', 'memory_database'),
-                    
-                    # Search and market data
-                    'market': job['market'],
-                    'query': job.get('search_query', ''),  # Map search_query to query for DataFrame compatibility
-                    'search_query': job.get('search_query', '')
-                }
+            batch_size = 500  # Query 500 job IDs at a time
+            total_batches = (len(job_ids) + batch_size - 1) // batch_size
+
+            print(f"🔍 Checking {len(job_ids)} job IDs against Supabase in {total_batches} batches of {batch_size}...")
+
+            for batch_num in range(0, len(job_ids), batch_size):
+                batch = job_ids[batch_num:batch_num + batch_size]
+                batch_index = (batch_num // batch_size) + 1
+
+                result = self.supabase.table('jobs').select('*').in_(
+                    'job_id', batch
+                ).gte('classified_at', cutoff_str).execute()
+
+                if result.data:
+                    print(f"   Batch {batch_index}/{total_batches}: Found {len(result.data)} existing jobs")
+
+                # Convert to lookup dictionary with all comprehensive fields
+                for job in result.data:
+                    memory_dict[job['job_id']] = {
+                        # Core job information
+                        'job_title': job['job_title'],
+                        'company': job['company'],
+                        'location': job['location'],
+                        'job_description': job['job_description'],
+                        'job_id': job['job_id'],
+
+                        # Original fields
+                        'job_title_original': job.get('job_title_original', ''),
+                        'company_original': job.get('company_original', ''),
+                        'location_original': job.get('location_original', ''),
+
+                        # Comprehensive salary fields
+                        'salary': job.get('salary', ''),
+                        'salary_display_text': job.get('salary_display_text', ''),
+                        'salary_estimated_currency': job.get('salary_estimated_currency', ''),
+                        'salary_estimated_unit': job.get('salary_estimated_unit', ''),
+                        'salary_estimated_min': job.get('salary_estimated_min', ''),
+                        'salary_estimated_max': job.get('salary_estimated_max', ''),
+                        'salary_base_currency': job.get('salary_base_currency', ''),
+                        'salary_base_unit': job.get('salary_base_unit', ''),
+                        'salary_base_min': job.get('salary_base_min', ''),
+                        'salary_base_max': job.get('salary_base_max', ''),
+
+                        # Classification results
+                        'match': job['match_level'],
+                        'reason': job['match_reason'],
+                        'summary': job.get('summary', ''),
+                        'route_type': job['route_type'],
+                        'fair_chance': job.get('fair_chance', 'unknown'),
+                        'endorsements': job.get('endorsements', 'unknown'),
+
+                        # Processing status and metadata
+                        'final_status': job.get('filter_reason', ''),  # Map Supabase filter_reason to DataFrame final_status
+                        'classification_source': job.get('classification_source', 'memory_database'),
+
+                        # URLs and source tracking
+                        'apply_url': job['apply_url'],
+                        'indeed_job_url': job.get('indeed_job_url', ''),
+                        'source': job.get('source', 'memory_database'),
+
+                        # Search and market data
+                        'market': job['market'],
+                        'query': job.get('search_query', ''),  # Map search_query to query for DataFrame compatibility
+                        'search_query': job.get('search_query', '')
+                    }
             
             logger.info(f"Found {len(memory_dict)} jobs in memory database out of {len(job_ids)} checked")
             return memory_dict
@@ -546,35 +558,45 @@ class JobMemoryDB:
                 if self._check_and_repair_connection():
                     logger.info("Retrying check_job_memory after connection repair...")
                     try:
-                        # Retry once with repaired connection
+                        # Retry once with repaired connection - using batching
                         cutoff_time = datetime.now() - timedelta(hours=hours)
                         cutoff_str = cutoff_time.isoformat()
-                        result = self.supabase.table('jobs').select('*').in_(
-                            'job_id', job_ids
-                        ).gte('classified_at', cutoff_str).execute()
-                        
-                        if result.data:
-                            memory_dict = {}
-                            for job in result.data:
-                                memory_dict[job['job_id']] = {
-                                    'job_id': job['job_id'], 
-                                    'title': job['title'],
-                                    'company': job['company'],
-                                    'location': job['location'],
-                                    'description': job['description'],
-                                    'match_level': job['match_level'],
-                                    'ai_reason': job.get('ai_reason', ''),
-                                    'ai_summary': job.get('ai_summary', ''),
-                                    'fair_chance': job.get('fair_chance', 'no_requirements_mentioned'),
-                                    'endorsements': job.get('endorsements', 'none_required'),
-                                    'route_type': job.get('route_type', ''),
-                                    'market': job['market'],
-                                    'query': job.get('search_query', ''),
-                                    'search_query': job.get('search_query', '')
-                                }
-                            logger.info(f"Found {len(memory_dict)} jobs in memory database out of {len(job_ids)} checked (after reconnection)")
-                            return memory_dict
-                        return {}
+                        memory_dict = {}
+                        batch_size = 500
+                        total_batches = (len(job_ids) + batch_size - 1) // batch_size
+
+                        print(f"🔍 [Retry] Checking {len(job_ids)} job IDs against Supabase in {total_batches} batches...")
+
+                        for batch_num in range(0, len(job_ids), batch_size):
+                            batch = job_ids[batch_num:batch_num + batch_size]
+                            batch_index = (batch_num // batch_size) + 1
+
+                            result = self.supabase.table('jobs').select('*').in_(
+                                'job_id', batch
+                            ).gte('classified_at', cutoff_str).execute()
+
+                            if result.data:
+                                print(f"   [Retry] Batch {batch_index}/{total_batches}: Found {len(result.data)} existing jobs")
+                                for job in result.data:
+                                    memory_dict[job['job_id']] = {
+                                        'job_id': job['job_id'],
+                                        'title': job['title'],
+                                        'company': job['company'],
+                                        'location': job['location'],
+                                        'description': job['description'],
+                                        'match_level': job['match_level'],
+                                        'ai_reason': job.get('ai_reason', ''),
+                                        'ai_summary': job.get('ai_summary', ''),
+                                        'fair_chance': job.get('fair_chance', 'no_requirements_mentioned'),
+                                        'endorsements': job.get('endorsements', 'none_required'),
+                                        'route_type': job.get('route_type', ''),
+                                        'market': job['market'],
+                                        'query': job.get('search_query', ''),
+                                        'search_query': job.get('search_query', '')
+                                    }
+
+                        logger.info(f"Found {len(memory_dict)} jobs in memory database out of {len(job_ids)} checked (after reconnection)")
+                        return memory_dict
                     except Exception as retry_error:
                         logger.error(f"Retry failed after connection repair in check_job_memory: {retry_error}")
                         
@@ -819,6 +841,29 @@ class JobMemoryDB:
             logger.error(f"Error getting memory stats: {e}")
             return {'memory_available': False, 'error': str(e)}
     
+    def query_jobs_by_run_id(self, run_id: str) -> pd.DataFrame:
+        """Query all jobs for a specific batch run_id"""
+        if not self.supabase:
+            logger.error("Supabase not connected")
+            return pd.DataFrame()
+
+        try:
+            # Query jobs table for this run_id
+            result = self.supabase.table('jobs').select('*').eq('run_id', run_id).execute()
+
+            if not result.data:
+                logger.warning(f"No jobs found for run_id: {run_id}")
+                return pd.DataFrame()
+
+            # Convert to DataFrame
+            df = pd.DataFrame(result.data)
+            logger.info(f"✅ Retrieved {len(df)} jobs for run_id: {run_id}")
+            return df
+
+        except Exception as e:
+            logger.error(f"Failed to query jobs by run_id {run_id}: {e}")
+            return pd.DataFrame()
+
     def test_connection(self) -> Dict:
         """Test the database connection"""
         if not self.supabase:
@@ -826,17 +871,17 @@ class JobMemoryDB:
                 'success': False,
                 'message': 'Supabase not connected - check credentials'
             }
-            
+
         try:
             # Try a simple query to test connection
             result = self.supabase.table('jobs').select('job_id').limit(1).execute()
-            
+
             return {
                 'success': True,
                 'message': 'Memory database connection successful',
                 'records_found': len(result.data) if result.data else 0
             }
-            
+
         except Exception as e:
             return {
                 'success': False,

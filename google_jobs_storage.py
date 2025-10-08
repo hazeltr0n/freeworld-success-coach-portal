@@ -133,45 +133,67 @@ class GoogleJobsStorage:
     def _normalize_basic_fields(self, df, location):
         """Basic field normalization for Google Jobs"""
         print("🧹 Normalizing Google Jobs fields...")
-        
+
         # Generate job IDs
         job_ids = []
         for idx, row in df.iterrows():
             company = str(row.get('company_name', 'Unknown')).strip()
             title = str(row.get('title', 'Job')).strip()
             location_text = str(row.get('location', location)).strip()
-            
+
             # Create consistent ID
             id_text = f"{company}|{location_text}|{title}".lower()
             job_id = hashlib.md5(id_text.encode()).hexdigest()[:8]
             job_ids.append(job_id)
-        
+
         df['job_id'] = job_ids
-        
+
         # Map Google Jobs fields to canonical format that store_classifications expects
         df['id.job'] = df['job_id']  # Use job_id as canonical id
         df['source.title'] = df['title']
-        df['source.company'] = df['company']  
+        df['source.company'] = df['company']
         df['source.location_raw'] = df['location']
         df['source.description_raw'] = df['description']
         # Apply URLs are in apply_urls array - get first URL
         df['source.apply_url'] = df.apply(lambda row: row.get('apply_urls', [{}])[0].get('apply_url:', '') if row.get('apply_urls') else '', axis=1)
         df['source.salary_raw'] = ''  # Not in Google Jobs API response
-        
+
         # Additional canonical fields
+        df['norm.title'] = df['title']
+        df['norm.company'] = df['company']
         df['norm.location'] = location
+        df['norm.description'] = df['description']
         df['meta.market'] = location
         df['meta.search_terms'] = f"CDL Driver"
         df['sys.classification_source'] = 'ai_classification'
         df['sys.is_fresh_job'] = True
-        
+
+        # Generate R1 and R2 dedup hashes (before AI classification)
+        print(f"🔍 Generating R1 and R2 deduplication hashes...")
+        from canonical_transforms import generate_dedup_keys
+
+        for idx, row in df.iterrows():
+            # Check if company is blacklisted for HYBRID R2 logic
+            company_lower = str(row.get('norm.company', '')).lower()
+            is_blacklisted = any(spam in company_lower for spam in [
+                'schneider', 'prime inc', 'crete carrier', 'swift', 'werner', 'cr england'
+            ])
+
+            dedup_keys = generate_dedup_keys(row, location, is_blacklisted=is_blacklisted)
+            df.loc[idx, 'rules.duplicate_r1'] = dedup_keys['rules.duplicate_r1']
+            df.loc[idx, 'rules.duplicate_r2'] = dedup_keys['rules.duplicate_r2']
+
+        r1_count = (df['rules.duplicate_r1'] != '').sum()
+        r2_count = (df['rules.duplicate_r2'] != '').sum()
+        print(f"✅ Generated {r1_count} R1 hashes and {r2_count} R2 hashes")
+
         print(f"✅ Normalized {len(df)} Google Jobs")
         return df
     
     def _classify_jobs(self, df):
         """AI classify Google Jobs"""
         print(f"🤖 AI classifying {len(df)} Google Jobs...")
-        
+
         jobs_for_classification = []
         for idx, row in df.iterrows():
             job_data = {
@@ -182,10 +204,10 @@ class GoogleJobsStorage:
                 'job_description': row['source.description_raw']
             }
             jobs_for_classification.append(job_data)
-        
+
         # Classify using existing classifier
         classification_results = self.classifier.classify_jobs_in_batches(jobs_for_classification)
-        
+
         # Map results back to DataFrame using canonical field names
         for idx, result in enumerate(classification_results):
             # Use canonical field names that store_classifications expects
@@ -195,27 +217,60 @@ class GoogleJobsStorage:
             df.loc[idx, 'ai.fair_chance'] = result.get('fair_chance', '')
             df.loc[idx, 'ai.endorsements'] = result.get('endorsements', '')
             df.loc[idx, 'ai.route_type'] = result.get('route_type', 'Unknown')
-        
+
         quality_count = len(df[df['ai.match'].isin(['good', 'so-so'])])
         print(f"✅ AI classified: {quality_count} quality jobs out of {len(df)}")
-        
+
+        # Generate R3 dedup hash (post-AI classification)
+        print(f"🔍 Generating R3 deduplication hashes (post-AI)...")
+        df['rules.duplicate_r3'] = df.apply(lambda row: self._generate_r3_hash(row), axis=1)
+        r3_count = (df['rules.duplicate_r3'] != '').sum()
+        print(f"✅ Generated {r3_count} R3 hashes")
+
         return df
+
+    def _generate_r3_hash(self, row):
+        """Generate R3 dedup hash (post-AI classification)
+
+        R3 = company|market|route_type|match_level|normalized_title
+        """
+        import hashlib
+        import re
+
+        company = str(row.get('source.company', '')).lower().strip()
+        market = str(row.get('meta.market', '')).lower().strip()
+        route_type = str(row.get('ai.route_type', 'Unknown')).lower().strip()
+        match_level = str(row.get('ai.match', 'unknown')).lower().strip()
+
+        # Normalize title to catch variations
+        title = str(row.get('source.title', '')).lower().strip()
+        # Remove common filler words
+        for word in ['driver', 'cdl', 'class a', 'class b', 'hiring', 'now', 'needed', 'wanted']:
+            title = title.replace(word, '')
+        title = ' '.join(title.split())  # Normalize whitespace
+
+        r3_key = f"{company}|{market}|{route_type}|{match_level}|{title}"
+        return hashlib.md5(r3_key.encode()).hexdigest()[:16]
     
     def _store_in_supabase(self, df):
         """Store quality jobs in Supabase using store_classifications"""
         print(f"💾 Storing {len(df)} quality jobs in Supabase...")
-        
+
         try:
+            # CRITICAL: Transform to Supabase flat schema before storing
+            from jobs_schema import prepare_for_supabase
+            df_supabase = prepare_for_supabase(df)
+
             # Use the existing store_classifications method
-            success = self.memory_db.store_classifications(df)
-            
+            success = self.memory_db.store_classifications(df_supabase)
+
             if success:
                 print(f"✅ Successfully stored {len(df)} jobs in Supabase")
                 return len(df)
             else:
                 print(f"❌ Failed to store jobs in Supabase")
                 return 0
-                
+
         except Exception as e:
             print(f"❌ Error storing jobs: {e}")
             return 0

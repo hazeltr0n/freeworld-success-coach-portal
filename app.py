@@ -3646,30 +3646,6 @@ def show_loan_calculator():
 def main():
     """Main Streamlit application"""
 
-    # 🤖 BACKGROUND: Check for submitted batches and execute them
-    # This runs silently in the background whenever anyone visits the app
-    try:
-        from async_job_manager import AsyncJobManager
-        manager = AsyncJobManager()
-
-        # Check for batches marked as 'submitted' by the Edge Function
-        submitted = manager.supabase_client.table('async_job_queue').select('*').eq('status', 'submitted').execute()
-
-        if submitted.data:
-            for job_data in submitted.data:
-                try:
-                    # Execute the batch based on job type
-                    if job_data['job_type'] == 'driver_pulse':
-                        manager.submit_driver_pulse_search(job_data['search_params'], job_data['coach_username'])
-                    elif job_data['job_type'] == 'google_jobs':
-                        manager.submit_google_search(job_data['search_params'], job_data['coach_username'])
-                    elif job_data['job_type'] == 'indeed_jobs':
-                        manager.submit_indeed_search(job_data['search_params'], job_data['coach_username'])
-                except Exception:
-                    pass  # Silently fail - don't interrupt user experience
-    except Exception:
-        pass  # Silently fail - don't break the app if this fails
-
     # Check for public-facing agent portal link FIRST
     try:
         params = st.query_params

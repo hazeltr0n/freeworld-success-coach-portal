@@ -14,6 +14,41 @@ from jobs_schema import (
 )
 from location_normalizer import LocationNormalizer
 
+# Import ZIP lookup for reverse mapping (City, ST → ZIP)
+try:
+    from zip_market_lookup import ZIP_TO_CITY_STATE
+    ZIP_LOOKUP_AVAILABLE = True
+except ImportError:
+    ZIP_LOOKUP_AVAILABLE = False
+    ZIP_TO_CITY_STATE = {}
+
+# Cache for reverse lookup (City, ST → ZIP)
+_CITY_TO_ZIP_CACHE = None
+
+def _build_city_to_zip_lookup():
+    """Build reverse lookup: City, ST → ZIP from zip_market_lookup"""
+    global _CITY_TO_ZIP_CACHE
+
+    if _CITY_TO_ZIP_CACHE is not None:
+        return _CITY_TO_ZIP_CACHE
+
+    if not ZIP_LOOKUP_AVAILABLE:
+        print("⚠️  zip_market_lookup not available, ZIP fallback disabled")
+        _CITY_TO_ZIP_CACHE = {}
+        return {}
+
+    # Build reverse map: "city, st" (lowercase) → ZIP
+    city_to_zip = {}
+    for zip_code, city_state in ZIP_TO_CITY_STATE.items():
+        city_state_lower = city_state.lower().strip()
+        # Keep first ZIP we find for each city
+        if city_state_lower not in city_to_zip:
+            city_to_zip[city_state_lower] = zip_code
+
+    _CITY_TO_ZIP_CACHE = city_to_zip
+    print(f"📍 Built reverse lookup: {len(city_to_zip):,} City, ST → ZIP mappings")
+    return city_to_zip
+
 # ==============================================================================
 # SALARY PROCESSING HELPERS
 # ==============================================================================
@@ -131,6 +166,7 @@ def transform_ingest_outscraper(raw_data: List[Dict], run_id: str, search_locati
         'formattedLocation': 'source.location_raw',
         'viewJobLink': 'source.url',  # Single unified URL field
         'salarySnippet': 'source.salary_raw',  # Will be processed separately
+        'zip_code': 'norm.zip_code',  # Direct ZIP from DriverPulse - map to norm.zip_code
     }
     
     # Map raw API fields to canonical schema BEFORE schema enforcement
@@ -608,33 +644,35 @@ def transform_normalize(df: pd.DataFrame) -> pd.DataFrame:
     normalized_fields['norm.city'] = location_data.apply(lambda x: x[0])
     normalized_fields['norm.state'] = location_data.apply(lambda x: x[1])
     normalized_fields['norm.location'] = location_data.apply(lambda x: x[2])
-    normalized_fields['norm.zip_code'] = location_data.apply(lambda x: x[3])
+    zip_from_location = location_data.apply(lambda x: x[3])  # ZIP extracted from location string
 
-    # Fallback: Use ZIP API for jobs without ZIPs
-    def get_zip_with_fallback(row):
-        if row['norm.zip_code']:
-            return row['norm.zip_code']
+    # Build reverse lookup (City, ST → ZIP) from zip_market_lookup.py
+    city_to_zip_map = _build_city_to_zip_lookup()
 
-        # Try ZIP API lookup
-        city = row['norm.city']
-        state = row['norm.state']
+    # Fallback: Use reverse lookup for jobs without ZIPs
+    def get_zip_with_fallback(idx):
+        # FIRST: Check if norm.zip_code is already set (e.g., from DriverPulse direct mapping)
+        if 'norm.zip_code' in df.columns and pd.notna(df['norm.zip_code'].iloc[idx]) and df['norm.zip_code'].iloc[idx]:
+            return str(df['norm.zip_code'].iloc[idx]).strip()
 
-        if city and state:
-            try:
-                import requests
-                url = f"https://api.zippopotam.us/us/{state}/{city.replace(' ', '%20')}"
-                response = requests.get(url, timeout=3)
-                if response.status_code == 200:
-                    data = response.json()
-                    if 'places' in data and len(data['places']) > 0:
-                        return data['places'][0].get('post code', '')
-            except:
-                pass
+        # SECOND: Try ZIP extracted from location string
+        if zip_from_location.iloc[idx]:
+            return zip_from_location.iloc[idx]
+
+        # THIRD: Fallback to reverse lookup (City, ST → ZIP)
+        location = normalized_fields['norm.location'].iloc[idx].lower().strip()
+        if location in city_to_zip_map:
+            return city_to_zip_map[location]
 
         return ''
 
-    # Apply fallback to empty ZIPs
-    normalized_fields['norm.zip_code'] = df.apply(get_zip_with_fallback, axis=1)
+    # Apply fallback to all rows (preserves existing norm.zip_code values)
+    normalized_fields['norm.zip_code'] = pd.Series([get_zip_with_fallback(i) for i in range(len(df))], index=df.index)
+
+    # Report ZIP coverage
+    zip_count = (normalized_fields['norm.zip_code'] != '').sum()
+    total_count = len(df)
+    print(f"📍 ZIP code coverage: {zip_count}/{total_count} ({zip_count/total_count*100:.1f}%)")
     
     # Parse salaries
     salary_data = df['source.salary_raw'].apply(parse_salary)
@@ -957,6 +995,10 @@ def transform_ai_classification(df: pd.DataFrame, ai_results: Dict[str, Dict], j
             }
         
         result = ai_results[job_id]
+
+        # Preserve existing route_type if already set by route classifier
+        existing_route = current_row.get('ai.route_type', '') if current_row is not None else ''
+
         ai_result = {
             'ai.match': result.get('match', 'error'),
             'ai.reason': result.get('reason', 'No reason provided'),
@@ -964,7 +1006,8 @@ def transform_ai_classification(df: pd.DataFrame, ai_results: Dict[str, Dict], j
             'ai.normalized_location': result.get('normalized_location', ''),
             'ai.fair_chance': result.get('fair_chance', 'no_requirements_mentioned'),
             'ai.endorsements': result.get('endorsements', 'none_required'),
-            'ai.route_type': result.get('route_type', 'Unknown')
+            # Preserve route_type from route classifier, only use AI result if not already set
+            'ai.route_type': existing_route if existing_route else result.get('route_type', 'Unknown')
         }
 
         # Handle career pathway fields (from pathway classifier)
@@ -1022,42 +1065,47 @@ def transform_routing(df: pd.DataFrame, route_filter: str = 'both') -> pd.DataFr
         
     def determine_final_status(row: pd.Series) -> str:
         """Determine why a job was included or excluded"""
-        
+
+        # FIRST: Check if already filtered by deduplication (don't override!)
+        existing_status = str(row.get('route.final_status', ''))
+        if existing_status.startswith('filtered:'):
+            return existing_status  # Preserve dedup filter reasons (R1, R2, URL)
+
         # Check for processing errors
         if row.get('ai.match') == 'error':
             return f"processing_error: {row.get('ai.reason', 'Unknown error')}"
-        
+
         # Check business rule filters
         if row.get('rules.is_owner_op', False):
             return 'filtered: Owner-operator job'
-        
+
         if row.get('rules.is_school_bus', False):
             return 'filtered: School bus driver job'
-        
+
         if row.get('rules.is_spam_source', False):
             return 'filtered: Spam source'
-        
+
         # Check AI classification
         if row.get('ai.match') == 'bad':
             reason = row.get('ai.reason', 'Bad match')
-            return f"AI classified as bad: {reason}"
-        
+            return f"filtered: AI bad match ({reason})"
+
         # Check route filter - exact match only (no auto-inclusion of Unknown)
         if route_filter != 'both':
             job_route = row.get('ai.route_type', '').lower()
             if route_filter == 'local' and job_route != 'local':
-                return f'filtered: Route type {job_route} (local only requested)'
+                return f'filtered: Route type {job_route} (local only)'
             elif route_filter == 'otr' and job_route not in ['otr', 'regional']:
-                return f'filtered: Route type {job_route} (OTR only requested)'
+                return f'filtered: Route type {job_route} (OTR only)'
             elif route_filter == 'unknown' and job_route not in ['unknown', '', None]:
-                return f'filtered: Route type {job_route} (unknown only requested)'
-        
+                return f'filtered: Route type {job_route} (unknown only)'
+
         # Check for valid application URLs (QC filter)
         source_url = str(row.get('source.url', ''))
         has_valid_url = source_url and len(source_url) > 10
         if not has_valid_url:
             return 'filtered: No valid application URL'
-        
+
         # If we get here, job passes all filters - now check AI classification to determine final status
         ai_match_raw = row.get('ai.match', '')
         # Handle NaN values safely
@@ -1066,16 +1114,26 @@ def transform_routing(df: pd.DataFrame, route_filter: str = 'both') -> pd.DataFr
             return f'included: {ai_match} match'
         elif ai_match == 'bad':
             # This should have been caught above, but handle it here as fallback
-            return f"AI classified as bad: {row.get('ai.reason', 'Bad match')}"
+            return f"filtered: AI bad match ({row.get('ai.reason', 'Bad match')})"
         else:
-            # No AI classification yet or unknown status - keep as passed filters
-            return 'passed_all_filters'
+            # No AI classification or empty classification - should not happen if dedup worked correctly
+            return 'filtered: No AI classification'
     
     # Apply routing logic
     routing_fields = {}
-    
+
     # Determine final status for each job
-    routing_fields['route.final_status'] = df.apply(determine_final_status, axis=1)
+    # IMPORTANT: Only update jobs that don't already have a final_status (preserves dedup reasons)
+    if 'route.final_status' not in df.columns:
+        df['route.final_status'] = ''
+
+    # Create mask for jobs needing status update (empty or non-filtered status)
+    needs_status = (df['route.final_status'] == '') | (df['route.final_status'].isna())
+
+    # Start with existing values, then update only jobs that need it
+    final_status = df['route.final_status'].copy()
+    final_status.loc[needs_status] = df.loc[needs_status].apply(determine_final_status, axis=1)
+    routing_fields['route.final_status'] = final_status
     
     # Set boolean flags
     routing_fields['route.filtered'] = (
@@ -1261,15 +1319,19 @@ def view_exportable(df: pd.DataFrame) -> pd.DataFrame:
     return df[df.get('route.ready_for_export', False) == True]
 
 def view_fresh_quality(df: pd.DataFrame) -> pd.DataFrame:
-    """Fresh jobs that passed all filters (included jobs) - for Supabase upload"""
+    """Fresh jobs that got AI classification - for Supabase upload
+
+    Uploads ALL jobs that received AI classification (good/so-so/bad),
+    regardless of filter status. This ensures we have a complete record
+    of all classified jobs in Supabase for analytics and memory reuse.
+    """
     if len(df) == 0:
         return df
-        
-    # Include jobs that either passed all filters OR have any "included" status
+
+    # Upload ALL jobs that got AI classification (fresh jobs with ai.match set)
     fresh_mask = (
         (df.get('sys.is_fresh_job', False) == True) &
-        ((df.get('route.final_status', '') == 'passed_all_filters') |
-         (df.get('route.final_status', '').astype(str).str.startswith('included')))
+        (df.get('ai.match', '').astype(str).isin(['good', 'so-so', 'bad']))
     )
     return df[fresh_mask]
 

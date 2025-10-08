@@ -39,6 +39,13 @@ try:
 except Exception:
     pass
 
+# Import ZIP → market mapping
+try:
+    from supabase_utils import get_client
+    SUPABASE_AVAILABLE = True
+except ImportError:
+    SUPABASE_AVAILABLE = False
+
 
 def _first(row: pd.Series, cols_map: Dict[str, str], names: List[str], default: str = "") -> str:
     for n in names:
@@ -48,6 +55,25 @@ def _first(row: pd.Series, cols_map: Dict[str, str], names: List[str], default: 
             if pd.notna(v) and str(v).strip():
                 return str(v).strip()
     return default
+
+
+def _get_market_from_zip(zip_code: str) -> str:
+    """Get market assignment for a ZIP code from location_markets table"""
+    if not SUPABASE_AVAILABLE or not zip_code:
+        return ''
+
+    try:
+        client = get_client()
+        result = client.table('location_markets').select('markets').eq('location_string', str(zip_code).zfill(5)).eq('location_type', 'zip').execute()
+
+        if result.data and len(result.data) > 0:
+            markets = result.data[0].get('markets', [])
+            if markets and len(markets) > 0:
+                return markets[0]  # Return first market
+    except Exception as e:
+        print(f"⚠️  Error looking up market for ZIP {zip_code}: {e}")
+
+    return ''
 
 
 def _normalize_market(val: str, *, fallback: str, markets: List[str], city_map: Dict[str, str], inverse_map: Dict[str, str]) -> str:
@@ -202,6 +228,29 @@ def main(argv: List[str]) -> int:
     print("🧹 Normalizing…")
     df_norm = pipe._stage2_normalization(df_ing)
     print("✅ Normalized")
+
+    # AUTO-POPULATE MARKET FROM ZIP (before market assignment)
+    print("📍 Auto-populating markets from ZIP codes...")
+    if 'norm.zip_code' in df_norm.columns:
+        def populate_market_from_zip(row):
+            # If meta.market already exists and is populated, keep it
+            if 'meta.market' in df_norm.columns and pd.notna(row.get('meta.market')) and str(row.get('meta.market')).strip():
+                return row.get('meta.market')
+
+            # Otherwise, try to get market from ZIP
+            zip_code = row.get('norm.zip_code')
+            if pd.notna(zip_code) and str(zip_code).strip():
+                market = _get_market_from_zip(str(zip_code).strip())
+                if market:
+                    return market
+
+            # Fallback to existing meta.market or empty
+            return row.get('meta.market', '')
+
+        df_norm['meta.market'] = df_norm.apply(populate_market_from_zip, axis=1)
+
+        populated_count = (df_norm['meta.market'] != '').sum()
+        print(f"   ✅ Populated {populated_count}/{len(df_norm)} rows with market from ZIP")
 
     # Market assignment
     std_markets = list(MARKET_TO_LOCATION.keys())

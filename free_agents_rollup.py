@@ -455,7 +455,9 @@ def get_free_agents_analytics(coach_username: str = None, limit: int = 50) -> pd
     # Get agent profiles for the missing fields (custom_url, location, route_filter, etc.)
     agent_uuids = analytics_df['agent_uuid'].unique().tolist()
     profiles_query = client.table('agent_profiles').select(
-        'agent_uuid, custom_url, location, route_filter, fair_chance_only, max_jobs, match_level'
+        'agent_uuid, custom_url, admin_portal_url, original_long_url, location, route_filter, fair_chance_only, '
+        'max_jobs, match_level, zip_code, zip_radius_miles, lookback_hours, show_prepared_for, '
+        'placement_status, employment_status'
     ).in_('agent_uuid', agent_uuids)
 
     profiles_result = profiles_query.execute()
@@ -465,14 +467,22 @@ def get_free_agents_analytics(coach_username: str = None, limit: int = 50) -> pd
     if not profiles_df.empty:
         merged_df = analytics_df.merge(profiles_df, on='agent_uuid', how='left', suffixes=('', '_profile'))
     else:
-        # If no profiles, add empty columns
+        # If no profiles, add empty columns with defaults
         merged_df = analytics_df.copy()
         merged_df['custom_url'] = ''
+        merged_df['admin_portal_url'] = ''
+        merged_df['original_long_url'] = ''
         merged_df['location'] = 'Houston'
         merged_df['route_filter'] = 'both'
         merged_df['fair_chance_only'] = False
         merged_df['max_jobs'] = 25
         merged_df['match_level'] = 'good and so-so'
+        merged_df['zip_code'] = ''
+        merged_df['zip_radius_miles'] = 50
+        merged_df['lookback_hours'] = 72
+        merged_df['show_prepared_for'] = True
+        merged_df['placement_status'] = ''
+        merged_df['employment_status'] = ''
 
     return merged_df
 

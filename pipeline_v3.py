@@ -97,8 +97,9 @@ class FreeWorldPipelineV3:
         # Initialize custom location flag (defaults to False)
         self._is_custom_location = False
 
-        # Track Supabase upload count for UI display
+        # Track Supabase upload count and tracked URLs count for UI display
         self.supabase_upload_count = 0
+        self.tracked_urls_count = 0
         
         # Initialize all existing modules (preserve functionality)
         self.scraper = FreeWorldJobScraper()
@@ -745,9 +746,11 @@ class FreeWorldPipelineV3:
                 generate_pdf, generate_csv, generate_html, force_memory_only,
                 show_prepared_for
             )
-            
+
             # STAGE 8: DATA STORAGE
-            self._stage8_storage(canonical_df, push_to_airtable)
+            # IMPORTANT: Use the DataFrame from Stage 7 results (has tracked URLs applied)
+            df_for_storage = results.get('jobs_df', canonical_df)
+            self._stage8_storage(df_for_storage, push_to_airtable)
             
             # Final checkpoint - complete pipeline state
             self._checkpoint_data(canonical_df, "99_complete")
@@ -760,8 +763,10 @@ class FreeWorldPipelineV3:
             results.update(self._generate_pipeline_stats(canonical_df, mode_info, processing_time))
 
             # Attach final canonical DataFrame for UI/direct callers
+            # IMPORTANT: Only set jobs_df if not already set by Stage 7 (which has tracked URLs applied)
             try:
-                results['jobs_df'] = canonical_df
+                if 'jobs_df' not in results:
+                    results['jobs_df'] = canonical_df
                 results['success'] = True
             except Exception:
                 pass
@@ -1338,11 +1343,42 @@ class FreeWorldPipelineV3:
         # Filtered jobs will have their filter reason in route.final_status
         print(f"✅ Keeping all {len(df)} jobs in DataFrame (filtered jobs marked, not removed)")
 
+        # Backfill empty company names with dummy value (AFTER deduplication)
+        empty_company_mask = (df['norm.company'] == '') | (df['norm.company'].isna())
+        empty_company_count = empty_company_mask.sum()
+        if empty_company_count > 0:
+            df.loc[empty_company_mask, 'norm.company'] = 'Trucking Company'
+            df.loc[empty_company_mask, 'source.company'] = 'Trucking Company'
+            print(f"📝 Backfilled {empty_company_count} jobs with missing company names → 'Trucking Company'")
+
         return df
-    
+
+    def _generate_r3_hash(self, row: pd.Series) -> str:
+        """Generate R3 dedup hash (post-AI classification)
+
+        R3 = company|market|route_type|match_level|normalized_title
+        """
+        import hashlib
+        import re
+
+        company = str(row.get('norm.company', '')).lower().strip()
+        market = str(row.get('meta.market', '')).lower().strip()
+        route_type = str(row.get('ai.route_type', 'Unknown')).lower().strip()
+        match_level = str(row.get('ai.match', 'unknown')).lower().strip()
+
+        # Normalize title to catch variations
+        title = str(row.get('norm.title', '')).lower().strip()
+        # Remove common filler words
+        for word in ['driver', 'cdl', 'class a', 'class b', 'hiring', 'now', 'needed', 'wanted']:
+            title = title.replace(word, '')
+        title = ' '.join(title.split())  # Normalize whitespace
+
+        r3_key = f"{company}|{market}|{route_type}|{match_level}|{title}"
+        return hashlib.md5(r3_key.encode()).hexdigest()[:16]
+
     def _stage5_ai_classification(self, df: pd.DataFrame, force_fresh_classification: bool = False, classifier_type: str = "cdl") -> pd.DataFrame:
         """Stage 5: AI classification of jobs"""
-        
+
         print("🤖 STAGE 5: AI CLASSIFICATION")
         
         # Get jobs that need AI classification
@@ -1479,7 +1515,22 @@ class FreeWorldPipelineV3:
             df.loc[error_mask, 'ai.match'] = 'error'
             df.loc[error_mask, 'ai.reason'] = f'Classification failed: {str(e)}'
             df.loc[error_mask, 'ai.summary'] = 'Job classification encountered an error'
-        
+
+        # Hardcode CDL pathway for CDL classifier searches
+        if classifier_type == "cdl":
+            # For CDL searches, ALL jobs are cdl_pathway jobs
+            cdl_mask = df['ai.match'].notna() & (df['ai.match'] != '')
+            cdl_count = cdl_mask.sum()
+            if cdl_count > 0:
+                df.loc[cdl_mask, 'ai.career_pathway'] = 'cdl_pathway'
+                print(f"🎯 CDL classifier mode: hardcoded {cdl_count} jobs as 'cdl_pathway'")
+
+        # Generate R3 dedup hash (post-AI classification)
+        print(f"🔍 Generating R3 deduplication hashes (post-AI)...")
+        df['rules.duplicate_r3'] = df.apply(lambda row: self._generate_r3_hash(row), axis=1)
+        r3_count = (df['rules.duplicate_r3'] != '').sum()
+        print(f"✅ Generated {r3_count} R3 hashes")
+
         return df
     
     def _stage6_routing(self, df: pd.DataFrame, route_filter: str) -> pd.DataFrame:
@@ -1527,13 +1578,12 @@ class FreeWorldPipelineV3:
             'quality_jobs': 0
         }
         
-        # Get exportable jobs (good/so-so quality, ready for export)
+        # Get exportable jobs (ready for export view)
         exportable_df = view_exportable(df)
         results['quality_jobs'] = len(exportable_df)
 
         if len(exportable_df) == 0:
             print("⚠️ No quality jobs to export")
-            # Don't return early - still generate CSV with all jobs for debugging
         else:
             print(f"📊 Exporting {len(exportable_df)} quality jobs")
         try:
@@ -1541,24 +1591,16 @@ class FreeWorldPipelineV3:
             print(f"   Match breakdown: {match_counts}")
         except Exception:
             pass
-        
-        # Update status for any remaining jobs that still have "passed_all_filters" status
-        # (Quality jobs now get proper "included:" status during routing stage)
-        included_indices = exportable_df.index
-        for idx in included_indices:
-            current_status = df.loc[idx, 'route.final_status']
-            if current_status == 'passed_all_filters':
-                if df.loc[idx, 'sys.is_fresh_job']:
-                    df.loc[idx, 'route.final_status'] = 'included'
-                else:
-                    df.loc[idx, 'route.final_status'] = 'included_from_memory'
-        
-        results['included_jobs'] = len(exportable_df)
-        
-        # Generate tracked URLs for ALL quality jobs (includes coach/agent metadata per run)
-        # This ensures every run gets fresh tracking links with current context
-        quality_jobs_df = exportable_df  # Process all exportable jobs, not just fresh ones
-        
+
+        # Count included jobs (jobs with "included:" status from routing stage)
+        included_mask = df['route.final_status'].astype(str).str.startswith('included:')
+        results['included_jobs'] = included_mask.sum()
+
+        # Generate tracked URLs for ALL quality jobs (good/so-so), regardless of filter status
+        quality_mask = exportable_df['ai.match'].isin(['good', 'so-so'])
+        quality_jobs_df = exportable_df[quality_mask]
+        print(f"🔗 Generating tracking links for {len(quality_jobs_df)} quality jobs (good/so-so) out of {len(exportable_df)} total")
+
         has_tracked_url_col = 'meta.tracked_url' in quality_jobs_df.columns
         quality_urls_empty = (quality_jobs_df['meta.tracked_url'].isna() | (quality_jobs_df['meta.tracked_url'] == '')).all() if has_tracked_url_col else True
         
@@ -1588,15 +1630,28 @@ class FreeWorldPipelineV3:
             if should_skip_generation:
                 print(f"⚡ SMART LINK OPTIMIZATION: Skipping link generation ({existing_url_count}/{total_jobs} jobs have tracking URLs, {url_coverage:.1%} coverage)")
                 print("✅ Using existing tracking URLs from memory (massive speed boost!)")
-                
+
                 # Fallback: Fill any missing tracking URLs with original URLs (safety net)
                 missing_urls = quality_jobs_df['meta.tracked_url'].isna() | (quality_jobs_df['meta.tracked_url'] == '')
                 if missing_urls.any():
                     jobs_need_fallback = missing_urls.sum()
                     print(f"🔄 Filling {jobs_need_fallback} missing tracking URLs with original URLs as fallback")
-                    quality_jobs_df.loc[missing_urls, 'meta.tracked_url'] = quality_jobs_df.loc[missing_urls, 'source.url']
-                    df.loc[missing_urls, 'meta.tracked_url'] = df.loc[missing_urls, 'source.url']
-                    
+
+                    # Build url_mapping for jobs needing fallback
+                    url_mapping = {}
+                    for _, job in quality_jobs_df[missing_urls].iterrows():
+                        job_id = job.get('id.job', '')
+                        fallback_url = job.get('source.url', '')
+                        if job_id and fallback_url:
+                            url_mapping[job_id] = fallback_url
+
+                    # Apply fallback URLs using proper apply_tracked_urls function
+                    df = apply_tracked_urls(df, url_mapping)
+
+                    # Regenerate exportable_df and quality_jobs_df from updated df
+                    exportable_df = view_exportable(df)
+                    quality_jobs_df = exportable_df[quality_mask]
+
             else:
                 print("🔗 Generating tracked URLs...")
                 # Initialize link tracker
@@ -1677,15 +1732,23 @@ class FreeWorldPipelineV3:
                             print(f"❌ LinkTracker not available for job {job_id[:8]}")
                             url_mapping[job_id] = original_url
                 
-                # Apply tracked URLs to both main dataframe and quality subset
+                # Apply tracked URLs to main dataframe
                 df = apply_tracked_urls(df, url_mapping)
-                quality_jobs_df = apply_tracked_urls(quality_jobs_df, url_mapping)  # FIX: Update quality_jobs_df too!
-                print(f"🔍 Before refiltering: exportable_df had {len(exportable_df)} jobs")
+
+                # IMPORTANT: Recreate exportable_df from updated df (since df is now a new object with tracked URLs)
                 exportable_df = view_exportable(df)
-                print(f"🔍 After refiltering: exportable_df now has {len(exportable_df)} jobs")
+
+                # Recreate quality_jobs_df from updated exportable_df
+                included_jobs_mask = exportable_df['route.final_status'].astype(str).str.startswith('included:')
+                quality_jobs_df = exportable_df[included_jobs_mask]
+
                 print(f"✅ Generated {len(url_mapping)} tracked URLs for {len(quality_jobs_df)} quality jobs")
-                print(f"🔍 Applied tracked URLs to both main df and quality_jobs_df")
-        
+                print(f"🔍 Applied tracked URLs to df and recreated exportable_df and quality_jobs_df")
+
+                # Store tracked URLs count for UI display
+                self.tracked_urls_count = len(url_mapping)
+                results['tracked_urls_count'] = len(url_mapping)
+
         # Generate CSV (always generate, even if empty for testing)
         if generate_csv:
             csv_path = self._generate_csv(df, exportable_df, market)
@@ -1837,7 +1900,7 @@ class FreeWorldPipelineV3:
                 try:
                     supabase_df = prepare_for_supabase(truly_fresh_jobs)
                     print(f"🔍 Fresh jobs Supabase DF shape: {supabase_df.shape}, columns: {len(supabase_df.columns)}")
-                    
+
                     success = self.memory_db.store_classifications(supabase_df)
                     if success:
                         self.supabase_upload_count = len(supabase_df)
@@ -1967,14 +2030,21 @@ class FreeWorldPipelineV3:
         remaining_columns = [col for col in exportable_df.columns if col not in existing_columns]
         final_column_order = existing_columns + remaining_columns
         
-        # Reorder DataFrame with logical column sequence (using exportable_df - QUALITY JOBS ONLY)
-        ordered_df = exportable_df[final_column_order]
-        
-        # Export with logical ordering
-        ordered_df.to_csv(complete_path, index=False)
-        print(f"✅ Quality Jobs CSV (exportable only): {complete_path}")
+        # FULL RESULTS CSV - Export the canonical complete_df with ALL jobs (included + filtered)
+        # Filter to only columns that exist in complete_df
+        complete_existing_columns = [col for col in ordered_columns if col in complete_df.columns]
+        complete_remaining_columns = [col for col in complete_df.columns if col not in complete_existing_columns]
+        complete_column_order = complete_existing_columns + complete_remaining_columns
+
+        # Reorder canonical DataFrame with logical column sequence
+        complete_ordered_df = complete_df[complete_column_order]
+
+        # Export FULL results with ALL jobs
+        complete_ordered_df.to_csv(complete_path, index=False)
+        print(f"✅ Full Results CSV (ALL jobs - canonical df): {complete_path}")
         print(f"📋 Column order: Priority fields → PDF fields → Core → Normalized → Rules → System")
-        
+        print(f"📊 Total jobs exported: {len(complete_ordered_df)} (includes filtered jobs)")
+
         return complete_path
     
     def _generate_pdf(self, exportable_df: pd.DataFrame, market: str, custom_location: str, coach_name: str = '', coach_username: str = '', candidate_name: str = '', candidate_id: str = '', show_prepared_for: bool = True) -> Optional[str]:
@@ -2302,7 +2372,8 @@ class FreeWorldPipelineV3:
             'run_id': self.run_id,
             'schema_version': self.schema_info['version'],
             'completed_at': datetime.now().isoformat(),
-            'supabase_upload_count': self.supabase_upload_count
+            'supabase_upload_count': self.supabase_upload_count,
+            'tracked_urls_count': getattr(self, 'tracked_urls_count', 0)
         }
         
         # Create summary string

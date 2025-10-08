@@ -12,17 +12,42 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from canonical_transforms import transform_ingest_outscraper
 from market_mapper import MarketMapper
 
-# Import precomputed ZIP lookup for instant filtering
+# Import precomputed ZIP lookup for instant filtering and City, ST mapping
 try:
-    from zip_market_lookup import VALID_ZIPS, ZIP_TO_MARKETS
+    from zip_market_lookup import VALID_ZIPS, ZIP_TO_MARKETS, ZIP_TO_CITY_STATE
     ZIP_LOOKUP_AVAILABLE = True
 except ImportError:
     ZIP_LOOKUP_AVAILABLE = False
     VALID_ZIPS = set()
     ZIP_TO_MARKETS = {}
+    ZIP_TO_CITY_STATE = {}
 
 class DriverPulseToPipelineAdapter:
     """Adapter to convert DriverPulse results to pipeline format"""
+
+    # State-to-FreeWorld markets mapping (for ident='state' jobs)
+    STATE_TO_MARKETS = {
+        'TX': ['Dallas', 'Houston'],
+        'CA': ['Stockton', 'Bay Area', 'Inland Empire'],
+        'NJ': ['Trenton', 'Newark'],
+        'AZ': ['Phoenix'],
+        'CO': ['Denver'],
+        'NV': ['Las Vegas']
+    }
+
+    # Central ZIP codes for each FreeWorld market (from market search radius.csv)
+    MARKET_CENTRAL_ZIPS = {
+        'Dallas': '75060',
+        'Houston': '77007',
+        'Phoenix': '85009',
+        'Denver': '80218',
+        'Las Vegas': '89107',
+        'Stockton': '95205',
+        'Bay Area': '94501',
+        'Inland Empire': '92324',
+        'Trenton': '07017',
+        'Newark': '08638'
+    }
 
     def __init__(self, run_id: str = None):
         self.run_id = run_id or f"driver_pulse_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -40,22 +65,22 @@ class DriverPulseToPipelineAdapter:
 
         # Main description
         description = job.get('job_description', '')
-        if description:
-            parts.append(description)
+        if description and str(description).strip():
+            parts.append(str(description))
 
         # Requirements section (CRITICAL for classification)
         requirements = job.get('job_requirements', '')
-        if requirements:
+        if requirements and str(requirements).strip():
             parts.append('<h3>Requirements</h3>')
-            parts.append(requirements)
+            parts.append(str(requirements))
 
         # Benefits section
         benefits = job.get('job_general_benefits', '')
-        if benefits:
+        if benefits and str(benefits).strip():
             parts.append('<h3>Benefits</h3>')
-            parts.append(benefits)
+            parts.append(str(benefits))
 
-        return '\n\n'.join(parts)
+        return '\n\n'.join(parts) if parts else 'No description available'
 
     def _format_salary(self, job: Dict) -> str:
         """Format salary from DriverPulse structured fields"""
@@ -78,11 +103,24 @@ class DriverPulseToPipelineAdapter:
 
         return ''
 
-    def _format_location(self, job: Dict) -> str:
-        """Format location from DriverPulse geo fields"""
-        zip_code = job.get('zip', '')
-        state = job.get('state', '')
+    def _format_location(self, job: Dict, assigned_zip: str = '') -> str:
+        """Format location from DriverPulse geo fields → City, ST
 
+        Args:
+            job: Raw DriverPulse job data
+            assigned_zip: ZIP code assigned by market logic (for state-level jobs)
+        """
+        # Use assigned ZIP first (for state-level jobs), then fall back to job's original ZIP
+        zip_code = assigned_zip or job.get('zip', '')
+
+        # Use ZIP → City, ST lookup for consistency across app
+        if zip_code and ZIP_LOOKUP_AVAILABLE:
+            city_state = ZIP_TO_CITY_STATE.get(zip_code)
+            if city_state:
+                return city_state
+
+        # Fallback to ZIP, State if lookup fails
+        state = job.get('state', '')
         if zip_code and state:
             return f"{zip_code}, {state}"
         elif state:
@@ -132,6 +170,9 @@ class DriverPulseToPipelineAdapter:
         # Use existing pipeline ingestion transform
         df = transform_ingest_outscraper(outscraper_format, self.run_id, search_location)
 
+        # Override source to DriverPulse (not Indeed/Google)
+        df['id.source'] = 'driver_pulse'
+
         # Skip market mapping for DriverPulse - locations are already ZIP-based
         df['metadata.market'] = 'DriverPulse'
 
@@ -140,74 +181,128 @@ class DriverPulseToPipelineAdapter:
     def _convert_to_outscraper_format(self, jobs: List[Dict]) -> List[Dict]:
         """Convert DriverPulse job format to Outscraper-compatible format
 
-        ZERO SCHEMA CHANGES: Combines description + requirements + benefits into
-        source.description_raw field using HTML sections.
+        Handles ident field logic:
+        - ident='zip': Use the job's ZIP code directly
+        - ident='state': Create copies of job for ALL FreeWorld markets in that state
+        - ident='polygon': Skip (not supported)
         """
         import json
 
         outscraper_jobs = []
 
         for job in jobs:
-            outscraper_job = {
-                # Basic fields - Use fields set by scraper in lines 413-420
-                'title': job.get('job_title', ''),
-                'company': job.get('company_name', ''),  # Set by scraper from company_data
+            ident = job.get('ident', 'zip')  # Default to 'zip' if missing
 
-                # COMBINED: description + requirements + benefits
-                'snippet': self._combine_job_content(job),
+            # Skip polygon jobs - not supported
+            if ident == 'polygon':
+                continue
 
-                # FORMATTED: location from zip + state
-                'formattedLocation': self._format_location(job),
+            # Handle state-level jobs - create copies for each market in that state
+            if ident == 'state':
+                # For state-level jobs, the state code is in the 'value' field
+                state = job.get('value', '')
+                markets = self.STATE_TO_MARKETS.get(state, [])
 
-                # CONSTRUCTED: DriverPulse URL
-                'viewJobLink': self._build_application_url(job),
+                if not markets:
+                    # State not in our FreeWorld markets - skip
+                    continue
 
-                # Job ID (maps to id.source_row)
-                'job_id': job.get('active_job_id', ''),
+                # Create a copy of this job for EACH market in the state
+                for market in markets:
+                    # Get central ZIP for this market
+                    market_zip = self.MARKET_CENTRAL_ZIPS.get(market)
 
-                # FORMATTED: Salary from structured fields
-                'salarySnippet': self._format_salary(job),
+                    if not market_zip:
+                        continue  # Skip if we don't have a central ZIP for this market
 
-                # Date and metadata
-                'date_posted': '',  # Not available from DriverPulse API
-                'source': 'driver_pulse',
+                    # Create job copy with this market's central ZIP
+                    outscraper_job = self._create_outscraper_job(job, market_zip, market)
+                    outscraper_jobs.append(outscraper_job)
 
-                # Store lat/lng as top-level fields for market mapping
-                'latitude': job.get('lat', ''),
-                'longitude': job.get('lng', ''),
-                'zip_code': job.get('zip', ''),
+            # Handle ZIP-based jobs - standard flow
+            elif ident == 'zip':
+                job_zip = job.get('zip', '')
 
-                # Store DriverPulse metadata as JSON string
-                'company_metadata': json.dumps({
-                    'driver_pulse_company_id': job.get('company_id', ''),
-                    'company_logo': job.get('company_logo', ''),
-                    'company_url_part': job.get('company_url_part', ''),
-                    'location_type': job.get('location_type', ''),
-                    'zip': job.get('zip', ''),
-                    'state': job.get('state', ''),
-                }),
+                if not job_zip:
+                    continue  # Skip jobs without ZIP
 
-                # Technical metadata
-                'scraped_at': job.get('scraped_at', datetime.now().isoformat()),
-                'scraper_version': 'driver_pulse_v2.0',
-                'data_source': 'driver_pulse',
-                'search_term': job.get('search_term', ''),
+                # Look up FreeWorld markets for this ZIP
+                markets = ZIP_TO_MARKETS.get(str(job_zip), [])
 
-                # CRITICAL: Set meta.market directly so it survives ensure_schema()
-                'meta.market': job.get('market_scraped', job.get('state', ''))
-            }
+                if not markets:
+                    continue  # Skip ZIPs not in our markets
 
-            # Ensure we have basic required fields
-            if not outscraper_job['title']:
-                outscraper_job['title'] = 'CDL Driver Position'
-            if not outscraper_job['company']:
-                outscraper_job['company'] = 'Unknown Company'
-            if not outscraper_job['formattedLocation']:
-                outscraper_job['formattedLocation'] = 'Unknown Location'
+                # Use first market in list
+                market = markets[0]
 
-            outscraper_jobs.append(outscraper_job)
+                outscraper_job = self._create_outscraper_job(job, job_zip, market)
+                outscraper_jobs.append(outscraper_job)
 
         return outscraper_jobs
+
+    def _create_outscraper_job(self, job: Dict, zip_code: str, market: str) -> Dict:
+        """Create a single Outscraper-format job with given ZIP and market"""
+        import json
+
+        outscraper_job = {
+            # Basic fields
+            'title': job.get('job_title', ''),
+            'company': job.get('company_name', ''),
+
+            # COMBINED: description + requirements + benefits
+            'snippet': self._combine_job_content(job),
+
+            # FORMATTED: location from assigned ZIP (for state-level jobs)
+            'formattedLocation': self._format_location(job, assigned_zip=zip_code),
+
+            # CONSTRUCTED: DriverPulse URL
+            'viewJobLink': self._build_application_url(job),
+
+            # Job ID (maps to id.source_row)
+            'job_id': job.get('active_job_id', ''),
+
+            # FORMATTED: Salary from structured fields
+            'salarySnippet': self._format_salary(job),
+
+            # Date and metadata
+            'date_posted': '',
+            'source': 'driver_pulse',
+
+            # Store lat/lng as top-level fields
+            'latitude': job.get('lat', ''),
+            'longitude': job.get('lng', ''),
+            'zip_code': zip_code,  # Use the assigned ZIP
+
+            # Store DriverPulse metadata
+            'company_metadata': json.dumps({
+                'driver_pulse_company_id': job.get('company_id', ''),
+                'company_logo': job.get('company_logo', ''),
+                'company_url_part': job.get('company_url_part', ''),
+                'location_type': job.get('location_type', ''),
+                'original_zip': job.get('zip', ''),
+                'original_state': job.get('state', ''),
+                'ident': job.get('ident', 'zip'),
+            }),
+
+            # Technical metadata
+            'scraped_at': job.get('scraped_at', datetime.now().isoformat()),
+            'scraper_version': 'driver_pulse_v2.0',
+            'data_source': 'driver_pulse',
+            'search_term': job.get('search_term', ''),
+
+            # CRITICAL: Set meta.market directly
+            'meta.market': market
+        }
+
+        # Ensure we have basic required fields
+        if not outscraper_job['title']:
+            outscraper_job['title'] = 'CDL Driver Position'
+        if not outscraper_job['company']:
+            outscraper_job['company'] = 'Unknown Company'
+        if not outscraper_job['formattedLocation']:
+            outscraper_job['formattedLocation'] = 'Unknown Location'
+
+        return outscraper_job
 
     def add_pipeline_metadata(self, df: pd.DataFrame, coach_username: str = "",
                             search_terms: str = "CDL Driver Entry Level") -> pd.DataFrame:
@@ -443,31 +538,25 @@ class DriverPulsePipelineIntegration:
 
             print(f"✅ Fetched {len(all_jobs)} complete jobs", flush=True)
 
-            # Step 3: Convert to Outscraper-compatible format for adapter
+            # Step 3: Convert to Outscraper-compatible format
+            # This handles ident logic:
+            # - ident='zip': filters to ZIPs in our markets
+            # - ident='state': creates copies for all markets in that state
+            # - ident='polygon': skips
+            print(f"\n🔄 Converting {len(all_jobs)} jobs to Outscraper format (with ident-based filtering)...")
+            jobs_before = len(all_jobs)
             outscraper_jobs = self.adapter._convert_to_outscraper_format(all_jobs)
+            jobs_after = len(outscraper_jobs)
 
-            # Step 4: Filter to target ZIP codes BEFORE pipeline processing
-            if target_zips:
-                print(f"\n🎯 Filtering to target ZIP codes...")
-                jobs_before = len(outscraper_jobs)
-
-                filtered_jobs = []
-                for job in outscraper_jobs:
-                    job_zip = str(job.get('zip_code', '')).zfill(5)
-                    if job_zip in target_zips:
-                        filtered_jobs.append(job)
-
-                outscraper_jobs = filtered_jobs
-                jobs_after = len(outscraper_jobs)
-
-                print(f"   Before filter: {jobs_before} jobs")
-                print(f"   After filter: {jobs_after} jobs")
-                if jobs_before > 0:
-                    print(f"   💰 Filtered out: {jobs_before - jobs_after} jobs ({(jobs_before - jobs_after) / jobs_before * 100:.1f}% cost savings)")
+            print(f"   Before conversion: {jobs_before} jobs")
+            print(f"   After conversion: {jobs_after} jobs (includes multi-market copies for state-level jobs)")
+            if jobs_before > 0:
+                reduction = jobs_before - jobs_after
+                if reduction > 0:
+                    print(f"   🗑️ Filtered out: {reduction} jobs outside our markets")
                 else:
-                    print(f"   💰 No jobs to filter")
-            else:
-                print(f"⚠️ No ZIP filter applied - processing all {len(outscraper_jobs)} jobs")
+                    expansion = jobs_after - jobs_before
+                    print(f"   📋 Expanded: +{expansion} job copies for state-level jobs")
 
             if not outscraper_jobs:
                 return {
@@ -485,6 +574,9 @@ class DriverPulsePipelineIntegration:
             print(f"\n🔄 Converting {len(outscraper_jobs)} jobs to pipeline format...")
             from canonical_transforms import transform_ingest_outscraper
             df = transform_ingest_outscraper(outscraper_jobs, self.adapter.run_id, "")
+
+            # Override source to DriverPulse (not Indeed/Google)
+            df['id.source'] = 'driver_pulse'
 
             if df.empty:
                 return {
@@ -509,6 +601,10 @@ class DriverPulsePipelineIntegration:
             df = pipeline._stage4_deduplication(df)
 
             print(f"   After deduplication: {len(df)} jobs")
+
+            # Step 6.5: Route classification (BEFORE AI so route_type is available)
+            df = pipeline._stage5_5_route_rules(df)
+            print(f"   After route classification: {len(df)} jobs")
 
             # Step 7: AI Classification (based on user selection)
             classifier_selection = filter_settings.get('classifier_type', 'CDL Job Classifier')

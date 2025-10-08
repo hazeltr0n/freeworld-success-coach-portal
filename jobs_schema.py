@@ -50,7 +50,8 @@ COLUMN_REGISTRY = {
     'rules.experience_years_min': float, # Minimum years required
     'rules.is_spam_source': bool,     # Spam source detection
     'rules.duplicate_r1': str,        # Round 1 dedup key (company+title+market)
-    'rules.duplicate_r2': str,        # Round 2 dedup key (company+market)
+    'rules.duplicate_r2': str,        # Round 2 dedup key (company+market+desc_hash)
+    'rules.duplicate_r3': str,        # Round 3 dedup key (post-AI: company+market+route+match+title)
     'rules.collapse_group': str,      # Final dedup group assignment
     
     # === AI OUTPUTS (from classification APIs) ===
@@ -99,32 +100,12 @@ COLUMN_REGISTRY = {
     'search.batch_size': int,         # Classification batch size
     'search.sources': str,            # outscraper|google|indeed (comma-separated)
     'search.strategy': str,           # balanced|aggressive|conservative
-    'search.coach_username': str,     # Coach who initiated search
-    
-    # === FREE AGENT (Airtable imported data for personalization) ===
-    'agent.uuid': str,                # Free Agent UUID from Airtable
-    'agent.name': str,                # Free Agent First + Last Name
-    'agent.first_name': str,          # Free Agent First Name only
-    'agent.last_name': str,           # Free Agent Last Name only
-    'agent.email': str,               # Free Agent contact email
-    'agent.phone': str,               # Free Agent phone number
-    'agent.city': str,                # Free Agent city
-    'agent.state': str,               # Free Agent state
-    'agent.coach_name': str,          # Success Coach First Name
-    'agent.coach_username': str,      # Full Coach Username
-    'agent.preferred_route': str,     # Local|OTR|Regional preference
-    'agent.experience_years': float,  # Years of CDL experience
-    'agent.endorsements_held': str,   # Current CDL endorsements
-    'agent.notes': str,               # Coach notes about Free Agent
-    'agent.last_contact': str,        # Last contact date
-    'agent.status': str,              # Active|Inactive|Placed status
-    
+
     # === QUALITY ASSURANCE ===
     'qa.missing_required_fields': bool, # Has missing required data?
-    'qa.flags': str,                  # JSON list of validation flags
     'qa.last_validated_at': str,      # Last validation timestamp
     'qa.data_quality_score': float,   # Overall data quality (0-1)
-    
+
     # === SYSTEM (audit trail and provenance) ===
     'sys.created_at': str,            # When record was first created
     'sys.updated_at': str,            # Last modification time
@@ -134,9 +115,6 @@ COLUMN_REGISTRY = {
     'sys.classification_source': str, # ai_classification|memory|airtable
     'sys.is_fresh_job': bool,         # True if scraped this run
     'sys.model': str,                 # AI model used (gpt-4o-mini)
-    'sys.prompt_sha': str,            # Hash of prompt for cache validation
-    'sys.schema_sha': str,            # Hash of schema for compatibility
-    'sys.coach': str,                 # Success Coach who ordered this search
 }
 
 # ==============================================================================
@@ -167,12 +145,13 @@ SUPABASE_FIELDS = {
     
     # Outscraper paid data ($0.001/job)
     'job_title': 'source.title',
-    'company': 'source.company', 
+    'company': 'source.company',
     'location': 'source.location_raw',
+    'zip_code': 'norm.zip_code',            # ZIP code for location filtering
     'job_description': 'source.description_raw',
     'apply_url': 'source.url',              # Single unified URL field
     'salary': 'source.salary_raw',
-    
+
     # OpenAI paid data ($0.0003/job)
     'match_level': 'ai.match',
     'match_reason': 'ai.reason',
@@ -181,6 +160,8 @@ SUPABASE_FIELDS = {
     'fair_chance': 'ai.fair_chance',
     'endorsements': 'ai.endorsements',
     'route_type': 'ai.route_type',
+    'career_pathway': 'ai.career_pathway',  # Career pathway classification
+    'training_provided': 'ai.training_provided',  # Training availability
     
     # PDF and organization requirements
     'market': 'meta.market',
@@ -209,6 +190,7 @@ SUPABASE_FIELDS = {
     # Deduplication keys for database-level deduplication
     'rules_duplicate_r1': 'rules.duplicate_r1',
     'rules_duplicate_r2': 'rules.duplicate_r2',
+    'rules_duplicate_r3': 'rules.duplicate_r3',
     'clean_apply_url': 'clean_apply_url',
     'job_id_hash': 'sys.hash',
 }
@@ -352,27 +334,30 @@ def validate_dataframe(df: pd.DataFrame, raise_errors: bool = False) -> Dict[str
 
 def prepare_for_supabase(df: pd.DataFrame) -> pd.DataFrame:
     """Convert canonical DataFrame to Supabase format"""
-    
+
     # Select only fields that go to Supabase
     supabase_df = pd.DataFrame()
-    
+
     for supabase_col, canonical_col in SUPABASE_FIELDS.items():
         if canonical_col in df.columns:
             supabase_df[supabase_col] = df[canonical_col]
-    
-    # URL field is now directly mapped from source.url - no special handling needed
-    
+
+    # Legacy indeed_job_url field - now consolidated into apply_url
+    # Add as empty string if not present (SQL function expects it)
+    if 'indeed_job_url' not in supabase_df.columns:
+        supabase_df['indeed_job_url'] = ''
+
     # Clean for Supabase storage
     for col in supabase_df.columns:
         # Handle null values
         supabase_df[col] = supabase_df[col].fillna('')
-        
+
         # Truncate long text fields
         if col == 'job_description':
             supabase_df[col] = supabase_df[col].astype(str).str[:5000]
         elif col in ['match_reason', 'summary']:
             supabase_df[col] = supabase_df[col].astype(str).str[:1000]
-    
+
     return supabase_df
 
 

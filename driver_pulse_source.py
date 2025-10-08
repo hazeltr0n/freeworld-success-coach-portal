@@ -181,7 +181,8 @@ class DriverPulseSource:
             raise DriverPulseAuthError(f"Failed to load authentication: {str(e)}")
 
     def create_new_authentication(self, email: str, first_name: str, last_name: str, phone: str,
-                                gmail_credentials: str = "gmail_credentials.json") -> bool:
+                                gmail_credentials: str = "gmail_credentials.json",
+                                headless: bool = None) -> bool:
         """
         Create new authentication session using Playwright login with 2FA support.
 
@@ -191,6 +192,7 @@ class DriverPulseSource:
             last_name: Last name
             phone: Phone number
             gmail_credentials: Path to Gmail API credentials for 2FA
+            headless: Run in headless mode (None=auto-detect, True=headless, False=headed)
 
         Returns:
             bool: True if authentication created successfully
@@ -212,9 +214,22 @@ class DriverPulseSource:
             else:
                 gmail_extractor = None
 
+        # Auto-detect headless mode: use headless if Gmail 2FA is available
+        if headless is None:
+            headless = gmail_extractor is not None
+            if headless:
+                logger.info("🤖 Auto-detected headless mode: Gmail 2FA is available")
+            else:
+                logger.info("👁️ Auto-detected headed mode: Gmail 2FA not available (manual intervention required)")
+
         with sync_playwright() as p:
-            # Always use headed mode for initial authentication
-            browser = p.chromium.launch(headless=False, slow_mo=500)
+            # Launch browser in headless or headed mode
+            if headless:
+                logger.info("🚀 Starting Playwright in HEADLESS mode (no browser window)")
+                browser = p.chromium.launch(headless=True, slow_mo=100)
+            else:
+                logger.info("🚀 Starting Playwright in HEADED mode (browser window visible)")
+                browser = p.chromium.launch(headless=False, slow_mo=500)
             page = browser.new_page()
 
             try:
@@ -376,7 +391,8 @@ class DriverPulseSource:
                 browser.close()
 
     def ensure_authentication(self, email: str, first_name: str, last_name: str, phone: str,
-                            gmail_credentials: str = "gmail_credentials.json") -> bool:
+                            gmail_credentials: str = "gmail_credentials.json",
+                            headless: bool = None) -> bool:
         """
         Ensure we have valid authentication, creating new if needed.
 
@@ -386,6 +402,7 @@ class DriverPulseSource:
             last_name: Last name
             phone: Phone number
             gmail_credentials: Path to Gmail API credentials for 2FA
+            headless: Run in headless mode (None=auto-detect, True=headless, False=headed)
 
         Returns:
             bool: True if authentication is available
@@ -396,7 +413,7 @@ class DriverPulseSource:
         except DriverPulseAuthError:
             # If that fails, create new authentication
             logger.info("🔄 Creating new authentication session...")
-            return self.create_new_authentication(email, first_name, last_name, phone, gmail_credentials)
+            return self.create_new_authentication(email, first_name, last_name, phone, gmail_credentials, headless)
 
     def _extract_user_id(self) -> str:
         """Extract user ID from authentication"""

@@ -847,6 +847,11 @@ def run_progressive_pipeline(pipeline, params, display_location: str = None):
                 show_prepared_for=params.get('show_prepared_for', True)
             )
 
+            # STAGE 8: DATA STORAGE (Supabase upload)
+            # Use the DataFrame from Stage 7 results (has tracked URLs applied)
+            df_for_storage = results.get('jobs_df', canonical_df)
+            pipe._stage8_storage(df_for_storage, push_to_airtable=False)
+
             with stage_containers['outputs']:
                 # Calculate final statistics
                 processing_time = (datetime.now() - start_time).total_seconds()
@@ -865,10 +870,20 @@ def run_progressive_pipeline(pipeline, params, display_location: str = None):
                 with final_stats[2]:
                     st.metric("Total Jobs Processed", len(canonical_df))
 
+                # Show tracked URL generation status
+                tracked_urls_count = results.get('tracked_urls_count', 0)
+                if tracked_urls_count > 0:
+                    st.success(f"✅ Generated {tracked_urls_count} tracked URLs for quality jobs")
+
+                # Show Supabase upload status
+                supabase_count = pipe.supabase_upload_count if hasattr(pipe, 'supabase_upload_count') else 0
+                if supabase_count > 0:
+                    st.success(f"✅ Uploaded {supabase_count} jobs to Supabase")
+
                 st.success("✅ All outputs generated successfully")
 
-            # Prepare return values
-            df = canonical_df
+            # Prepare return values - USE UPDATED DF WITH TRACKED URLS FROM STAGE 7
+            df = results.get('jobs_df', canonical_df) if isinstance(results, dict) else canonical_df
             metadata = {
                 'success': True,
                 'total_jobs': len(canonical_df),

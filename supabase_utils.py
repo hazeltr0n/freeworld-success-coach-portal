@@ -295,6 +295,11 @@ def save_agent_profile_to_supabase(coach_username: str, agent_data: Dict) -> Tup
             'max_jobs': agent_data.get('max_jobs', 25),
             'match_level': agent_data.get('match_level', 'good and so-so'),
             'show_prepared_for': agent_data.get('show_prepared_for', True),
+            # ZIP code radius filtering fields
+            'zip_code': agent_data.get('zip_code', ''),
+            'zip_radius_miles': agent_data.get('zip_radius_miles', 25),
+            # Lookback hours field
+            'lookback_hours': agent_data.get('lookback_hours', 72),
             # Keep search_config for backward compatibility during transition
             'search_config': {
                 'location': agent_data.get('location', 'Houston'),
@@ -368,7 +373,7 @@ def load_agent_profiles_from_supabase(coach_username: str, include_inactive: boo
             'agent_uuid, agent_name, agent_email, agent_city, agent_state, '
             'location, route_filter, fair_chance_only, max_jobs, match_level, '
             'search_config, custom_url, pathway_preferences, is_active, created_at, last_accessed, '
-            'admin_portal_url, lookback_hours'
+            'admin_portal_url, lookback_hours, zip_code, zip_radius_miles, show_prepared_for, original_long_url'
         ).eq('coach_username', coach_username)
         
         # Only filter by is_active if we don't want to include inactive agents
@@ -395,31 +400,11 @@ def load_agent_profiles_from_supabase(coach_username: str, include_inactive: boo
         
         profiles = []
         for row in result.data or []:
-            # Flatten search_config into main dict for compatibility
-            profile = {
-                'agent_uuid': row.get('agent_uuid', ''),
-                'agent_name': row.get('agent_name', ''),
-                'agent_email': row.get('agent_email', ''),
-                'agent_city': row.get('agent_city', ''),
-                'agent_state': row.get('agent_state', ''),
-                'custom_url': row.get('custom_url', ''),
-                'admin_portal_url': row.get('admin_portal_url', ''),
-                'pathway_preferences': row.get('pathway_preferences', []),
-                'created_at': row.get('created_at', ''),
-                'last_accessed': row.get('last_accessed', ''),
-            }
-            
-            # Use individual fields primarily, with JSON as backup for backward compatibility
-            search_config = row.get('search_config', {})
-            profile.update({
-                'location': row.get('location') or search_config.get('location', 'Houston'),
-                'route_filter': row.get('route_filter') or search_config.get('route_filter', 'both'),
-                'fair_chance_only': row.get('fair_chance_only') if row.get('fair_chance_only') is not None else search_config.get('fair_chance_only', False),
-                'max_jobs': row.get('max_jobs') or search_config.get('max_jobs', 25),
-                'match_level': row.get('match_level') or search_config.get('match_level', 'good and so-so'),
-                # Keep experience_level for backward compatibility during transition
-                'experience_level': search_config.get('experience_level', 'both')
-            })
+            # Use centralized formatter to ensure all fields are included
+            profile = _format_agent_profile(row)
+            # Override with pathway_preferences which might be in the row
+            if 'pathway_preferences' in row:
+                profile['pathway_preferences'] = row.get('pathway_preferences', [])
             
             profiles.append(profile)
         
@@ -591,7 +576,8 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
                 'agent_uuid, agent_name, agent_email, agent_city, agent_state, '
                 'location, route_filter, fair_chance_only, max_jobs, match_level, '
                 'search_config, custom_url, is_active, created_at, last_accessed, '
-                'portal_clicks, last_portal_click, admin_portal_url, show_prepared_for, lookback_hours'
+                'portal_clicks, last_portal_click, admin_portal_url, show_prepared_for, lookback_hours, '
+                'zip_code, zip_radius_miles'
             ).eq('coach_username', coach_username).eq('is_active', True).order(
                 'created_at', desc=True
             ).execute()
@@ -601,7 +587,8 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
                 'agent_uuid, agent_name, agent_email, agent_city, agent_state, '
                 'location, route_filter, fair_chance_only, max_jobs, match_level, '
                 'search_config, custom_url, is_active, created_at, last_accessed, '
-                'portal_clicks, last_portal_click, show_prepared_for, lookback_hours'
+                'portal_clicks, last_portal_click, show_prepared_for, lookback_hours, '
+                'zip_code, zip_radius_miles'
             ).eq('coach_username', coach_username).eq('is_active', True).order(
                 'created_at', desc=True
             ).execute()
@@ -810,35 +797,37 @@ def refresh_free_agents_analytics_manual():
 
 def _format_agent_profile(row: Dict) -> Dict:
     """Helper to format agent profile from Supabase row"""
-    # Flatten search_config into main dict for compatibility
-    profile = {
-        'agent_uuid': row.get('agent_uuid', ''),
-        'agent_name': row.get('agent_name', ''),
-        'agent_email': row.get('agent_email', ''),
-        'agent_city': row.get('agent_city', ''),
-        'agent_state': row.get('agent_state', ''),
-        'custom_url': row.get('custom_url', ''),
-        'portal_url': row.get('custom_url', ''),  # Compatibility alias
-        'admin_portal_url': row.get('admin_portal_url', ''),
-        'created_at': row.get('created_at', ''),
-        'last_accessed': row.get('last_accessed', ''),
-        'portal_clicks': row.get('portal_clicks', 0) or 0,
-        'last_portal_click': row.get('last_portal_click'),
-    }
-    
-    # Add search config fields
-    # Use individual fields primarily, with JSON as backup for backward compatibility
+    # Start with ALL fields from the row
+    profile = dict(row)
+
+    # Add compatibility alias
+    if 'custom_url' in profile and 'portal_url' not in profile:
+        profile['portal_url'] = profile['custom_url']
+
+    # Flatten search_config for backward compatibility
+    # Use individual fields primarily, with JSON as backup
     search_config = row.get('search_config', {})
-    profile.update({
-        'location': row.get('location') or search_config.get('location', 'Houston'),
-        'route_filter': row.get('route_filter') or search_config.get('route_filter', 'both'),
-        'fair_chance_only': row.get('fair_chance_only') if row.get('fair_chance_only') is not None else search_config.get('fair_chance_only', False),
-        'max_jobs': row.get('max_jobs') or search_config.get('max_jobs', 25),
-        'match_level': row.get('match_level') or search_config.get('match_level', 'good and so-so'),
-        # Keep experience_level for backward compatibility during transition
-        'experience_level': search_config.get('experience_level', 'both')
-    })
-    
+
+    # Only set these if they're not already present as individual fields
+    if 'location' not in profile or not profile['location']:
+        profile['location'] = search_config.get('location', 'Houston')
+    if 'route_filter' not in profile or not profile['route_filter']:
+        profile['route_filter'] = search_config.get('route_filter', 'both')
+    if 'fair_chance_only' not in profile or profile['fair_chance_only'] is None:
+        profile['fair_chance_only'] = search_config.get('fair_chance_only', False)
+    if 'max_jobs' not in profile or not profile['max_jobs']:
+        profile['max_jobs'] = search_config.get('max_jobs', 25)
+    if 'match_level' not in profile or not profile['match_level']:
+        profile['match_level'] = search_config.get('match_level', 'good and so-so')
+
+    # Keep experience_level for backward compatibility
+    if 'experience_level' not in profile:
+        profile['experience_level'] = search_config.get('experience_level', 'both')
+
+    # Ensure portal_clicks is never None
+    if profile.get('portal_clicks') is None:
+        profile['portal_clicks'] = 0
+
     return profile
 
 

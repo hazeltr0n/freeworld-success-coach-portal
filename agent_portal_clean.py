@@ -95,6 +95,7 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
             # This ensures expired jobs are properly excluded
             from supabase_utils import instant_memory_search
 
+            # Use agent's market/location setting - ZIP radius will filter within that market
             location = agent_params.get('location', 'Houston')
 
             # BACKWARDS COMPATIBILITY: Handle route_type_filter (new) vs route_filter (old)

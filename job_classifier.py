@@ -41,6 +41,114 @@ class JobClassifier:
             },
             "required": ["job_id", "match", "reason", "summary", "normalized_location", "fair_chance", "endorsements", "route_type", "career_pathway", "training_provided"]
         }
+
+        # Shared system prompt (SINGLE SOURCE OF TRUTH - no duplication!)
+        self.SYSTEM_PROMPT = """
+FreeWorld is a non-profit that helps Americans with low incomes get living wage jobs in the trucking industry.
+We send them to trucking school where they earn a CDL-A, which qualifies them to drive CDL-B jobs as well. They are trained on air brakes, combination vehicles (pulling trailers), and manual transmissions. Many have endorsements such as Hazmat, Airbrakes, Passenger, and Tanker. FreeWorld helps candidates obtain these endorsements if needed.
+Most have no previous professional driving experience, no personal vehicle, and limited access to professional equipment. Many have criminal records — ranging from misdemeanors to older or non-violent felonies. Our candidates know how to operate tractor-trailers, and are ready to work.
+
+We want to help connect them to jobs they have a strong chance of getting if they show up prepared, knowledgeable, and ready to demonstrate their skills in a road test. Assume they are ready to work — but must be hired into a role that does not require prior CDL driving experience or their own equipment.
+
+**CLASSIFICATION PRIORITY SYSTEM:**
+
+1. **RELEVANCE IS KING**: CDL driving jobs are the top priority. A CDL job with no experience requirements is always GOOD. CDL B OR A, just fine. DO NOT EXCLUDE CDL-B, or CLASS B CDL JOBS!
+
+2. **EXPERIENCE REQUIREMENTS** (the main filter) Good/So-So/Bad:
+Jobs should be classified as **so-so** if they:
+- Prefer experience but do not require it (unless there's a strong signal actively seeking new drivers)
+- Are non-CDL jobs or explicitly state "No CDL required" - these are backup options but not ideal for CDL holders
+- Have unclear requirements or mixed signals about experience needs
+- Are delivery/warehouse jobs that don't utilize CDL training
+
+Jobs should be classified as **good** if they:
+- Explicitly welcome new CDL drivers or state "no experience required"
+- Provide training
+- Are CDL-required positions that actively recruit entry-level drivers
+- Have clear entry-level pathways
+
+Jobs should be classified as **bad** if they:
+- Require ANY amount of truck driving experience. Our candidates know how to drive and hold CDLs, but they have no CDL or driving work history AT ALL
+
+3. **AUTOMATIC DISQUALIFIERS**:
+   - Owner-operator/1099 (must own truck/trailer) → BAD
+   - School bus driving → BAD
+
+4. **BACKGROUND CHECKS AND CRIMINAL RECORDS**:
+   - Background checks, clean driving record requirements, and criminal record requirements should be noted in the `fair_chance` field
+   - These requirements should NEVER affect the `match` rating (good/so-so/bad)
+   - Only classify based on experience requirements, job type, and endorsements
+   - A job requiring a background check can still be "good" if it has no experience requirements
+
+**ENDORSEMENT REQUIREMENTS:**
+FreeWorld candidates have CDL-A with basic training on air brakes, combination vehicles, and manual transmissions. ENDORSEMENTS ARE NOT A BARRIER. FreeWorld helps Free Agents get ANY endorsement they need to get work. They also have very good driving records, we screen for that. "A good driving history or record in trucking DOES NOT indicate an experience requirement. It is referring to a motor vehicle record."
+
+IMPORTANT: For each job, you MUST create a detailed summary that is EXACTLY 6-8 sentences long.
+
+- Don't make all jobs sound the same!**
+- Preserve specific phrases that detail the nature of the work.
+- Maintain their exact pay ranges, bonuses, and incentives as stated
+
+These elements are also very relevant to our job seekers and should be included IF there is actual text from the ad that mentions them:
+1) What the job role entails and main duties (using their language)
+2) Pay/benefits offered (their exact wording and specific numbers)
+3) Route and schedule information (preserve their exact terms: "home daily", "out 5 days", "weekends off", specific routes, territories, etc.)
+4) Physical demands of the job (mention if it's "no-touch freight", requires loading/unloading, heavy lifting, dock work, etc.)
+5) Key requirements and qualifications
+7) Any training provided or growth opportunities (their exact promises)
+
+Don't standardize everything - each company should sound different!
+
+**IMPORTANT DETAILS TO PRESERVE WHEN PRESENT:**
+- Route information
+- Schedule details
+- Physical demands
+
+If criminal background requirements are actually mentioned, include them clearly using the company's exact language when possible.
+
+Return your results as a JSON object with a "job_classifications" array like this:
+{
+  "job_classifications": [
+    { "job_id": "abc123", "match": "good", "reason": "Quote from job post", "summary": "This local delivery driver position offers $55,000-$65,000 annually with no prior experience required. The role involves delivering packages within the metro area using company-provided trucks and equipment. Benefits include full health insurance, dental, vision, and paid time off starting on day one. The company provides comprehensive 2-week training including vehicle operation and route planning. Drivers work Monday-Friday with occasional Saturday shifts and are typically home every night. This is an excellent opportunity for new CDL holders to gain experience while earning competitive wages.", "fair_chance": "no_requirements_mentioned", "endorsements": "none_required" },
+    { "job_id": "xyz456", "match": "bad", "reason": "Requires own truck", "summary": "This owner-operator position requires drivers to provide their own truck and trailer along with 5+ years of verifiable experience. Pay is percentage-based ranging from 70-85% of gross revenue with drivers responsible for fuel, maintenance, and insurance costs. The role involves long-haul routes covering 48 states with 2-3 weeks out and 2-3 days home. While earnings potential can reach $200,000+ annually for experienced operators, the significant equipment investment and experience requirements make this unsuitable for entry-level drivers.", "fair_chance": "no_requirements_mentioned", "endorsements": "none_required" },
+    { "job_id": "ghi012", "match": "so-so", "reason": "Requires Hazmat endorsement", "summary": "This regional tanker driver position offers $70,000-$80,000 annually transporting liquid chemicals. The role requires a valid Hazmat endorsement in addition to CDL-A, which candidates can obtain with company support. Routes cover multiple states with 4-5 days out and 2-3 days home. The company provides specialized training for hazmat transport and safety protocols. While the endorsement requirement adds complexity, the company assists with testing and the pay is above average for the region.", "fair_chance": "no_requirements_mentioned", "endorsements": "hazmat" },
+    { "job_id": "jkl345", "match": "good", "reason": "No experience required", "summary": "This regional delivery position offers $62,000-$72,000 annually for new CDL holders with comprehensive paid training. The company requires background checks and clean driving records but welcomes entry-level drivers. Routes cover surrounding states with drivers home most weekends. Full benefits package includes health insurance, 401k matching, and paid vacation. The role involves delivering freight to distribution centers with minimal physical labor. This is an excellent opportunity for candidates to start their trucking career with a stable company that provides thorough training and support.", "fair_chance": "background_check_required", "endorsements": "none_required" }
+  ]
+}
+
+**CLASSIFICATION STANDARDS - USE EXACT VALUES ONLY:**
+
+**FAIR CHANCE CLASSIFICATION (fair_chance field):**
+- "fair_chance_employer": Fair chance employer - welcomes applicants with criminal records
+- "background_check_required": Background check required - may disqualify applicants with records
+- "clean_record_required": Clean driving/criminal record explicitly required
+- "no_requirements_mentioned": No background check requirements mentioned
+
+**ENDORSEMENT CLASSIFICATION (endorsements field):**
+- "none_required": No special CDL endorsements required
+- "hazmat": Hazmat endorsement required
+- "passenger": Passenger endorsement required
+- "school_bus": School bus endorsement required
+- "tanker": Tanker endorsement required
+- "double_triple": Double/Triple trailer endorsement required
+- "combination": Multiple endorsements required
+
+**CLASSIFICATION RULES:**
+1. Use ONLY the exact values listed above
+2. For fair_chance: Look for explicit policies about criminal records/background checks
+3. For endorsements: Look for REQUIRED CDL endorsements (not preferred or helpful)
+4. If unclear or not mentioned, use appropriate default values
+5. Be conservative - only classify as fair_chance_employer if explicitly stated
+
+**EXAMPLES:**
+- "We welcome applicants with criminal records" → fair_chance: "fair_chance_employer"
+- "Clean criminal record required" or "no felonies" → fair_chance: "clean_record_required"
+- "Background check required" (criminal) → fair_chance: "background_check_required"
+- "Clean driving record required" → fair_chance: "no_requirements_mentioned" (driving record ≠ criminal background)
+- No mention of background → fair_chance: "no_requirements_mentioned"
+- "Hazmat endorsement required" → endorsements: "hazmat"
+- "No special endorsements needed" → endorsements: "none_required"
+"""
     
     def _retry_request(self, do_req, max_retries=5, base=0.5, cap=30.0):
         import time
@@ -87,357 +195,6 @@ class JobClassifier:
             ],
         ))
     
-    def _classify_single_batch_DEPRECATED_UNUSED(self, batch, batch_num):
-        """Classify a single batch of jobs"""
-        # Build the jobs block for this batch AND track which jobs actually get sent
-        jobs_block = ""
-        actually_sent_jobs = []  # Track jobs that actually get sent to OpenAI
-        
-        print(f"🔢 STEP 1: Received batch with {len(batch)} jobs")
-        
-        for job in batch:
-            # Add safety check for job data format
-            if not isinstance(job, dict):
-                print(f"❌ Error in batch {batch_num}: Invalid job format - {type(job)}")
-                continue
-                
-            # Use raw job description for OpenAI (like Colab version)
-            # Character cleaning is handled elsewhere for filtering, not for classification
-            clean_description = job.get('job_description', 'UNKNOWN')
-            
-            jobs_block += f"""
----
-Job ID: {job.get('job_id', 'UNKNOWN')}
-Job Title: {job.get('job_title', 'UNKNOWN')}
-Company: {job.get('company', 'UNKNOWN')}
-Location: {job.get('location', 'UNKNOWN')}
-
-Job Description:
-{clean_description}
-"""
-            # IMPORTANT: Only add jobs that actually get sent to OpenAI (after safety checks pass)
-            actually_sent_jobs.append(job)
-        
-        print(f"🔢 STEP 2: Actually sent {len(actually_sent_jobs)} jobs to OpenAI")
-
-        # Handle jobs that were skipped (not sent to OpenAI)
-        skipped_jobs = []
-        for job in batch:
-            if isinstance(job, dict) and job not in actually_sent_jobs:
-                skipped_jobs.append(job)
-
-        if skipped_jobs:
-            print(f"⚠️ Batch {batch_num}: Skipped {len(skipped_jobs)} malformed jobs")
-
-        system_prompt = """
-FreeWorld is a non-profit that helps Americans with low incomes get living wage jobs in the trucking industry.
-We send them to trucking school where they earn a CDL-A, which qualifies them to drive CDL-B jobs as well. They are trained on air brakes, combination vehicles (pulling trailers), and manual transmissions. Many have endorsements such as Hazmat, Airbrakes, Passenger, and Tanker. FreeWorld helps candidates obtain these endorsements if needed.
-Most have no previous professional driving experience, no personal vehicle, and limited access to professional equipment. Many have criminal records — ranging from misdemeanors to older or non-violent felonies. Our candidates know how to operate tractor-trailers, and are ready to work.
-
-We want to help connect them to jobs they have a strong chance of getting if they show up prepared, knowledgeable, and ready to demonstrate their skills in a road test. Assume they are ready to work — but must be hired into a role that does not require prior CDL driving experience or their own equipment.
-
-**CLASSIFICATION PRIORITY SYSTEM:**
-
-1. **RELEVANCE IS KING**: CDL driving jobs are the top priority. A CDL job with no experience requirements is always GOOD. CDL B OR A, just fine. DO NOT EXCLUDE CDL-B, or CLASS B CDL JOBS!
-
-2. **EXPERIENCE REQUIREMENTS** (the main filter) Good/So-So/Bad:
-Jobs should be classified as **so-so** if they:
-- Prefer experience but do not require it (unless there's a strong signal actively seeking new drivers)
-- Are non-CDL jobs or explicitly state "No CDL required" - these are backup options but not ideal for CDL holders
-- Have unclear requirements or mixed signals about experience needs
-- Are delivery/warehouse jobs that don't utilize CDL training
-
-Jobs should be classified as **good** if they:
-- Explicitly welcome new CDL drivers or state "no experience required"
-- Provide training
-- Are CDL-required positions that actively recruit entry-level drivers
-- Have clear entry-level pathways
-
-Jobs should be classified as **bad** if they:
-- Require ANY amount of truck driving experience. Our candidates know how to drive and hold CDLs, but they have no CDL or driving work history AT ALL
-
-3. **AUTOMATIC DISQUALIFIERS**:
-   - Owner-operator/1099 (must own truck/trailer) → BAD
-   - School bus driving → BAD  
-
-**ENDORSEMENT REQUIREMENTS:**
-FreeWorld candidates have CDL-A with basic training on air brakes, combination vehicles, and manual transmissions. ENDORSEMENTS ARE NOT A BARRIER. FreeWorld helps Free Agents get ANY endorsement they need to get work. They also have very good driving records, we screen for that. "A good driving history or record in trucking DOES NOT indicate an experience requirement. It is referring to a motor vehicle record."
-
-IMPORTANT: For each job, you MUST create a detailed summary that is EXACTLY 6-8 sentences long. 
-
-- Don't make all jobs sound the same!**
-- Preserve specific phrases that detail the nature of the work.
-- Maintain their exact pay ranges, bonuses, and incentives as stated
-
-These elements are also very relevant to our job seekers and should be included IF there is actual text from the ad that mentions them:
-1) What the job role entails and main duties (using their language)
-2) Pay/benefits offered (their exact wording and specific numbers)
-3) Route and schedule information (preserve their exact terms: "home daily", "out 5 days", "weekends off", specific routes, territories, etc.)
-4) Physical demands of the job (mention if it's "no-touch freight", requires loading/unloading, heavy lifting, dock work, etc.)
-5) Key requirements and qualifications
-7) Any training provided or growth opportunities (their exact promises)
-
-Don't standardize everything - each company should sound different! 
-
-**IMPORTANT DETAILS TO PRESERVE WHEN PRESENT:**
-- Route information
-- Schedule details
-- Physical demands
-
-If criminal background requirements are actually mentioned, include them clearly using the company's exact language when possible.
-
-Return your results as a JSON object with a "job_classifications" array like this:
-{
-  "job_classifications": [
-    { "job_id": "abc123", "match": "good", "reason": "Quote from job post", "summary": "This local delivery driver position offers $55,000-$65,000 annually with no prior experience required. The role involves delivering packages within the metro area using company-provided trucks and equipment. Benefits include full health insurance, dental, vision, and paid time off starting on day one. The company provides comprehensive 2-week training including vehicle operation and route planning. Drivers work Monday-Friday with occasional Saturday shifts and are typically home every night. This is an excellent opportunity for new CDL holders to gain experience while earning competitive wages.", "fair_chance": "no_requirements_mentioned", "endorsements": "none_required" },
-    { "job_id": "xyz456", "match": "bad", "reason": "Requires own truck", "summary": "This owner-operator position requires drivers to provide their own truck and trailer along with 5+ years of verifiable experience. Pay is percentage-based ranging from 70-85% of gross revenue with drivers responsible for fuel, maintenance, and insurance costs. The role involves long-haul routes covering 48 states with 2-3 weeks out and 2-3 days home. While earnings potential can reach $200,000+ annually for experienced operators, the significant equipment investment and experience requirements make this unsuitable for entry-level drivers.", "fair_chance": "no_requirements_mentioned", "endorsements": "none_required" },
-    { "job_id": "def789", "match": "bad", "reason": "Requires clean criminal record", "summary": "This regional trucking position offers $60,000-$70,000 annually for drivers to haul freight across multiple states. The company provides late-model equipment and offers health benefits after 90 days. However, the position requires a completely clean criminal background with no felonies or misdemeanors ever, making it unsuitable for many FreeWorld candidates. Routes typically involve 5 days out and 2 days home with some weekend work required. While the pay is competitive, the strict background requirements eliminate most candidates with criminal histories.", "fair_chance": "clean_record_required", "endorsements": "none_required" },
-    { "job_id": "ghi012", "match": "so-so", "reason": "Requires Hazmat endorsement", "summary": "This regional tanker driver position offers $70,000-$80,000 annually transporting liquid chemicals. The role requires a valid Hazmat endorsement in addition to CDL-A, which candidates can obtain with company support. Routes cover multiple states with 4-5 days out and 2-3 days home. The company provides specialized training for hazmat transport and safety protocols. While the endorsement requirement adds complexity, the company assists with testing and the pay is above average for the region.", "fair_chance": "no_requirements_mentioned", "endorsements": "hazmat" }
-  ]
-}
-
-**CLASSIFICATION STANDARDS - USE EXACT VALUES ONLY:**
-
-**FAIR CHANCE CLASSIFICATION (fair_chance field):**
-- "fair_chance_employer": Fair chance employer - welcomes applicants with criminal records
-- "background_check_required": Background check required - may disqualify applicants with records
-- "clean_record_required": Clean driving/criminal record explicitly required
-- "no_requirements_mentioned": No background check requirements mentioned
-
-**ENDORSEMENT CLASSIFICATION (endorsements field):**
-- "none_required": No special CDL endorsements required
-- "hazmat": Hazmat endorsement required
-- "passenger": Passenger endorsement required
-- "school_bus": School bus endorsement required
-- "tanker": Tanker endorsement required
-- "double_triple": Double/Triple trailer endorsement required
-- "combination": Multiple endorsements required
-
-**CLASSIFICATION RULES:**
-1. Use ONLY the exact values listed above
-2. For fair_chance: Look for explicit policies about criminal records/background checks
-3. For endorsements: Look for REQUIRED CDL endorsements (not preferred or helpful)
-4. If unclear or not mentioned, use appropriate default values
-5. Be conservative - only classify as fair_chance_employer if explicitly stated
-
-**EXAMPLES:**
-- "We welcome applicants with criminal records" → fair_chance: "fair_chance_employer"
-- "Clean criminal record required" or "no felonies" → fair_chance: "clean_record_required"
-- "Background check required" (criminal) → fair_chance: "background_check_required"
-- "Clean driving record required" → fair_chance: "no_requirements_mentioned" (driving record ≠ criminal background)
-- No mention of background → fair_chance: "no_requirements_mentioned"
-- "Hazmat endorsement required" → endorsements: "hazmat"
-- "No special endorsements needed" → endorsements: "none_required"
-"""
-
-        # Lean JSON Schema for speed - minimal properties
-        classification_schema = {
-            "type": "object",
-            "additionalProperties": False,
-            "properties": {
-                "jobs": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "additionalProperties": False,
-                        "properties": {
-                            "id": {"type": "string"},
-                            "match": {"type": "string", "enum": ["good", "so-so", "bad"]},
-                            "reason": {"type": "string", "maxLength": 100},
-                            "summary": {"type": "string", "maxLength": 200},
-                            "bg": {"type": "string", "enum": ["ok", "check", "clean", "none"]},
-                            "cdl": {"type": "string", "enum": ["none", "haz", "pass", "bus", "tank", "combo"]}
-                        },
-                        "required": ["id", "match", "reason", "summary", "bg", "cdl"]
-                    }
-                }
-            },
-            "required": ["jobs"]
-        }
-
-        try:
-            
-            # Simple approach like working version
-            response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": jobs_block.strip()}
-                ],
-                temperature=0
-            )
-            content = response.choices[0].message.content.strip()
-
-
-            # Clean and parse like working version
-            if content.startswith("```json"):
-                content = content.replace("```json", "").replace("```", "").strip()
-            
-            parsed = json.loads(content)
-            print(f"🔢 STEP 3: OpenAI returned {len(parsed)} job results")
-            
-            # Process results for this batch
-            batch_results = []
-            
-            # Track which jobs we received vs actually sent to OpenAI
-            sent_job_ids = {job['job_id'] for job in actually_sent_jobs}
-            received_job_ids = set()
-            
-            # DEBUG: Show what jobs we sent to OpenAI
-            print(f"   DEBUG Sent {len(actually_sent_jobs)} jobs:")
-            for i, job in enumerate(actually_sent_jobs):
-                job_id = job.get('job_id', 'NO_ID')
-                title = job.get('job_title', 'NO_TITLE')[:50]
-                company = job.get('company', 'NO_COMPANY')[:30]
-                print(f"     {i+1}. {job_id} | {title} | {company}")
-                if i >= 4:  # Show first 5
-                    print(f"     ... and {len(actually_sent_jobs) - 5} more")
-                    break
-            
-            # Don't show full debug for every item, just key info
-            print(f"   DEBUG OpenAI returned {len(parsed)} items")
-            
-            for i, item in enumerate(parsed):
-                job_id = item.get("id")  # Match the schema field name
-                match = item.get("match", "error")
-                route_type = "Unknown"  # Will be set by route classifier later
-                reason = item.get("reason", "No reason returned")
-                summary = item.get("summary", "No summary provided")
-                fair_chance = "no_requirements_mentioned"  # Default
-                endorsements = "none_required"  # Default
-                
-                # Set final_status for all jobs to track their processing outcome
-                final_status = ""
-                if match == "bad":
-                    final_status = f"AI classified as bad: {reason}"
-                elif match in ["good", "so-so"]:
-                    final_status = "included"
-                elif match == "error":
-                    final_status = "processing_error"
-                else:
-                    final_status = "unknown_classification"
-                
-                batch_results.append({
-                    'job_id': job_id,
-                    'match': match,
-                    'route_type': route_type,
-                    'reason': reason,
-                    'summary': summary,
-                    'normalized_location': '',  # Will be set by route classifier later
-                    'fair_chance': fair_chance,
-                    'endorsements': endorsements,
-                    'career_pathway': 'cdl_pathway',  # Pure CDL focus
-                    'training_provided': False,  # Default for CDL classifier
-                    'final_status': final_status
-                })
-                received_job_ids.add(job_id)
-                print(f"Batch {batch_num}: {job_id} → {match} ({route_type}): {reason}")
-            
-            # Check for missing jobs and create error entries
-            missing_job_ids = sent_job_ids - received_job_ids
-            
-            # Log ID mismatches for debugging if needed
-            if missing_job_ids or len(received_job_ids) != len(sent_job_ids):
-                # Check for exact type/format differences
-                sent_sample = list(sent_job_ids)[0] if sent_job_ids else None
-                received_sample = list(received_job_ids)[0] if received_job_ids else None
-                print(f"   Sample sent ID: '{sent_sample}' (type: {type(sent_sample)})")
-                print(f"   Sample received ID: '{received_sample}' (type: {type(received_sample)})")
-                
-                # Check for None/empty job_ids in received
-                none_or_empty_received = [job_id for job_id in received_job_ids if job_id is None or job_id == '']
-                if none_or_empty_received:
-                    print(f"   ⚠️ WARNING: Found None/empty job_ids in received: {none_or_empty_received}")
-                    
-                # Check for whitespace/encoding issues
-                if sent_sample and received_sample:
-                    if sent_sample.strip() == received_sample.strip():
-                        print(f"   💡 IDs match after strip() - whitespace issue!")
-                    if sent_sample.lower() == received_sample.lower():
-                        print(f"   💡 IDs match after lower() - case sensitivity issue!")
-            
-            if missing_job_ids:
-                print(f"⚠️ Batch {batch_num}: Missing {len(missing_job_ids)} jobs from OpenAI response")
-                print(f"   DEBUG Missing job_ids: {list(missing_job_ids)}")
-                
-                # Show details of the missing jobs
-                print(f"   DEBUG Details of missing jobs:")
-                for missing_id in list(missing_job_ids)[:3]:  # Show first 3 missing
-                    missing_job = next((job for job in actually_sent_jobs if job['job_id'] == missing_id), None)
-                    if missing_job:
-                        title = missing_job.get('job_title', 'NO_TITLE')[:50]
-                        company = missing_job.get('company', 'NO_COMPANY')[:30]
-                        desc_len = len(str(missing_job.get('job_description', '')))
-                        print(f"     Missing: {missing_id} | {title} | {company} | desc_len: {desc_len}")
-                        
-                print(f"   DEBUG Received job_ids: {list(received_job_ids)[:5]}...")  # Show first 5 received
-                for missing_job_id in missing_job_ids:
-                    batch_results.append({
-                        'job_id': missing_job_id,
-                        'match': 'error',
-                        'route_type': 'Unknown',
-                        'reason': 'Missing from OpenAI response',
-                        'summary': 'Job not returned by AI classifier',
-                        'normalized_location': '',
-                        'fair_chance': 'no_requirements_mentioned',
-                        'endorsements': 'none_required',
-                        'career_pathway': 'cdl_pathway',
-                        'training_provided': False,
-                        'final_status': 'processing_error: Missing from OpenAI response'
-                    })
-                    print(f"Batch {batch_num}: {missing_job_id} → error (Unknown): Missing from OpenAI response")
-
-            # Add error results for any jobs that were skipped (malformed)
-            for skipped_job in skipped_jobs:
-                batch_results.append({
-                    'job_id': skipped_job.get('job_id', 'unknown'),
-                    'match': 'error',
-                    'route_type': 'Unknown',
-                    'reason': 'Malformed job data - skipped before OpenAI',
-                    'summary': 'Job data was malformed and could not be processed',
-                    'normalized_location': '',
-                    'fair_chance': 'unknown',
-                    'endorsements': 'unknown',
-                    'career_pathway': 'cdl_pathway',
-                    'training_provided': False,
-                    'final_status': 'processing_error: Malformed job data'
-                })
-                print(f"Batch {batch_num}: {skipped_job.get('job_id', 'unknown')} → error (Unknown): Malformed job data - skipped before OpenAI")
-
-            print(f"🔢 STEP 4: Built {len(batch_results)} batch results")
-            print(f"✅ Batch {batch_num}: Sent {len(actually_sent_jobs)} jobs, received {len(parsed)} results, returning {len(batch_results)} total")
-            return batch_results
-
-        except Exception as e:
-            import traceback
-            print(f"❌ Error in batch {batch_num}: {e}")
-            print(f"❌ Error type: {type(e).__name__}")
-            if "timeout" in str(e).lower():
-                print(f"❌ This is a TIMEOUT error - OpenAI API took longer than 45 seconds")
-            elif "rate limit" in str(e).lower():
-                print(f"❌ This is a RATE LIMIT error - hitting API limits")
-            elif "connection" in str(e).lower():
-                print(f"❌ This is a CONNECTION error - network issue")
-            else:
-                print(f"❌ Full traceback:")
-                traceback.print_exc()
-            # Return error results for this batch - use original batch to ensure all jobs get error results
-            error_results = []
-            for job in batch:
-                if isinstance(job, dict) and 'job_id' in job:
-                    error_results.append({
-                        'job_id': job['job_id'],
-                        'match': 'error',
-                        'route_type': 'Unknown',
-                        'reason': str(e),
-                        'summary': 'Error processing job description',
-                        'normalized_location': '',
-                        'fair_chance': 'unknown',
-                        'endorsements': 'unknown',
-                        'career_pathway': 'cdl_pathway',
-                        'training_provided': False
-                    })
-            return error_results
 
     def classify_jobs(self, df):
         """
@@ -532,110 +289,8 @@ Return your results as a JSON object with a "job_classifications" array like thi
         """
         import time
         
-        # Shared system prompt and schema (byte-identical for prompt caching)
-        # Single job per request for proper work queue
-        # Use the good system prompt with explicit field mapping
-        system_prompt = """
-FreeWorld is a non-profit that helps Americans with low incomes get living wage jobs in the trucking industry.
-We send them to trucking school where they earn a CDL-A, which qualifies them to drive CDL-B jobs as well. They are trained on air brakes, combination vehicles (pulling trailers), and manual transmissions. Many have endorsements such as Hazmat, Airbrakes, Passenger, and Tanker. FreeWorld helps candidates obtain these endorsements if needed.
-Most have no previous professional driving experience, no personal vehicle, and limited access to professional equipment. Many have criminal records — ranging from misdemeanors to older or non-violent felonies. Our candidates know how to operate tractor-trailers, and are ready to work.
-
-We want to help connect them to jobs they have a strong chance of getting if they show up prepared, knowledgeable, and ready to demonstrate their skills in a road test. Assume they are ready to work — but must be hired into a role that does not require prior CDL driving experience or their own equipment.
-
-**CLASSIFICATION PRIORITY SYSTEM:**
-
-1. **RELEVANCE IS KING**: CDL driving jobs are the top priority. A CDL job with no experience requirements is always GOOD. CDL B OR A, just fine. DO NOT EXCLUDE CDL-B, or CLASS B CDL JOBS!
-
-2. **EXPERIENCE REQUIREMENTS** (the main filter) Good/So-So/Bad:
-Jobs should be classified as **so-so** if they:
-- Prefer experience but do not require it (unless there's a strong signal actively seeking new drivers)
-- Are non-CDL jobs or explicitly state "No CDL required" - these are backup options but not ideal for CDL holders
-- Have unclear requirements or mixed signals about experience needs
-- Are delivery/warehouse jobs that don't utilize CDL training
-
-Jobs should be classified as **good** if they:
-- Explicitly welcome new CDL drivers or state "no experience required"
-- Provide training
-- Are CDL-required positions that actively recruit entry-level drivers
-- Have clear entry-level pathways
-
-Jobs should be classified as **bad** if they:
-- Require ANY amount of truck driving experience, even one day. Our candidates know how to drive and hold CDLs, but they have no CDL or driving work history AT ALL
-
-3. **AUTOMATIC DISQUALIFIERS**:
-   - Owner-operator/1099 (must own truck/trailer) → BAD
-   - School bus driving → BAD  
-   - Requires "no felonies AND no misdemeanors" combined → BAD
-
-**ENDORSEMENT REQUIREMENTS:**
-FreeWorld candidates have CDL-A with basic training on air brakes, combination vehicles, and manual transmissions. ENDORSEMENTS ARE NOT A BARRIER. FreeWorld helps Free Agents get ANY endorsement they need to get work.
-
-IMPORTANT: For each job, you MUST create a detailed summary that is EXACTLY 6-8 sentences long. 
-
-- Don't make all jobs sound the same!**
-- Preserve specific phrases that detail the nature of the work.
-- Maintain their exact pay ranges, bonuses, and incentives as stated
-
-These elements are also very relevant to our job seekers and should be included IF there is actual text from the ad that mentions them:
-1) What the job role entails and main duties (using their language)
-2) Pay/benefits offered (their exact wording and specific numbers)
-3) Route and schedule information (preserve their exact terms: "home daily", "out 5 days", "weekends off", specific routes, territories, etc.)
-4) Physical demands of the job (mention if it's "no-touch freight", requires loading/unloading, heavy lifting, dock work, etc.)
-5) Key requirements and qualifications (including criminal background requirements if mentioned)
-7) Any training provided or growth opportunities (their exact promises)
-
-Don't standardize everything - each company should sound different! 
-
-**IMPORTANT DETAILS TO PRESERVE WHEN PRESENT:**
-- Route information
-- Schedule details
-- Physical demands
-
-If criminal background requirements are actually mentioned, include them clearly using the company's exact language when possible.
-
-Return your results as a JSON object with a "job_classifications" array like this:
-{
-  "job_classifications": [
-    { "job_id": "abc123", "match": "good", "reason": "Quote from job post", "summary": "This local delivery driver position offers $55,000-$65,000 annually with no prior experience required. The role involves delivering packages within the metro area using company-provided trucks and equipment. Benefits include full health insurance, dental, vision, and paid time off starting on day one. The company provides comprehensive 2-week training including vehicle operation and route planning. Drivers work Monday-Friday with occasional Saturday shifts and are typically home every night. This is an excellent opportunity for new CDL holders to gain experience while earning competitive wages.", "fair_chance": "no_requirements_mentioned", "endorsements": "none_required" },
-    { "job_id": "xyz456", "match": "bad", "reason": "Requires own truck", "summary": "This owner-operator position requires drivers to provide their own truck and trailer along with 5+ years of verifiable experience. Pay is percentage-based ranging from 70-85% of gross revenue with drivers responsible for fuel, maintenance, and insurance costs. The role involves long-haul routes covering 48 states with 2-3 weeks out and 2-3 days home. While earnings potential can reach $200,000+ annually for experienced operators, the significant equipment investment and experience requirements make this unsuitable for entry-level drivers.", "fair_chance": "no_requirements_mentioned", "endorsements": "none_required" },
-    { "job_id": "def789", "match": "bad", "reason": "Requires clean criminal record", "summary": "This regional trucking position offers $60,000-$70,000 annually for drivers to haul freight across multiple states. The company provides late-model equipment and offers health benefits after 90 days. However, the position requires a completely clean criminal background with no felonies or misdemeanors ever, making it unsuitable for many FreeWorld candidates. Routes typically involve 5 days out and 2 days home with some weekend work required. While the pay is competitive, the strict background requirements eliminate most candidates with criminal histories.", "fair_chance": "clean_record_required", "endorsements": "none_required" },
-    { "job_id": "ghi012", "match": "so-so", "reason": "Requires Hazmat endorsement", "summary": "This regional tanker driver position offers $70,000-$80,000 annually transporting liquid chemicals. The role requires a valid Hazmat endorsement in addition to CDL-A, which candidates can obtain with company support. Routes cover multiple states with 4-5 days out and 2-3 days home. The company provides specialized training for hazmat transport and safety protocols. While the endorsement requirement adds complexity, the company assists with testing and the pay is above average for the region.", "fair_chance": "no_requirements_mentioned", "endorsements": "hazmat" }
-  ]
-}
-
-**CLASSIFICATION STANDARDS - USE EXACT VALUES ONLY:**
-
-**FAIR CHANCE CLASSIFICATION (fair_chance field):**
-- "fair_chance_employer": Fair chance employer - welcomes applicants with criminal records
-- "background_check_required": Background check required - may disqualify applicants with records
-- "clean_record_required": Clean driving/criminal record explicitly required
-- "no_requirements_mentioned": No background check requirements mentioned
-
-**ENDORSEMENT CLASSIFICATION (endorsements field):**
-- "none_required": No special CDL endorsements required
-- "hazmat": Hazmat endorsement required
-- "passenger": Passenger endorsement required
-- "school_bus": School bus endorsement required
-- "tanker": Tanker endorsement required
-- "double_triple": Double/Triple trailer endorsement required
-- "combination": Multiple endorsements required
-
-**CLASSIFICATION RULES:**
-1. Use ONLY the exact values listed above
-2. For fair_chance: Look for explicit policies about criminal records/background checks
-3. For endorsements: Look for REQUIRED CDL endorsements (not preferred or helpful)
-4. If unclear or not mentioned, use appropriate default values
-5. Be conservative - only classify as fair_chance_employer if explicitly stated
-
-**EXAMPLES:**
-- "We welcome applicants with criminal records" → fair_chance: "fair_chance_employer"
-- "Clean criminal record required" or "no felonies" → fair_chance: "clean_record_required"
-- "Background check required" (criminal) → fair_chance: "background_check_required"
-- "Clean driving record required" → fair_chance: "no_requirements_mentioned" (driving record ≠ criminal background)
-- No mention of background → fair_chance: "no_requirements_mentioned"
-- "Hazmat endorsement required" → endorsements: "hazmat"
-- "No special endorsements needed" → endorsements: "none_required"
-"""
+        # Use shared system prompt and schema (SINGLE SOURCE OF TRUTH - no duplication!)
+        system_prompt = self.SYSTEM_PROMPT
         # Use shared schema object for prompt caching
         schema = self.CLASSIFICATION_SCHEMA
         
@@ -990,112 +645,11 @@ Job Description:
             raise Exception("Max retries exceeded")
     
     async def _classify_jobs_async(self, jobs_list, concurrency=50):
-        # Define the system prompt here for the async method  
-        # Use the good system prompt with explicit field mapping (same as line 137)
-        system_prompt = """
-FreeWorld is a non-profit that helps Americans with low incomes get living wage jobs in the trucking industry.
-We send them to trucking school where they earn a CDL-A, which qualifies them to drive CDL-B jobs as well. They are trained on air brakes, combination vehicles (pulling trailers), and manual transmissions. Many have endorsements such as Hazmat, Airbrakes, Passenger, and Tanker. FreeWorld helps candidates obtain these endorsements if needed.
-Most have no previous professional driving experience, no personal vehicle, and limited access to professional equipment. Many have criminal records — ranging from misdemeanors to older or non-violent felonies. Our candidates know how to operate tractor-trailers, and are ready to work.
-
-We want to help connect them to jobs they have a strong chance of getting if they show up prepared, knowledgeable, and ready to demonstrate their skills in a road test. Assume they are ready to work — but must be hired into a role that does not require prior CDL driving experience or their own equipment.
-
-**CLASSIFICATION PRIORITY SYSTEM:**
-
-1. **RELEVANCE IS KING**: CDL driving jobs are the top priority. A CDL job with no experience requirements is always GOOD. CDL B OR A, just fine. DO NOT EXCLUDE CDL-B, or CLASS B CDL JOBS!
-
-2. **EXPERIENCE REQUIREMENTS** (the main filter) Good/So-So/Bad:
-Jobs should be classified as **so-so** if they:
-- Prefer experience but do not require it (unless there's a strong signal actively seeking new drivers)
-- Are non-CDL jobs or explicitly state "No CDL required" - these are backup options but not ideal for CDL holders
-- Have unclear requirements or mixed signals about experience needs
-- Are delivery/warehouse jobs that don't utilize CDL training
-
-Jobs should be classified as **good** if they:
-- Explicitly welcome new CDL drivers or state "no experience required"
-- Provide training
-- Are CDL-required positions that actively recruit entry-level drivers
-- Have clear entry-level pathways
-
-Jobs should be classified as **bad** if they:
-- Require ANY amount of truck driving experience, even one day. Our candidates know how to drive and hold CDLs, but they have no CDL or driving work history AT ALL
-
-3. **AUTOMATIC DISQUALIFIERS**:
-   - Owner-operator/1099 (must own truck/trailer) → BAD
-   - School bus driving → BAD  
-   - Requires "no felonies AND no misdemeanors" combined → BAD
-
-**ENDORSEMENT REQUIREMENTS:**
-FreeWorld candidates have CDL-A with basic training on air brakes, combination vehicles, and manual transmissions. ENDORSEMENTS ARE NOT A BARRIER. FreeWorld helps Free Agents get ANY endorsement they need to get work.
-
-IMPORTANT: For each job, you MUST create a detailed summary that is EXACTLY 6-8 sentences long. 
-
-- Don't make all jobs sound the same!**
-- Preserve specific phrases that detail the nature of the work.
-- Maintain their exact pay ranges, bonuses, and incentives as stated
-
-These elements are also very relevant to our job seekers and should be included IF there is actual text from the ad that mentions them:
-1) What the job role entails and main duties (using their language)
-2) Pay/benefits offered (their exact wording and specific numbers)
-3) Route and schedule information (preserve their exact terms: "home daily", "out 5 days", "weekends off", specific routes, territories, etc.)
-4) Physical demands of the job (mention if it's "no-touch freight", requires loading/unloading, heavy lifting, dock work, etc.)
-5) Key requirements and qualifications (including criminal background requirements if mentioned)
-7) Any training provided or growth opportunities (their exact promises)
-
-Don't standardize everything - each company should sound different! 
-
-**IMPORTANT DETAILS TO PRESERVE WHEN PRESENT:**
-- Route information
-- Schedule details
-- Physical demands
-
-If criminal background requirements are actually mentioned, include them clearly using the company's exact language when possible.
-
-Return your results as a JSON object with a "job_classifications" array like this:
-{
-  "job_classifications": [
-    { "job_id": "abc123", "match": "good", "reason": "Quote from job post", "summary": "This local delivery driver position offers $55,000-$65,000 annually with no prior experience required. The role involves delivering packages within the metro area using company-provided trucks and equipment. Benefits include full health insurance, dental, vision, and paid time off starting on day one. The company provides comprehensive 2-week training including vehicle operation and route planning. Drivers work Monday-Friday with occasional Saturday shifts and are typically home every night. This is an excellent opportunity for new CDL holders to gain experience while earning competitive wages.", "fair_chance": "no_requirements_mentioned", "endorsements": "none_required" },
-    { "job_id": "xyz456", "match": "bad", "reason": "Requires own truck", "summary": "This owner-operator position requires drivers to provide their own truck and trailer along with 5+ years of verifiable experience. Pay is percentage-based ranging from 70-85% of gross revenue with drivers responsible for fuel, maintenance, and insurance costs. The role involves long-haul routes covering 48 states with 2-3 weeks out and 2-3 days home. While earnings potential can reach $200,000+ annually for experienced operators, the significant equipment investment and experience requirements make this unsuitable for entry-level drivers.", "fair_chance": "no_requirements_mentioned", "endorsements": "none_required" },
-    { "job_id": "def789", "match": "bad", "reason": "Requires clean criminal record", "summary": "This regional trucking position offers $60,000-$70,000 annually for drivers to haul freight across multiple states. The company provides late-model equipment and offers health benefits after 90 days. However, the position requires a completely clean criminal background with no felonies or misdemeanors ever, making it unsuitable for many FreeWorld candidates. Routes typically involve 5 days out and 2 days home with some weekend work required. While the pay is competitive, the strict background requirements eliminate most candidates with criminal histories.", "fair_chance": "clean_record_required", "endorsements": "none_required" },
-    { "job_id": "ghi012", "match": "so-so", "reason": "Requires Hazmat endorsement", "summary": "This regional tanker driver position offers $70,000-$80,000 annually transporting liquid chemicals. The role requires a valid Hazmat endorsement in addition to CDL-A, which candidates can obtain with company support. Routes cover multiple states with 4-5 days out and 2-3 days home. The company provides specialized training for hazmat transport and safety protocols. While the endorsement requirement adds complexity, the company assists with testing and the pay is above average for the region.", "fair_chance": "no_requirements_mentioned", "endorsements": "hazmat" }
-  ]
-}
-
-**CLASSIFICATION STANDARDS - USE EXACT VALUES ONLY:**
-
-**FAIR CHANCE CLASSIFICATION (fair_chance field):**
-- "fair_chance_employer": Fair chance employer - welcomes applicants with criminal records
-- "background_check_required": Background check required - may disqualify applicants with records
-- "clean_record_required": Clean driving/criminal record explicitly required
-- "no_requirements_mentioned": No background check requirements mentioned
-
-**ENDORSEMENT CLASSIFICATION (endorsements field):**
-- "none_required": No special CDL endorsements required
-- "hazmat": Hazmat endorsement required
-- "passenger": Passenger endorsement required
-- "school_bus": School bus endorsement required
-- "tanker": Tanker endorsement required
-- "double_triple": Double/Triple trailer endorsement required
-- "combination": Multiple endorsements required
-
-**CLASSIFICATION RULES:**
-1. Use ONLY the exact values listed above
-2. For fair_chance: Look for explicit policies about criminal records/background checks
-3. For endorsements: Look for REQUIRED CDL endorsements (not preferred or helpful)
-4. If unclear or not mentioned, use appropriate default values
-5. Be conservative - only classify as fair_chance_employer if explicitly stated
-
-**EXAMPLES:**
-- "We welcome applicants with criminal records" → fair_chance: "fair_chance_employer"
-- "Clean criminal record required" or "no felonies" → fair_chance: "clean_record_required"
-- "Background check required" (criminal) → fair_chance: "background_check_required"
-- "Clean driving record required" → fair_chance: "no_requirements_mentioned" (driving record ≠ criminal background)
-- No mention of background → fair_chance: "no_requirements_mentioned"
-- "Hazmat endorsement required" → endorsements: "hazmat"
-- "No special endorsements needed" → endorsements: "none_required"
-"""
         """
         Fast async classification with 6 NON-NEGOTIABLE GUARDS to prevent job loss
         """
+        # Use shared system prompt (SINGLE SOURCE OF TRUTH - no duplication!)
+        system_prompt = self.SYSTEM_PROMPT
         # Connection pooling configuration  
         import ssl
         ssl_context = ssl.create_default_context()

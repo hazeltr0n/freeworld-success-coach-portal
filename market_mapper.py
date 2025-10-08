@@ -1393,7 +1393,7 @@ class MarketMapper:
         """Map a location string to its primary market
 
         Args:
-            location_string: "City, ST" format (e.g., "Dallas, TX")
+            location_string: "City, ST" or "ZIP, ST" format (e.g., "Dallas, TX" or "75001, TX")
 
         Returns:
             str: Market name or empty string if not found
@@ -1403,10 +1403,25 @@ class MarketMapper:
 
         location_string = location_string.lower().strip()
 
-        # Try Supabase first (supports multiple markets, returns first)
+        # Extract ZIP if present (location format could be "12345, TX" or "Dallas, TX")
+        parts = location_string.split(',')
+        if len(parts) == 2:
+            first_part = parts[0].strip()
+            # Check if first part is a ZIP code (5 digits)
+            if first_part.isdigit() and len(first_part) == 5:
+                location_type = 'zip'
+                lookup_value = first_part  # Just the ZIP, no state
+            else:
+                location_type = 'city'
+                lookup_value = location_string  # Full "city, st"
+        else:
+            location_type = 'city'
+            lookup_value = location_string
+
+        # Try Supabase first (supports both city and ZIP lookups)
         if self.supabase_client:
             try:
-                result = self.supabase_client.table('location_markets').select('markets').eq('location_string', location_string).eq('location_type', 'city').execute()
+                result = self.supabase_client.table('location_markets').select('markets').eq('location_string', lookup_value).eq('location_type', location_type).execute()
                 if result.data and len(result.data) > 0:
                     db_markets = result.data[0].get('markets', [])
                     if db_markets:
@@ -1414,9 +1429,12 @@ class MarketMapper:
             except Exception:
                 pass  # Fallback to hardcoded lookup
 
-        # Fallback to hardcoded market_lookup
-        markets = self.market_lookup.get(location_string, [])
-        return markets[0] if markets else ""
+        # Fallback to hardcoded market_lookup (only works for cities)
+        if location_type == 'city':
+            markets = self.market_lookup.get(lookup_value, [])
+            return markets[0] if markets else ""
+        else:
+            return ""  # No ZIP fallback in hardcoded lookup
     
     def map_markets(self, df):
         """Map markets for a DataFrame of jobs"""

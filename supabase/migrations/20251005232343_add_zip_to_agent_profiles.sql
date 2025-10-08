@@ -1,5 +1,5 @@
 -- Add ZIP code and radius filtering to agent_profiles table
--- This allows agents to set their preferred location and job radius
+-- This migration actually adds the columns (the previous one didn't run)
 
 ALTER TABLE agent_profiles ADD COLUMN IF NOT EXISTS zip_code TEXT;
 ALTER TABLE agent_profiles ADD COLUMN IF NOT EXISTS zip_radius_miles INTEGER DEFAULT 25;
@@ -10,9 +10,3 @@ CREATE INDEX IF NOT EXISTS idx_agent_profiles_zip_code ON agent_profiles(zip_cod
 -- Comments
 COMMENT ON COLUMN agent_profiles.zip_code IS 'Agent preferred ZIP code for job filtering';
 COMMENT ON COLUMN agent_profiles.zip_radius_miles IS 'Job search radius in miles from ZIP code (default 25)';
-
--- Also add zip_code to jobs table if not exists (for filtering)
-ALTER TABLE jobs ADD COLUMN IF NOT EXISTS zip_code TEXT;
-CREATE INDEX IF NOT EXISTS idx_jobs_zip_code ON jobs(zip_code);
-
-COMMENT ON COLUMN jobs.zip_code IS 'Job location ZIP code extracted from normalized location';
