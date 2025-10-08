@@ -144,6 +144,10 @@ jobs:
           # Extract DataFrame and convert to dict for JSON serialization
           jobs_df = result.get('jobs_df')
           if jobs_df is not None:
+              # Replace NaN/Inf with None for JSON compatibility
+              import numpy as np
+              jobs_df = jobs_df.replace([np.inf, -np.inf], None)
+              jobs_df = jobs_df.where(jobs_df.notnull(), None)
               jobs_list = jobs_df.to_dict('records')
               print(f'✅ Found {len(jobs_list)} jobs from DriverPulse')
           else:
