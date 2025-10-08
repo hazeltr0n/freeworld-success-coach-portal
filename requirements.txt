@@ -21,4 +21,9 @@ plotly>=5.20.0
 fpdf2>=2.7.0
 python-dateutil>=2.8.0
 geopy>=2.4.0
-playwright
+playwright>=1.40.0
+
+# Gmail API for DriverPulse 2FA
+google-api-python-client>=2.100.0
+google-auth-httplib2>=0.1.1
+google-auth-oauthlib>=1.1.0
