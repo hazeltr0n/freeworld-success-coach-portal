@@ -18,6 +18,7 @@ streamlit_secrets*.txt
 # Authentication files - NEVER COMMIT
 auth.json
 gmail_token.json
+gmail_token.pickle
 gmail_credentials.json
 driver_pulse_2fa.py
 
