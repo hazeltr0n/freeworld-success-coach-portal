@@ -19,16 +19,16 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+          cache: 'pip'
 
-      - name: Install dependencies
+      - name: Install minimal dependencies for auth refresh
         run: |
-          pip install -r requirements.txt
-          python -m playwright install chromium
-          python -m playwright install-deps
+          pip install -r requirements-auth.txt
 
-      - name: Install Gmail API dependencies
+      - name: Install Playwright browsers (use system Chrome)
         run: |
-          pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib
+          playwright install chrome
+          playwright install-deps chrome
 
       - name: Create Gmail credentials file
         run: |
@@ -50,7 +50,12 @@ jobs:
         run: |
           python refresh_driverpulse_auth.py
 
-      # STEP 2: Run Batch Scraper
+      # STEP 2: Install full dependencies for batch scraping
+      - name: Install full requirements for batch scraper
+        run: |
+          pip install -r requirements.txt
+
+      # STEP 3: Run Batch Scraper
       - name: Run batch job scraper
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

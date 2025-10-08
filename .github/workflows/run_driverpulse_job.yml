@@ -1,0 +1,189 @@
+name: Run DriverPulse Job
+
+on:
+  workflow_dispatch:
+    inputs:
+      job_id:
+        description: 'Job ID from async_job_queue'
+        required: true
+        type: string
+
+jobs:
+  execute-driverpulse-job:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-auth.txt
+
+      - name: Create Gmail credentials file
+        run: |
+          echo '${{ secrets.DRIVER_PULSE_GMAIL_CREDENTIALS }}' > gmail_credentials.json
+
+      - name: Create Gmail token file
+        run: |
+          echo '${{ secrets.DRIVER_PULSE_GMAIL_TOKEN }}' > gmail_token.json
+
+      - name: Update job status to processing
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          python -c "
+          from supabase import create_client
+          import os
+          from datetime import datetime, timezone
+
+          client = create_client(os.getenv('SUPABASE_URL'), os.getenv('SUPABASE_ANON_KEY'))
+
+          client.table('async_job_queue').update({
+              'status': 'processing',
+              'started_at': datetime.now(timezone.utc).isoformat()
+          }).eq('id', '${{ inputs.job_id }}').execute()
+
+          print('✅ Job status updated to processing')
+          "
+
+      - name: Get job parameters from Supabase
+        id: get_job_params
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          python -c "
+          from supabase import create_client
+          import os
+          import json
+
+          client = create_client(os.getenv('SUPABASE_URL'), os.getenv('SUPABASE_ANON_KEY'))
+
+          result = client.table('async_job_queue').select('*').eq('id', '${{ inputs.job_id }}').execute()
+
+          if not result.data:
+              raise Exception('Job not found')
+
+          job = result.data[0]
+          params = job.get('job_params', {})
+
+          # Write params to file for next step
+          with open('job_params.json', 'w') as f:
+              json.dump(params, f)
+
+          print(f\"✅ Job params retrieved: {json.dumps(params, indent=2)}\")
+          "
+
+      - name: Refresh DriverPulse authentication
+        env:
+          DRIVER_PULSE_EMAIL: ${{ secrets.DRIVER_PULSE_EMAIL }}
+          DRIVER_PULSE_FIRST_NAME: ${{ secrets.DRIVER_PULSE_FIRST_NAME }}
+          DRIVER_PULSE_LAST_NAME: ${{ secrets.DRIVER_PULSE_LAST_NAME }}
+          DRIVER_PULSE_PHONE: ${{ secrets.DRIVER_PULSE_PHONE }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          python refresh_driverpulse_auth.py --headless
+
+      - name: Run DriverPulse scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          python -c "
+          from driver_pulse_source import DriverPulseSource
+          import json
+
+          # Load job params
+          with open('job_params.json', 'r') as f:
+              params = json.load(f)
+
+          source = DriverPulseSource()
+          source.load_authentication()
+
+          # Search for jobs
+          search_query = params.get('search_query', 'CDL driver')
+          max_results = params.get('max_results', 100)
+
+          print(f'🔍 Searching DriverPulse: {search_query} (max {max_results} jobs)')
+          results = source.search_jobs(search_query, max_results=max_results)
+
+          print(f'✅ Found {len(results)} jobs from DriverPulse')
+
+          # Save results to file
+          with open('driverpulse_results.json', 'w') as f:
+              json.dump(results, f, indent=2)
+          "
+
+      - name: Update job status to completed
+        if: success()
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          python -c "
+          from supabase import create_client
+          import os
+          import json
+          from datetime import datetime, timezone
+
+          client = create_client(os.getenv('SUPABASE_URL'), os.getenv('SUPABASE_ANON_KEY'))
+
+          # Load results
+          with open('driverpulse_results.json', 'r') as f:
+              results = json.load(f)
+
+          client.table('async_job_queue').update({
+              'status': 'completed',
+              'completed_at': datetime.now(timezone.utc).isoformat(),
+              'result_data': {
+                  'job_count': len(results),
+                  'jobs': results
+              }
+          }).eq('id', '${{ inputs.job_id }}').execute()
+
+          print(f'✅ Job completed with {len(results)} jobs')
+          "
+
+      - name: Update job status to failed
+        if: failure()
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          python -c "
+          from supabase import create_client
+          import os
+          from datetime import datetime, timezone
+
+          client = create_client(os.getenv('SUPABASE_URL'), os.getenv('SUPABASE_ANON_KEY'))
+
+          client.table('async_job_queue').update({
+              'status': 'failed',
+              'completed_at': datetime.now(timezone.utc).isoformat(),
+              'error_message': 'Workflow execution failed - check GitHub Actions logs'
+          }).eq('id', '${{ inputs.job_id }}').execute()
+
+          print('❌ Job marked as failed')
+          "
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: driverpulse-job-${{ inputs.job_id }}
+          path: |
+            *.png
+            auth.json
+            driverpulse_results.json
+            job_params.json
+          retention-days: 7

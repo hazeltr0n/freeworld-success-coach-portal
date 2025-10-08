@@ -225,7 +225,6 @@ class DriverPulseSource:
         with sync_playwright() as p:
             # Launch browser in headless or headed mode
             # Use system Chrome if available (GitHub Actions), fallback to Chromium
-            import os
             use_system_chrome = os.environ.get('GITHUB_ACTIONS') == 'true'
 
             if headless:
@@ -338,10 +337,15 @@ class DriverPulseSource:
                                 return False
                         else:
                             logger.warning("⚠️ Gmail 2FA not available - manual intervention needed")
+                            if headless:
+                                # In headless mode (GitHub Actions), we can't do manual entry
+                                raise DriverPulseAuthError("Gmail 2FA failed in headless mode - cannot retrieve verification code")
                             time.sleep(30)  # Give time for manual code entry
 
                 except Exception as e:
                     logger.warning(f"⚠️ 2FA step failed or not required: {e}")
+                    if headless and "Gmail 2FA" in str(e):
+                        raise  # Re-raise in headless mode
                     time.sleep(10)
 
                 # Step 8: Final wait for login completion

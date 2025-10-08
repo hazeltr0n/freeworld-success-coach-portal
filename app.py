@@ -6686,7 +6686,7 @@ def show_combined_batches_and_scheduling_page(coach):
                         with col_save:
                             dp_submitted = st.form_submit_button("📅 Schedule Recurring Batch", width='stretch')
                         with col_run:
-                            dp_run_now = st.form_submit_button("🚀 Run Now", width='stretch', type="secondary")
+                            dp_run_now = st.form_submit_button("⚡ Schedule One-Off Batch", width='stretch', type="secondary")
 
                         if dp_submitted or dp_run_now:
                             # Validation
@@ -6751,45 +6751,60 @@ def show_combined_batches_and_scheduling_page(coach):
                                 from github_actions_helper import refresh_auth_and_wait, get_auth_age
                                 dp_manager = AsyncJobManager()
 
+                                print(f"🔍 DEBUG: dp_run_now = {dp_run_now}, dp_submitted = {dp_submitted}")
+
                                 if dp_run_now:
-                                    # Check if we need fresh auth (> 3 minutes old)
-                                    auth_age = get_auth_age()
-                                    needs_refresh = auth_age is None or auth_age > 180
+                                    # Schedule one-off batch via GitHub Actions
+                                    # This ensures auth and scraping happen from same IP
 
-                                    if needs_refresh:
-                                        st.info("🔄 Getting fresh DriverPulse authentication...")
-
-                                        # Create a placeholder for status updates
-                                        status_placeholder = st.empty()
-
-                                        def update_status(msg):
-                                            status_placeholder.info(msg)
-
-                                        with st.spinner("Authenticating with DriverPulse (this takes 1-2 minutes)..."):
-                                            success, msg = refresh_auth_and_wait(progress_callback=update_status)
-
-                                        status_placeholder.empty()
-
-                                        if not success:
-                                            st.error(msg)
-                                            st.error("❌ Cannot run batch without fresh authentication")
-                                            st.stop()
-
-                                        st.success("✅ Fresh authentication ready!")
-
-                                    # Run immediately - submit the job for immediate execution
-                                    dp_search_params['run_immediately'] = True
+                                    # Create job in queue
+                                    from datetime import datetime, timezone
                                     job = dp_manager.submit_driver_pulse_search(dp_search_params, coach.username)
 
-                                    st.success(f"🚀 DriverPulse batch running NOW!")
-                                    st.info(f"📋 Job ID: {job.id}")
-                                    st.info(f"🔍 Search: '{dp_batch_search_term}' | Filter: {dp_batch_filter_mode}")
-                                    if dp_batch_filter_mode == "Custom ZIP Codes":
-                                        st.info(f"📍 Target ZIPs: {len(target_zips)} ZIP codes")
-                                    else:
-                                        st.info(f"📍 Target: All FreeWorld Markets (6,710 ZIPs)")
-                                    st.info(f"🧠 Classifier: {dp_batch_classifier_type}")
-                                    st.info("⚡ One-time execution (ignoring schedule settings)")
+                                    # Trigger GitHub Actions workflow
+                                    try:
+                                        import requests
+                                        github_token = st.secrets.get("GITHUB_TOKEN")
+                                        repo_owner = st.secrets.get("GITHUB_REPO_OWNER", "hazeltr0n")
+                                        repo_name = st.secrets.get("GITHUB_REPO_NAME", "freeworld-success-coach-portal")
+
+                                        if not github_token:
+                                            st.error("❌ GITHUB_TOKEN not configured")
+                                            st.stop()
+
+                                        # Trigger workflow
+                                        url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/actions/workflows/run_driverpulse_job.yml/dispatches"
+                                        headers = {
+                                            "Authorization": f"Bearer {github_token}",
+                                            "Accept": "application/vnd.github+json",
+                                            "X-GitHub-Api-Version": "2022-11-28"
+                                        }
+                                        payload = {
+                                            "ref": "main",
+                                            "inputs": {
+                                                "job_id": str(job.id)
+                                            }
+                                        }
+
+                                        response = requests.post(url, headers=headers, json=payload)
+
+                                        if response.status_code == 204:
+                                            st.success(f"✅ Batch scheduled to run immediately!")
+                                            st.info(f"📋 Job ID: {job.id}")
+                                            st.info(f"🔍 Search: '{dp_batch_search_term}' | Filter: {dp_batch_filter_mode}")
+                                            if dp_batch_filter_mode == "Custom ZIP Codes":
+                                                st.info(f"📍 Target ZIPs: {len(target_zips)} ZIP codes")
+                                            else:
+                                                st.info(f"📍 Target: All FreeWorld Markets (6,710 ZIPs)")
+                                            st.info(f"🧠 Classifier: {dp_batch_classifier_type}")
+                                            st.info("⏳ Check the queue below for status updates")
+                                        else:
+                                            st.error(f"❌ Failed to trigger workflow: {response.status_code}")
+                                            st.error(response.text)
+
+                                    except Exception as e:
+                                        st.error(f"❌ Error triggering workflow: {e}")
+                                        st.stop()
 
                                     # Rerun to show updated table
                                     st.rerun()
