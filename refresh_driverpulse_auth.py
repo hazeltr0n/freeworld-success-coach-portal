@@ -4,12 +4,38 @@ Refresh DriverPulse Authentication and Store in Supabase
 Runs in GitHub Actions to keep authentication fresh
 """
 
-import os
+print("=" * 60)
+print("SCRIPT STARTED")
+print("=" * 60)
 import sys
+sys.stdout.flush()
+
+import os
 import json
 from datetime import datetime
-from supabase import create_client, Client
-from driver_pulse_source import DriverPulseSource
+
+print("Basic imports successful")
+sys.stdout.flush()
+
+try:
+    from supabase import create_client, Client
+    print("Supabase import successful")
+    sys.stdout.flush()
+except Exception as e:
+    print(f"FAILED to import supabase: {e}")
+    sys.stdout.flush()
+    sys.exit(1)
+
+try:
+    from driver_pulse_source import DriverPulseSource
+    print("DriverPulseSource import successful")
+    sys.stdout.flush()
+except Exception as e:
+    print(f"FAILED to import DriverPulseSource: {e}")
+    import traceback
+    traceback.print_exc()
+    sys.stdout.flush()
+    sys.exit(1)
 
 def store_auth_in_supabase(auth_data: dict, supabase: Client) -> bool:
     """
