@@ -41,6 +41,50 @@ def store_auth_in_supabase(auth_data: dict, supabase: Client) -> bool:
         return False
 
 
+def refresh_gmail_token_if_needed() -> bool:
+    """
+    Check and refresh Gmail OAuth token if expired
+    Returns True if token is valid/refreshed, False if needs re-authentication
+    """
+    try:
+        from google.auth.transport.requests import Request
+        from google.oauth2.credentials import Credentials
+
+        if not os.path.exists('gmail_token.json'):
+            print("⚠️ No existing Gmail token found")
+            return False
+
+        print("🔍 Checking Gmail token validity...")
+        creds = Credentials.from_authorized_user_file('gmail_token.json')
+
+        if creds.valid:
+            print("✅ Gmail token is still valid")
+            return True
+
+        if creds.expired and creds.refresh_token:
+            print("🔄 Gmail token expired, refreshing...")
+            try:
+                creds.refresh(Request())
+                print("✅ Gmail token refreshed successfully")
+
+                # Save refreshed token back to file
+                with open('gmail_token.json', 'w') as token:
+                    token.write(creds.to_json())
+                print("💾 Refreshed Gmail token saved")
+
+                return True
+            except Exception as refresh_error:
+                print(f"❌ Gmail token refresh failed: {refresh_error}")
+                return False
+        else:
+            print("❌ Gmail token invalid and no refresh_token available")
+            return False
+
+    except Exception as e:
+        print(f"⚠️ Error checking Gmail token: {e}")
+        return False
+
+
 def main():
     """Main entry point for auth refresh"""
 
@@ -63,8 +107,15 @@ def main():
         sys.exit(1)
 
     print("🚀 Starting DriverPulse authentication refresh...")
-    print(f"   Email: {email}")
-    print(f"   Name: {first_name} {last_name}")
+    print(f"   Email: '{email}' (len={len(email) if email else 0})")
+    print(f"   First Name: '{first_name}' (len={len(first_name) if first_name else 0})")
+    print(f"   Last Name: '{last_name}' (len={len(last_name) if last_name else 0})")
+    print(f"   Phone: '{phone}' (len={len(phone) if phone else 0})")
+
+    # Refresh Gmail token if needed (auto-refresh using refresh_token)
+    if not refresh_gmail_token_if_needed():
+        print("⚠️ Gmail token needs manual re-authentication (refresh_token missing/expired)")
+        print("   This should only happen once - the refresh_token normally doesn't expire")
 
     # Initialize DriverPulse source
     source = DriverPulseSource()

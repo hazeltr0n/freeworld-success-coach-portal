@@ -256,10 +256,31 @@ class DriverPulseSource:
                 email = str(email) if email else ""
                 phone = str(phone) if phone else ""
 
-                page.fill('#fname', first_name)
-                page.fill('#lname', last_name)
-                page.fill('#email', email)
-                page.fill('#phone', phone)
+                # FORCE FILL using JavaScript - bypasses any placeholder/visibility issues
+                logger.info("🔧 Force-filling form fields with JavaScript...")
+                page.evaluate(f"""
+                    document.querySelector('#fname').value = '{first_name}';
+                    document.querySelector('#lname').value = '{last_name}';
+                    document.querySelector('#email').value = '{email}';
+                    document.querySelector('#phone').value = '{phone}';
+
+                    // Trigger input events so JavaScript validation fires
+                    ['#fname', '#lname', '#email', '#phone'].forEach(sel => {{
+                        const el = document.querySelector(sel);
+                        el.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                        el.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                    }});
+                """)
+                logger.info("✅ Form fields force-filled with JavaScript")
+
+                # Also try normal fill as backup
+                try:
+                    page.fill('#fname', first_name)
+                    page.fill('#lname', last_name)
+                    page.fill('#email', email)
+                    page.fill('#phone', phone)
+                except Exception as e:
+                    logger.warning(f"⚠️ Normal fill failed (but JS fill already succeeded): {e}")
 
                 # Step 5: Submit the form
                 logger.info("📤 Submitting login form...")
