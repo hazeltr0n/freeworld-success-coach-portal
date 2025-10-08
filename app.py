@@ -2023,13 +2023,19 @@ def show_manage_agents_tab(coach, coach_manager):
     with col2:
         if st.button("🔄 Refresh", help="Reload agents from database"):
             # Clear ALL relevant caches to force fresh data load
-            agents_cache_key = f'agents_{coach.username}_{show_deleted}'
-            if agents_cache_key in st.session_state:
-                del st.session_state[agents_cache_key]
+            # Clear BOTH cache keys (active and deleted) to ensure fresh reload
+            for show_del in [True, False]:
+                agents_cache_key = f'agents_{coach.username}_{show_del}'
+                if agents_cache_key in st.session_state:
+                    del st.session_state[agents_cache_key]
 
             analytics_cache_key = f'analytics_{coach.username}'
             if analytics_cache_key in st.session_state:
                 del st.session_state[analytics_cache_key]
+
+            # Clear hash tracking to reset change detection
+            if 'agent_table_last_saved' in st.session_state:
+                st.session_state.agent_table_last_saved = {}
 
             # Use the checkbox value that's now visible
             if refresh_analytics:
