@@ -2735,6 +2735,10 @@ def show_manage_agents_tab(coach, coach_manager):
                     
                     if delete_count > 0:
                         st.success(f"✅ Successfully deleted {delete_count} agent(s)")
+                        # Clear cache to reload fresh data
+                        agents_cache_key = f'agents_{coach.username}_{show_deleted}'
+                        if agents_cache_key in st.session_state:
+                            del st.session_state[agents_cache_key]
                         st.rerun()
             with col2:
                 if st.button("❌ Cancel", type="primary"):
