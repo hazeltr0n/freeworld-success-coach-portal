@@ -114,14 +114,14 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           python -c "
-          from driver_pulse_adapter import DriverPulseSourceAdapter
+          from driver_pulse_adapter import DriverPulsePipelineIntegration
           import json
 
           # Load job params
           with open('job_params.json', 'r') as f:
               params = json.load(f)
 
-          adapter = DriverPulseSourceAdapter()
+          integration = DriverPulsePipelineIntegration()
 
           # Extract search parameters
           search_terms = params.get('search_terms', 'CDL driver')
@@ -134,7 +134,7 @@ jobs:
               print(f'📍 Target ZIPs: {len(filter_settings.get(\"custom_zips\"))} ZIP codes')
 
           # Run the scraper through pipeline
-          result = adapter.run_driver_pulse_through_pipeline(
+          result = integration.run_driver_pulse_through_pipeline(
               search_terms=search_terms,
               filter_settings=filter_settings,
               coach_username=coach_username
