@@ -2695,22 +2695,20 @@ def show_manage_agents_tab(coach, coach_manager):
 
                             st.info("✅ Portal links will be automatically updated when you save changes")
 
-                            # Clear agents cache to reload fresh data after successful saves
-                            # This ensures the table shows the updated data from Supabase
+                        if error_count > 0:
+                            st.error(f"❌ Failed to update {error_count} agent(s)")
+
+                        # ALWAYS clear cache and rerun after ANY saves (success or failure)
+                        # This ensures the table reflects the current database state
+                        if success_count > 0:
                             agents_cache_key = f'agents_{coach.username}_{show_deleted}'
                             analytics_cache_key = f'analytics_{coach.username}'
                             if agents_cache_key in st.session_state:
                                 del st.session_state[agents_cache_key]
                             if analytics_cache_key in st.session_state:
                                 del st.session_state[analytics_cache_key]
-                            # Also clear the hash tracking to reset change detection
+                            # Clear hash tracking to reset change detection
                             st.session_state.agent_table_last_saved = {}
-
-                        if error_count > 0:
-                            st.error(f"❌ Failed to update {error_count} agent(s)")
-
-                        # Only rerun if we had successful saves AND no errors
-                        if success_count > 0 and error_count == 0:
                             st.rerun()
             with col2:
                 if st.button("↩️ Discard Changes"):
