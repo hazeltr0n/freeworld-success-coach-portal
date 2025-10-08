@@ -396,209 +396,27 @@ class AsyncJobManager:
             raise e
 
     def submit_driver_pulse_search(self, search_params: Dict, coach_username: str) -> AsyncJob:
-        """Run synchronous DriverPulse search - no async needed"""
-        # Create job queue entry
+        """Queue DriverPulse search for GitHub Actions execution"""
+        # Create job queue entry with pending status
         job = self.create_job_entry(coach_username, 'driver_pulse_jobs', search_params)
 
-        try:
-            from driver_pulse_adapter import DriverPulsePipelineIntegration
+        # Update to pending status (GitHub Actions will process it)
+        self.update_job(job.id, {
+            'status': 'pending',
+            'submitted_at': datetime.now(timezone.utc).isoformat()
+        })
 
-            # Initialize integration
-            integration = DriverPulsePipelineIntegration()
+        # Notify coach that job is queued
+        self.notify_coach(
+            coach_username,
+            f"📋 DriverPulse job queued for '{search_params['search_terms']}'",
+            'search_submitted',
+            job.id
+        )
 
-            # Update job to processing
-            self.update_job(job.id, {
-                'status': 'processing',
-                'submitted_at': datetime.now(timezone.utc).isoformat()
-            })
+        # Return the job - GitHub Actions will execute it
+        return job
 
-            # Notify coach that scraping started
-            self.notify_coach(
-                coach_username,
-                f"🔄 DriverPulse scrape started for '{search_params['search_terms']}'!",
-                'search_submitted',
-                job.id
-            )
-
-            # Run DriverPulse scraper through pipeline
-            results = integration.run_driver_pulse_through_pipeline(
-                coach_username=coach_username,
-                search_terms=search_params['search_terms'],
-                filter_settings=search_params.get('filter_settings', {})
-            )
-
-            df = results['jobs_df']
-            metadata = results['metadata']
-
-            if metadata['success'] and not df.empty:
-                # Count quality jobs
-                quality_count = 0
-                quality_jobs = df
-                if 'route.final_status' in df.columns:
-                    quality_jobs = df[df['route.final_status'].astype(str).str.startswith('included')]
-                    quality_count = len(quality_jobs)
-                elif 'ai.match' in df.columns:
-                    quality_jobs = df[df['ai.match'].isin(['good', 'so-so'])]
-                    quality_count = len(quality_jobs)
-
-                # Generate tracked URLs for quality jobs
-                print("🔗 Generating tracked URLs for quality jobs...")
-                try:
-                    from link_tracker import LinkTracker
-                    tracker = LinkTracker()
-
-                    if tracker.is_available and not quality_jobs.empty:
-                        for idx in quality_jobs.index:
-                            # Get the original URL from DriverPulse
-                            original_url = quality_jobs.loc[idx, 'source.url'] if 'source.url' in quality_jobs.columns else ''
-
-                            if original_url and len(original_url.strip()) > 10:
-                                # Create job title for the link
-                                job_title = quality_jobs.loc[idx, 'source.title'] if 'source.title' in quality_jobs.columns else f"Job {idx}"
-                                job_location = quality_jobs.loc[idx, 'source.location'] if 'source.location' in quality_jobs.columns else 'Unknown'
-
-                                # Generate tracking tags
-                                tags = [
-                                    f"coach:{coach_username}",
-                                    f"source:driver_pulse",
-                                    f"location:{job_location[:20]}"  # Truncate long locations
-                                ]
-
-                                try:
-                                    tracked_url = tracker.create_short_link(
-                                        original_url,
-                                        title=f"{job_title} - {job_location}",
-                                        tags=tags
-                                    )
-
-                                    if tracked_url and tracked_url != original_url:
-                                        # Add tracked_url column if it doesn't exist
-                                        if 'meta.tracked_url' not in quality_jobs.columns:
-                                            quality_jobs['meta.tracked_url'] = ''
-                                        quality_jobs.loc[idx, 'meta.tracked_url'] = tracked_url
-
-                                        # Also add to full df for CSV export
-                                        if idx in df.index:
-                                            if 'meta.tracked_url' not in df.columns:
-                                                df['meta.tracked_url'] = ''
-                                            df.loc[idx, 'meta.tracked_url'] = tracked_url
-
-                                except Exception as link_error:
-                                    print(f"Failed to create short link for job {idx}: {link_error}")
-
-                        print(f"✅ Generated tracked URLs for quality jobs")
-                except Exception as e:
-                    print(f"Link tracking setup failed: {e}")
-
-                # Store jobs to memory database (jobs table with AI classifications)
-                try:
-                    from job_memory_db import JobMemoryDB
-                    memory_db = JobMemoryDB()
-
-                    # Build frame with FLAT field names expected by store_classifications()
-                    canon = pd.DataFrame()
-
-                    # Core job info (FLAT names) - use norm.* fields preferentially
-                    canon['job_id'] = df.get('id.job', df.index.map(str))
-                    canon['job_title'] = df.get('norm.title', df.get('source.title', ''))
-                    canon['company'] = df.get('norm.company', df.get('source.company', ''))
-                    canon['location'] = df.get('norm.location', df.get('source.location', ''))
-                    canon['job_description'] = df.get('norm.description', df.get('source.description_raw', ''))
-                    canon['apply_url'] = df.get('source.url', '')
-                    canon['zip_code'] = df.get('norm.zip_code', df.get('source.zip_code', ''))
-                    canon['salary'] = df.get('norm.salary_display', df.get('source.salary', ''))
-
-                    # AI classification (FLAT names)
-                    canon['match_level'] = df.get('ai.match', '')
-                    canon['match_reason'] = df.get('ai.reason', '')
-                    canon['summary'] = df.get('ai.summary', '')
-                    canon['route_type'] = df.get('ai.route_type', '')
-                    canon['fair_chance'] = df.get('ai.fair_chance', '')
-                    canon['endorsements'] = df.get('ai.endorsements', '')
-
-                    # Routing status for filtering
-                    canon['filter_reason'] = df.get('route.final_status', 'passed_all_filters')
-
-                    # Tracking
-                    canon['market'] = df.get('meta.market', '')
-                    canon['tracked_url'] = df.get('meta.tracked_url', '')
-                    canon['source'] = 'driver_pulse'
-
-                    # Dedup hashes (R3 is post-AI classification)
-                    canon['rules_duplicate_r1'] = df.get('rules.duplicate_r1', '')
-                    canon['rules_duplicate_r2'] = df.get('rules.duplicate_r2', '')
-                    canon['rules_duplicate_r3'] = df.get('rules.duplicate_r3', '')
-                    canon['sys.hash'] = df.get('sys.hash', '')
-
-                    stored_count = memory_db.store_classifications(canon)
-                    print(f"✅ Stored {len(canon)} jobs to Supabase jobs table (memory database)")
-                except Exception as e:
-                    print(f"Failed to store jobs to memory database: {e}")
-                    import traceback
-                    traceback.print_exc()
-
-                # Generate CSV file for download
-                csv_filename = None
-                try:
-                    csv_filename = self._generate_csv_file(job.id, job, df, quality_jobs)
-                    print(f"✅ CSV generated: {csv_filename}")
-                except Exception as e:
-                    print(f"CSV generation failed: {e}")
-
-                # Generate Parquet file
-                try:
-                    import os
-                    pq_dir = "data/async_batches"
-                    os.makedirs(pq_dir, exist_ok=True)
-                    pq_path = os.path.join(pq_dir, f"{job.id}_results.parquet")
-                    df.to_parquet(pq_path, index=False)
-                    print(f"📦 Parquet saved: {pq_path}")
-                except Exception as e:
-                    print(f"Parquet generation failed: {e}")
-
-                # Store run_id in search_params for download access
-                updated_search_params = job.search_params.copy() if isinstance(job.search_params, dict) else {}
-                updated_search_params['sys.run_id'] = metadata.get('run_id', '')
-
-                # Update job as completed
-                self.update_job(job.id, {
-                    'status': 'completed',
-                    'result_count': len(df),
-                    'quality_job_count': quality_count,
-                    'completed_at': datetime.now(timezone.utc).isoformat(),
-                    'search_params': updated_search_params
-                })
-
-                # Notify coach of success
-                self.notify_coach(
-                    coach_username,
-                    f"✅ DriverPulse scrape completed! Found {len(df)} jobs ({quality_count} quality)",
-                    'search_complete',
-                    job.id
-                )
-
-                return job
-            else:
-                error_msg = metadata.get('error', 'No jobs found')
-                raise Exception(error_msg)
-
-        except Exception as e:
-            # Update job with error
-            self.update_job(job.id, {
-                'status': 'failed',
-                'error_message': str(e),
-                'completed_at': datetime.now(timezone.utc).isoformat()
-            })
-
-            # Notify coach of error
-            self.notify_coach(
-                coach_username,
-                f"❌ DriverPulse scrape failed: {str(e)}",
-                'error',
-                job.id
-            )
-
-            raise e
 
     # REMOVED: store_scraped_jobs() - now using memory_db.store_classifications() to store to jobs table
 
