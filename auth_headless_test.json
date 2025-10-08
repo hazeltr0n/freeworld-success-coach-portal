@@ -1,0 +1,47 @@
+{
+  "cookies": [
+    {
+      "name": "PHPSESSID",
+      "value": "ZSmvbveiLhYwwT9dswJf%2CnXso9kagUX9ttyWxiqy7SwOHyAfME7gwuYMuQ4HgKGUvv9Rr7Xf1icf3Kt93V-UEjTyMFpTO11uEMOQsnMPx5j4ISK-CT0xSNAYH69bW%2ChM",
+      "domain": "pulse.tenstreet.com",
+      "path": "/",
+      "secure": true,
+      "httpOnly": true
+    },
+    {
+      "name": "portal_symlink_path[pulse.tenstreet.com]",
+      "value": "%2Fportal_symlink",
+      "domain": "pulse.tenstreet.com",
+      "path": "/",
+      "secure": false,
+      "httpOnly": false
+    },
+    {
+      "name": "mobileapp_device_registration",
+      "value": "%7B%22push_notification_pulse_info_id%22%3A318874603%2C%22device_guid%22%3A%22browser_31a8bc6b9b2a026ada0b%22%2C%22device_type%22%3A%22desktop%22%2C%22auth_type%22%3A%22NotSecure%22%2C%22app_mode%22%3A%22pulse%22%7D",
+      "domain": "pulse.tenstreet.com",
+      "path": "/",
+      "secure": true,
+      "httpOnly": true
+    },
+    {
+      "name": "__cf_bm",
+      "value": "rIvUxKg5vbI2rLHiA0w0KSZTmWaNWxdWL05o15d0afM-1759848945-1.0.1.1-3PnyrF2CImJggsnOWaTfdvLPzr39W37SeP4Q1IpYtwU3r1DM525_KD8Hm4bPfzb6xBM.uokuZLpPNjzqydPESO9FS58whihZ_SNhHbVQ7Sc",
+      "domain": ".tenstreet.com",
+      "path": "/",
+      "secure": true,
+      "httpOnly": true
+    },
+    {
+      "name": "PHPSESSID",
+      "value": "ObRZIImfPX3ytvOEmYV77gD%2C%2Cb24%2CATODVhlfq3XLWbpSU7ymhHU9Gvh5gPGOucCj-psi%2CGWrIozhfxl1Y2bVd82A2Z-2cHlgjZBQNywFOBDPa7MLWrg-EtNnIsGWsU9",
+      "domain": "dashboard.tenstreet.com",
+      "path": "/",
+      "secure": true,
+      "httpOnly": true
+    }
+  ],
+  "created_at": "2025-10-07T09:56:21.657496",
+  "portal_user_id": null,
+  "auth_method": "headless_playwright_with_gmail_2fa"
+}

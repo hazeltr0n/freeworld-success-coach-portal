@@ -457,7 +457,7 @@ def get_free_agents_analytics(coach_username: str = None, limit: int = 50) -> pd
     profiles_query = client.table('agent_profiles').select(
         'agent_uuid, custom_url, admin_portal_url, original_long_url, location, route_filter, fair_chance_only, '
         'max_jobs, match_level, zip_code, zip_radius_miles, lookback_hours, show_prepared_for, '
-        'placement_status, employment_status'
+        'placement_status, employment_status, agent_city, agent_state'
     ).in_('agent_uuid', agent_uuids)
 
     profiles_result = profiles_query.execute()
