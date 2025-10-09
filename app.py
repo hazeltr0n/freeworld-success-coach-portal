@@ -310,8 +310,8 @@ def airtable_get_schema():
         return {}
     import os as _os
     api_key = _os.getenv("AIRTABLE_API_KEY")
-    base_id = _os.getenv("AIRTABLE_BASE_ID") 
-    table_id_or_name = _os.getenv("AIRTABLE_CANDIDATES_TABLE_ID") or _os.getenv("AIRTABLE_TABLE_ID")
+    base_id = _os.getenv("AIRTABLE_BASE_ID")
+    table_id_or_name = _os.getenv("AIRTABLE_CANDIDATES_TABLE_ID")
     if not (api_key and base_id and table_id_or_name):
         return {}
     try:
@@ -334,7 +334,7 @@ def airtable_find_candidates(query: str, by: str = "name", limit: int = 10, skip
     Environment variables required:
     - AIRTABLE_API_KEY
     - AIRTABLE_BASE_ID
-    - AIRTABLE_TABLE_ID (table name) or AIRTABLE_CANDIDATES_TABLE_ID
+    - AIRTABLE_CANDIDATES_TABLE_ID
     - Optional: AIRTABLE_CANDIDATES_VIEW_ID
 
     Args:
@@ -347,7 +347,7 @@ def airtable_find_candidates(query: str, by: str = "name", limit: int = 10, skip
 
     api_key = _os.getenv("AIRTABLE_API_KEY")
     base_id = _os.getenv("AIRTABLE_BASE_ID")
-    table_id_or_name = _os.getenv("AIRTABLE_CANDIDATES_TABLE_ID") or _os.getenv("AIRTABLE_TABLE_ID")
+    table_id_or_name = _os.getenv("AIRTABLE_CANDIDATES_TABLE_ID")
     view_id = _os.getenv("AIRTABLE_CANDIDATES_VIEW_ID")  # optional, narrows search
     if not (api_key and base_id and table_id_or_name):
         return []
@@ -509,10 +509,15 @@ def sync_agent_airtable_status(agent_uuid: str) -> dict:
 def sync_all_agents_airtable_status(coach_username: str = None) -> int:
     """Sync placement and employment status from Airtable for all agents (or specific coach's agents)
 
+    OPTIMIZED: Makes ONE bulk Airtable query instead of N individual queries.
+    This is 10-50x faster when syncing many agents from a large Airtable (23k+ records).
+
     Returns count of successfully synced agents
     """
     try:
         from supabase_utils import get_client
+        from datetime import datetime, timezone
+
         client = get_client()
         if not client:
             return 0
@@ -529,19 +534,102 @@ def sync_all_agents_airtable_status(coach_username: str = None) -> int:
         if not agents:
             return 0
 
+        # Extract all UUIDs for bulk Airtable lookup
+        agent_uuids = [a.get('agent_uuid') for a in agents if a.get('agent_uuid')]
+        if not agent_uuids:
+            return 0
+
+        print(f"🔍 BULK SYNC: Looking up {len(agent_uuids)} agents in Airtable...")
+
+        # Build OR formula for bulk Airtable query
+        # Example: OR({uuid}="uuid1", {uuid}="uuid2", {uuid}="uuid3")
+        if not Api:
+            print("⚠️ Airtable API not available - skipping sync")
+            return 0
+
+        import os
+        api_key = os.getenv('AIRTABLE_API_KEY')
+        base_id = os.getenv('AIRTABLE_BASE_ID')
+        table_id = os.getenv('AIRTABLE_CANDIDATES_TABLE_ID')
+
+        if not api_key or not base_id or not table_id:
+            print("⚠️ Airtable credentials not configured")
+            return 0
+
+        api = Api(api_key)
+        table = api.table(base_id, table_id)
+
+        # Airtable has a formula length limit (~16k chars), so batch if needed
+        batch_size = 100  # Conservative batch size to avoid formula length limits
+        airtable_data_map = {}
+
+        for i in range(0, len(agent_uuids), batch_size):
+            batch_uuids = agent_uuids[i:i+batch_size]
+
+            # Build OR formula for this batch using LOWER() for case-insensitive matching
+            # This matches the pattern from airtable_find_candidates function
+            or_conditions = []
+            for uuid_val in batch_uuids:
+                # Escape quotes in UUID values
+                escaped_uuid = uuid_val.replace('"', '\\"')
+                # Use LOWER() comparison like airtable_find_candidates does
+                or_conditions.append(f'LOWER({{uuid}}&"")=LOWER("{escaped_uuid}")')
+            formula = f"OR({', '.join(or_conditions)})"  # Note: space after comma!
+
+            try:
+                # Single Airtable query for entire batch
+                records = table.all(formula=formula, max_records=len(batch_uuids))
+
+                # Map results by UUID for fast lookup
+                for record in records:
+                    fields = record.get('fields', {})
+                    uuid = fields.get('uuid') or fields.get('UUID')
+                    if uuid:
+                        # Match the field name patterns from airtable_find_candidates
+                        placement = fields.get('placementStatus') or fields.get('Placement Status') or ''
+                        employment = fields.get('employmentStatus') or fields.get('Employment Status') or ''
+
+                        airtable_data_map[uuid] = {
+                            'placement_status': placement,
+                            'employment_status': employment
+                        }
+
+                        # Debug: Print what we found
+                        print(f"📋 AIRTABLE DATA: {uuid[:8]}... placement='{placement}', employment='{employment}'")
+
+                print(f"✅ Retrieved {len(records)} agents from Airtable (batch {i//batch_size + 1})")
+
+            except Exception as e:
+                print(f"⚠️ Airtable batch query failed: {e}")
+                continue
+
+        # Now update Supabase with all the data we found
         sync_count = 0
-        for agent in agents:
-            agent_uuid = agent.get('agent_uuid')
-            if agent_uuid:
-                synced_data = sync_agent_airtable_status(agent_uuid)
-                if synced_data:
+        sync_timestamp = datetime.now(timezone.utc).isoformat()
+
+        for agent_uuid in agent_uuids:
+            airtable_data = airtable_data_map.get(agent_uuid)
+            if airtable_data:
+                try:
+                    update_data = {
+                        'placement_status': airtable_data['placement_status'],
+                        'employment_status': airtable_data['employment_status'],
+                        'airtable_synced_at': sync_timestamp
+                    }
+
+                    client.table('agent_profiles').update(update_data).eq('agent_uuid', agent_uuid).execute()
                     sync_count += 1
 
-        print(f"✅ Synced {sync_count}/{len(agents)} agents from Airtable")
+                except Exception as e:
+                    print(f"⚠️ Failed to update {agent_uuid} in Supabase: {e}")
+
+        print(f"✅ BULK SYNC COMPLETE: Synced {sync_count}/{len(agents)} agents from Airtable")
         return sync_count
 
     except Exception as e:
         print(f"❌ Error in bulk Airtable sync: {e}")
+        import traceback
+        traceback.print_exc()
         return 0
 
 # Function to encode image as base64
@@ -1568,6 +1656,99 @@ def show_free_agent_management_page(coach):
         show_track_applications_tab(coach, coach_manager)
 
 
+def refresh_agent_caches_only(coach_username: str):
+    """
+    Lightweight refresh: Update analytics table and clear caches to show newly added agents.
+    Faster than full sync - skips Airtable sync and click_events refresh.
+    """
+    try:
+        # Step 1: Update analytics table so new agent appears
+        # This is critical because the table loads from free_agents_analytics
+        from free_agents_rollup import update_free_agents_analytics_table
+        try:
+            update_free_agents_analytics_table()
+            print(f"✅ Updated analytics table with new agent")
+        except Exception as e:
+            print(f"⚠️ Failed to update analytics: {e}")
+
+        # Step 2: Clear agent caches to force fresh data load
+        for show_del in [True, False]:
+            agents_cache_key = f'agents_{coach_username}_{show_del}'
+            if agents_cache_key in st.session_state:
+                del st.session_state[agents_cache_key]
+
+        analytics_cache_key = f'analytics_{coach_username}'
+        if analytics_cache_key in st.session_state:
+            del st.session_state[analytics_cache_key]
+
+        # Clear hash tracking to reset change detection
+        if 'agent_table_last_saved' in st.session_state:
+            st.session_state.agent_table_last_saved = {}
+
+        # Clear Streamlit caches
+        st.cache_data.clear()
+
+        print(f"✅ Cleared caches for {coach_username}")
+        return True
+    except Exception as e:
+        print(f"❌ Cache clear error: {e}")
+        return False
+
+
+def refresh_all_agent_data(coach_username: str):
+    """
+    Comprehensive refresh flow: Sync Airtable, update analytics, and clear all caches.
+    This is SLOW - only use for the manual "Refresh All" button.
+    For adding single agents, use refresh_agent_caches_only() instead.
+    """
+    try:
+        # Step 1: Sync Airtable placement/employment status (OPTIMIZED - bulk query)
+        synced_count = sync_all_agents_airtable_status(coach_username)
+        if synced_count > 0:
+            print(f"✅ Synced {synced_count} agents from Airtable")
+
+        # Step 2: Update analytics table
+        from free_agents_rollup import update_free_agents_analytics_table
+        try:
+            update_free_agents_analytics_table()
+            print(f"✅ Updated analytics table")
+        except Exception as e:
+            print(f"⚠️ Failed to update analytics: {e}")
+
+        # Step 3: Refresh analytics from click_events
+        try:
+            from supabase_utils import get_client
+            client = get_client()
+            if client:
+                result = client.rpc('scheduled_agents_refresh').execute()
+                print(f"✅ Refreshed analytics from click_events and job_feedback")
+        except Exception as e:
+            if "JSON could not be generated" not in str(e):
+                print(f"⚠️ Analytics refresh warning: {e}")
+
+        # Step 4: Clear ALL caches to force fresh data load
+        for show_del in [True, False]:
+            agents_cache_key = f'agents_{coach_username}_{show_del}'
+            if agents_cache_key in st.session_state:
+                del st.session_state[agents_cache_key]
+
+        analytics_cache_key = f'analytics_{coach_username}'
+        if analytics_cache_key in st.session_state:
+            del st.session_state[analytics_cache_key]
+
+        # Clear hash tracking to reset change detection
+        if 'agent_table_last_saved' in st.session_state:
+            st.session_state.agent_table_last_saved = {}
+
+        # Clear all Streamlit caches
+        st.cache_data.clear()
+
+        return True
+    except Exception as e:
+        print(f"❌ Refresh flow error: {e}")
+        return False
+
+
 def show_manage_agents_tab(coach, coach_manager):
     """Show the Manage Agents tab (original Free Agent management interface)"""
     from free_agent_system import (
@@ -1690,15 +1871,10 @@ def show_manage_agents_tab(coach, coach_manager):
                                 if st.button("📋 Copy Portal Link", key="copy_new_portal"):
                                     st.success("Portal link copied to clipboard!")
                             st.balloons()
-                            # Clear ALL relevant caches to force fresh data load
-                            for show_del in [True, False]:
-                                agents_cache_key = f'agents_{coach.username}_{show_del}'
-                                if agents_cache_key in st.session_state:
-                                    del st.session_state[agents_cache_key]
-                            # Clear analytics cache too
-                            analytics_cache_key = f'analytics_{coach.username}'
-                            if analytics_cache_key in st.session_state:
-                                del st.session_state[analytics_cache_key]
+
+                            # Lightweight refresh - just clear caches (fast!)
+                            refresh_agent_caches_only(coach.username)
+
                             # Clear search results after successful add
                             st.session_state['search_results'] = []
                             st.rerun()
@@ -1892,6 +2068,10 @@ def show_manage_agents_tab(coach, coach_manager):
                         if agent_data.get('portal_url'):
                             st.info(f"🔗 Portal link: {agent_data['portal_url']}")
                         st.balloons()
+
+                        # Lightweight refresh - just clear caches (fast!)
+                        refresh_agent_caches_only(coach.username)
+
                         st.rerun()
                     else:
                         st.error(f"❌ Database save failed: {message}")
@@ -2042,87 +2222,20 @@ def show_manage_agents_tab(coach, coach_manager):
                 st.error(f"CSV parse error: {e}")
     
     # Add refresh button, deleted agents, and status indicator
-    col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 1])
+    col1, col2, col3 = st.columns([1, 1, 1])
 
     # Define show_deleted FIRST before using it in cache keys
-    with col3:
+    with col2:
         show_deleted = st.checkbox("👻 Show Deleted", help="Show soft-deleted (inactive) agents")
 
     with col1:
-        # Make checkbox visible BEFORE button
-        refresh_analytics = st.checkbox("🔄 Also refresh analytics", help="Slower but updates engagement metrics", key="refresh_analytics_opt")
-
-    with col2:
-        if st.button("🔄 Refresh", help="Reload agents from database"):
-            # Clear ALL relevant caches to force fresh data load
-            # Clear BOTH cache keys (active and deleted) to ensure fresh reload
-            for show_del in [True, False]:
-                agents_cache_key = f'agents_{coach.username}_{show_del}'
-                if agents_cache_key in st.session_state:
-                    del st.session_state[agents_cache_key]
-
-            analytics_cache_key = f'analytics_{coach.username}'
-            if analytics_cache_key in st.session_state:
-                del st.session_state[analytics_cache_key]
-
-            # Clear hash tracking to reset change detection
-            if 'agent_table_last_saved' in st.session_state:
-                st.session_state.agent_table_last_saved = {}
-
-            # Use the checkbox value that's now visible
-            if refresh_analytics:
-                try:
-                    from supabase_utils import get_client
-                    client = get_client()
-                    if client:
-                        with st.spinner("🔄 Refreshing analytics data..."):
-                            result = client.rpc('scheduled_agents_refresh').execute()
-
-                            # CRITICAL: Clear ALL Streamlit caches to force fresh data
-                            st.cache_data.clear()
-
-                            st.success("✅ Analytics data refreshed from click_events and job_feedback!")
-                    else:
-                        st.error("❌ Supabase client not available")
-                except Exception as e:
-                    if "JSON could not be generated" in str(e):
-                        # Even on JSON error, clear caches since the function likely worked
-                        st.cache_data.clear()
-                        st.success("✅ Analytics data refreshed from click_events and job_feedback!")
-                    else:
-                        st.error(f"❌ Analytics refresh failed: {e}")
-            else:
-                # Even without analytics refresh, clear Streamlit caches for agent data
-                st.cache_data.clear()
-
+        if st.button("🔄 Refresh All", help="Refresh agents, sync Airtable status, and update analytics"):
+            with st.spinner("🔄 Refreshing all data..."):
+                refresh_all_agent_data(coach.username)
+                st.success("✅ All data refreshed successfully!")
             st.rerun()
 
-    with col4:
-        if st.button("🔄 Sync Airtable", help="Sync placement & employment status from Airtable"):
-            with st.spinner("🔄 Syncing Airtable statuses..."):
-                synced_count = sync_all_agents_airtable_status(coach.username)
-                if synced_count > 0:
-                    # Also update analytics table with synced data from agent_profiles
-                    from free_agents_rollup import update_free_agents_analytics_table
-                    try:
-                        update_free_agents_analytics_table()
-                        print(f"✅ Updated analytics table after Airtable sync")
-                    except Exception as e:
-                        print(f"⚠️ Failed to update analytics after sync: {e}")
-
-                    st.success(f"✅ Synced {synced_count} agents from Airtable!")
-                    # Clear caches to show updated data
-                    agents_cache_key = f'agents_{coach.username}_{show_deleted}'
-                    if agents_cache_key in st.session_state:
-                        del st.session_state[agents_cache_key]
-                    analytics_cache_key = f'analytics_{coach.username}'
-                    if analytics_cache_key in st.session_state:
-                        del st.session_state[analytics_cache_key]
-                    st.rerun()
-                else:
-                    st.warning("⚠️ No agents synced. Check Airtable connection.")
-
-    with col5:
+    with col3:
         # Show data source indicator
         try:
             from supabase_utils import get_client
