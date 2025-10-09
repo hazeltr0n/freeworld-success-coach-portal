@@ -328,7 +328,7 @@ def airtable_get_schema():
         print(f"❌ Schema discovery failed: {e}")
         return {}
 
-def airtable_find_candidates(query: str, by: str = "name", limit: int = 10):
+def airtable_find_candidates(query: str, by: str = "name", limit: int = 10, skip_view: bool = False):
     """Lookup candidates in Airtable by name, uuid, or email.
 
     Environment variables required:
@@ -336,6 +336,9 @@ def airtable_find_candidates(query: str, by: str = "name", limit: int = 10):
     - AIRTABLE_BASE_ID
     - AIRTABLE_TABLE_ID (table name) or AIRTABLE_CANDIDATES_TABLE_ID
     - Optional: AIRTABLE_CANDIDATES_VIEW_ID
+
+    Args:
+        skip_view: If True, bypass view filtering (useful for sync operations)
     """
     if not Api:
         return []
@@ -400,10 +403,13 @@ def airtable_find_candidates(query: str, by: str = "name", limit: int = 10):
             primary_formula = _build_exact_eq(fields_name, q)
 
         kwargs = {"formula": primary_formula, "max_records": max(5, limit)}
-        if view_id:
+        if view_id and not skip_view:
             kwargs["view"] = view_id
-
-        print(f"🔍 Airtable exact search formula: {primary_formula}")
+            print(f"🔍 Airtable exact search (view: {view_id}): {primary_formula}")
+        elif skip_view:
+            print(f"🔍 Airtable exact search (NO VIEW - unrestricted): {primary_formula}")
+        else:
+            print(f"🔍 Airtable exact search formula: {primary_formula}")
         recs = []
         try:
             recs = table.all(**kwargs)
@@ -463,9 +469,9 @@ def sync_agent_airtable_status(agent_uuid: str) -> dict:
         return {}
 
     try:
-        # Look up agent in Airtable by UUID
-        print(f"🔍 SYNC: Looking up agent {agent_uuid} in Airtable")
-        airtable_results = airtable_find_candidates(agent_uuid, by="uuid", limit=1)
+        # Look up agent in Airtable by UUID (skip view filtering for sync operations)
+        print(f"🔍 SYNC: Looking up agent {agent_uuid} in Airtable (unrestricted search)")
+        airtable_results = airtable_find_candidates(agent_uuid, by="uuid", limit=1, skip_view=True)
 
         if not airtable_results:
             print(f"⚠️ SYNC: Agent {agent_uuid} not found in Airtable")
@@ -514,7 +520,8 @@ def sync_all_agents_airtable_status(coach_username: str = None) -> int:
         # Get all active agents (optionally filtered by coach)
         query = client.table('agent_profiles').select('agent_uuid').eq('is_active', True)
         if coach_username:
-            query = query.eq('coach_username', coach_username)
+            # MULTI-COACH SUPPORT: Use array contains operator
+            query = query.contains('coach_usernames', [coach_username])
 
         result = query.execute()
         agents = result.data
@@ -1683,6 +1690,15 @@ def show_manage_agents_tab(coach, coach_manager):
                                 if st.button("📋 Copy Portal Link", key="copy_new_portal"):
                                     st.success("Portal link copied to clipboard!")
                             st.balloons()
+                            # Clear ALL relevant caches to force fresh data load
+                            for show_del in [True, False]:
+                                agents_cache_key = f'agents_{coach.username}_{show_del}'
+                                if agents_cache_key in st.session_state:
+                                    del st.session_state[agents_cache_key]
+                            # Clear analytics cache too
+                            analytics_cache_key = f'analytics_{coach.username}'
+                            if analytics_cache_key in st.session_state:
+                                del st.session_state[analytics_cache_key]
                             # Clear search results after successful add
                             st.session_state['search_results'] = []
                             st.rerun()
@@ -2009,6 +2025,16 @@ def show_manage_agents_tab(coach, coach_manager):
                             st.write("\n".join(errors[:50]))
                     # Refresh the page to show new agents
                     if success_count:
+                        # Clear ALL relevant caches to force fresh data load (same pattern as Refresh button)
+                        for show_del in [True, False]:
+                            agents_cache_key = f'agents_{coach.username}_{show_del}'
+                            if agents_cache_key in st.session_state:
+                                del st.session_state[agents_cache_key]
+                        # Clear analytics cache too
+                        analytics_cache_key = f'analytics_{coach.username}'
+                        if analytics_cache_key in st.session_state:
+                            del st.session_state[analytics_cache_key]
+                        # Clear legacy cache key if it exists
                         if 'agent_profiles' in st.session_state:
                             del st.session_state['agent_profiles']
                         st.rerun()
@@ -2076,11 +2102,22 @@ def show_manage_agents_tab(coach, coach_manager):
             with st.spinner("🔄 Syncing Airtable statuses..."):
                 synced_count = sync_all_agents_airtable_status(coach.username)
                 if synced_count > 0:
+                    # Also update analytics table with synced data from agent_profiles
+                    from free_agents_rollup import update_free_agents_analytics_table
+                    try:
+                        update_free_agents_analytics_table()
+                        print(f"✅ Updated analytics table after Airtable sync")
+                    except Exception as e:
+                        print(f"⚠️ Failed to update analytics after sync: {e}")
+
                     st.success(f"✅ Synced {synced_count} agents from Airtable!")
                     # Clear caches to show updated data
                     agents_cache_key = f'agents_{coach.username}_{show_deleted}'
                     if agents_cache_key in st.session_state:
                         del st.session_state[agents_cache_key]
+                    analytics_cache_key = f'analytics_{coach.username}'
+                    if analytics_cache_key in st.session_state:
+                        del st.session_state[analytics_cache_key]
                     st.rerun()
                 else:
                     st.warning("⚠️ No agents synced. Check Airtable connection.")

@@ -319,10 +319,21 @@ def analyze_free_agents_for_rollup() -> pd.DataFrame:
         job_clicks = agent.get('job_clicks', 0) or 0
         click_through_rate = (job_clicks / portal_visits * 100) if portal_visits > 0 else 0
 
+        # Get coach_usernames array - handle both new (array) and legacy (single) formats
+        coach_usernames = agent.get('coach_usernames', [])
+        if not coach_usernames:
+            # Fallback to old single coach_username field if array is empty
+            legacy_coach = agent.get('coach_username', '')
+            coach_usernames = [legacy_coach] if legacy_coach else []
+
+        # Use first coach as primary for display (most tables still expect single coach)
+        primary_coach = coach_usernames[0] if coach_usernames else ''
+
         agents_rollup.append({
             'agent_uuid': agent_uuid,
             'agent_name': agent.get('agent_name', ''),
-            'coach_username': agent.get('coach_username', ''),
+            'coach_username': primary_coach,  # Primary coach for single-coach queries
+            'coach_usernames': coach_usernames,  # Full array for multi-coach support
             'agent_email': agent.get('agent_email', ''),
             'agent_city': agent.get('agent_city', ''),
             'agent_state': agent.get('agent_state', ''),
@@ -359,6 +370,8 @@ def analyze_free_agents_for_rollup() -> pd.DataFrame:
             'is_active': True,
             'activity_level': activity_level,
             'last_activity_at': last_activity,
+            'placement_status': agent.get('placement_status', ''),
+            'employment_status': agent.get('employment_status', ''),
 
             # Coach relationship
             'priority_level': agent.get('priority_level', 'normal'),
@@ -441,7 +454,15 @@ def get_free_agents_analytics(coach_username: str = None, limit: int = 50) -> pd
     analytics_query = client.table('free_agents_analytics').select('*').order('engagement_score', desc=True)
 
     if coach_username:
-        analytics_query = analytics_query.eq('coach_username', coach_username)
+        # MULTI-COACH SUPPORT: Use PostgreSQL array contains operator
+        # This will match agents where coach_usernames array contains this coach
+        try:
+            # First try the new coach_usernames array field
+            analytics_query = analytics_query.contains('coach_usernames', [coach_username])
+        except:
+            # Fallback to old coach_username field if array doesn't exist
+            print(f"⚠️ coach_usernames array not found, falling back to coach_username field")
+            analytics_query = analytics_query.eq('coach_username', coach_username)
 
     if limit:
         analytics_query = analytics_query.limit(limit)
