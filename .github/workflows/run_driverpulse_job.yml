@@ -113,6 +113,8 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          SHORTIO_API_KEY: ${{ secrets.SHORTIO_API_KEY }}
+          SHORTIO_DOMAIN: ${{ secrets.SHORTIO_DOMAIN }}
         run: |
           python -c "
           from driver_pulse_adapter import DriverPulsePipelineIntegration

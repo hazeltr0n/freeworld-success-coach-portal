@@ -622,8 +622,23 @@ class DriverPulsePipelineIntegration:
                 except Exception as e:
                     print(f"⚠️ AI classification error: {e}")
 
-            # Step 8: Final routing
+            # Step 6: Final routing
             df = pipeline._stage6_routing(df, "")
+
+            # Step 7: Link tracking (generate Short.io links)
+            # We don't need PDF/CSV/HTML files, just the link tracking
+            pipeline._stage7_output(
+                df=df,
+                market="",
+                custom_location="",
+                generate_pdf=False,
+                generate_csv=False,
+                generate_html=False,
+                force_memory_only=False
+            )
+
+            # Step 8: Data storage (upload to Supabase)
+            pipeline._stage8_storage(df, push_to_airtable=False)
 
             # Generate metadata
             total_jobs = len(df)
@@ -632,6 +647,7 @@ class DriverPulsePipelineIntegration:
             print(f"\n✅ COMPLETE!")
             print(f"   Total jobs: {total_jobs}")
             print(f"   Quality jobs (good/so-so): {quality_jobs}")
+            print(f"   Uploaded to Supabase: {supabase_count}")
 
             metadata = {
                 'success': True,
