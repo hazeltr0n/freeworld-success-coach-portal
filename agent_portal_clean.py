@@ -127,6 +127,14 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
             if agent_zip:
                 print(f"📍 CLEAN AGENT PORTAL: ZIP radius filtering enabled - {agent_zip} within {zip_radius_miles} miles")
 
+            # Extract route filter - use route_type_filter (new) or fall back to converted route_filter
+            route_filter_value = agent_params.get('route_type_filter', 'both')  # 'local', 'otr', or 'both'
+
+            # Extract match level - use match_quality_filter (new) or fall back to match_level (legacy)
+            match_level_value = agent_params.get('match_quality_filter', agent_params.get('match_level', 'good and so-so'))
+
+            print(f"🎯 AGENT PORTAL: Passing route_filter='{route_filter_value}', match_level='{match_level_value}' to instant_memory_search")
+
             # Run direct memory search with feedback filtering
             jobs_list = instant_memory_search(
                 location=location,
@@ -134,7 +142,9 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
                 market=location,  # Use location as market
                 pathway_preferences=pathway_preferences,
                 agent_zip=agent_zip,
-                zip_radius_miles=zip_radius_miles if agent_zip else None
+                zip_radius_miles=zip_radius_miles if agent_zip else None,
+                route_filter=route_filter_value,  # Pass agent's route preference
+                match_level=match_level_value  # Pass agent's quality preference
             )
 
             if jobs_list:

@@ -459,19 +459,23 @@ def sync_agent_airtable_status(agent_uuid: str) -> dict:
     Returns updated status dict with placement_status, employment_status, and sync timestamp
     """
     if not agent_uuid:
+        print(f"❌ SYNC: No agent_uuid provided")
         return {}
 
     try:
         # Look up agent in Airtable by UUID
+        print(f"🔍 SYNC: Looking up agent {agent_uuid} in Airtable")
         airtable_results = airtable_find_candidates(agent_uuid, by="uuid", limit=1)
 
         if not airtable_results:
-            print(f"⚠️ Agent {agent_uuid} not found in Airtable")
+            print(f"⚠️ SYNC: Agent {agent_uuid} not found in Airtable")
             return {}
 
         agent_data = airtable_results[0]
         placement_status = agent_data.get('placement_status', '')
         employment_status = agent_data.get('employment_status', '')
+
+        print(f"📊 SYNC: Found agent in Airtable - placement={placement_status}, employment={employment_status}")
 
         # Update agent_profiles in Supabase with latest Airtable data
         from supabase_utils import get_client
@@ -2097,6 +2101,15 @@ def show_manage_agents_tab(coach, coach_manager):
     # Use the show_deleted value from the checkbox defined above
     agents_cache_key = f'agents_{coach.username}_{show_deleted}'
 
+    # AUTO-SYNC AIRTABLE STATUS ON PAGE LOAD (only placement_status and employment_status)
+    # Track if we've synced this session
+    airtable_sync_key = f'airtable_synced_{coach.username}'
+    if airtable_sync_key not in st.session_state:
+        print(f"🔄 AUTO-SYNC: Syncing Airtable placement/employment status on page load")
+        sync_all_agents_airtable_status(coach.username)
+        st.session_state[airtable_sync_key] = True
+        print(f"✅ AUTO-SYNC: Airtable sync complete")
+
     if agents_cache_key not in st.session_state:
         # Only load from Supabase ONCE per session
         try:
@@ -2152,6 +2165,14 @@ def show_manage_agents_tab(coach, coach_manager):
 
                             # Map creation info
                             agent['created_at'] = agent.get('created_at', '')
+
+                            # Map Airtable status fields (these should already be in the DataFrame from free_agents_rollup)
+                            # Handle NaN values from pandas DataFrame
+                            import pandas as pd
+                            placement_val = agent.get('placement_status', '')
+                            employment_val = agent.get('employment_status', '')
+                            agent['placement_status'] = '' if pd.isna(placement_val) else str(placement_val)
+                            agent['employment_status'] = '' if pd.isna(employment_val) else str(employment_val)
 
                             # Ensure required fields exist with defaults
                             for field in ['agent_name', 'agent_email', 'agent_city', 'agent_state']:
@@ -2312,13 +2333,13 @@ def show_manage_agents_tab(coach, coach_manager):
                 "Placement",
                 help="Airtable placement status (synced)",
                 disabled=True,
-                width="small"
+                width="medium"  # Increased from small to medium for full text visibility
             ),
             'Employment': st.column_config.TextColumn(
                 "Employment",
                 help="Airtable employment status (synced)",
                 disabled=True,
-                width="small"
+                width="medium"  # Increased from small to medium for full text visibility
             ),
             'Coaches': st.column_config.TextColumn(
                 "Coaches",
@@ -2476,7 +2497,7 @@ def show_manage_agents_tab(coach, coach_manager):
             df,
             column_config=column_config,
             hide_index=True,
-            width="stretch",
+            use_container_width=True,  # Auto-expand to container width
             num_rows="fixed",  # Don't allow adding/removing rows
             key="agent_editor"
         )
@@ -2577,6 +2598,7 @@ def show_manage_agents_tab(coach, coach_manager):
                                 'match_level': str(edited['Quality']),
                                 'lookback_hours': lookback_hours,  # Save as integer for database
                                 'show_prepared_for': bool(edited['Show Prepared For']),
+                                'coach_username': coach.username,  # Add coach username for portal link generation
                                 'agent_city': str(edited.get('City', '')),
                                 'agent_state': str(edited.get('State', '')),
                                 'zip_code': str(edited.get('ZIP', '')),

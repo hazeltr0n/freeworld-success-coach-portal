@@ -835,7 +835,8 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
                          coach_username: Optional[str] = None, market: Optional[str] = None,
                          agent_uuid: Optional[str] = None, agent_name: Optional[str] = None,
                          pathway_preferences: Optional[List[str]] = None,
-                         agent_zip: Optional[str] = None, zip_radius_miles: Optional[int] = None) -> List[Dict]:
+                         agent_zip: Optional[str] = None, zip_radius_miles: Optional[int] = None,
+                         route_filter: Optional[str] = None, match_level: Optional[str] = None) -> List[Dict]:
     """Ultra-fast memory search using clean deduplicated data from Supabase.
 
     This function bypasses the full pipeline for memory-only searches, providing
@@ -887,9 +888,21 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
         
         # Time filter
         query = query.gte('created_at', cutoff_time.isoformat())
-        
-        # Quality filter (only good/so-so jobs)
-        query = query.in_('match_level', ['good', 'so-so'])
+
+        # Quality filter - use agent preference or default to good/so-so
+        if match_level:
+            if match_level == 'good':
+                query = query.eq('match_level', 'good')
+            elif match_level == 'so-so':
+                query = query.eq('match_level', 'so-so')
+            elif match_level in ['good and so-so', 'both']:
+                query = query.in_('match_level', ['good', 'so-so'])
+            else:
+                # Default to good/so-so if unrecognized
+                query = query.in_('match_level', ['good', 'so-so'])
+        else:
+            # Default to good/so-so if no preference specified
+            query = query.in_('match_level', ['good', 'so-so'])
 
         # Enhanced feedback filtering
         # Exclude permanently flagged jobs
@@ -902,6 +915,16 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
         # Use Supabase's OR filtering to exclude jobs with recent expired feedback
         # Include jobs where: last_expired_feedback_at IS NULL OR last_expired_feedback_at < cutoff
         query = query.or_(f'last_expired_feedback_at.is.null,last_expired_feedback_at.lt.{expired_cutoff}')
+
+        # Route type filtering - use agent preference
+        if route_filter:
+            if route_filter.lower() == 'local':
+                print(f"🚚 Filtering to LOCAL routes only")
+                query = query.eq('ai_route_type', 'Local')
+            elif route_filter.lower() == 'otr':
+                print(f"🚛 Filtering to OTR/Regional routes only")
+                query = query.in_('ai_route_type', ['OTR', 'Regional'])
+            # If 'both' or unrecognized, no filter applied (show all route types)
 
         # Career pathway filtering
         if pathway_preferences:
