@@ -110,23 +110,34 @@ def get_auth_age() -> Optional[int]:
         if not client:
             return None
 
-        result = client.table('system_config').select('updated_at').eq('config_key', 'driver_pulse_auth').execute()
+        result = client.table('system_config').select('config_value').eq('config_key', 'driver_pulse_auth').execute()
 
         if result.data and len(result.data) > 0:
-            updated_at_str = result.data[0]['updated_at']
+            import json
+            auth_data = result.data[0]['config_value']
 
-            # Parse timestamp
-            if updated_at_str.endswith('Z'):
-                updated_at = datetime.fromisoformat(updated_at_str.replace('Z', '+00:00'))
-            elif '+' in updated_at_str or updated_at_str.count('-') > 2:
-                updated_at = datetime.fromisoformat(updated_at_str)
+            # Parse JSON if string
+            if isinstance(auth_data, str):
+                auth_data = json.loads(auth_data)
+
+            # Get created_at from inside the auth data
+            created_at_str = auth_data.get('created_at')
+            if not created_at_str:
+                return None
+
+            # Parse timestamp (handle different formats)
+            if created_at_str.endswith('Z'):
+                created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
+            elif '+' in created_at_str or created_at_str.count('-') > 2:
+                created_at = datetime.fromisoformat(created_at_str)
             else:
-                updated_at = datetime.fromisoformat(updated_at_str).replace(tzinfo=timezone.utc)
+                created_at = datetime.fromisoformat(created_at_str).replace(tzinfo=timezone.utc)
 
-            age = (datetime.now(timezone.utc) - updated_at).total_seconds()
+            age = (datetime.now(timezone.utc) - created_at).total_seconds()
             return int(age)
 
-    except Exception:
+    except Exception as e:
+        print(f"⚠️ Error getting auth age: {e}")
         return None
 
     return None

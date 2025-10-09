@@ -274,16 +274,27 @@ def delete_coach_row(username: str) -> Tuple[bool, str | None]:
 # =============== Agent Profiles Management ===============
 
 def save_agent_profile_to_supabase(coach_username: str, agent_data: Dict) -> Tuple[bool, str | None]:
-    """Save agent profile to Supabase agent_profiles table"""
+    """
+    Save agent profile to Supabase agent_profiles table (multi-coach system)
+
+    In the new system:
+    - agent_profiles table has one record per agent_uuid (not per coach)
+    - agent_coaches junction table maps many coaches to many agents
+    - coach_usernames array in agent_profiles provides quick filtering
+    """
     client = get_client()
     if client is None:
         return False, "Supabase client not available"
-    
+
     try:
-        # Prepare data for Supabase
+        agent_uuid = agent_data.get('agent_uuid', '')
+
+        # First, check if this agent already exists
+        existing = client.table('agent_profiles').select('agent_uuid, coach_usernames').eq('agent_uuid', agent_uuid).execute()
+
+        # Prepare data for Supabase (NO coach_username field anymore!)
         profile_data = {
-            'coach_username': coach_username,
-            'agent_uuid': agent_data.get('agent_uuid', ''),
+            'agent_uuid': agent_uuid,
             'agent_name': agent_data.get('agent_name', ''),
             'agent_email': agent_data.get('agent_email', ''),
             'agent_city': agent_data.get('agent_city', ''),
@@ -314,17 +325,32 @@ def save_agent_profile_to_supabase(coach_username: str, agent_data: Dict) -> Tup
             'is_active': True,
             'last_accessed': 'NOW()'
         }
-        
+
+        # Handle coach_usernames array: add current coach if not already present
+        if existing.data:
+            # Agent exists - update coach_usernames array
+            current_coaches = existing.data[0].get('coach_usernames', []) or []
+            if coach_username not in current_coaches:
+                current_coaches.append(coach_username)
+                profile_data['coach_usernames'] = current_coaches
+                print(f"✅ Adding {coach_username} to existing agent {agent_uuid} (coaches: {current_coaches})")
+            else:
+                profile_data['coach_usernames'] = current_coaches
+                print(f"ℹ️ Coach {coach_username} already assigned to agent {agent_uuid}")
+        else:
+            # New agent - initialize with current coach
+            profile_data['coach_usernames'] = [coach_username]
+            print(f"✅ Creating new agent {agent_uuid} with coach {coach_username}")
+
         # Only add admin_portal_url if it exists in the input data and is not empty
-        # This prevents database errors when the column doesn't exist yet
         if agent_data.get('admin_portal_url'):
             profile_data['admin_portal_url'] = agent_data['admin_portal_url']
-        
-        # Upsert (insert or update) with fallback for missing admin_portal_url column
+
+        # Upsert (insert or update) based on agent_uuid only
         try:
             result = client.table('agent_profiles').upsert(
                 profile_data,
-                on_conflict='coach_username,agent_uuid'
+                on_conflict='agent_uuid'  # Changed from 'coach_username,agent_uuid'
             ).execute()
         except Exception as e:
             # If admin_portal_url column doesn't exist, retry without it
@@ -334,7 +360,7 @@ def save_agent_profile_to_supabase(coach_username: str, agent_data: Dict) -> Tup
                 del profile_data_fallback['admin_portal_url']
                 result = client.table('agent_profiles').upsert(
                     profile_data_fallback,
-                    on_conflict='coach_username,agent_uuid'
+                    on_conflict='agent_uuid'
                 ).execute()
             else:
                 raise e
@@ -342,7 +368,7 @@ def save_agent_profile_to_supabase(coach_username: str, agent_data: Dict) -> Tup
         # Also create/update entry in agent_coaches junction table (for multi-coach support)
         try:
             junction_data = {
-                'agent_uuid': agent_data.get('agent_uuid', ''),
+                'agent_uuid': agent_uuid,
                 'coach_username': coach_username,
                 'is_active': True,
                 'assigned_at': 'NOW()'
@@ -351,30 +377,29 @@ def save_agent_profile_to_supabase(coach_username: str, agent_data: Dict) -> Tup
                 junction_data,
                 on_conflict='agent_uuid,coach_username'
             ).execute()
-            print(f"✅ Updated agent_coaches junction table for {coach_username} → {agent_data.get('agent_uuid', '')}")
+            print(f"✅ Updated agent_coaches junction table for {coach_username} → {agent_uuid}")
         except Exception as junction_error:
-            # If junction table doesn't exist yet, continue without error
-            print(f"⚠️ agent_coaches table not found (migration pending): {junction_error}")
+            print(f"⚠️ agent_coaches junction table error: {junction_error}")
 
         return True, None
-        
+
     except Exception as e:
         return False, str(e)
 
 def load_agent_profiles_from_supabase(coach_username: str, include_inactive: bool = False) -> Tuple[List[Dict], str | None]:
-    """Load agent profiles for a coach from Supabase"""
+    """Load agent profiles for a coach from Supabase (multi-coach system)"""
     client = get_client()
     if client is None:
         return [], "Supabase client not available"
-    
+
     try:
-        # Build query based on whether to include inactive agents
+        # Build query - filter by coach_usernames array containing this coach
         query_base = client.table('agent_profiles').select(
             'agent_uuid, agent_name, agent_email, agent_city, agent_state, '
             'location, route_filter, fair_chance_only, max_jobs, match_level, '
             'search_config, custom_url, pathway_preferences, is_active, created_at, last_accessed, '
-            'admin_portal_url, lookback_hours, zip_code, zip_radius_miles, show_prepared_for, original_long_url'
-        ).eq('coach_username', coach_username)
+            'admin_portal_url, lookback_hours, zip_code, zip_radius_miles, show_prepared_for, original_long_url, coach_usernames'
+        ).contains('coach_usernames', [coach_username])  # Filter by array membership
         
         # Only filter by is_active if we don't want to include inactive agents
         if not include_inactive:
@@ -390,8 +415,8 @@ def load_agent_profiles_from_supabase(coach_username: str, include_inactive: boo
                 'agent_uuid, agent_name, agent_email, agent_city, agent_state, '
                 'location, route_filter, fair_chance_only, max_jobs, match_level, '
                 'search_config, custom_url, pathway_preferences, is_active, created_at, last_accessed, '
-                'lookback_hours'
-            ).eq('coach_username', coach_username)
+                'lookback_hours, coach_usernames'
+            ).contains('coach_usernames', [coach_username])  # Filter by array membership
             
             if not include_inactive:
                 query_base = query_base.eq('is_active', True)

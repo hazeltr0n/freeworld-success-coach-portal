@@ -2168,7 +2168,6 @@ def show_manage_agents_tab(coach, coach_manager):
 
                             # Map Airtable status fields (these should already be in the DataFrame from free_agents_rollup)
                             # Handle NaN values from pandas DataFrame
-                            import pandas as pd
                             placement_val = agent.get('placement_status', '')
                             employment_val = agent.get('employment_status', '')
                             agent['placement_status'] = '' if pd.isna(placement_val) else str(placement_val)
