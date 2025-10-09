@@ -1735,6 +1735,9 @@ class FreeWorldPipelineV3:
                 # Apply tracked URLs to main dataframe
                 df = apply_tracked_urls(df, url_mapping)
 
+                # Save updated df to instance variable so stage 8 can access tracked URLs
+                self.df = df
+
                 # IMPORTANT: Recreate exportable_df from updated df (since df is now a new object with tracked URLs)
                 exportable_df = view_exportable(df)
 

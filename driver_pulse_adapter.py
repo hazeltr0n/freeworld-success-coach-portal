@@ -627,6 +627,7 @@ class DriverPulsePipelineIntegration:
 
             # Step 7: Link tracking (generate Short.io links)
             # We don't need PDF/CSV/HTML files, just the link tracking
+            # Stage 7 updates pipeline.df internally with tracked URLs
             pipeline._stage7_output(
                 df=df,
                 market="",
@@ -638,16 +639,21 @@ class DriverPulsePipelineIntegration:
             )
 
             # Step 8: Data storage (upload to Supabase)
-            pipeline._stage8_storage(df, push_to_airtable=False)
+            # Use pipeline.df which now has tracked URLs from stage 7
+            pipeline._stage8_storage(pipeline.df, push_to_airtable=False)
+
+            # Update our local df reference to match pipeline.df
+            df = pipeline.df
 
             # Generate metadata
             total_jobs = len(df)
             quality_jobs = len(df[df.get('ai.match', 'unknown').isin(['good', 'so-so'])]) if 'ai.match' in df.columns else total_jobs
+            uploaded_count = pipeline.supabase_upload_count if hasattr(pipeline, 'supabase_upload_count') else 0
 
             print(f"\n✅ COMPLETE!")
             print(f"   Total jobs: {total_jobs}")
             print(f"   Quality jobs (good/so-so): {quality_jobs}")
-            print(f"   Uploaded to Supabase: {supabase_count}")
+            print(f"   Uploaded to Supabase: {uploaded_count}")
 
             metadata = {
                 'success': True,
