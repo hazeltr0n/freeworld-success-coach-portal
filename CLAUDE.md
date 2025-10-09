@@ -1,17 +1,18 @@
-# FreeWorld Success Coach Portal - System Documentation
+# Opptek Success Coach Portal - System Documentation
 
 ## 🎯 Mission Statement
 
-The FreeWorld Success Coach Portal is an AI-powered job discovery platform designed to connect Free Agents (CDL drivers and warehouse workers) with quality employment opportunities through intelligent matching, career pathway guidance, and comprehensive analytics tracking.
+**Opptek** is an AI-powered job discovery platform designed to solve a fundamental problem: the job market is overwhelming and noisy. Free Agents (CDL drivers and warehouse workers) don't have time to sift through thousands of irrelevant job postings. Opptek cuts through that noise to connect them with quality employment opportunities through intelligent matching, personalized career pathway guidance, and comprehensive analytics tracking.
 
 ## 🏗️ System Architecture Overview
 
-### Current State: September 2025
-- **Version**: Pipeline v3.1 with revolutionary test suite
+### Current State: October 2025
+- **Version**: Pipeline v3.1 with async job queue system
 - **Primary Database**: Supabase (PostgreSQL)
 - **Deployment**: Streamlit Cloud
 - **AI Model**: OpenAI GPT-4o-mini
 - **Testing**: Master Efficient Test Suite (12x performance improvement)
+- **Automation**: GitHub Actions for async job execution
 
 ```mermaid
 graph TB
@@ -20,36 +21,49 @@ graph TB
         AUTH[Coach Authentication]
         PORTAL[Agent Portal System]
         ANALYTICS[Analytics Dashboard]
+        MGMT[Free Agent Management]
     end
 
     subgraph "🧠 Core Processing Pipeline"
-        PV3[Pipeline v3.1 Engine]
-        MEMORY[Supabase Memory System]
+        PV3[Pipeline v3.1 Engine<br/>8-Stage Processing]
+        MEMORY[Supabase Memory System<br/>72-hour TTL]
         CDL_CLASS[CDL Job Classifier]
         PATH_CLASS[Pathway Classifier]
-        SCHEMA[Advanced Schema System]
+        SCHEMA[Advanced Schema System<br/>100+ Fields]
+    end
+
+    subgraph "⚡ Async Job System"
+        QUEUE[Async Job Queue<br/>Supabase Table]
+        GITHUB[GitHub Actions<br/>Workflow Dispatch]
+        AUTH_MGR[Auth Manager<br/>Session Refresh]
     end
 
     subgraph "🔍 Data Ingestion Sources"
-        OUTSCRAPER[Outscraper API - Primary]
-        GOOGLE[Google Jobs API]
-        INDEED[Indeed API - Legacy]
+        OUTSCRAPER[Outscraper API - Primary<br/>Async Batch]
+        GOOGLE[Google Jobs API<br/>Exact Location]
+        INDEED[Indeed API - Legacy<br/>Async Batch]
+        DRIVERPULSE[DriverPulse<br/>GitHub Actions]
     end
 
     subgraph "💾 Data & Analytics Infrastructure"
-        SUPABASE[Supabase Database]
-        PARQUET[Pipeline Checkpoints]
-        SHORTIO[Short.io Link Tracking]
+        SUPABASE[Supabase Database<br/>Jobs, Analytics, Memory]
+        PARQUET[Pipeline Checkpoints<br/>Error Recovery]
+        SHORTIO[Short.io Link Tracking<br/>Real-time Webhooks]
         REPORTS[PDF/HTML Reports]
     end
 
     subgraph "🧪 Quality Assurance"
-        MASTER_TEST[Master Efficient Test Suite]
+        MASTER_TEST[Master Efficient Test Suite<br/>76s Full Validation]
         PLAYWRIGHT[Playwright Framework]
         AUTOMATION[Test Automation]
     end
 
     UI --> PV3
+    UI --> QUEUE
+    QUEUE --> GITHUB
+    GITHUB --> AUTH_MGR
+    GITHUB --> DRIVERPULSE
+    
     PV3 --> MEMORY
     PV3 --> CDL_CLASS
     PV3 --> PATH_CLASS
@@ -57,6 +71,7 @@ graph TB
     PV3 --> OUTSCRAPER
     PV3 --> GOOGLE
     PV3 --> INDEED
+    PV3 --> DRIVERPULSE
 
     PV3 --> SUPABASE
     PV3 --> PARQUET
@@ -71,22 +86,60 @@ graph TB
 ## 🗂️ Core System Components
 
 ### 1. Pipeline v3.1 Engine (`pipeline_v3.py`)
-**The orchestration heart of the entire system**
+**The orchestration heart of the entire system - 8-stage processing pipeline**
 
-- **6-Stage Processing Pipeline**:
-  1. **Ingestion**: Multi-source API integration with intelligent fallbacks
-  2. **Normalization**: Advanced field mapping to 100+ schema fields
-  3. **Business Rules**: Quality filtering and compliance checks
-  4. **Deduplication**: Hash-based duplicate removal across sources
-  5. **AI Classification**: Dual classifier system (CDL + Pathway)
-  6. **Routing**: Final job selection and output generation
+#### Pipeline Stages
 
-- **Key Features**:
-  - Unique run ID tracking for complete audit trails
-  - Parquet checkpoint system for error recovery
-  - Supabase-native memory integration
-  - Cost optimization through intelligent API selection
-  - Real-time progress tracking and error handling
+1. **Stage 1: Ingestion** - Multi-source API integration with intelligent fallbacks
+   - Outscraper (primary): Async batch with ZIP-based targeting
+   - Google Jobs: Exact location mode for stability
+   - Indeed: Legacy async batch
+   - DriverPulse: GitHub Actions async execution
+   - Intelligent source selection based on quotas and cost
+
+2. **Stage 2: Normalization** - Advanced field mapping to 100+ schema fields
+   - Canonical schema transformation
+   - Source-specific adapters
+   - Data quality validation
+
+3. **Stage 3: Business Rules** - Quality filtering and compliance checks
+   - Job quality scoring
+   - Compliance validation
+   - Market fit assessment
+
+4. **Stage 4: Deduplication** - Hash-based duplicate removal across sources
+   - Content-based hashing
+   - Cross-source deduplication
+   - 15-25% duplicate removal rate
+
+5. **Stage 5: AI Classification** - Dual classifier system
+   - **CDL Job Classifier**: Quality assessment (good/so-so/bad)
+   - **Pathway Classifier**: Career progression identification
+   - Structured output with detailed reasoning
+   - Intelligent caching to minimize API calls
+
+6. **Stage 6: Routing** - Final job selection and distribution logic
+   - Quality-based filtering
+   - Market-specific routing
+   - Status assignment (included/filtered)
+
+7. **Stage 7: Link Tracking** - Short.io tracked URL generation
+   - Automatic URL generation for all quality jobs (good/so-so)
+   - Coach and Free Agent attribution tags
+   - Real-time webhook integration
+   - **CRITICAL**: Updates `self.df` with tracked URLs for stage 8
+
+8. **Stage 8: Data Storage** - Supabase persistence
+   - Truly fresh jobs → Full data storage
+   - Memory-reused jobs → Timestamp refresh only
+   - Tracks `supabase_upload_count` for reporting
+
+#### Key Features
+- **Unique Run ID Tracking**: Complete audit trails for every search
+- **Parquet Checkpoint System**: Error recovery with resumable pipelines
+- **Supabase-Native Memory**: 72-hour TTL with intelligent expiry
+- **Cost Optimization**: Intelligent API selection and caching
+- **Real-time Progress**: Live tracking and error handling
 
 ### 2. Advanced Schema System (`jobs_schema.py`)
 **Comprehensive 100+ field data model with namespaced organization**
@@ -95,46 +148,149 @@ graph TB
 # Namespaced Field Categories
 SCHEMA_CATEGORIES = {
     'id': ['job', 'source', 'source_row'],
-    'source': ['platform', 'url', 'title', 'company', 'location', 'description', 'salary', 'posted_date'],
+    'source': ['platform', 'url', 'title', 'company', 'location', 
+               'description', 'salary', 'posted_date'],
     'normalized': ['title', 'company', 'location', 'salary_min', 'salary_max'],
     'rules': ['quality_score', 'compliance_check', 'market_fit'],
-    'ai': ['cdl_match', 'cdl_summary', 'pathway_type', 'experience_level', 'route_type'],
-    'routing': ['included', 'filtered', 'filter_reason', 'final_status'],
-    'metadata': ['scraped_at', 'run_id', 'search_terms', 'market', 'coach'],
-    'tracking': ['short_url', 'link_id', 'tags']
+    'ai': ['match', 'summary', 'pathway_type', 'experience_level', 
+           'route_type', 'endorsements_required', 'fair_chance_friendly'],
+    'route': ['included', 'filtered', 'filter_reason', 'final_status'],
+    'meta': ['scraped_at', 'run_id', 'search_terms', 'market', 'coach',
+             'tracked_url', 'link_id'],
+    'sys': ['updated_at', 'classification_source']
 }
 ```
 
-### 3. Dual AI Classification System
+**Key Design Principles**:
+- **Namespacing**: Logical field grouping by function (e.g., `ai.match`, `route.final_status`)
+- **Extensibility**: Easy to add new fields without breaking existing code
+- **Clarity**: Field names clearly indicate purpose and data source
+- **Compatibility**: Works seamlessly with Pandas DataFrame operations
+
+### 3. Async Job Queue System (`async_job_manager.py`, GitHub Actions)
+**Hands-free batch execution via GitHub Actions workflow dispatch**
+
+#### Architecture
+```
+┌────────────────────────────────────────────────────────────┐
+│  Streamlit UI                                              │
+│  Coach clicks "Schedule One-Off Batch"                     │
+└─────────────────┬──────────────────────────────────────────┘
+                  │
+                  ▼
+┌────────────────────────────────────────────────────────────┐
+│  async_job_manager.py                                      │
+│  1. Create job record in Supabase async_job_queue          │
+│  2. Trigger GitHub Actions workflow via API                │
+│  3. Return immediately to UI (non-blocking)                │
+└─────────────────┬──────────────────────────────────────────┘
+                  │
+                  ▼
+┌────────────────────────────────────────────────────────────┐
+│  GitHub Actions Workflow                                   │
+│  (.github/workflows/run_driverpulse_job.yml)               │
+│                                                             │
+│  1. Checkout code                                          │
+│  2. Setup Python environment                               │
+│  3. Create Gmail credentials for 2FA                       │
+│  4. Refresh Gmail token for code extraction                │
+│  5. Update job status to 'processing'                      │
+│  6. Get job parameters from Supabase                       │
+│  7. Refresh DriverPulse authentication (headless)          │
+│  8. Run DriverPulse scraper through pipeline               │
+│     - Stage 1-6: Standard pipeline processing              │
+│     - Stage 7: Short.io link generation                    │
+│     - Stage 8: Supabase data storage                       │
+│  9. Update job status to 'completed' with result_data      │
+│  10. Upload artifacts (screenshots, auth, results)         │
+└─────────────────┬──────────────────────────────────────────┘
+                  │
+                  ▼
+┌────────────────────────────────────────────────────────────┐
+│  Supabase async_job_queue                                  │
+│  - Status: completed                                       │
+│  - result_data: { job_count, message }                     │
+│  - completed_at: timestamp                                 │
+└────────────────────────────────────────────────────────────┘
+```
+
+#### Job Queue Schema (`async_job_queue` table)
+```sql
+CREATE TABLE async_job_queue (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    job_type TEXT NOT NULL,              -- 'driver_pulse', 'google_jobs', etc.
+    status TEXT DEFAULT 'pending',       -- pending → processing → completed/failed
+    job_params JSONB,                    -- Search parameters
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    error_message TEXT,
+    result_data JSONB,                   -- { job_count, message }
+    coach_username TEXT
+);
+```
+
+#### Key Benefits
+- **Zero Blocking**: UI returns immediately, no waiting
+- **IP Consistency**: Auth and scraping from same GitHub Actions runner (critical for DriverPulse)
+- **Automatic Auth**: Session refreshed before each scrape
+- **Vacation-Proof**: Schedule jobs and walk away
+- **Error Handling**: Automatic retry logic and failure tracking
+- **Result Storage**: Job count and summary in `result_data` JSONB column
+
+### 4. Dual AI Classification System
 
 #### CDL Job Classifier (`job_classifier.py`)
-- **Purpose**: Quality assessment for CDL driving positions
+**Quality assessment for CDL driving positions**
+
 - **Output**: good/so-so/bad ratings with detailed reasoning
-- **Features**: Fair chance analysis, route type detection, endorsement requirements
-- **Performance**: Optimized prompt caching, retry logic, structured JSON output
+- **Features Analyzed**:
+  - Fair chance friendliness (explicit "no background check" statements)
+  - Route type detection (OTR, Regional, Local, Dedicated)
+  - Endorsement requirements (Hazmat, Tanker, Doubles/Triples)
+  - Home time expectations
+  - Company reputation and benefits
+  
+- **Performance**: 
+  - 90%+ accuracy for "good" classifications
+  - Optimized prompt caching
+  - Retry logic for API failures
+  - Structured JSON output
 
 #### Pathway Classifier (`pathway_classifier.py`)
-- **Purpose**: Career pathway identification for progression opportunities
-- **Pathways**:
-  - `dock_to_driver` - Warehouse to CDL progression
-  - `warehouse_to_driver` - General warehouse to driving
+**Career pathway identification for progression opportunities**
+
+- **Pathways Detected**:
+  - `dock_to_driver` - Warehouse to CDL progression (forklift → yard jockey → CDL)
+  - `warehouse_to_driver` - General warehouse to driving transitions
   - `internal_cdl_training` - Company-sponsored CDL programs
   - `cdl_pathway` - Direct CDL opportunities
+  
 - **Integration**: Seamless with CDL classifier for comprehensive job analysis
+- **Use Case**: Helps Free Agents without CDL find stepping stone opportunities
 
-### 4. Supabase-Native Memory System (`job_memory_db.py`)
+### 5. Supabase Memory System (`job_memory_db.py`)
 **High-performance caching with 72-hour intelligent expiry**
 
-- **Technology**: PostgreSQL via Supabase (not SQLite as previously documented)
-- **Features**:
-  - Hash-based deduplication across all sources
-  - Radius-based geographic filtering
-  - TTL expiry system for freshness
-  - Centralized client management with health checks
-- **Performance**: 85-95% cache hit rate, sub-second lookups
-- **Cost Impact**: Significant API cost reduction through intelligent caching
+#### Architecture
+- **Technology**: PostgreSQL via Supabase (not SQLite)
+- **Table**: `jobs` table with comprehensive schema
+- **Expiry**: 72-hour TTL (configurable)
+- **Deduplication**: Hash-based across all sources
 
-### 5. Coach Management System (`user_management.py`)
+#### Features
+- **Hash-Based Deduplication**: Content hashing prevents duplicate jobs
+- **Radius-Based Geographic Filtering**: ZIP code + radius searches
+- **TTL Expiry System**: Automatic cleanup of stale jobs
+- **Centralized Client Management**: Single Supabase client with health checks
+- **Performance**: 85-95% cache hit rate, sub-second lookups
+
+#### Performance Impact
+- **Cost Reduction**: Significant API cost savings through intelligent caching
+- **Speed**: Sub-second lookups vs 30-60 second API calls
+- **Reliability**: Fallback to fresh scraping if memory unavailable
+
+### 6. Coach Management System (`user_management.py`)
 **Advanced role-based access control with granular permissions**
 
 #### Permission Matrix
@@ -150,31 +306,49 @@ SCHEMA_CATEGORIES = {
 - **Fallback**: Local JSON persistence for offline capability
 - **Security**: Hashed passwords, session management, permission validation
 
-### 6. Agent Portal System (`agent_portal_clean.py`)
+### 7. Agent Portal System (`agent_portal_clean.py`)
 **High-performance personalized job delivery for Free Agents**
 
-- **Architecture**: Clean implementation separate from main application complexity
+#### Architecture
+- **Clean Implementation**: Separate from main application complexity
 - **Performance**: 4x faster queries through database-level filtering
-- **Features**:
-  - Agent-specific filtering (`fair_chance_only`, route preferences)
-  - Smart job prioritization: Match Quality → Recency → Fair Chance → Local Routes
-  - Extended 7-day lookback period for comprehensive results
-  - Personalized messaging with coach attribution (optional)
-- **Integration**: Memory-only pipeline integration with full tracking
+- **Lookback Period**: Extended 7-day window for comprehensive results
 
-### 7. Free Agent Management System (`app.py` - Free Agent Management)
+#### Features
+- **Agent-Specific Filtering**: 
+  - `fair_chance_only` mode for background-friendly jobs
+  - Route preferences (OTR, Regional, Local)
+  - Endorsement requirements
+  - Home time expectations
+
+- **Smart Job Prioritization**:
+  1. Match Quality (good > so-so)
+  2. Recency (newer jobs first)
+  3. Fair Chance Friendly
+  4. Local Routes
+
+- **Personalized Messaging**: Optional coach attribution
+- **Integration**: Memory-only pipeline with full tracking
+
+### 8. Free Agent Management System (`app.py` - Free Agent Management Tab)
 **Revolutionary high-performance table management with automatic portal link integration**
 
-#### Performance Breakthroughs (September 2025)
+#### Performance Breakthroughs (October 2025)
 - **Speed**: Eliminated 3-5 second table gray-out delays through comprehensive caching
 - **Responsiveness**: Zero auto-saves - changes only occur when user clicks "Save Changes"
-- **Efficiency**: Session state caching eliminates redundant Supabase queries on every edit
+- **Efficiency**: Session state caching (`agents_cache_key`) eliminates redundant Supabase queries
 
 #### Core Features
-- **Individual Pathway Checkboxes**: Clean interface replacing clunky ListColumn with 8 individual pathway options:
-  - `CDL Jobs`, `Dock→Driver`, `CDL Training`, `Warehouse→Driver`, `Logistics`, `Non-CDL`, `Warehouse`, `Stepping Stone`
+- **Individual Pathway Checkboxes**: Clean interface replacing clunky ListColumn
+  - 8 individual pathway options: CDL Jobs, Dock→Driver, CDL Training, Warehouse→Driver, 
+    Logistics, Non-CDL, Warehouse, Stepping Stone
+  
 - **Shortened Column Names**: Improved UX with concise titles while maintaining full functionality
-- **Database Schema Migration**: Flattened JSON fields into individual columns for optimal performance
+
+- **Database Schema Migration**: Flattened JSON fields into individual columns
+  - `preferences` JSON → Individual boolean columns
+  - Optimal performance for filtering and updates
+
 - **Analytics Integration**: Pandas-based JOIN operations for missing field access
 
 #### Automatic Portal Link Generation
@@ -192,13 +366,7 @@ SCHEMA_CATEGORIES = {
 - **Encoding**: Base64-encoded parameters include all agent preferences and pathway settings
 - **Tracking**: Full click analytics through Short.io with real-time webhook integration
 
-#### Technical Implementation
-- **Caching Strategy**: `agents_cache_key` prevents repeated database queries
-- **Field Validation**: Safety checks for column name changes and schema evolution
-- **Error Resilience**: Portal link failures don't break the core save process
-- **Performance Monitoring**: Real-time logging of all operations for debugging
-
-### 8. Revolutionary Test Suite (`tests/playwright/`)
+### 9. Revolutionary Test Suite (`tests/playwright/`)
 **12x performance improvement transforming QA from "nightmare" to "beautiful"**
 
 #### Master Efficient Test Architecture
@@ -220,7 +388,7 @@ SCHEMA_CATEGORIES = {
 - ✅ Link tracking and analytics integration
 - ✅ Supabase database integrity and real-time updates
 
-### 8. Analytics & Tracking Infrastructure
+### 10. Analytics & Tracking Infrastructure
 
 #### Link Tracking System (`link_tracker.py`)
 - **Service**: Short.io with real-time webhook integration
@@ -235,6 +403,7 @@ click_events: Real-time click tracking with user agent and geolocation
 candidate_clicks: Aggregated engagement metrics per Free Agent
 jobs: Complete job posting history with AI classifications
 companies: Company performance and market presence analytics
+free_agents: Agent profiles with preferences and portal links
 ```
 
 ## 🔍 Data Flow Architecture
@@ -242,53 +411,59 @@ companies: Company performance and market presence analytics
 ```mermaid
 flowchart TD
     START[Coach Initiates Search] --> CONFIG[Search Configuration]
-    CONFIG --> MEMORY_CHECK{Check Memory System}
-
-    MEMORY_CHECK -->|Cache Hit| CACHED[Load from Supabase Memory]
-    MEMORY_CHECK -->|Cache Miss| APIS[Multi-Source API Calls]
-
-    APIS --> OUTSCRAPER[Outscraper Primary]
-    APIS --> GOOGLE[Google Jobs API]
-    APIS --> INDEED[Indeed Fallback]
-
-    CACHED --> NORMALIZE[Stage 2: Normalization]
+    CONFIG --> MODE{Search Mode}
+    
+    MODE -->|Memory Only| MEMORY_SEARCH[Query Supabase Memory]
+    MODE -->|Fresh/Mixed| API_CALL[Multi-Source API Calls]
+    
+    API_CALL --> OUTSCRAPER[Outscraper Async Batch]
+    API_CALL --> GOOGLE[Google Jobs Exact Location]
+    API_CALL --> INDEED[Indeed Async Batch]
+    
+    MEMORY_SEARCH --> NORMALIZE
     OUTSCRAPER --> NORMALIZE
     GOOGLE --> NORMALIZE
     INDEED --> NORMALIZE
-
-    NORMALIZE --> CANONICAL[100+ Field Schema Mapping]
+    
+    NORMALIZE[Stage 2: Normalization] --> CANONICAL[100+ Field Schema Mapping]
     CANONICAL --> RULES[Stage 3: Business Rules]
-
+    
     RULES --> QUALITY[Quality Filtering]
     QUALITY --> DEDUP[Stage 4: Deduplication]
-
+    
     DEDUP --> AI_CLASS[Stage 5: AI Classification]
-
+    
     AI_CLASS --> CDL_AI[CDL Job Classifier]
     AI_CLASS --> PATH_AI[Pathway Classifier]
-
+    
     CDL_AI --> ROUTING[Stage 6: Routing Logic]
     PATH_AI --> ROUTING
-
-    ROUTING --> OUTPUTS[Output Generation]
-
+    
+    ROUTING --> LINK_TRACK[Stage 7: Link Tracking]
+    LINK_TRACK --> SHORTIO[Short.io URL Generation]
+    SHORTIO --> UPDATE_DF[Update self.df with tracked URLs]
+    
+    UPDATE_DF --> STORAGE[Stage 8: Data Storage]
+    STORAGE --> SUPABASE_STORE[Supabase Jobs Table]
+    
+    STORAGE --> OUTPUTS[Output Generation]
     OUTPUTS --> CSV[CSV Export]
     OUTPUTS --> PDF[PDF Reports]
-    OUTPUTS --> TRACKING[Short.io Link Generation]
-    OUTPUTS --> SUPABASE_STORE[Supabase Analytics Storage]
-
-    TRACKING --> CLICK_ANALYTICS[Real-time Click Tracking]
+    OUTPUTS --> HTML[HTML Preview]
+    
+    SHORTIO --> CLICK_ANALYTICS[Real-time Click Tracking]
     CLICK_ANALYTICS --> DASHBOARD[Analytics Dashboard]
 ```
 
 ## 📊 Current Performance Metrics
 
-### System Performance (September 2025)
+### System Performance (October 2025)
 - **Pipeline Speed**: 45-75 seconds per 100 jobs (with memory optimization)
 - **Memory Hit Rate**: 85-95% for repeated searches
 - **API Cost Efficiency**: $0.10-0.15 per 100 quality jobs
 - **Test Suite Performance**: 76 seconds for complete system validation
 - **Agent Portal Speed**: 4x faster with database-level filtering
+- **Free Agent Table**: Zero delays with comprehensive caching
 
 ### Quality Metrics
 - **CDL Classification Accuracy**: 90%+ for "good" ratings
@@ -305,9 +480,17 @@ OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4o-mini
 
 # Primary Job Sources (in order of preference)
-OUTSCRAPER_API_KEY=...
-GOOGLE_JOBS_API_KEY=...
-INDEED_API_KEY=...       # Legacy fallback
+OUTSCRAPER_API_KEY=...       # Primary source
+GOOGLE_JOBS_API_KEY=...      # Secondary source
+INDEED_API_KEY=...           # Legacy fallback
+
+# DriverPulse Integration
+DRIVER_PULSE_EMAIL=...
+DRIVER_PULSE_FIRST_NAME=...
+DRIVER_PULSE_LAST_NAME=...
+DRIVER_PULSE_PHONE=...
+DRIVER_PULSE_GMAIL_CREDENTIALS=...  # Base64 JSON for GitHub Actions
+DRIVER_PULSE_GMAIL_TOKEN=...        # Base64 JSON for GitHub Actions
 
 # Core Infrastructure
 SUPABASE_URL=...
@@ -315,8 +498,12 @@ SUPABASE_ANON_KEY=...
 SHORTIO_API_KEY=...
 SHORTIO_DOMAIN=...
 
+# GitHub Actions (for async jobs)
+GITHUB_TOKEN=...             # Personal access token with workflow permissions
+GITHUB_REPO=owner/repo       # Your repository
+
 # Optional Integrations
-AIRTABLE_API_KEY=...     # Limited CRM integration
+AIRTABLE_API_KEY=...         # Limited CRM integration
 AIRTABLE_BASE_ID=...
 AIRTABLE_TABLE_ID=...
 
@@ -334,13 +521,13 @@ DEFAULT_JOB_LIMIT=100
 
 ## 🚀 Recent Major Updates
 
-### September 2025: Free Agent Management Revolutionary Optimization
-- **Performance**: Eliminated 3-5 second table gray-out delays through comprehensive caching
-- **UX Enhancement**: Individual pathway checkboxes replacing clunky ListColumn interface
-- **Portal Integration**: Automatic portal link generation/updates on save - no manual steps required
-- **Database Migration**: Flattened JSON fields to individual columns for optimal performance
-- **Responsiveness**: Zero auto-saves - changes only occur when user clicks "Save Changes"
-- **Column Optimization**: Shortened column names with autosize for improved readability
+### October 2025: Async Job Queue & DriverPulse Integration
+- **Async Job Queue System**: GitHub Actions integration for hands-free batch execution
+- **DriverPulse Integration**: CDL-specific job board with automatic session management
+- **Tracked URL Persistence**: Fixed stage 7 → stage 8 link tracking flow in pipeline
+- **Free Agent Optimization**: Eliminated 3-5 second table delays with comprehensive caching
+- **Portal Link Automation**: Automatic generation/update during save process
+- **Database Performance**: Flattened JSON fields to individual columns
 
 ### September 2025: Revolutionary Test Suite
 - **Achievement**: 12x performance improvement in QA workflow
@@ -450,4 +637,4 @@ supabase db push
 
 ---
 
-*Last Updated: October 2, 2025 - Added multi-coach support, Airtable placement status tracking, and comprehensive Supabase CLI migration workflow.*
+*Last Updated: October 8, 2025 - Added async job queue system, DriverPulse integration, and comprehensive Free Agent management optimizations.*
