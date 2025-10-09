@@ -6455,7 +6455,7 @@ def show_combined_batches_and_scheduling_page(coach):
                         with col_save:
                             google_submitted = st.form_submit_button("📅 Schedule Recurring Batch", width='stretch')
                         with col_run:
-                            google_run_now = st.form_submit_button("🚀 Run Now", width='stretch', type="secondary")
+                            google_run_now = st.form_submit_button("⚡ Schedule One-Off Batch", width='stretch', type="secondary")
 
                         if google_submitted or google_run_now:
                             # Validation
