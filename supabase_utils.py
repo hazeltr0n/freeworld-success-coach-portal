@@ -461,14 +461,22 @@ def delete_agent_profile_from_supabase(coach_username: str, agent_uuid: str) -> 
             return True, None
 
         except Exception as junction_error:
-            # Fallback to old method if junction table doesn't exist yet
-            print(f"⚠️ agent_coaches table not found, using legacy delete: {junction_error}")
+            # Fallback: Remove coach from coach_usernames array in agent_profiles
+            print(f"⚠️ agent_coaches table not found, removing coach from array: {junction_error}")
 
-            # Legacy soft delete by marking agent_profiles inactive
-            result = client.table('agent_profiles').update({
-                'is_active': False,
-                'updated_at': 'NOW()'
-            }).eq('coach_username', coach_username).eq('agent_uuid', agent_uuid).execute()
+            # Get current agent profile
+            agent_result = client.table('agent_profiles').select('coach_usernames').eq('agent_uuid', agent_uuid).execute()
+
+            if agent_result.data:
+                current_coaches = agent_result.data[0].get('coach_usernames', []) or []
+                if coach_username in current_coaches:
+                    current_coaches.remove(coach_username)
+
+                # Update the array
+                result = client.table('agent_profiles').update({
+                    'coach_usernames': current_coaches,
+                    'updated_at': 'NOW()'
+                }).eq('agent_uuid', agent_uuid).execute()
 
             return True, None
 
@@ -491,39 +499,43 @@ def update_agent_last_accessed(agent_uuid: str) -> Tuple[bool, str | None]:
     except Exception as e:
         return False, str(e)
 
-def supabase_find_agents(query: str, coach_username: str, by: str = "name", limit: int = 15) -> List[Dict]:
+def supabase_find_agents(query: str, coach_username: str, by: str = "name", limit: int = 15, filter_by_coach: bool = False) -> List[Dict]:
     """Search agent profiles in Supabase by name, email, or UUID
-    
+
     Args:
         query: Search term
-        coach_username: Coach username to filter by
+        coach_username: Coach username to filter by (if filter_by_coach=True)
         by: Search field ("name", "uuid", "email")
         limit: Maximum results
-        
+        filter_by_coach: If True, only return agents for this coach. If False, search ALL agents.
+
     Returns:
         List of agent dictionaries in Airtable-compatible format
     """
     client = get_client()
     if not client or not query.strip():
         return []
-    
+
     try:
-        print(f"🔍 Supabase search: query='{query}', coach='{coach_username}', by='{by}'")
-        
-        # Build base query for this coach's agents
+        filter_msg = f"coach='{coach_username}'" if filter_by_coach else "ALL agents"
+        print(f"🔍 Supabase search: query='{query}', by='{by}', filter={filter_msg}")
+
+        # Build base query - optionally filter by coach
         base_query = client.table('agent_profiles').select(
             'agent_uuid, agent_name, agent_email, agent_city, agent_state, '
             'location, route_filter, fair_chance_only, max_jobs, match_level, '
-            'portal_clicks, last_portal_click, created_at, search_config, lookback_hours'
-        ).eq('coach_username', coach_username).eq('is_active', True)
-        
+            'created_at, search_config, lookback_hours, coach_usernames'
+        ).eq('is_active', True)
+
+        # Apply coach filter if requested
+        if filter_by_coach:
+            base_query = base_query.contains('coach_usernames', [coach_username])
+            print(f"🔍 Filtering by coach: {coach_username}")
+
         # Add search filters based on search type
         query_lower = query.strip().lower()
         print(f"🔍 Search term processed: '{query_lower}'")
-        
-        # Debug: show the base query first
-        print(f"🔍 Base query filters: coach_username='{coach_username}', is_active=True")
-        
+
         if by == "uuid":
             # UUID search (case insensitive)
             print(f"🔍 UUID search: ilike agent_uuid '%{query_lower}%'")
@@ -551,9 +563,6 @@ def supabase_find_agents(query: str, coach_username: str, by: str = "name", limi
                 'email': row.get('agent_email', ''),
                 'city': (row.get('location', '') or search_config.get('location', '')).split(',')[0] if (row.get('location') or search_config.get('location')) else row.get('agent_city', ''),
                 'state': row.get('agent_state', ''),
-                # Add Supabase-specific data
-                'portal_clicks': row.get('portal_clicks', 0) or 0,
-                'last_portal_click': row.get('last_portal_click'),
                 'created_at': row.get('created_at'),
                 'source': 'supabase'  # Mark as Supabase source
             }
@@ -603,7 +612,7 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
                 'search_config, custom_url, is_active, created_at, last_accessed, '
                 'portal_clicks, last_portal_click, admin_portal_url, show_prepared_for, lookback_hours, '
                 'zip_code, zip_radius_miles'
-            ).eq('coach_username', coach_username).eq('is_active', True).order(
+            ).contains('coach_usernames', [coach_username]).eq('is_active', True).order(
                 'created_at', desc=True
             ).execute()
         except Exception as e:
@@ -614,7 +623,7 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
                 'search_config, custom_url, is_active, created_at, last_accessed, '
                 'portal_clicks, last_portal_click, show_prepared_for, lookback_hours, '
                 'zip_code, zip_radius_miles'
-            ).eq('coach_username', coach_username).eq('is_active', True).order(
+            ).contains('coach_usernames', [coach_username]).eq('is_active', True).order(
                 'created_at', desc=True
             ).execute()
         
@@ -647,7 +656,7 @@ def fetch_coach_agents_with_stats(coach_username: str, lookback_days: int = 14) 
             analytics_result = client.table('free_agents_analytics').select(
                 'agent_uuid, total_job_clicks, total_portal_visits, total_applications, '
                 'last_job_click, last_portal_visit, last_application_at'
-            ).eq('coach_username', coach_username).eq('is_active', True).execute()
+            ).contains('coach_usernames', [coach_username]).eq('is_active', True).execute()
 
             analytics_data = analytics_result.data or []
             print(f"📈 Found analytics data for {len(analytics_data)} agents")
@@ -723,7 +732,7 @@ def get_free_agents_analytics_data(coach_username=None):
         query = client.table('free_agents_analytics').select('*').order('total_job_clicks', desc=True)
 
         if coach_username:
-            query = query.eq('coach_username', coach_username)
+            query = query.contains('coach_usernames', [coach_username])
 
         result = query.execute()
         df = pd.DataFrame(result.data or [])
