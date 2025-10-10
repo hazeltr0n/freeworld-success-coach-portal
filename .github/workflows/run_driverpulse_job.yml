@@ -194,13 +194,19 @@ jobs:
 
           cleaned_results = clean_for_json(results)
 
-          # Store just the count and summary, not the full job list (too large for JSONB field)
+          # Count quality jobs (good/so-so ratings)
+          quality_count = sum(1 for job in cleaned_results if job.get('ai.match') in ['good', 'so-so'])
+
+          # Store counts in both result_data (for messages) and dedicated columns (for UI table)
           client.table('async_job_queue').update({
               'status': 'completed',
               'completed_at': datetime.now(timezone.utc).isoformat(),
+              'result_count': len(cleaned_results),
+              'quality_job_count': quality_count,
               'result_data': {
                   'job_count': len(cleaned_results),
-                  'message': f'Successfully processed {len(cleaned_results)} jobs from DriverPulse'
+                  'quality_job_count': quality_count,
+                  'message': f'Successfully processed {len(cleaned_results)} jobs from DriverPulse ({quality_count} quality)'
               }
           }).eq('id', '${{ inputs.job_id }}').execute()
 

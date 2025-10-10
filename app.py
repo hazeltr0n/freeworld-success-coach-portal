@@ -8029,7 +8029,7 @@ def show_simple_batch_table(coach):
             frequency = params.get('frequency', 'Once')
 
             # Determine location/market display
-            if job.job_type == 'driver_pulse':
+            if job.job_type in ['driver_pulse', 'driver_pulse_jobs']:
                 # DriverPulse stores config in filter_settings
                 filter_settings = params.get('filter_settings', {})
                 filter_mode = filter_settings.get('filter_mode', 'all_markets')
@@ -8069,7 +8069,7 @@ def show_simple_batch_table(coach):
 
             if should_include:
                 # Determine source display name
-                if job.job_type == 'driver_pulse':
+                if job.job_type in ['driver_pulse', 'driver_pulse_jobs']:
                     source_display = 'DriverPulse'
                 elif job.job_type == 'google_jobs':
                     source_display = 'Google Jobs'
