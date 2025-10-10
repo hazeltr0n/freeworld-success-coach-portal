@@ -1038,9 +1038,20 @@ def transform_ai_classification(df: pd.DataFrame, ai_results: Dict[str, Dict], j
     ai_fields['route.stage'] = 'classified'
     ai_fields['sys.classified_at'] = current_date  # Date only for schema validation
     ai_fields['sys.updated_at'] = current_time
-    ai_fields['sys.classification_source'] = 'ai_classification'
+
+    # CRITICAL FIX: Only set classification_source to 'ai_classification' if not already set to 'supabase_memory'
+    # This preserves memory reuse tracking for Indeed fresh jobs that pulled classifications from Supabase
+    def set_classification_source(row):
+        existing_source = row.get('sys.classification_source', '')
+        # If already marked as memory reuse, preserve it
+        if existing_source == 'supabase_memory':
+            return 'supabase_memory'
+        # Otherwise, mark as fresh AI classification
+        return 'ai_classification'
+
+    ai_fields['sys.classification_source'] = df.apply(set_classification_source, axis=1)
     ai_fields['sys.model'] = 'gpt-4o-mini'
-    
+
     return df.assign(**ai_fields)
 
 # ==============================================================================

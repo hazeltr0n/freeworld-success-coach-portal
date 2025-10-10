@@ -50,69 +50,80 @@ Most have no previous professional driving experience, no personal vehicle, and 
 
 We want to help connect them to jobs they have a strong chance of getting if they show up prepared, knowledgeable, and ready to demonstrate their skills in a road test. Assume they are ready to work — but must be hired into a role that does not require prior CDL driving experience or their own equipment.
 
-**CLASSIFICATION PRIORITY SYSTEM:**
+**DECISION HIERARCHY - APPLY IN THIS ORDER:**
 
-1. **RELEVANCE IS KING**: CDL driving jobs are the top priority. A CDL job with no experience requirements is always GOOD. CDL B OR A, just fine. DO NOT EXCLUDE CDL-B, or CLASS B CDL JOBS!
+1. **AUTOMATIC DISQUALIFIERS** → Always BAD, no exceptions:
+   - Owner-operator/1099 (must own truck/trailer)
+   - School bus driving
 
-2. **EXPERIENCE REQUIREMENTS** (the main filter) Good/So-So/Bad:
-Jobs should be classified as **so-so** if they:
-- Prefer experience but do not require it (unless there's a strong signal actively seeking new drivers)
-- Are non-CDL jobs or explicitly state "No CDL required" - these are backup options but not ideal for CDL holders
-- Have unclear requirements or mixed signals about experience needs
-- Are delivery/warehouse jobs that don't utilize CDL training
+2. **EXPERIENCE REQUIREMENTS** → The PRIMARY filter for good/so-so/bad:
 
-Jobs should be classified as **good** if they:
-- Explicitly welcome new CDL drivers or state "no experience required"
-- Provide training
-- Are CDL-required positions that actively recruit entry-level drivers
-- Have clear entry-level pathways
+   **CRITICAL CONTEXT:** Our candidates have ZERO months of professional CDL driving work history. They are skilled drivers with valid CDL-A licenses and know how to operate commercial vehicles, but they have never been employed as professional drivers.
 
-Jobs should be classified as **bad** if they:
-- Require ANY amount of truck driving experience. Our candidates know how to drive and hold CDLs, but they have no CDL or driving work history AT ALL
+   **IMPORTANT DISTINCTION:** "Good driving history", "clean driving record", or "clean MVR" refers to a motor vehicle record with no accidents or violations. This is NOT the same as professional driving experience. Our candidates have excellent driving records, so these requirements are NOT disqualifiers. Only professional work experience (time employed as a driver) should affect the classification.
 
-3. **AUTOMATIC DISQUALIFIERS**:
-   - Owner-operator/1099 (must own truck/trailer) → BAD
-   - School bus driving → BAD
+   **BAD** - Hard experience requirements our candidates cannot meet:
+   - **Requires** specific time periods of professional driving experience (e.g., "requires 1 year", "must have 6 months", "3 months required")
+   - Uses language that makes experience mandatory: "requires", "must have", "minimum required"
+   - Our candidates literally cannot meet hard time-based requirements because they have 0 months of professional driving history
 
-4. **BACKGROUND CHECKS AND CRIMINAL RECORDS**:
-   - Background checks, clean driving record requirements, and criminal record requirements should be noted in the `fair_chance` field
-   - These requirements should NEVER affect the `match` rating (good/so-so/bad)
-   - Only classify based on experience requirements, job type, and endorsements
+   **SO-SO** - Preference for experience but not a hard barrier, or non-CDL roles:
+   - **Prefers** experience but doesn't require it (e.g., "1 year preferred", "experience helpful", "preference given to experienced drivers")
+   - Has soft experience language that isn't a hard barrier
+   - Non-CDL jobs or explicitly states "No CDL required" - these are backup options but not ideal for CDL holders
+   - Delivery/warehouse jobs that don't utilize CDL training
+
+   **GOOD** - Entry-level friendly or actively recruiting new drivers:
+   - Explicitly welcomes new CDL drivers or states "no experience required" or "entry level"
+   - States "new drivers welcome", "recent graduates welcome", or similar welcoming language
+   - Provides training or comprehensive onboarding for new drivers
+   - CDL-required positions that actively recruit drivers with no professional driving history
+   - Has no mention of experience requirements or preferences
+
+3. **JOB RELEVANCE** → CDL driving jobs are the top priority:
+   - CDL-A or CDL-B driving positions are preferred (both are equally relevant)
+   - DO NOT EXCLUDE CDL-B or CLASS B CDL JOBS - our candidates can drive both
+   - A CDL job with no experience requirements is always GOOD
+   - A CDL job with hard experience requirements is still BAD (experience filter overrides relevance)
+
+4. **ENDORSEMENTS** → Should NOT negatively affect the match rating:
+   - FreeWorld helps candidates obtain ANY endorsement they need (Hazmat, Tanker, Passenger, etc.)
+   - Endorsement requirements should be noted in the `endorsements` field
+   - A job requiring Hazmat can still be GOOD if it has no experience requirements
+   - Only mark as SO-SO if there are OTHER factors (experience preferences, non-CDL role, etc.)
+
+5. **BACKGROUND CHECKS** → Should be noted but NOT affect the match rating:
+   - Background checks and criminal record requirements go in the `fair_chance` field only
+   - These should NEVER affect the `match` rating (good/so-so/bad)
    - A job requiring a background check can still be "good" if it has no experience requirements
 
-**ENDORSEMENT REQUIREMENTS:**
-FreeWorld candidates have CDL-A with basic training on air brakes, combination vehicles, and manual transmissions. ENDORSEMENTS ARE NOT A BARRIER. FreeWorld helps Free Agents get ANY endorsement they need to get work. They also have very good driving records, we screen for that. "A good driving history or record in trucking DOES NOT indicate an experience requirement. It is referring to a motor vehicle record."
+**OUTPUT FORMAT INSTRUCTIONS:**
 
-IMPORTANT: For each job, you MUST create a detailed summary that is EXACTLY 6-8 sentences long.
+For each job, you MUST create a detailed summary that is EXACTLY 6-8 sentences long.
 
-- Don't make all jobs sound the same!**
-- Preserve specific phrases that detail the nature of the work.
+- Don't make all jobs sound the same!
+- Preserve specific phrases that detail the nature of the work
 - Maintain their exact pay ranges, bonuses, and incentives as stated
 
-These elements are also very relevant to our job seekers and should be included IF there is actual text from the ad that mentions them:
+Include these elements IF the job posting mentions them:
 1) What the job role entails and main duties (using their language)
 2) Pay/benefits offered (their exact wording and specific numbers)
 3) Route and schedule information (preserve their exact terms: "home daily", "out 5 days", "weekends off", specific routes, territories, etc.)
 4) Physical demands of the job (mention if it's "no-touch freight", requires loading/unloading, heavy lifting, dock work, etc.)
 5) Key requirements and qualifications
-7) Any training provided or growth opportunities (their exact promises)
+6) Any training provided or growth opportunities (their exact promises)
 
 Don't standardize everything - each company should sound different!
 
-**IMPORTANT DETAILS TO PRESERVE WHEN PRESENT:**
-- Route information
-- Schedule details
-- Physical demands
-
-If criminal background requirements are actually mentioned, include them clearly using the company's exact language when possible.
+If criminal background requirements are mentioned, include them clearly using the company's exact language when possible.
 
 Return your results as a JSON object with a "job_classifications" array like this:
 {
   "job_classifications": [
-    { "job_id": "abc123", "match": "good", "reason": "Quote from job post", "summary": "This local delivery driver position offers $55,000-$65,000 annually with no prior experience required. The role involves delivering packages within the metro area using company-provided trucks and equipment. Benefits include full health insurance, dental, vision, and paid time off starting on day one. The company provides comprehensive 2-week training including vehicle operation and route planning. Drivers work Monday-Friday with occasional Saturday shifts and are typically home every night. This is an excellent opportunity for new CDL holders to gain experience while earning competitive wages.", "fair_chance": "no_requirements_mentioned", "endorsements": "none_required" },
-    { "job_id": "xyz456", "match": "bad", "reason": "Requires own truck", "summary": "This owner-operator position requires drivers to provide their own truck and trailer along with 5+ years of verifiable experience. Pay is percentage-based ranging from 70-85% of gross revenue with drivers responsible for fuel, maintenance, and insurance costs. The role involves long-haul routes covering 48 states with 2-3 weeks out and 2-3 days home. While earnings potential can reach $200,000+ annually for experienced operators, the significant equipment investment and experience requirements make this unsuitable for entry-level drivers.", "fair_chance": "no_requirements_mentioned", "endorsements": "none_required" },
-    { "job_id": "ghi012", "match": "so-so", "reason": "Requires Hazmat endorsement", "summary": "This regional tanker driver position offers $70,000-$80,000 annually transporting liquid chemicals. The role requires a valid Hazmat endorsement in addition to CDL-A, which candidates can obtain with company support. Routes cover multiple states with 4-5 days out and 2-3 days home. The company provides specialized training for hazmat transport and safety protocols. While the endorsement requirement adds complexity, the company assists with testing and the pay is above average for the region.", "fair_chance": "no_requirements_mentioned", "endorsements": "hazmat" },
-    { "job_id": "jkl345", "match": "good", "reason": "No experience required", "summary": "This regional delivery position offers $62,000-$72,000 annually for new CDL holders with comprehensive paid training. The company requires background checks and clean driving records but welcomes entry-level drivers. Routes cover surrounding states with drivers home most weekends. Full benefits package includes health insurance, 401k matching, and paid vacation. The role involves delivering freight to distribution centers with minimal physical labor. This is an excellent opportunity for candidates to start their trucking career with a stable company that provides thorough training and support.", "fair_chance": "background_check_required", "endorsements": "none_required" }
+    { "job_id": "abc123", "match": "good", "reason": "No experience required, entry-level welcome", "summary": "This local delivery driver position offers $55,000-$65,000 annually with no prior experience required. The role involves delivering packages within the metro area using company-provided trucks and equipment. Benefits include full health insurance, dental, vision, and paid time off starting on day one. The company provides comprehensive 2-week training including vehicle operation and route planning. Drivers work Monday-Friday with occasional Saturday shifts and are typically home every night. This is an excellent opportunity for new CDL holders to gain experience while earning competitive wages.", "fair_chance": "no_requirements_mentioned", "endorsements": "none_required" },
+    { "job_id": "xyz456", "match": "bad", "reason": "Requires 5+ years experience and own truck", "summary": "This owner-operator position requires drivers to provide their own truck and trailer along with 5+ years of verifiable experience. Pay is percentage-based ranging from 70-85% of gross revenue with drivers responsible for fuel, maintenance, and insurance costs. The role involves long-haul routes covering 48 states with 2-3 weeks out and 2-3 days home. While earnings potential can reach $200,000+ annually for experienced operators, the significant equipment investment and experience requirements make this unsuitable for entry-level drivers.", "fair_chance": "no_requirements_mentioned", "endorsements": "none_required" },
+    { "job_id": "ghi012", "match": "good", "reason": "No experience required, Hazmat endorsement obtainable", "summary": "This regional tanker driver position offers $70,000-$80,000 annually transporting liquid chemicals with no prior experience required. The role requires a valid Hazmat endorsement in addition to CDL-A, which candidates can obtain with company support. Routes cover multiple states with 4-5 days out and 2-3 days home. The company provides specialized training for hazmat transport and safety protocols. FreeWorld helps candidates obtain the Hazmat endorsement needed for this role. The pay is above average for the region and the company welcomes new drivers willing to get certified.", "fair_chance": "no_requirements_mentioned", "endorsements": "hazmat" },
+    { "job_id": "jkl345", "match": "so-so", "reason": "Experience preferred, non-CDL warehouse role", "summary": "This warehouse package handler position offers $18-$22 per hour with opportunity to transition to driving roles. The company prefers candidates with previous warehouse experience but will consider entry-level applicants. No CDL is required for this position. Work involves loading and unloading packages, operating forklifts, and organizing inventory. Benefits include health insurance and tuition assistance. Shifts are primarily overnight with weekends required. While this doesn't utilize CDL training directly, it could serve as a stepping stone to future driving positions within the company.", "fair_chance": "background_check_required", "endorsements": "none_required" }
   ]
 }
 

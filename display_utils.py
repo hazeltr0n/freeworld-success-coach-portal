@@ -675,7 +675,8 @@ def run_progressive_pipeline(pipeline, params, display_location: str = None):
         'deduplication': st.empty(),
         'ai_classification': st.empty(),
         'routing': st.empty(),
-        'outputs': st.empty()
+        'outputs': st.empty(),
+        'storage': st.empty()
     }
 
     # Initialize results
@@ -848,9 +849,26 @@ def run_progressive_pipeline(pipeline, params, display_location: str = None):
             )
 
             # STAGE 8: DATA STORAGE (Supabase upload)
+            with stage_containers['storage']:
+                st.info("💾 Uploading fresh jobs to Supabase...")
+
             # Use the DataFrame from Stage 7 results (has tracked URLs applied)
             df_for_storage = results.get('jobs_df', canonical_df)
             pipe._stage8_storage(df_for_storage, push_to_airtable=False)
+
+            # Add supabase upload count to results (Stage 8 doesn't return anything)
+            results['supabase_upload_count'] = pipe.supabase_upload_count if hasattr(pipe, 'supabase_upload_count') else 0
+
+            # Show Supabase upload status in storage container
+            with stage_containers['storage']:
+                supabase_count = results.get('supabase_upload_count', 0)
+                fresh_jobs = (canonical_df.get('sys.is_fresh_job', False) == True).sum() if 'sys.is_fresh_job' in canonical_df.columns else 0
+                if supabase_count > 0:
+                    st.success(f"✅ Uploaded {supabase_count} jobs to Supabase (out of {fresh_jobs} fresh jobs)")
+                elif fresh_jobs > 0:
+                    st.error(f"❌ Failed to upload {fresh_jobs} fresh jobs to Supabase")
+                else:
+                    st.info("ℹ️ No fresh jobs to upload (all from memory cache)")
 
             with stage_containers['outputs']:
                 # Calculate final statistics
@@ -870,17 +888,17 @@ def run_progressive_pipeline(pipeline, params, display_location: str = None):
                 with final_stats[2]:
                     st.metric("Total Jobs Processed", len(canonical_df))
 
-                # Show tracked URL generation status
+                # ALWAYS show tracked URL generation status (no matter what)
                 tracked_urls_count = results.get('tracked_urls_count', 0)
+                quality_jobs = (canonical_df['ai.match'].isin(['good', 'so-so'])).sum() if 'ai.match' in canonical_df.columns else 0
                 if tracked_urls_count > 0:
-                    st.success(f"✅ Generated {tracked_urls_count} tracked URLs for quality jobs")
+                    st.success(f"✅ Generated {tracked_urls_count} tracked URLs for {quality_jobs} quality jobs")
+                elif quality_jobs > 0:
+                    st.warning(f"⚠️ No tracked URLs generated (expected {quality_jobs} for quality jobs)")
+                else:
+                    st.info("ℹ️ No quality jobs to generate tracked URLs for")
 
-                # Show Supabase upload status
-                supabase_count = pipe.supabase_upload_count if hasattr(pipe, 'supabase_upload_count') else 0
-                if supabase_count > 0:
-                    st.success(f"✅ Uploaded {supabase_count} jobs to Supabase")
-
-                st.success("✅ All outputs generated successfully")
+                st.success("✅ Output generation completed")
 
             # Prepare return values - USE UPDATED DF WITH TRACKED URLS FROM STAGE 7
             df = results.get('jobs_df', canonical_df) if isinstance(results, dict) else canonical_df
@@ -890,7 +908,9 @@ def run_progressive_pipeline(pipeline, params, display_location: str = None):
                 'included_jobs': int(included_jobs) if 'included_jobs' in locals() else len(canonical_df),
                 'processing_time': processing_time,
                 'pdf_path': results.get('pdf_path') if isinstance(results, dict) else None,
-                'csv_path': results.get('csv_path') if isinstance(results, dict) else None
+                'csv_path': results.get('csv_path') if isinstance(results, dict) else None,
+                'supabase_upload_count': results.get('supabase_upload_count', 0),
+                'tracked_urls_count': results.get('tracked_urls_count', 0)
             }
 
         else:
@@ -910,7 +930,7 @@ def run_progressive_pipeline(pipeline, params, display_location: str = None):
                     st.success(f"✅ Search completed: {len(df)} jobs found")
 
                 # Clear unused stage containers for memory-only path
-                for key in ['normalization', 'business_rules', 'deduplication', 'ai_classification', 'routing']:
+                for key in ['normalization', 'business_rules', 'deduplication', 'ai_classification', 'routing', 'storage']:
                     stage_containers[key].empty()
 
                 with stage_containers['outputs']:
@@ -932,7 +952,7 @@ def run_progressive_pipeline(pipeline, params, display_location: str = None):
                     st.error(f"❌ Search failed: {error_msg}")
 
                 # Clear other containers
-                for key in ['normalization', 'business_rules', 'deduplication', 'ai_classification', 'routing', 'outputs']:
+                for key in ['normalization', 'business_rules', 'deduplication', 'ai_classification', 'routing', 'outputs', 'storage']:
                     stage_containers[key].empty()
 
     except Exception as e:
@@ -941,7 +961,7 @@ def run_progressive_pipeline(pipeline, params, display_location: str = None):
             st.error(f"❌ Pipeline execution error: {str(e)}")
 
         # Clear other containers
-        for key in ['normalization', 'business_rules', 'deduplication', 'ai_classification', 'routing', 'outputs']:
+        for key in ['normalization', 'business_rules', 'deduplication', 'ai_classification', 'routing', 'outputs', 'storage']:
             stage_containers[key].empty()
 
         metadata = {'success': False, 'error': str(e)}

@@ -772,10 +772,21 @@ def get_system_wide_agent_stats():
         analytics_df = pd.DataFrame(analytics_result.data)
         print(f"📊 Calculating system-wide stats from {len(analytics_df)} total agents")
 
-        # Calculate system-wide stats
+        # Calculate total agents and 14-day active agents from analytics table
         total_agents = len(analytics_df)
-        total_clicks_all_time = analytics_df['total_job_clicks'].sum() if 'total_job_clicks' in analytics_df.columns else 0
         active_agents_14d = len(analytics_df[analytics_df.get('job_clicks_14d', 0) > 0]) if 'job_clicks_14d' in analytics_df.columns else 0
+
+        # Query ALL click events for accurate all-time total (not just active agents)
+        try:
+            print("📊 Querying ALL click events for accurate system-wide total...")
+            all_clicks_result = client.table('click_events').select('id', count='exact').execute()
+            total_clicks_all_time = all_clicks_result.count if hasattr(all_clicks_result, 'count') else 0
+            print(f"📊 Total clicks from ALL events: {total_clicks_all_time}")
+        except Exception as e:
+            print(f"⚠️ Could not query all click events, falling back to analytics table: {e}")
+            total_clicks_all_time = analytics_df['total_job_clicks'].sum() if 'total_job_clicks' in analytics_df.columns else 0
+
+        # Calculate average using ALL clicks divided by total agents
         avg_clicks_per_agent = total_clicks_all_time / total_agents if total_agents > 0 else 0.0
 
         system_stats = {

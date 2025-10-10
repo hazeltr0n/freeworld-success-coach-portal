@@ -137,8 +137,8 @@ def show_companies_dashboard():
                         options=primary_matches['company_name'].tolist(),
                         key="primary_select"
                     )
-                    primary_id = primary_matches[primary_matches['company_name'] == primary_company]['id'].iloc[0]
-                    st.info(f"Primary ID: {primary_id} | Jobs: {primary_matches[primary_matches['company_name'] == primary_company]['total_jobs'].iloc[0]}")
+                    primary_id = int(primary_matches[primary_matches['company_name'] == primary_company]['id'].iloc[0])
+                    st.info(f"Primary ID: {primary_id} | Jobs: {int(primary_matches[primary_matches['company_name'] == primary_company]['total_jobs'].iloc[0])}")
                 else:
                     st.warning("No matches found")
                     primary_company = None

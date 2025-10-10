@@ -162,34 +162,27 @@ class JobMemoryDB:
             records = []
             skipped_jobs = []
             for idx, job in jobs_df.iterrows():
-                # Handle jobs with different routing statuses
-                # IMPORTANT: After prepare_for_supabase(), columns use FLAT names (e.g., 'filter_reason'), NOT canonical (e.g., 'route.final_status')
-                final_status = job.get('filter_reason', '')
+                # IMPORTANT: After prepare_for_supabase(), columns use FLAT names (e.g., 'match_level'), NOT canonical (e.g., 'ai.match')
                 job_id = job.get('job_id', f'job_{idx}')
-                
-                # After prepare_for_supabase(), use FLAT field names
                 match = job.get('match_level', '')
                 reason = job.get('match_reason', '')
                 summary = job.get('summary', '')
-                
-                # If route.final_status is included or passed_all_filters, ALWAYS store to Supabase
-                if final_status == 'passed_all_filters' or final_status.startswith('included'):
+                final_status = job.get('filter_reason', '')
+
+                # SIMPLIFIED LOGIC: Upload ANY job with AI classification (good/so-so/bad)
+                # This ensures fresh Indeed jobs get stored regardless of routing status
+                if match and str(match).strip() and str(match) not in ['', 'nan', 'None', 'null'] and str(match) in ['good', 'so-so', 'bad']:
                     # Debug: Log job being stored
-                    logger.debug(f"✅ Storing job {job_id[:8]}... with final_status='{final_status}', match='{match}'")
-                    # Provide default AI values if missing (required by Supabase schema)
-                    if not match or str(match) in ['', 'nan', 'None', 'null']:
-                        if final_status.startswith('included'):
-                            match = 'good' if 'good' in final_status.lower() else 'so-so'
-                        else:
-                            match = 'pending'
+                    logger.debug(f"✅ Storing job {job_id[:8]}... with match='{match}', final_status='{final_status}'")
+                    # Provide default values if missing (required by Supabase schema)
                     if not reason or str(reason) in ['', 'nan', 'None', 'null']:
-                        reason = final_status  # Use the routing status as reason
+                        reason = final_status or 'No reason provided'
                     if not summary or str(summary) in ['', 'nan', 'None', 'null']:
-                        summary = f'Job with status: {final_status}'
+                        summary = f'Job classified as {match}'
                 else:
-                    # For other statuses (filtered, error, etc.), skip uploading to Supabase
-                    logger.debug(f"⏭️ Skipping job {job_id[:8]}... with final_status='{final_status}', match='{match}' (not included/passed_all_filters)")
-                    skipped_jobs.append({'job_id': job_id, 'final_status': final_status, 'match': str(match), 'reason': 'Status not included/passed_all_filters', 'summary': str(summary)[:50]})
+                    # Skip jobs without valid AI classification
+                    logger.debug(f"⏭️ Skipping job {job_id[:8]}... with match='{match}' (no valid AI classification)")
+                    skipped_jobs.append({'job_id': job_id, 'final_status': final_status, 'match': str(match), 'reason': 'No valid AI classification', 'summary': str(summary)[:50]})
                     continue
                     
                 # Market sanitization: ensure no state abbreviations and map representative cities
@@ -247,7 +240,7 @@ class JobMemoryDB:
 
                     # Career pathway fields (new for pathway classifier)
                     'career_pathway': safe_str(job.get('career_pathway', 'cdl_pathway')),
-                    'training_provided': str(job.get('training_provided', False)).lower(),
+                    'training_provided': bool(job.get('training_provided', False)),  # BOOLEAN for RPC
 
                     # Organization and tracking (all TEXT)
                     'market': safe_str(_sanitize_market(job.get('market', ''))),
