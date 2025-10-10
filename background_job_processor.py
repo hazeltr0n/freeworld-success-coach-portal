@@ -34,18 +34,47 @@ def process_pending_jobs():
     
     try:
         manager = AsyncJobManager()
-        
-        # Get all pending jobs
+
+        # Get all pending jobs (pending, submitted, processing)
         pending_jobs = manager.get_pending_jobs()
-        
-        if not pending_jobs:
-            print("📋 No pending jobs to process")
+
+        # ALSO get 'completed' jobs with 0 results (webhook marked them complete but didn't process)
+        from supabase_utils import get_client
+        client = get_client()
+        unprocessed_result = client.table('async_job_queue').select('*').eq('status', 'completed').eq('result_count', 0).execute()
+
+        # Convert unprocessed completed jobs to AsyncJob objects
+        from async_job_manager import AsyncJob
+        unprocessed_jobs = []
+        for record in (unprocessed_result.data or []):
+            unprocessed_jobs.append(AsyncJob(
+                id=record['id'],
+                scheduled_search_id=record.get('scheduled_search_id'),
+                coach_username=record['coach_username'],
+                job_type=record['job_type'],
+                request_id=record.get('request_id'),
+                status=record['status'],
+                search_params=record['search_params'],
+                submitted_at=datetime.fromisoformat(record['submitted_at'].replace('Z', '+00:00')) if record.get('submitted_at') else None,
+                completed_at=datetime.fromisoformat(record['completed_at'].replace('Z', '+00:00')) if record.get('completed_at') else None,
+                result_count=record['result_count'],
+                quality_job_count=record['quality_job_count'],
+                error_message=record.get('error_message'),
+                csv_filename=record.get('csv_filename'),
+                created_at=datetime.fromisoformat(record['created_at'].replace('Z', '+00:00'))
+            ))
+
+        # Combine both lists
+        all_jobs = pending_jobs + unprocessed_jobs
+
+        if not all_jobs:
+            print("📋 No jobs to process")
             return True
-            
-        print(f"Found {len(pending_jobs)} pending jobs to check")
+
+        print(f"Found {len(pending_jobs)} pending jobs + {len(unprocessed_jobs)} unprocessed completed jobs = {len(all_jobs)} total")
         processed_count = 0
-        
-        for job in pending_jobs:
+
+        for job in all_jobs:
             if not job.request_id:
                 print(f"⚠️  Job {job.id} has no request_id - skipping")
                 continue
@@ -62,10 +91,10 @@ def process_pending_jobs():
             try:
                 # Check if Outscraper has results ready
                 result = manager.get_async_results(job.request_id)
-                
+
                 if result:
                     print(f"✅ Results available for job {job.id} - processing...")
-                    manager.process_completed_google_job(job.id)
+                    manager.process_completed_async_job(job.id)
                     processed_count += 1
                     print(f"🎉 Job {job.id} processed successfully!")
                     
