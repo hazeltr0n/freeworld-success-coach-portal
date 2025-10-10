@@ -687,38 +687,8 @@ class AsyncJobManager:
                     jobs_df['ai.fair_chance'] = 'unknown'
                     jobs_df['ai.endorsements'] = ''
                 jobs_df['ai.route_type'] = 'Unknown'
-            
-            # 3. Store in memory database for future searches
-            try:
-                from job_memory_db import JobMemoryDB
-                memory_db = JobMemoryDB()
-                # Build minimal canonical frame for storage
-                canon = pd.DataFrame()
-                # Use same job_id generation
-                canon['id.job'] = df_cls['job_id'] if 'df_cls' in locals() and 'job_id' in df_cls.columns else jobs_df.index.map(str)
-                canon['source.title'] = jobs_df.get('source.title', '')
-                canon['source.company'] = jobs_df.get('source.company', '')
-                # Normalize location to canonical raw
-                canon['source.location_raw'] = jobs_df.get('source.location', jobs_df.get('location', ''))
-                canon['source.description_raw'] = jobs_df.get('source.description', jobs_df.get('description', ''))
-                canon['source.indeed_url'] = jobs_df.get('source.indeed_url', '')
-                canon['source.apply_url'] = jobs_df.get('source.apply_url', jobs_df.get('source.google_url', ''))
-                canon['ai.match'] = jobs_df.get('ai.match', '')
-                canon['ai.reason'] = jobs_df.get('ai.reason', '')
-                canon['ai.summary'] = jobs_df.get('ai.summary', '')
-                canon['ai.route_type'] = jobs_df.get('ai.route_type', '')
-                canon['ai.fair_chance'] = jobs_df.get('ai.fair_chance', '')
-                # Handle classifier-specific fields in memory storage
-                if classifier_type == 'pathway':
-                    canon['ai.career_pathway'] = jobs_df.get('ai.career_pathway', 'no_pathway')
-                    canon['ai.training_provided'] = jobs_df.get('ai.training_provided', False)
-                else:
-                    canon['ai.endorsements'] = jobs_df.get('ai.endorsements', '')
-                memory_db.store_classifications(canon)
-            except Exception as e:
-                print(f"Memory DB insert failed: {e}")
-            
-            # 4. Generate tracked URLs for quality jobs
+
+            # 3. Generate tracked URLs for quality jobs (BEFORE database storage)
             print("🔗 Generating tracked URLs for quality jobs...")
             try:
                 from link_tracker import LinkTracker
@@ -770,7 +740,39 @@ class AsyncJobManager:
                     print("⚠️ LinkTracker not available, skipping URL generation")
             except Exception as e:
                 print(f"❌ Link generation failed: {e}")
-            
+
+            # 4. Store in memory database for future searches (AFTER link generation)
+            try:
+                from job_memory_db import JobMemoryDB
+                memory_db = JobMemoryDB()
+                # Build minimal canonical frame for storage
+                canon = pd.DataFrame()
+                # Use same job_id generation
+                canon['id.job'] = df_cls['job_id'] if 'df_cls' in locals() and 'job_id' in df_cls.columns else jobs_df.index.map(str)
+                canon['source.title'] = jobs_df.get('source.title', '')
+                canon['source.company'] = jobs_df.get('source.company', '')
+                # Normalize location to canonical raw
+                canon['source.location_raw'] = jobs_df.get('source.location', jobs_df.get('location', ''))
+                canon['source.description_raw'] = jobs_df.get('source.description', jobs_df.get('description', ''))
+                canon['source.indeed_url'] = jobs_df.get('source.indeed_url', '')
+                canon['source.apply_url'] = jobs_df.get('source.apply_url', jobs_df.get('source.google_url', ''))
+                canon['ai.match'] = jobs_df.get('ai.match', '')
+                canon['ai.reason'] = jobs_df.get('ai.reason', '')
+                canon['ai.summary'] = jobs_df.get('ai.summary', '')
+                canon['ai.route_type'] = jobs_df.get('ai.route_type', '')
+                canon['ai.fair_chance'] = jobs_df.get('ai.fair_chance', '')
+                # Handle classifier-specific fields in memory storage
+                if classifier_type == 'pathway':
+                    canon['ai.career_pathway'] = jobs_df.get('ai.career_pathway', 'no_pathway')
+                    canon['ai.training_provided'] = jobs_df.get('ai.training_provided', False)
+                else:
+                    canon['ai.endorsements'] = jobs_df.get('ai.endorsements', '')
+                # CRITICAL: Include tracked URLs that were just generated
+                canon['meta.tracked_url'] = jobs_df.get('meta.tracked_url', '')
+                memory_db.store_classifications(canon)
+            except Exception as e:
+                print(f"Memory DB insert failed: {e}")
+
             # 5. Extract quality jobs (good/so-so) for Airtable  
             quality_jobs = jobs_df[jobs_df.get('ai.match', 'error').isin(['good', 'so-so'])]
             
