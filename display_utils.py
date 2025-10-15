@@ -17,10 +17,12 @@ def get_quality_display_columns():
         'source.location',        # Location (geographic relevance)
         'ai.route_type',          # Route Type (Local/Regional/OTR)
         'ai.match',              # Match Quality (good/so-so/bad)
+        'ai.reason',             # Classification reason
         'ai.career_pathway',     # Career Pathway (e.g., cdl_pathway, dock_to_driver)
         'ai.training_provided',  # Training Provided (boolean)
         'ai.fair_chance',        # Fair Chance Employer (boolean)
         'ai.summary',            # Job Description Summary
+        'norm.description',      # Normalized job description
         'meta.tracked_url'       # Apply Link (for testing)
     ]
 
@@ -34,6 +36,7 @@ def get_full_dataframe_columns():
     return [
         # Testing & Debug Priority (leftmost)
         'ai.match',              # Quality classification
+        'ai.reason',             # Classification reason
         'ai.route_type',         # Route classification
         'ai.career_pathway',     # Career pathway classification
         'ai.training_provided',  # Training provided flag

@@ -168,11 +168,8 @@ class DriverPulseToPipelineAdapter:
         # Convert to Outscraper-compatible format for pipeline ingestion
         outscraper_format = self._convert_to_outscraper_format(all_jobs)
 
-        # Use existing pipeline ingestion transform
-        df = transform_ingest_outscraper(outscraper_format, self.run_id, search_location)
-
-        # Override source to DriverPulse (not Indeed/Google)
-        df['id.source'] = 'driver_pulse'
+        # Use existing pipeline ingestion transform with explicit source
+        df = transform_ingest_outscraper(outscraper_format, self.run_id, search_location, source='driver_pulse')
 
         # Skip market mapping for DriverPulse - locations are already ZIP-based
         df['metadata.market'] = 'DriverPulse'
@@ -559,10 +556,7 @@ class DriverPulsePipelineIntegration:
             # So we skip convert_to_pipeline_format() and go directly to transform_ingest_outscraper()
             print(f"\n🔄 Converting {len(outscraper_jobs)} jobs to pipeline format...")
             from canonical_transforms import transform_ingest_outscraper
-            df = transform_ingest_outscraper(outscraper_jobs, self.adapter.run_id, "")
-
-            # Override source to DriverPulse (not Indeed/Google)
-            df['id.source'] = 'driver_pulse'
+            df = transform_ingest_outscraper(outscraper_jobs, self.adapter.run_id, "", source='driver_pulse')
 
             if df.empty:
                 return {

@@ -52,9 +52,15 @@
 
     <!-- Summary -->
     <div class="summary-content">
-      <!-- AI summary for both mobile and desktop -->
-      {% if job.description_summary %}
-      <div class="desc-full">{{ job.description_summary | safe }}</div>
+      <!-- AI summary (shown by default) -->
+      {% if job.description_summary and job.description_full %}
+      <div class="desc-summary" id="summary-{{ job.job_id | default(loop.index) }}">{{ job.description_summary | safe }}</div>
+      <div class="desc-full" id="full-{{ job.job_id | default(loop.index) }}" style="display: none;">{{ job.description_full | safe }}</div>
+      <button class="desc-toggle-btn" id="toggle-{{ job.job_id | default(loop.index) }}" onclick="toggleDescription('{{ job.job_id | default(loop.index) }}')">
+        📄 Read full description
+      </button>
+      {% elif job.description_summary %}
+      <div class="desc-summary">{{ job.description_summary | safe }}</div>
       {% elif job.description_full %}
       <div class="desc-full">{{ job.description_full | safe }}</div>
       {% endif %}

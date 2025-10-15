@@ -1096,7 +1096,7 @@ class FreeWorldPipelineV3:
                     pass
         
         # Transform and merge data from all sources
-        indeed_df = transform_ingest_outscraper(fresh_jobs, self.run_id, query_location) if fresh_jobs else build_empty_df()
+        indeed_df = transform_ingest_outscraper(fresh_jobs, self.run_id, query_location, source='indeed') if fresh_jobs else build_empty_df()
         google_df = transform_ingest_google(google_jobs, self.run_id, query_location) if google_jobs else build_empty_df()
         memory_df = transform_ingest_memory(memory_jobs, self.run_id) if memory_jobs else build_empty_df()
         
@@ -1376,6 +1376,134 @@ class FreeWorldPipelineV3:
         r3_key = f"{company}|{market}|{route_type}|{match_level}|{title}"
         return hashlib.md5(r3_key.encode()).hexdigest()[:16]
 
+    async def _format_description_async(self, job_id: str, description: str) -> dict:
+        """
+        Async version: Format a single description with HTML structure using AI
+
+        Args:
+            job_id: Unique job identifier for tracking
+            description: Plain text description to format
+
+        Returns:
+            dict with 'job_id', 'formatted', 'success' keys
+        """
+        prompt = f"""You are a job description formatter. Take this plain text job description and add natural HTML formatting to make it more readable.
+
+Rules:
+- Use <h3> for major sections (like Job Purpose, Responsibilities, Requirements, Qualifications, Benefits, etc.)
+- Use <ul><li> for lists of items
+- Use <p> for paragraphs
+- Keep the original text content exactly the same
+- Only add structural HTML tags, don't change the wording
+
+Plain text description:
+{description}
+
+Return ONLY the formatted HTML version, no explanation or markdown code blocks."""
+
+        try:
+            # Use async OpenAI client
+            response = await asyncio.to_thread(
+                self.cdl_classifier.client.chat.completions.create,
+                model=self.cdl_classifier.model,
+                messages=[
+                    {"role": "system", "content": "You are a job description formatter. Return only HTML, no markdown."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.1
+            )
+
+            formatted = response.choices[0].message.content.strip()
+
+            # Remove markdown code blocks if present
+            if formatted.startswith('```html'):
+                formatted = formatted.replace('```html', '').replace('```', '').strip()
+            elif formatted.startswith('```'):
+                formatted = formatted.replace('```', '').strip()
+
+            return {'job_id': job_id, 'formatted': formatted, 'success': True}
+
+        except Exception as e:
+            print(f"⚠️ Formatting failed for {job_id}: {e}")
+            return {'job_id': job_id, 'formatted': description, 'success': False}
+
+    async def _format_descriptions_batch(self, jobs_to_format: list, concurrency: int = 50) -> dict:
+        """
+        Format multiple descriptions in parallel using async processing
+
+        Args:
+            jobs_to_format: List of dicts with 'job_id' and 'description' keys
+            concurrency: Number of concurrent API calls (default 50, matching classification)
+
+        Returns:
+            dict mapping job_id -> formatted description
+        """
+        semaphore = asyncio.Semaphore(concurrency)
+
+        async def format_with_limit(job):
+            async with semaphore:
+                return await self._format_description_async(job['job_id'], job['description'])
+
+        # Run all formatting tasks in parallel
+        tasks = [format_with_limit(job) for job in jobs_to_format]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Convert results to lookup dict
+        formatted_lookup = {}
+        success_count = 0
+        for result in results:
+            if isinstance(result, dict) and result.get('success'):
+                formatted_lookup[result['job_id']] = result['formatted']
+                success_count += 1
+            elif isinstance(result, dict):
+                # Failed but returned fallback
+                formatted_lookup[result['job_id']] = result['formatted']
+
+        print(f"✅ Formatted {success_count}/{len(jobs_to_format)} descriptions successfully")
+        return formatted_lookup
+
+    def _format_plain_description(self, description: str) -> str:
+        """
+        DEPRECATED: Single-job sync version kept for backward compatibility
+        Use _format_descriptions_batch for better performance
+        """
+        prompt = f"""You are a job description formatter. Take this plain text job description and add natural HTML formatting to make it more readable.
+
+Rules:
+- Use <h3> for major sections (like Job Purpose, Responsibilities, Requirements, Qualifications, Benefits, etc.)
+- Use <ul><li> for lists of items
+- Use <p> for paragraphs
+- Keep the original text content exactly the same
+- Only add structural HTML tags, don't change the wording
+
+Plain text description:
+{description}
+
+Return ONLY the formatted HTML version, no explanation or markdown code blocks."""
+
+        try:
+            response = self.cdl_classifier.client.chat.completions.create(
+                model=self.cdl_classifier.model,
+                messages=[
+                    {"role": "system", "content": "You are a job description formatter. Return only HTML, no markdown."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.1
+            )
+
+            formatted = response.choices[0].message.content.strip()
+
+            if formatted.startswith('```html'):
+                formatted = formatted.replace('```html', '').replace('```', '').strip()
+            elif formatted.startswith('```'):
+                formatted = formatted.replace('```', '').strip()
+
+            return formatted
+
+        except Exception as e:
+            print(f"⚠️ Description formatting failed: {e}, using original")
+            return description
+
     def _stage5_ai_classification(self, df: pd.DataFrame, force_fresh_classification: bool = False, classifier_type: str = "cdl") -> pd.DataFrame:
         """Stage 5: AI classification of jobs"""
 
@@ -1530,6 +1658,73 @@ class FreeWorldPipelineV3:
         df['rules.duplicate_r3'] = df.apply(lambda row: self._generate_r3_hash(row), axis=1)
         r3_count = (df['rules.duplicate_r3'] != '').sum()
         print(f"✅ Generated {r3_count} R3 hashes")
+
+        # 🎨 FORMAT PLAIN DESCRIPTIONS (Google Jobs only, good/so-so only)
+        # This runs AFTER classification so we only format jobs agents will see
+        # Uses ASYNC BATCH PROCESSING for 50x speed improvement (2-4s vs 50-100s for 50 jobs)
+
+        # Collect jobs that need formatting
+        jobs_to_format = []
+        for idx in df.index:
+            row = df.loc[idx]
+
+            # Check all conditions:
+            # 1. Good or so-so match (will be shown to agents)
+            # 2. Google Jobs source (DriverPulse/Indeed already have formatting)
+            # 3. Description lacks HTML formatting (needs enhancement)
+
+            match_level = row.get('ai.match', '')
+            source = row.get('id.source', '')
+            desc = row.get('norm.description', '')
+
+            # Only format if ALL conditions met
+            should_format = (
+                match_level in ['good', 'so-so'] and
+                source == 'google' and
+                desc and
+                str(desc).strip() != '' and
+                '<' not in str(desc)  # No HTML tags = needs formatting
+            )
+
+            if should_format:
+                job_id = row.get('id.job', 'unknown')
+                jobs_to_format.append({
+                    'job_id': job_id,
+                    'description': str(desc),
+                    'index': idx
+                })
+
+        # Format all jobs in parallel if any need formatting
+        if jobs_to_format:
+            print(f"🎨 Formatting {len(jobs_to_format)} Google job descriptions in parallel (50 concurrent)...")
+
+            try:
+                # Run async batch formatting
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    formatted_lookup = loop.run_until_complete(
+                        self._format_descriptions_batch(jobs_to_format, concurrency=50)
+                    )
+                finally:
+                    loop.close()
+
+                # Apply formatted descriptions back to DataFrame
+                format_count = 0
+                for job in jobs_to_format:
+                    job_id = job['job_id']
+                    idx = job['index']
+
+                    if job_id in formatted_lookup:
+                        df.at[idx, 'norm.description'] = formatted_lookup[job_id]
+                        format_count += 1
+
+                format_cost = format_count * 0.0002
+                print(f"✅ Formatted {format_count} Google job descriptions (~${format_cost:.4f} cost)")
+
+            except Exception as e:
+                print(f"❌ Batch formatting failed: {e}")
+                print("   Descriptions will remain unformatted (plain text)")
 
         return df
     

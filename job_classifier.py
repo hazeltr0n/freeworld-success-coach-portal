@@ -50,52 +50,28 @@ Most have no previous professional driving experience, no personal vehicle, and 
 
 We want to help connect them to jobs they have a strong chance of getting if they show up prepared, knowledgeable, and ready to demonstrate their skills in a road test. Assume they are ready to work — but must be hired into a role that does not require prior CDL driving experience or their own equipment.
 
-**DECISION HIERARCHY - APPLY IN THIS ORDER:**
+**CLASSIFICATION PHILOSOPHY - EXPERIENCE IS THE PRIMARY FILTER:**
 
-1. **AUTOMATIC DISQUALIFIERS** → Always BAD, no exceptions:
-   - Owner-operator/1099 (must own truck/trailer)
-   - School bus driving
+**Context about our candidates:**
+Our candidates have ZERO months of professional CDL driving work history. They are skilled, licensed CDL-A drivers who know how to operate commercial vehicles, but they have never been employed as professional drivers. They are ready to work but need employers willing to hire them without prior work experience.
 
-2. **EXPERIENCE REQUIREMENTS** → The PRIMARY filter for good/so-so/bad:
+**Critical distinction:** A "clean driving record" or "good MVR" refers to a motor vehicle record free of accidents and violations - this is NOT the same as professional driving experience. Our candidates have excellent driving records. Only professional work experience (time employed as a commercial driver) should affect classification.
 
-   **CRITICAL CONTEXT:** Our candidates have ZERO months of professional CDL driving work history. They are skilled drivers with valid CDL-A licenses and know how to operate commercial vehicles, but they have never been employed as professional drivers.
+**Classification approach - EXPERIENCE REQUIREMENTS ARE THE PRIMARY FILTER:**
 
-   **IMPORTANT DISTINCTION:** "Good driving history", "clean driving record", or "clean MVR" refers to a motor vehicle record with no accidents or violations. This is NOT the same as professional driving experience. Our candidates have excellent driving records, so these requirements are NOT disqualifiers. Only professional work experience (time employed as a driver) should affect the classification.
+Classify as **GOOD** when the job posting's language clearly indicates the employer is open to hiring drivers with zero professional experience. This includes jobs that explicitly welcome new drivers, offer training programs, or use welcoming/inclusive language toward entry-level candidates.
 
-   **BAD** - Hard experience requirements our candidates cannot meet:
-   - **Requires** specific time periods of professional driving experience (e.g., "requires 1 year", "must have 6 months", "3 months required")
-   - Uses language that makes experience mandatory: "requires", "must have", "minimum required"
-   - Our candidates literally cannot meet hard time-based requirements because they have 0 months of professional driving history
+Classify as **SO-SO** when the job shows a preference for experience but doesn't make it mandatory, OR when the experience requirements are unclear or ambiguous. This is the DEFAULT category for uncertainty - when you cannot confidently determine if the job welcomes no-experience drivers or clearly excludes them. Also includes non-CDL jobs that could serve as backup options but don't fully utilize CDL training.
 
-   **SO-SO** - Preference for experience but not a hard barrier, or non-CDL roles:
-   - **Prefers** experience but doesn't require it (e.g., "1 year preferred", "experience helpful", "preference given to experienced drivers")
-   - Has soft experience language that isn't a hard barrier
-   - Non-CDL jobs or explicitly states "No CDL required" - these are backup options but not ideal for CDL holders
-   - Delivery/warehouse jobs that don't utilize CDL training
+Classify as **BAD** when the job clearly and unambiguously requires professional driving experience that our candidates cannot provide. This includes mandatory experience requirements with specific time periods, owner-operator positions requiring equipment ownership, or school bus driving.
 
-   **GOOD** - Entry-level friendly or actively recruiting new drivers:
-   - Explicitly welcomes new CDL drivers or states "no experience required" or "entry level"
-   - States "new drivers welcome", "recent graduates welcome", or similar welcoming language
-   - Provides training or comprehensive onboarding for new drivers
-   - CDL-required positions that actively recruit drivers with no professional driving history
-   - Has no mention of experience requirements or preferences
+**Key principle:** When uncertain about whether a job welcomes candidates with zero professional experience, default to SO-SO, not BAD. Only mark as BAD when there is clear, mandatory language that would exclude our candidates.
 
-3. **JOB RELEVANCE** → CDL driving jobs are the top priority:
-   - CDL-A or CDL-B driving positions are preferred (both are equally relevant)
-   - DO NOT EXCLUDE CDL-B or CLASS B CDL JOBS - our candidates can drive both
-   - A CDL job with no experience requirements is always GOOD
-   - A CDL job with hard experience requirements is still BAD (experience filter overrides relevance)
+**Other considerations (do not override experience-based classification):**
 
-4. **ENDORSEMENTS** → Should NOT negatively affect the match rating:
-   - FreeWorld helps candidates obtain ANY endorsement they need (Hazmat, Tanker, Passenger, etc.)
-   - Endorsement requirements should be noted in the `endorsements` field
-   - A job requiring Hazmat can still be GOOD if it has no experience requirements
-   - Only mark as SO-SO if there are OTHER factors (experience preferences, non-CDL role, etc.)
-
-5. **BACKGROUND CHECKS** → Should be noted but NOT affect the match rating:
-   - Background checks and criminal record requirements go in the `fair_chance` field only
-   - These should NEVER affect the `match` rating (good/so-so/bad)
-   - A job requiring a background check can still be "good" if it has no experience requirements
+- CDL-A and CDL-B positions are both relevant - do NOT exclude Class B jobs
+- Endorsement requirements should NOT negatively affect ratings - FreeWorld helps candidates obtain any needed endorsements
+- Background check requirements should be noted in the `fair_chance` field but should NOT affect the `match` rating
 
 **OUTPUT FORMAT INSTRUCTIONS:**
 
