@@ -148,7 +148,7 @@ SUPABASE_FIELDS = {
     'company': 'source.company',
     'location': 'source.location_raw',
     'zip_code': 'norm.zip_code',            # ZIP code for location filtering
-    'job_description': 'source.description_raw',
+    'job_description': 'norm.description',  # Use normalized/formatted description (AI-enhanced for Google jobs)
     'apply_url': 'source.url',              # Single unified URL field
     'salary': 'source.salary_raw',
 
@@ -352,11 +352,35 @@ def prepare_for_supabase(df: pd.DataFrame) -> pd.DataFrame:
         # Handle null values
         supabase_df[col] = supabase_df[col].fillna('')
 
-        # Truncate long text fields
-        if col == 'job_description':
-            supabase_df[col] = supabase_df[col].astype(str).str[:5000]
-        elif col in ['match_reason', 'summary']:
-            supabase_df[col] = supabase_df[col].astype(str).str[:1000]
+    # Clean up trailing ellipses from Outscraper truncations
+    def clean_truncated_sentence(text: str) -> str:
+        """
+        Remove incomplete trailing sentences that end with ellipses (...).
+        Only processes text that was already truncated by Outscraper.
+        """
+        text = str(text).rstrip()
+
+        # Check if text ends with ellipses (indicating Outscraper truncation)
+        if not (text.endswith('...') or text.endswith('…')):
+            return text
+
+        # Remove the ellipses
+        text = text.rstrip('.…').rstrip()
+
+        # Find the last complete sentence before the truncation
+        import re
+        sentence_endings = list(re.finditer(r'[.!?](?:\s|$)', text))
+
+        if sentence_endings:
+            # Remove everything after the last complete sentence
+            last_sentence_end = sentence_endings[-1].end()
+            text = text[:last_sentence_end].rstrip()
+
+        return text
+
+    # Apply cleanup only to descriptions with trailing ellipses
+    if 'job_description' in supabase_df.columns:
+        supabase_df['job_description'] = supabase_df['job_description'].apply(clean_truncated_sentence)
 
     return supabase_df
 

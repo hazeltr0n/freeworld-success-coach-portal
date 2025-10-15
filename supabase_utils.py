@@ -965,10 +965,10 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
         if route_filter:
             if route_filter.lower() == 'local':
                 print(f"🚚 Filtering to LOCAL routes only")
-                query = query.eq('ai_route_type', 'Local')
+                query = query.eq('route_type', 'Local')
             elif route_filter.lower() == 'otr':
                 print(f"🚛 Filtering to OTR/Regional routes only")
-                query = query.in_('ai_route_type', ['OTR', 'Regional'])
+                query = query.in_('route_type', ['OTR', 'Regional'])
             # If 'both' or unrecognized, no filter applied (show all route types)
 
         # Career pathway filtering

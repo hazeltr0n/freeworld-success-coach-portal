@@ -7171,7 +7171,9 @@ def show_combined_batches_and_scheduling_page(coach):
                     st.info("📥 Ingesting…")
                     # Use chosen market as search location for foreign language normalization
                     search_location = MARKET_TO_LOCATION.get(chosen_market, chosen_market)
-                    df_ing = transform_ingest_outscraper(raw_rows, pipe.run_id, search_location) if raw_rows else ensure_schema(pd.DataFrame())
+                    # Determine source based on radio button selection
+                    csv_source = 'google' if source_type == "Outscraper (Google)" else 'indeed'
+                    df_ing = transform_ingest_outscraper(raw_rows, pipe.run_id, search_location, source=csv_source) if raw_rows else ensure_schema(pd.DataFrame())
                     st.success(f"✅ Ingested: {len(df_ing)} rows")
                     # Apply stages 2-6 using pipeline helpers
                     st.info("🧹 Normalizing…")
@@ -7417,19 +7419,18 @@ def show_combined_batches_and_scheduling_page(coach):
                         df_final = df_final.copy()
                         df_final['sys.is_fresh_job'] = True
                         
-                        # Filter jobs that should go to Supabase: passed_all_filters or included*
-                        final_status_col = 'route.final_status'
-                        if final_status_col in df_final.columns:
+                        # Upload ALL classified jobs to Supabase (good/so-so/bad) for complete analytics and memory
+                        # This matches the behavior of view_fresh_quality() in canonical_transforms.py
+                        if 'ai.match' in df_final.columns:
                             supabase_jobs = df_final[
-                                (df_final[final_status_col] == 'passed_all_filters') |
-                                (df_final[final_status_col].str.startswith('included', na=False))
+                                df_final['ai.match'].astype(str).isin(['good', 'so-so', 'bad'])
                             ].copy()
                         else:
-                            # Fallback if no routing status column
+                            # Fallback if no AI classification column
                             supabase_jobs = df_final.copy()
-                        
+
                         if len(supabase_jobs) == 0:
-                            st.info("ℹ️ No jobs qualified for Supabase storage (must have status 'passed_all_filters' or 'included')")
+                            st.info("ℹ️ No jobs qualified for Supabase storage (must have AI classification: good/so-so/bad)")
                         else:
                             # Run QC validation (non-strict mode for CSV - we want to store data but show warnings)
                             df_validated, qc_report = validate_jobs_for_upload(supabase_jobs, strict_mode=False)
@@ -7457,11 +7458,11 @@ def show_combined_batches_and_scheduling_page(coach):
                                     
                                 # Show data quality summary
                                 rejected_count = len(supabase_jobs) - len(df_validated)
-                                filtered_count = len(df_final) - len(supabase_jobs)
+                                unclassified_count = len(df_final) - len(supabase_jobs)
                                 if rejected_count > 0:
                                     st.info(f"📊 QC Summary: {rejected_count} jobs had quality issues but were stored with warnings")
-                                if filtered_count > 0:
-                                    st.info(f"📊 Routing Summary: {filtered_count} jobs filtered out (not 'passed_all_filters' or 'included')")
+                                if unclassified_count > 0:
+                                    st.info(f"📊 Classification Summary: {unclassified_count} jobs skipped (no AI classification)")
                             else:
                                 st.warning("⚠️ Failed to store some jobs to Supabase")
                     except Exception as store_e:

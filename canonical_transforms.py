@@ -111,14 +111,16 @@ def _extract_salary_fields(salary_snippet) -> Dict[str, Any]:
 # STAGE 1: INGESTION TRANSFORMS
 # ==============================================================================
 
-def transform_ingest_outscraper(raw_data: List[Dict], run_id: str, search_location: str = '') -> pd.DataFrame:
+def transform_ingest_outscraper(raw_data: List[Dict], run_id: str, search_location: str = '', source: str = 'outscraper') -> pd.DataFrame:
     """
     Convert raw Outscraper API data to canonical DataFrame format
-    
+
     Args:
         raw_data: List of job dictionaries from Outscraper
         run_id: Unique identifier for this pipeline run
-        
+        search_location: Location used for the search
+        source: Explicit source identifier ('outscraper', 'indeed', 'google', etc.)
+
     Returns:
         DataFrame with source.* fields populated
     """
@@ -208,21 +210,10 @@ def transform_ingest_outscraper(raw_data: List[Dict], run_id: str, search_locati
                 df[field] = values
     
     # Job IDs were already set above - no fallbacks needed
-    
-    # Detect actual source platform (Indeed vs Google) from raw data
-    def detect_source_platform(row):
-        # Check URL patterns or other indicators to determine if job came from Indeed or Google
-        url = str(row.get('url', '') or row.get('link', ''))
-        if 'indeed.com' in url.lower():
-            return 'indeed'
-        elif 'google.com' in url.lower() or 'jobs.google.com' in url.lower():
-            return 'google'
-        else:
-            # Default to Indeed since most Outscraper jobs come from Indeed
-            return 'indeed'
-    
-    # Apply source detection
-    df['id.source'] = df.apply(detect_source_platform, axis=1)
+
+    # Set source directly from parameter (no URL detection)
+    df['id.source'] = source
+    print(f"✅ Set source to '{source}' for {len(df)} jobs")
     
     # Set metadata
     current_time = datetime.now().isoformat()
@@ -420,6 +411,7 @@ def transform_ingest_memory(memory_data: List[Dict], run_id: str) -> pd.DataFram
     # (ensure_schema removes original columns, so we must do mapping first)
     memory_mapping = {
         'job_id': 'id.job',
+        'source': 'id.source',  # PRESERVE ORIGINAL SOURCE (indeed, google, driver_pulse)
         'job_title': 'source.title',
         'company': 'source.company',
         'location': 'source.location_raw',
@@ -470,7 +462,7 @@ def transform_ingest_memory(memory_data: List[Dict], run_id: str) -> pd.DataFram
         df.loc[missing_src, 'sys.classification_source'] = 'supabase_memory'
 
     return df.assign(**{
-        'id.source': 'memory',
+        # DON'T OVERWRITE id.source - preserve original source from memory mapping
         'route.stage': 'classified',
         'sys.updated_at': current_time,
         'sys.run_id': run_id,
@@ -498,15 +490,16 @@ def transform_normalize(df: pd.DataFrame) -> pd.DataFrame:
         return df
         
     def clean_html(text: str) -> str:
-        """Remove HTML tags and normalize whitespace"""
+        """Normalize text while preserving HTML formatting"""
         if pd.isna(text) or text == '':
             return ''
-        
-        # Remove HTML tags
-        text = re.sub(r'<[^>]+>', ' ', str(text))
-        # Normalize whitespace
+
+        # DON'T strip HTML - preserve formatting from Indeed/DriverPulse
+        # Google plain text will get AI-enhanced HTML in stage 5
+        text = str(text)
+
+        # Only normalize whitespace and clean artifacts
         text = re.sub(r'\s+', ' ', text)
-        # Clean up common artifacts
         text = text.replace('&nbsp;', ' ').replace('&amp;', '&')
         return text.strip()
     
