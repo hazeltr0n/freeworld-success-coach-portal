@@ -4,6 +4,28 @@
 
 **Opptek** is an AI-powered job discovery platform designed to solve a fundamental problem: the job market is overwhelming and noisy. Free Agents (CDL drivers and warehouse workers) don't have time to sift through thousands of irrelevant job postings. Opptek cuts through that noise to connect them with quality employment opportunities through intelligent matching, personalized career pathway guidance, and comprehensive analytics tracking.
 
+## 🚨 CRITICAL: Which App to Launch
+
+**DEFAULT: ALWAYS launch `app.py` unless explicitly told otherwise**
+
+### Main Application
+- **File**: `app.py`
+- **Name**: Opptek Success Coach Portal (QA Portal)
+- **Purpose**: Main web application for Success Coaches
+- **Features**: Job search pipeline, Free Agent management, analytics dashboard, batch processing, agent portal system
+- **Launch Command**: `streamlit run app.py --server.port 8501`
+- **When to Use**: Default for all work unless user specifically mentions "pre-adverse" or "background check response"
+
+### Separate Tool (Only Launch When Explicitly Requested)
+- **File**: `pre_adverse_response_helper.py`
+- **Name**: FreeWorld Pre-Adverse Response Helper
+- **Purpose**: Standalone tool to help Free Agents respond to pre-adverse action notifications from employers regarding background checks
+- **Features**: AI-powered letter generation, coach support letters, completion certificates
+- **Launch Command**: `streamlit run pre_adverse_response_helper.py --server.port 8501`
+- **When to Use**: ONLY when user explicitly mentions pre-adverse notifications, background check responses, or fair chance hiring letters
+
+**Simple Rule**: If the user says "launch streamlit" or "relaunch" without specifying which app → **ALWAYS launch app.py**
+
 ## 🏗️ System Architecture Overview
 
 ### Current State: October 2025

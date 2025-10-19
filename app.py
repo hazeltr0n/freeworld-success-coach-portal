@@ -3784,6 +3784,35 @@ def show_system_testing_page(coach):
     st.markdown("• Cost calculator tests")
     st.markdown("• Debug tools")
 
+def show_pre_adverse_helper():
+    """Show the pre-adverse response helper portal"""
+    try:
+        from pre_adverse_response_helper import main as run_helper
+
+        # Apply minimal Streamlit CSS overrides for clean mobile experience
+        st.markdown("""
+        <style>
+        /* Hide Streamlit chrome for cleaner public-facing page */
+        #MainMenu, header, footer { display: none !important; }
+        [data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="stStatusWidget"] { display: none !important; }
+        .viewerBadge_link__wrapper, .viewerBadge_container__2QSsR { display: none !important; }
+        a[href^="https://streamlit.io"] { display: none !important; }
+        </style>
+        """, unsafe_allow_html=True)
+
+        # Run the helper main function
+        run_helper()
+
+    except ImportError as e:
+        st.error("❌ Pre-Adverse Response Helper not found")
+        st.markdown("The helper feature is not available in this deployment.")
+        st.code(str(e))
+    except Exception as e:
+        st.error(f"❌ Error loading helper: {str(e)}")
+        st.code(str(e))
+        import traceback
+        st.code(traceback.format_exc())
+
 def show_loan_calculator():
     """Show the loan calculator portal"""
     try:
@@ -3834,11 +3863,18 @@ def main():
         agent_uuid_param = params.get("agent")
         debug_frame_param = params.get("debug_frame")
         loan_calculator_param = params.get("loan_calculator") or params.get("loan")
+        pre_adverse_param = params.get("pre_adverse") or params.get("helper")
     except Exception: # Fallback if query params fail
         agent_config = None
         agent_uuid_param = None
         debug_frame_param = None
         loan_calculator_param = None
+        pre_adverse_param = None
+
+    # Route to pre-adverse response helper if parameter detected
+    if pre_adverse_param:
+        show_pre_adverse_helper()
+        st.stop()
 
     # Route to loan calculator if parameter detected
     if loan_calculator_param:
