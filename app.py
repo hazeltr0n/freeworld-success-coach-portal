@@ -6412,14 +6412,14 @@ def show_combined_batches_and_scheduling_page(coach):
                         if submitted:  # Schedule Recurring Batch
                             search_params.update({
                                 'frequency': batch_frequency,
-                                'scheduled_time': batch_time.strftime('%H:%M'),
-                                'scheduled_days': batch_days if batch_frequency == "Weekly" else None,
+                                'time': batch_time.strftime('%H:%M'),  # Changed from 'scheduled_time' to 'time'
+                                'days': batch_days if batch_frequency == "Weekly" else None,  # Changed from 'scheduled_days' to 'days'
                             })
                         else:  # Run Now - ignore scheduling
                             search_params.update({
                                 'frequency': 'Once',  # Force to one-time execution
-                                'scheduled_time': None,
-                                'scheduled_days': None,
+                                'time': None,
+                                'days': None,
                             })
 
                         try:
@@ -6719,14 +6719,14 @@ def show_combined_batches_and_scheduling_page(coach):
                             if google_submitted:  # Schedule Recurring Batch
                                 google_search_params.update({
                                     'frequency': google_frequency,
-                                    'scheduled_time': google_time.strftime('%H:%M'),
-                                    'scheduled_days': google_days if google_frequency == "Weekly" else None,
+                                    'time': google_time.strftime('%H:%M'),  # Changed from 'scheduled_time' to 'time'
+                                    'days': google_days if google_frequency == "Weekly" else None,  # Changed from 'scheduled_days' to 'days'
                                 })
                             else:  # Run Now - ignore scheduling
                                 google_search_params.update({
                                     'frequency': 'Once',  # Force to one-time execution
-                                    'scheduled_time': None,
-                                    'scheduled_days': None,
+                                    'time': None,
+                                    'days': None,
                                 })
 
                             try:
@@ -6943,14 +6943,14 @@ def show_combined_batches_and_scheduling_page(coach):
                             if dp_submitted:  # Schedule Recurring Batch
                                 dp_search_params.update({
                                     'frequency': dp_batch_frequency,
-                                    'scheduled_time': dp_batch_time.strftime('%H:%M'),
-                                    'scheduled_days': dp_batch_days if dp_batch_frequency == "Weekly" else None,
+                                    'time': dp_batch_time.strftime('%H:%M'),  # Changed from 'scheduled_time' to 'time'
+                                    'days': dp_batch_days if dp_batch_frequency == "Weekly" else None,  # Changed from 'scheduled_days' to 'days'
                                 })
                             else:  # Run Now - ignore scheduling
                                 dp_search_params.update({
                                     'frequency': 'Once',  # Force to one-time execution
-                                    'scheduled_time': None,
-                                    'scheduled_days': None,
+                                    'time': None,
+                                    'days': None,
                                 })
 
                             try:

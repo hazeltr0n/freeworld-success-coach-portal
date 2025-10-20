@@ -84,7 +84,8 @@ class AsyncJobManager:
                 quality_job_count=job_record['quality_job_count'],
                 error_message=job_record.get('error_message'),
                 csv_filename=job_record.get('csv_filename'),
-                created_at=datetime.fromisoformat(job_record['created_at'].replace('Z', '+00:00'))
+                created_at=datetime.fromisoformat(job_record['created_at'].replace('Z', '+00:00')),
+                scheduled_run_at=datetime.fromisoformat(job_record['scheduled_run_at'].replace('Z', '+00:00')) if job_record.get('scheduled_run_at') else None
             )
         else:
             raise Exception("Failed to create job entry")
@@ -125,8 +126,9 @@ class AsyncJobManager:
         minute = int(run_time.split(':')[1])
 
         if frequency == "once":
-            # For "Save for Later", schedule for next day at specified Central time
-            next_run_central = now_central.replace(hour=hour, minute=minute, second=0, microsecond=0) + timedelta(days=1)
+            # For "once", schedule for the specified time TODAY (if not yet passed) or ASAP if already passed
+            next_run_central = now_central.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            # If time has passed, it will be overdue and run immediately
             next_run = next_run_central.astimezone(timezone.utc)
         elif frequency == "daily":
             # Schedule for next occurrence of the specified Central time
@@ -135,12 +137,13 @@ class AsyncJobManager:
                 next_run_central += timedelta(days=1)
             next_run = next_run_central.astimezone(timezone.utc)
         elif frequency == "weekly":
-            # Find next occurrence of specified days (for now, schedule for next day at Central time)
-            next_run_central = now_central.replace(hour=hour, minute=minute, second=0, microsecond=0) + timedelta(days=1)
+            # For weekly, schedule for the specified time TODAY (if not yet passed) or ASAP if already passed
+            next_run_central = now_central.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            # If time has passed, it will be overdue and run immediately
             next_run = next_run_central.astimezone(timezone.utc)
         else:
-            # Default to next day
-            next_run = now_utc + timedelta(days=1)
+            # Default to ASAP
+            next_run = now_utc
 
         # Generate recurring_batch_group_id for recurring batches
         import uuid
@@ -156,7 +159,7 @@ class AsyncJobManager:
             'status': 'scheduled',  # Special status for scheduled jobs
             'result_count': 0,
             'quality_job_count': 0,
-            'created_at': now.isoformat(),
+            'created_at': now_utc.isoformat(),
             'scheduled_run_at': next_run.isoformat(),  # When to actually run the job
             'recurring_batch_group_id': recurring_group_id  # Group ID for recurring batches
         }
@@ -178,7 +181,8 @@ class AsyncJobManager:
                 quality_job_count=job_record['quality_job_count'],
                 error_message=job_record.get('error_message'),
                 csv_filename=job_record.get('csv_filename'),
-                created_at=datetime.fromisoformat(job_record['created_at'].replace('Z', '+00:00'))
+                created_at=datetime.fromisoformat(job_record['created_at'].replace('Z', '+00:00')),
+                scheduled_run_at=datetime.fromisoformat(job_record['scheduled_run_at'].replace('Z', '+00:00')) if job_record.get('scheduled_run_at') else None
             )
         else:
             raise Exception("Failed to create scheduled job entry")
