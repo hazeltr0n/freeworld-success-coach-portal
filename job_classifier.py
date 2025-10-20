@@ -674,10 +674,29 @@ Job Description:
                 task = self._process_single_job_async(session, job, job_content.strip(), system_prompt, semaphore)
                 tasks.append(task)
             
-            # Execute all tasks concurrently
+            # Execute all tasks concurrently with progress tracking
             start_time = time.time()
-            results = await asyncio.gather(*tasks, return_exceptions=True)
+            print(f"⏳ Starting async batch processing of {len(tasks)} jobs...")
+            print(f"   Expected time: ~{len(tasks) / 8.6 / 60:.1f} minutes (based on 8.6 jobs/sec)")
+
+            # Track progress every 100 completed jobs
+            completed = 0
+            results = []
+            batch_size = 100
+
+            for i in range(0, len(tasks), batch_size):
+                batch = tasks[i:i + batch_size]
+                batch_results = await asyncio.gather(*batch, return_exceptions=True)
+                results.extend(batch_results)
+                completed += len(batch)
+                elapsed = time.time() - start_time
+                rate = completed / elapsed if elapsed > 0 else 0
+                remaining = len(tasks) - completed
+                eta_seconds = remaining / rate if rate > 0 else 0
+                print(f"   ✓ Progress: {completed}/{len(tasks)} jobs ({completed/len(tasks)*100:.1f}%) | Rate: {rate:.1f} jobs/sec | ETA: {eta_seconds/60:.1f} min")
+
             total_time = time.time() - start_time
+            print(f"✅ Async batch processing completed in {total_time:.1f}s")
             
             # GUARD 3: Key results by job_id from input list - dict keyed by job_id
             results_by_job_id = {}

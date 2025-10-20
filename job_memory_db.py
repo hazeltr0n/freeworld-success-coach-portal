@@ -284,7 +284,7 @@ class JobMemoryDB:
             if not records:
                 logger.warning("❌ No valid records to store in memory database - all jobs were skipped")
                 return False
-            
+
             # Use batch processing to avoid timeouts with large datasets
             batch_size = 100
             total_stored = 0
@@ -296,8 +296,17 @@ class JobMemoryDB:
                 batch = records[i:i + batch_size]
                 batch_num = i // batch_size + 1
 
+                # Debug: Log field mapping for first record in first batch
+                if i == 0 and batch:
+                    logger.info(f"🔍 FIELD MAPPING DEBUG - First record keys: {list(batch[0].keys())}")
+                    logger.info(f"   Sample values:")
+                    for key in ['job_id', 'job_title', 'company', 'rules_duplicate_r3', 'match_level']:
+                        if key in batch[0]:
+                            val = batch[0][key]
+                            logger.info(f"   - {key}: '{val}' (type: {type(val).__name__}, len: {len(str(val)) if val else 0})")
+
                 try:
-                    # Try RPC first for deduplication
+                    # Use RPC for deduplication - no fallback!
                     result = self.supabase.rpc('batch_insert_jobs_with_dedup', {'p_jobs_data': batch}).execute()
 
                     if result.data is not None:  # RPC returns count or error
@@ -306,27 +315,13 @@ class JobMemoryDB:
                         logger.info(f"✅ Stored {count} job classifications (batch {batch_num}/{total_batches}) with deduplication")
                         continue
                     else:
-                        logger.warning(f"⚠️ RPC failed for batch {batch_num}, trying fallback upsert")
-                        raise Exception("RPC returned no data")
+                        logger.error(f"❌ RPC failed for batch {batch_num}: returned no data")
+                        return False
 
                 except Exception as rpc_error:
-                    logger.warning(f"Database deduplication failed for batch {batch_num}, falling back to upsert: {rpc_error}")
-
-                    try:
-                        # Fallback to upsert for this batch
-                        result = self.supabase.table('jobs').upsert(batch).execute()
-
-                        if result.data:
-                            batch_count = len(result.data)
-                            total_stored += batch_count
-                            logger.info(f"✅ Stored {batch_count} job classifications (batch {batch_num}/{total_batches}) using fallback upsert")
-                        else:
-                            logger.error(f"❌ Failed to store batch {batch_num} using fallback upsert")
-                            return False
-
-                    except Exception as upsert_error:
-                        logger.error(f"❌ Both RPC and upsert failed for batch {batch_num}: {upsert_error}")
-                        return False
+                    logger.error(f"❌ Database deduplication RPC failed for batch {batch_num}: {rpc_error}")
+                    logger.error(f"   NO FALLBACK - upload aborted to prevent data corruption")
+                    return False
 
             logger.info(f"✅ Successfully stored {total_stored} total job classifications across {total_batches} batches")
             return True

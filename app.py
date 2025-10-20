@@ -7485,13 +7485,13 @@ def show_combined_batches_and_scheduling_page(coach):
                             memory_db = JobMemoryDB()
                             success = memory_db.store_classifications(df_supabase)
                             error_count = (df_validated.get('ai.match', '') == 'error').sum() if 'ai.match' in df_validated.columns else 0
-                            
+
                             if success:
                                 if error_count > 0:
                                     st.success(f"✅ Stored {len(df_validated)} QC-validated jobs to Supabase ({error_count} had classification errors)")
                                 else:
                                     st.success(f"✅ Stored {len(df_validated)} QC-validated jobs to Supabase with tracking URLs")
-                                    
+
                                 # Show data quality summary
                                 rejected_count = len(supabase_jobs) - len(df_validated)
                                 unclassified_count = len(df_final) - len(supabase_jobs)

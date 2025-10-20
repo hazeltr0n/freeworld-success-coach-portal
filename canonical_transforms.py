@@ -630,6 +630,10 @@ def transform_normalize(df: pd.DataFrame) -> pd.DataFrame:
     # Clean text fields
     normalized_fields['norm.title'] = df['source.title'].apply(clean_html)
     normalized_fields['norm.company'] = df['source.company'].apply(clean_html)
+
+    # FALLBACK: Set empty company names to "Trucking Company" for R3 hash generation
+    normalized_fields['norm.company'] = normalized_fields['norm.company'].replace('', 'Trucking Company')
+
     normalized_fields['norm.description'] = df['source.description_raw'].apply(clean_html)
     
     # Parse locations (now returns city, state, full_location, zip_code)
