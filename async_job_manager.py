@@ -24,15 +24,16 @@ class AsyncJob:
     coach_username: str
     job_type: str  # 'google_jobs', 'indeed_jobs'
     request_id: Optional[str]  # Outscraper async request ID
-    status: str  # 'pending', 'submitted', 'processing', 'completed', 'failed'
+    status: str  # 'pending', 'submitted', 'processing', 'completed', 'failed', 'scheduled'
     search_params: Dict
     submitted_at: Optional[datetime]
-    completed_at: Optional[datetime] 
+    completed_at: Optional[datetime]
     result_count: int
     quality_job_count: int
     error_message: Optional[str]
     csv_filename: Optional[str]  # Generated CSV filename for download
     created_at: datetime
+    scheduled_run_at: Optional[datetime]  # When scheduled job should run
 
 @dataclass
 class CoachNotification:
@@ -114,30 +115,32 @@ class AsyncJobManager:
         # Calculate next run time based on frequency
         from datetime import datetime, timezone, timedelta
         import time as time_module
+        from zoneinfo import ZoneInfo
 
-        now = datetime.now(timezone.utc)
+        now_utc = datetime.now(timezone.utc)
+        now_central = datetime.now(ZoneInfo("America/Chicago"))
+
+        # Parse user's Central Time input
+        hour = int(run_time.split(':')[0])
+        minute = int(run_time.split(':')[1])
 
         if frequency == "once":
-            # For "Save for Later", schedule for next day at specified time
-            next_run = now.replace(hour=int(run_time.split(':')[0]),
-                                  minute=int(run_time.split(':')[1]),
-                                  second=0, microsecond=0) + timedelta(days=1)
+            # For "Save for Later", schedule for next day at specified Central time
+            next_run_central = now_central.replace(hour=hour, minute=minute, second=0, microsecond=0) + timedelta(days=1)
+            next_run = next_run_central.astimezone(timezone.utc)
         elif frequency == "daily":
-            # Schedule for next occurrence of the specified time
-            next_run = now.replace(hour=int(run_time.split(':')[0]),
-                                  minute=int(run_time.split(':')[1]),
-                                  second=0, microsecond=0)
-            if next_run <= now:
-                next_run += timedelta(days=1)
+            # Schedule for next occurrence of the specified Central time
+            next_run_central = now_central.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            if next_run_central <= now_central:
+                next_run_central += timedelta(days=1)
+            next_run = next_run_central.astimezone(timezone.utc)
         elif frequency == "weekly":
-            # Find next occurrence of specified days
-            # For now, schedule for next day (this could be enhanced)
-            next_run = now.replace(hour=int(run_time.split(':')[0]),
-                                  minute=int(run_time.split(':')[1]),
-                                  second=0, microsecond=0) + timedelta(days=1)
+            # Find next occurrence of specified days (for now, schedule for next day at Central time)
+            next_run_central = now_central.replace(hour=hour, minute=minute, second=0, microsecond=0) + timedelta(days=1)
+            next_run = next_run_central.astimezone(timezone.utc)
         else:
             # Default to next day
-            next_run = now + timedelta(days=1)
+            next_run = now_utc + timedelta(days=1)
 
         # Generate recurring_batch_group_id for recurring batches
         import uuid
@@ -1417,7 +1420,8 @@ class AsyncJobManager:
                     quality_job_count=record['quality_job_count'],
                     error_message=record.get('error_message'),
                     csv_filename=record.get('csv_filename'),
-                    created_at=datetime.fromisoformat(record['created_at'].replace('Z', '+00:00'))
+                    created_at=datetime.fromisoformat(record['created_at'].replace('Z', '+00:00')),
+                    scheduled_run_at=datetime.fromisoformat(record['scheduled_run_at'].replace('Z', '+00:00')) if record.get('scheduled_run_at') else None
                 ))
 
             return jobs

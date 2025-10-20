@@ -43,17 +43,10 @@ def run_scheduled_batches():
 
     for job in scheduled_jobs:
         try:
-            # Parse scheduled_run_at
-            scheduled_run_at = None
-            if hasattr(job, 'search_params') and isinstance(job.search_params, dict):
-                scheduled_run_at_str = job.search_params.get('scheduled_run_at')
-                if scheduled_run_at_str:
-                    try:
-                        scheduled_run_at = datetime.fromisoformat(scheduled_run_at_str.replace('Z', '+00:00'))
-                    except:
-                        pass
+            # Get scheduled_run_at from the job object (database column)
+            scheduled_run_at = job.scheduled_run_at
 
-            # If we couldn't get scheduled_run_at from search_params, skip
+            # If no scheduled_run_at, skip this job
             if not scheduled_run_at:
                 print(f"⚠️  Batch {job.id}: No scheduled_run_at found, skipping")
                 skipped_count += 1
@@ -93,11 +86,12 @@ def run_scheduled_batches():
                 print(f"✅ Google Jobs batch {job.id} executed successfully")
 
             elif job.job_type == 'indeed_jobs':
-                # Execute Indeed batch (if you have this method)
-                # For now, just log it
-                print(f"⚠️  Indeed batch {job.id}: Execution not yet implemented")
-                skipped_count += 1
-                continue
+                # Execute Indeed batch
+                result = manager.submit_indeed_search(
+                    job.search_params,
+                    job.coach_username
+                )
+                print(f"✅ Indeed Jobs batch {job.id} executed successfully")
 
             else:
                 print(f"⚠️  Batch {job.id}: Unknown job type '{job.job_type}'")
