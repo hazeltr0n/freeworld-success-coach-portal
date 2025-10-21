@@ -569,6 +569,12 @@ class StreamlitPipelineWrapper:
             if params.get('classifier_type', 'cdl') != 'cdl':
                 cmd.extend(['--classifier-type', params.get('classifier_type')])
 
+            # Add PDF/CSV generation flags if explicitly disabled
+            if not params.get('generate_pdf', True):
+                cmd.append('--no-pdf')
+            if not params.get('generate_csv', True):
+                cmd.append('--no-csv')
+
             # Set coach name in environment and preserve Python path
             env = os.environ.copy()
             if params.get('coach_name'):

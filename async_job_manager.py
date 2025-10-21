@@ -450,7 +450,8 @@ class AsyncJobManager:
                     quality_job_count=job_record['quality_job_count'],
                     error_message=job_record.get('error_message'),
                     csv_filename=job_record.get('csv_filename'),
-                    created_at=datetime.fromisoformat(job_record['created_at'].replace('Z', '+00:00'))
+                    created_at=datetime.fromisoformat(job_record['created_at'].replace('Z', '+00:00')),
+                    scheduled_run_at=datetime.fromisoformat(job_record['scheduled_run_at'].replace('Z', '+00:00')) if job_record.get('scheduled_run_at') else None
                 )
         except Exception as e:
             print(f"Error checking job {job_id}: {e}")
