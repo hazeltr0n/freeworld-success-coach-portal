@@ -98,14 +98,14 @@ class SupabaseToAirtableJobSync:
         """Fetch good/so-so quality jobs from Supabase created in the last N hours"""
         try:
             cutoff_time = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
-            logger.info(f"🔍 Fetching quality jobs created after {cutoff_time} (last {hours}h)")
-            
+            logger.info(f"🔍 Fetching quality jobs updated after {cutoff_time} (last {hours}h)")
+
             # Query Supabase for quality jobs
             response = self.supabase_client.table('jobs').select(
                 'job_id, job_title, company, location, job_description, apply_url, salary, '
                 'match_level, match_reason, summary, fair_chance, endorsements, route_type, '
                 'market, tracked_url, indeed_job_url, created_at, updated_at'
-            ).in_('match_level', ['good', 'so-so']).gte('created_at', cutoff_time).order('created_at', desc=True).execute()
+            ).in_('match_level', ['good', 'so-so']).gte('updated_at', cutoff_time).order('updated_at', desc=True).execute()
             
             jobs = response.data or []
             logger.info(f"📥 Retrieved {len(jobs)} quality jobs from Supabase")

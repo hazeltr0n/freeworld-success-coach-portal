@@ -166,12 +166,12 @@ def fetch_market_quality_counts(hours: int = 72) -> pd.DataFrame:
             res = (
                 client
                 .table('jobs')
-                .select('market,match_level,created_at')
-                .gte('created_at', since)
+                .select('market,match_level,updated_at')
+                .gte('updated_at', since)
                 # Include all job quality levels to show complete breakdown
                 # .in_('match_level', ['good', 'so-so']) # Removed filter to include bad jobs too
                 .range(start, end)
-                .order('created_at', desc=True)
+                .order('updated_at', desc=True)
                 .execute()
             )
             batch = res.data or []
@@ -931,8 +931,8 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
         market_value = market or location
         query = query.eq('market', market_value)
         
-        # Time filter
-        query = query.gte('created_at', cutoff_time.isoformat())
+        # Time filter - use updated_at to catch renewed/active jobs
+        query = query.gte('updated_at', cutoff_time.isoformat())
 
         # Quality filter - use agent preference or default to good/so-so
         if match_level:

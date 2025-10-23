@@ -231,12 +231,12 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
         
         # DEBUG: Let's also check what's actually in the database
         try:
-            debug_query = supabase_client.table('jobs').select('route_type', count='exact').eq('market', market_name).gte('created_at', cutoff_date)
+            debug_query = supabase_client.table('jobs').select('route_type', count='exact').eq('market', market_name).gte('updated_at', cutoff_date)
             debug_result = debug_query.execute()
             print(f"🔍 DEBUG: Total jobs in {market_name} since {cutoff_date}: {debug_result.count}")
-            
+
             # Check specifically for local jobs
-            local_debug = supabase_client.table('jobs').select('route_type', count='exact').eq('market', market_name).ilike('route_type', '%local%').gte('created_at', cutoff_date).execute()
+            local_debug = supabase_client.table('jobs').select('route_type', count='exact').eq('market', market_name).ilike('route_type', '%local%').gte('updated_at', cutoff_date).execute()
             print(f"🔍 DEBUG: Local jobs in {market_name}: {local_debug.count}")
         except Exception as e:
             print(f"🔍 DEBUG query failed: {e}")
@@ -256,7 +256,7 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
             .select('*')  # Skip the broken priority SQL for now
             .eq('market', market_name)
             .in_('match_level', match_levels)
-            .gte('created_at', cutoff_date)
+            .gte('updated_at', cutoff_date)
         )
         
         # Get reported job URLs to exclude them

@@ -619,8 +619,8 @@ class JobMemoryDB:
             # Base query for recent jobs - prioritize quality jobs unless text search is enabled
             if text_search:
                 # Text-based search across all job qualities
-                query = self.supabase.table('jobs').select('*').gte('created_at', cutoff_str)
-                
+                query = self.supabase.table('jobs').select('*').gte('updated_at', cutoff_str)
+
                 # Add search terms filter
                 if search_terms and search_terms.strip():
                     terms = search_terms.strip().lower()
@@ -633,7 +633,7 @@ class JobMemoryDB:
                 # Default behavior: get quality jobs from location (like original)
                 query = self.supabase.table('jobs').select('*').in_(
                     'match_level', ['good', 'so-so']
-                ).gte('created_at', cutoff_str)
+                ).gte('updated_at', cutoff_str)
             
             # Add location filter if provided
             if location and location.strip():
@@ -673,7 +673,7 @@ class JobMemoryDB:
                         cutoff_str = cutoff_time.isoformat()
                         
                         if text_search:
-                            query = self.supabase.table('jobs').select('*').gte('created_at', cutoff_str)
+                            query = self.supabase.table('jobs').select('*').gte('updated_at', cutoff_str)
                             if search_terms and search_terms.strip():
                                 terms = search_terms.strip().lower()
                                 query = query.or_(
@@ -684,7 +684,7 @@ class JobMemoryDB:
                         else:
                             query = self.supabase.table('jobs').select('*').in_(
                                 'match_level', ['good', 'so-so']
-                            ).gte('created_at', cutoff_str)
+                            ).gte('updated_at', cutoff_str)
                         
                         if location and location.strip():
                             location_clean = location.strip().lower()

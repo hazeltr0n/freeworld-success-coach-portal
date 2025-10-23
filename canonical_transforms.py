@@ -230,11 +230,12 @@ def transform_ingest_outscraper(raw_data: List[Dict], run_id: str, search_locati
 def transform_ingest_google(raw_data: List[Dict], run_id: str, search_location: str = '') -> pd.DataFrame:
     """
     Convert raw Google Jobs API data to canonical DataFrame format
-    
+
     Args:
         raw_data: List of job dictionaries from Google Jobs API
         run_id: Unique identifier for this pipeline run
-        
+        search_location: Coach username OR search location (backward compatible)
+
     Returns:
         DataFrame with source.* fields populated
     """
@@ -282,7 +283,8 @@ def transform_ingest_google(raw_data: List[Dict], run_id: str, search_location: 
         'description': 'source.description_raw',
         'apply_urls': 'source.url',  # Single unified URL field - will be processed separately
         'salary': 'source.salary_raw',
-        'posted_date': 'source.posted_date'
+        'posted_date': 'source.posted_date',
+        'market': 'meta.market'  # Market added by poller from query-to-market CSV mapping
     }
     
     # Map raw API fields to canonical schema BEFORE schema enforcement
@@ -384,6 +386,7 @@ def transform_ingest_google(raw_data: List[Dict], run_id: str, search_location: 
         'sys.created_at': current_time,
         'sys.updated_at': current_time,
         'sys.run_id': run_id,
+        'sys.coach': search_location or '',  # search_location doubles as coach username for backwards compatibility
         'sys.is_fresh_job': True,
         'sys.version': '3.0',
     })

@@ -1847,6 +1847,9 @@ Return ONLY the formatted HTML version, no explanation or markdown code blocks."
                     exportable_df = view_exportable(df)
                     quality_jobs_df = exportable_df[quality_mask]
 
+                # CRITICAL: Always save df to instance variable for Stage 8
+                self.df = df
+
             else:
                 print("🔗 Generating tracked URLs...")
                 # Initialize link tracker

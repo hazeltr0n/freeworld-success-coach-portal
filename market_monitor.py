@@ -31,7 +31,7 @@ def check_market_job_counts(hours: int = 72) -> Dict[str, int]:
     cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
 
     # Get all quality jobs grouped by market
-    result = client.table('jobs').select('market').gte('created_at', cutoff).in_('match_level', ['good', 'so-so']).execute()
+    result = client.table('jobs').select('market').gte('updated_at', cutoff).in_('match_level', ['good', 'so-so']).execute()
 
     if not result.data:
         print(f"⚠️ No jobs found in any market in last {hours} hours")

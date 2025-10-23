@@ -1,0 +1,48 @@
+name: Scheduled Google Scrapes
+
+on:
+  schedule:
+    # Tue/Thu at 2am Central (7am UTC) - Google scrapes only
+    - cron: '0 7 * * 2,4'
+
+  workflow_dispatch:  # Allow manual trigger for testing
+
+jobs:
+  run-google-scrapes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Google scrapes only
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          OUTSCRAPER_API_KEY: ${{ secrets.OUTSCRAPER_API_KEY }}
+          DRIVER_PULSE_GMAIL_CREDENTIALS: ${{ secrets.DRIVER_PULSE_GMAIL_CREDENTIALS }}
+          DRIVER_PULSE_GMAIL_TOKEN: ${{ secrets.DRIVER_PULSE_GMAIL_TOKEN }}
+          NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
+        run: |
+          python run_config_scrapes.py
+
+      - name: Upload run artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: google-scrape-submission-${{ github.run_number }}
+          path: |
+            *.log
+            *.json
+          retention-days: 7

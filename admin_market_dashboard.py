@@ -51,22 +51,22 @@ def get_market_analytics(hours: Optional[int] = None) -> pd.DataFrame:
             return pd.DataFrame()
         
         # Build query with optional time filter
-        query = client.table('jobs').select('market,match_level,route_type,created_at')
-        
+        query = client.table('jobs').select('market,match_level,route_type,updated_at')
+
         if hours:
             since = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
-            query = query.gte('created_at', since)
-        
+            query = query.gte('updated_at', since)
+
         # Execute query with pagination for large datasets
         all_jobs = []
         page_size = 1000
         page = 0
-        
+
         while True:
             start = page * page_size
             end = start + page_size - 1
-            
-            result = query.range(start, end).order('created_at', desc=True).execute()
+
+            result = query.range(start, end).order('updated_at', desc=True).execute()
             batch = result.data or []
             
             if not batch:
