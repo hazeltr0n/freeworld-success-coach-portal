@@ -28,8 +28,8 @@ jobs:
 
       - name: Create Gmail credentials for DriverPulse 2FA
         run: |
-          echo "${{ secrets.DRIVER_PULSE_GMAIL_CREDENTIALS }}" | base64 -d > gmail_credentials.json
-          echo "${{ secrets.DRIVER_PULSE_GMAIL_TOKEN }}" | base64 -d > gmail_token.json
+          echo '${{ secrets.DRIVER_PULSE_GMAIL_CREDENTIALS }}' > gmail_credentials.json
+          echo '${{ secrets.DRIVER_PULSE_GMAIL_TOKEN }}' > gmail_token.json
 
       - name: Refresh DriverPulse authentication
         env:
