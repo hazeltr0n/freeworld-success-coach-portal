@@ -39,7 +39,7 @@ jobs:
 
       - name: Upload run artifacts
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: google-scrape-submission-${{ github.run_number }}
           path: |
