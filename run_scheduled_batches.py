@@ -68,39 +68,20 @@ def run_scheduled_batches():
             print(f"   Type: {job.job_type}")
             print(f"   Scheduled: {scheduled_run_at.strftime('%Y-%m-%d %H:%M UTC')}")
 
-            # Execute based on job type
-            if job.job_type == 'driver_pulse_jobs' or job.job_type == 'driver_pulse':
-                # Execute DriverPulse batch
-                result = manager.submit_driver_pulse_search(
-                    job.search_params,
-                    job.coach_username
-                )
-                print(f"✅ DriverPulse batch {job.id} executed successfully")
+            # Mark job as processing
+            manager.update_job(job.id, {
+                'status': 'processing',
+                'submitted_at': now.isoformat()
+            })
 
-            elif job.job_type == 'google_jobs':
-                # Execute Google Jobs batch
-                result = manager.submit_google_search(
-                    job.search_params,
-                    job.coach_username
-                )
-                print(f"✅ Google Jobs batch {job.id} executed successfully")
-
-            elif job.job_type == 'indeed_jobs':
-                # Execute Indeed batch
-                result = manager.submit_indeed_search(
-                    job.search_params,
-                    job.coach_username
-                )
-                print(f"✅ Indeed Jobs batch {job.id} executed successfully")
-
-            else:
-                print(f"⚠️  Batch {job.id}: Unknown job type '{job.job_type}'")
-                skipped_count += 1
-                continue
+            # Execute in-place by updating status to 'pending' so GitHub Actions picks it up
+            # This re-uses the SAME job instead of creating a new one
+            manager.update_job(job.id, {'status': 'pending'})
+            print(f"✅ Batch {job.id} marked as pending for GitHub Actions execution")
 
             executed_count += 1
 
-            # Handle recurring batches - create next run
+            # Handle recurring batches - create next run BEFORE this one completes
             frequency = job.search_params.get('frequency', 'Once')
             if frequency != 'Once':
                 print(f"🔄 Recurring batch - scheduling next run...")
