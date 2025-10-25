@@ -257,7 +257,7 @@ Return your results as a JSON object with a "job_classifications" array like thi
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
-                results = loop.run_until_complete(self._classify_jobs_async(valid_jobs, concurrency=50))
+                results = loop.run_until_complete(self._classify_jobs_async(valid_jobs, concurrency=100))
                 print("✅ Async classification completed successfully")
                 return results
             finally:
@@ -540,7 +540,7 @@ Job Description:
             
             for attempt in range(max_retries):
                 try:
-                    async with session.post(api_url, headers=headers, json=payload, timeout=30) as response:
+                    async with session.post(api_url, headers=headers, json=payload, timeout=20) as response:
                         response_text = await response.text()
                         
                         if response.status == 200:
@@ -650,8 +650,8 @@ Job Description:
             enable_cleanup_closed=True,
             ssl=ssl_context
         )
-        
-        timeout = aiohttp.ClientTimeout(total=30, connect=10)
+
+        timeout = aiohttp.ClientTimeout(total=20, connect=10)
         semaphore = asyncio.Semaphore(concurrency)
         
         # GUARD 1: Prepare input job IDs list for exact tracking
@@ -674,29 +674,38 @@ Job Description:
                 task = self._process_single_job_async(session, job, job_content.strip(), system_prompt, semaphore)
                 tasks.append(task)
             
-            # Execute all tasks concurrently with progress tracking
+            # Execute all tasks concurrently with REAL-TIME progress tracking
             start_time = time.time()
-            print(f"⏳ Starting async batch processing of {len(tasks)} jobs...")
-            print(f"   Expected time: ~{len(tasks) / 8.6 / 60:.1f} minutes (based on 8.6 jobs/sec)")
+            print(f"⏳ Starting async classification of {len(tasks)} jobs...")
+            print(f"   Expected time: ~{len(tasks) / 17 / 60:.1f} minutes (based on 100 concurrency)")
 
-            # Track progress every 100 completed jobs
+            # Real-time progress using as_completed - no artificial batching
             completed = 0
-            results = []
-            batch_size = 100
+            results = [None] * len(tasks)  # Pre-allocate to maintain order
+            task_map = {task: idx for idx, task in enumerate(tasks)}  # Track task -> index
 
-            for i in range(0, len(tasks), batch_size):
-                batch = tasks[i:i + batch_size]
-                batch_results = await asyncio.gather(*batch, return_exceptions=True)
-                results.extend(batch_results)
-                completed += len(batch)
-                elapsed = time.time() - start_time
-                rate = completed / elapsed if elapsed > 0 else 0
-                remaining = len(tasks) - completed
-                eta_seconds = remaining / rate if rate > 0 else 0
-                print(f"   ✓ Progress: {completed}/{len(tasks)} jobs ({completed/len(tasks)*100:.1f}%) | Rate: {rate:.1f} jobs/sec | ETA: {eta_seconds/60:.1f} min")
+            last_print_time = start_time
+            print_interval = 2.0  # Print every 2 seconds instead of every 100 jobs
+
+            for coro in asyncio.as_completed(tasks):
+                result = await coro
+                task_idx = task_map[coro]
+                results[task_idx] = result
+                completed += 1
+
+                # Print progress every 2 seconds OR every 500 jobs
+                current_time = time.time()
+                if (current_time - last_print_time >= print_interval) or (completed % 500 == 0) or (completed == len(tasks)):
+                    elapsed = current_time - start_time
+                    rate = completed / elapsed if elapsed > 0 else 0
+                    remaining = len(tasks) - completed
+                    eta_seconds = remaining / rate if rate > 0 else 0
+                    print(f"   ✓ Progress: {completed}/{len(tasks)} jobs ({completed/len(tasks)*100:.1f}%) | Rate: {rate:.1f} jobs/sec | ETA: {eta_seconds/60:.1f} min")
+                    last_print_time = current_time
 
             total_time = time.time() - start_time
-            print(f"✅ Async batch processing completed in {total_time:.1f}s")
+            avg_rate = len(tasks) / total_time if total_time > 0 else 0
+            print(f"✅ Async classification completed in {total_time:.1f}s ({avg_rate:.1f} jobs/sec)")
             
             # GUARD 3: Key results by job_id from input list - dict keyed by job_id
             results_by_job_id = {}

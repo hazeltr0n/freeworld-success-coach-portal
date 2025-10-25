@@ -7299,7 +7299,7 @@ def show_combined_batches_and_scheduling_page(coach):
                     classifier_emoji = "🎯" if classifier_type == "pathway" else "🚛"
                     classifier_name = "Pathway Classifier" if classifier_type == "pathway" else "CDL Classifier"
                     st.info(f"🤖 Classifying with AI using {classifier_emoji} {classifier_name}…")
-                    df_ai = pipe._stage5_ai_classification(df_dedup, force_fresh_classification=True, classifier_type=classifier_type)
+                    df_ai = pipe._stage5_ai_classification(df_dedup, force_fresh_classification=False, classifier_type=classifier_type)
                     try:
                         st.write("🔎 Match breakdown:", df_ai['ai.match'].value_counts().to_dict())
                         if classifier_type == "pathway" and 'ai.career_pathway' in df_ai.columns:
