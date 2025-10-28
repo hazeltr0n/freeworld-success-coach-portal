@@ -177,7 +177,54 @@ class LinkTracker:
         if not original_url or not original_url.strip():
             self.logger.warning("Empty URL provided to create_short_link")
             return original_url
-        
+
+        # CRITICAL FIX: Handle Google's JSON array format for apply_urls
+        # If URL starts with '[{' it's a JSON array of URL objects, extract first valid URL
+        if isinstance(original_url, str) and original_url.startswith('[{'):
+            import json
+            import re
+            try:
+                # Try parsing as JSON first
+                url_data = json.loads(original_url)
+                if url_data and len(url_data) > 0:
+                    # Prioritize direct company websites over job boards
+                    job_boards = {'Indeed', 'LinkedIn', 'SimplyHired', 'ZipRecruiter', 'Monster', 'Glassdoor', 'CareerBuilder'}
+
+                    # First pass: look for non-job-board URLs
+                    for url_obj in url_data:
+                        if isinstance(url_obj, dict):
+                            apply_company = url_obj.get('apply_company', '')
+                            if apply_company not in job_boards:
+                                url = url_obj.get('apply_url:', '') or url_obj.get('apply_url', '')
+                                if url and url.startswith(('http://', 'https://')):
+                                    self.logger.info(f"🏢 Extracted direct company URL from Google format: {apply_company}")
+                                    original_url = url
+                                    break
+
+                    # Second pass: use first available URL (likely a job board)
+                    if original_url.startswith('[{'):  # Still in array format, no direct company URL found
+                        first_url_obj = url_data[0]
+                        if isinstance(first_url_obj, dict):
+                            url = first_url_obj.get('apply_url:', '') or first_url_obj.get('apply_url', '')
+                            apply_company = first_url_obj.get('apply_company', 'Unknown')
+                            if url and url.startswith(('http://', 'https://')):
+                                self.logger.info(f"📋 Extracted job board URL from Google format: {apply_company}")
+                                original_url = url
+            except json.JSONDecodeError:
+                # If JSON parsing fails, try regex extraction as fallback
+                match = re.search(r"'apply_url:?':\s*'([^']+)'", original_url)
+                if match:
+                    extracted_url = match.group(1)
+                    if extracted_url.startswith(('http://', 'https://')):
+                        self.logger.info(f"🔧 Extracted URL via regex from malformed Google format")
+                        original_url = extracted_url
+                else:
+                    self.logger.warning(f"Invalid URL format: Could not parse Google JSON array: {original_url[:100]}...")
+                    return original_url
+            except Exception as e:
+                self.logger.warning(f"Error parsing Google URL format: {e}")
+                return original_url
+
         # Validate URL format
         if not original_url.startswith(('http://', 'https://')):
             self.logger.warning(f"Invalid URL format: {original_url}")

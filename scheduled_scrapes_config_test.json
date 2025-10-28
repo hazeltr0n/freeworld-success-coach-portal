@@ -1,0 +1,11 @@
+{
+  "indeed_scrapes": [],
+  "driverpulse_scrapes": [],
+  "google_scrapes": [
+    {
+      "csv_mapping": "google_query_to_market_test.csv",
+      "limit_per_query": 10,
+      "note": "TEST CONFIG - Uses only 12 queries (2 per market) for validation"
+    }
+  ]
+}
