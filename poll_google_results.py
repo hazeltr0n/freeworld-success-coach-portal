@@ -36,32 +36,51 @@ def get_pending_google_tasks() -> List[Dict]:
 
 
 def check_outscraper_task(task_id: str) -> Optional[Dict]:
-    """Check if Outscraper task is complete and fetch results"""
+    """Check if Outscraper task is complete and download results"""
     api_key = os.getenv('OUTSCRAPER_API_KEY')
     if not api_key:
         print("❌ OUTSCRAPER_API_KEY not set")
         return None
 
     try:
-        url = f"https://api.outscraper.cloud/requests/{task_id}"
+        # Step 1: Check task status
+        status_url = f"https://api.outscraper.cloud/requests/{task_id}"
         headers = {'X-API-KEY': api_key}
 
-        response = requests.get(url, headers=headers, timeout=30)
+        response = requests.get(status_url, headers=headers, timeout=30)
         response.raise_for_status()
 
         result = response.json()
         status = result.get('status')
 
-        if status == 'Success':
-            return result
-        elif status in ['In Progress', 'Pending']:
+        if status in ['In Progress', 'Pending']:
             return None  # Not ready yet
-        else:
+        elif status != 'Success':
             print(f"⚠️  Task {task_id} status: {status}")
             return None
 
+        # Step 2: Task complete - download the actual results
+        print(f"   📥 Downloading results from Outscraper...")
+        download_url = f"https://api.outscraper.cloud/requests/{task_id}?format=json"
+
+        download_response = requests.get(download_url, headers=headers, timeout=60)
+        download_response.raise_for_status()
+
+        # Parse the downloaded JSON data
+        downloaded_data = download_response.json()
+
+        # Outscraper returns data in 'data' field of the response
+        if 'data' in downloaded_data and downloaded_data['data']:
+            print(f"   ✅ Downloaded {len(downloaded_data.get('data', []))} result batches")
+            return downloaded_data
+        else:
+            print(f"   ⚠️  No data in downloaded results")
+            return None
+
     except Exception as e:
-        print(f"❌ Error checking task {task_id}: {e}")
+        print(f"❌ Error checking/downloading task {task_id}: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 
