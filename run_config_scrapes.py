@@ -29,17 +29,24 @@ def run_indeed_scrapes(scrapes: List[Dict]) -> Dict:
 
         try:
             # Build search params for all markets
-            from market_mapper import MARKET_MAPPER
+            from market_mapper import MarketMapper
+
+            market_mapper = MarketMapper()
+            markets = market_mapper.get_all_markets()
 
             total_jobs = 0
             total_quality = 0
 
             # Run for each market
-            for market_id, market_data in MARKET_MAPPER.items():
-                market_name = market_data['name']
-                location = market_data['location']
+            for market_name in markets:
+                # Get first city in market as location
+                cities = market_mapper.get_cities_in_market(market_name)
+                if not cities:
+                    print(f"\n   ⚠️ Market {market_name}: No cities found, skipping")
+                    continue
+                location = cities[0]  # Use first city as representative location
 
-                print(f"\n   📍 Market: {market_name}")
+                print(f"\n   📍 Market: {market_name} ({location})")
 
                 search_params = {
                     'location': location,
@@ -100,9 +107,9 @@ def run_driverpulse_scrapes(scrapes: List[Dict]) -> Dict:
         print(f"   Filter Mode: {scrape.get('filter_mode', 'all_markets')}")
 
         try:
-            from driver_pulse_adapter import DriverPulseIntegration
+            from driver_pulse_adapter import DriverPulsePipelineIntegration
 
-            integration = DriverPulseIntegration()
+            integration = DriverPulsePipelineIntegration()
 
             filter_settings = {
                 'filter_mode': scrape.get('filter_mode', 'all_markets'),

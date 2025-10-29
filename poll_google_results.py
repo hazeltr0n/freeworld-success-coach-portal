@@ -69,8 +69,13 @@ def check_outscraper_task(task_id: str) -> Optional[Dict]:
         # Parse the downloaded JSON data
         downloaded_data = download_response.json()
 
-        # Outscraper returns data in 'data' field of the response
-        if 'data' in downloaded_data and downloaded_data['data']:
+        # Outscraper returns data directly as a list OR wrapped in {'data': [...]}
+        if isinstance(downloaded_data, list):
+            # Direct list format
+            print(f"   ✅ Downloaded {len(downloaded_data)} jobs")
+            return {'data': downloaded_data}  # Wrap in dict for consistent processing
+        elif isinstance(downloaded_data, dict) and 'data' in downloaded_data:
+            # Wrapped format
             print(f"   ✅ Downloaded {len(downloaded_data.get('data', []))} result batches")
             return downloaded_data
         else:

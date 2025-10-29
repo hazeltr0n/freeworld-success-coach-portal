@@ -37,6 +37,8 @@ jobs:
           DRIVER_PULSE_FIRST_NAME: ${{ secrets.DRIVER_PULSE_FIRST_NAME }}
           DRIVER_PULSE_LAST_NAME: ${{ secrets.DRIVER_PULSE_LAST_NAME }}
           DRIVER_PULSE_PHONE: ${{ secrets.DRIVER_PULSE_PHONE }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           python refresh_driverpulse_auth.py --headless
 
