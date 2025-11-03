@@ -29,11 +29,11 @@ jobs:
 
       - name: Create Gmail credentials file
         run: |
-          echo '${{ secrets.DRIVER_PULSE_GMAIL_CREDENTIALS }}' > gmail_credentials.json
+          echo '${{ secrets.DRIVER_PULSE_GMAIL_CREDENTIALS }}' | base64 -d > gmail_credentials.json
 
       - name: Create Gmail token file
         run: |
-          echo '${{ secrets.DRIVER_PULSE_GMAIL_TOKEN }}' > gmail_token.json
+          echo '${{ secrets.DRIVER_PULSE_GMAIL_TOKEN }}' | base64 -d > gmail_token.json
 
       - name: Refresh Gmail token
         continue-on-error: true
