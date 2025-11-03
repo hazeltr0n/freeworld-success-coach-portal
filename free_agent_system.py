@@ -174,32 +174,21 @@ def prioritize_jobs_for_display(df: pd.DataFrame, fair_chance_boost: bool = Fals
 
 def update_job_tracking_for_agent(df: pd.DataFrame, agent_params: Dict) -> pd.DataFrame:
     """Simple universal agent tracking - one link for all jobs"""
-    print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: Starting with {len(df)} jobs")
-    print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: Agent params keys: {list(agent_params.keys())}")
-    
     if df.empty:
-        print("🔍 UPDATE_JOB_TRACKING_FOR_AGENT: DataFrame is empty, returning")
         return df
-    
+
     df = df.copy()
-    
+
     # Apply match level filtering based on agent preferences
     match_level = agent_params.get('match_level', 'good and so-so')
-    print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: Applying match level filter: {match_level}")
-    original_count = len(df)
     df = filter_jobs_by_match_level(df, match_level)
-    filtered_count = len(df)
-    print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: Match level filter: {original_count} → {filtered_count} jobs")
-    
+
     if df.empty:
-        print("🔍 UPDATE_JOB_TRACKING_FOR_AGENT: DataFrame is empty after match level filtering, returning")
         return df
 
     # Apply fair chance filtering based on agent preferences
     fair_chance_only = agent_params.get('fair_chance_only', False)
     if fair_chance_only:
-        print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: Applying fair chance filter")
-        original_count = len(df)
         # Filter for jobs that are fair chance friendly
         # Check multiple possible column names for fair chance data
         fair_chance_col = None
@@ -211,149 +200,81 @@ def update_job_tracking_for_agent(df: pd.DataFrame, agent_params: Dict) -> pd.Da
         if fair_chance_col:
             # Filter for jobs that contain fair chance indicators
             df = df[df[fair_chance_col].astype(str).str.contains('fair_chance_employer|yes|true', case=False, na=False)]
-            filtered_count = len(df)
-            print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: Fair chance filter: {original_count} → {filtered_count} jobs")
-        else:
-            print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: Fair chance filter requested but no fair_chance column found in DataFrame")
-    else:
-        print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: Fair chance filter not requested (fair_chance_only={fair_chance_only})")
 
     if df.empty:
-        print("🔍 UPDATE_JOB_TRACKING_FOR_AGENT: DataFrame is empty after fair chance filtering, returning")
         return df
 
-    # Debug: Check what columns exist
-    print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: DataFrame columns: {list(df.columns)}")
-    
     # Step 1: Ensure all jobs have apply URLs from pipeline data
-    print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: Step 1 - Setting up original URLs")
-    urls_set = 0
     for idx, job in df.iterrows():
         current_tracked = job.get('meta.tracked_url', '')
-        print(f"🔍 Job {idx}: Current tracked_url = '{current_tracked}' (len={len(str(current_tracked))})")
-        
+
         if not current_tracked:  # Only set if not already set
             # Use original job URLs from pipeline data
             # Try comprehensive URL field list including source.url (for HTML preview)
-            original_url = (job.get('source.apply_url', '') or 
-                          job.get('source.indeed_url', '') or 
-                          job.get('source.google_url', '') or 
+            original_url = (job.get('source.apply_url', '') or
+                          job.get('source.indeed_url', '') or
+                          job.get('source.google_url', '') or
                           job.get('clean_apply_url', '') or
                           job.get('source.url', ''))  # Fallback for HTML preview
-            
-            print(f"🔍 Job {idx}: Found original_url = '{original_url[:50] if original_url else 'EMPTY'}...' from pipeline")
-            
-            # Debug: Show what URL fields are actually available
-            available_urls = {
-                'source.apply_url': job.get('source.apply_url', ''),
-                'source.indeed_url': job.get('source.indeed_url', ''), 
-                'source.google_url': job.get('source.google_url', ''),
-                'clean_apply_url': job.get('clean_apply_url', ''),
-                'source.url': job.get('source.url', '')
-            }
-            print(f"🔍 Job {idx}: URL fields available: {[(k, len(v)) for k, v in available_urls.items() if v]}")
-            
+
             if original_url:
                 df.at[idx, 'meta.tracked_url'] = original_url
-                urls_set += 1
-                print(f"🔍 Job {idx}: Set meta.tracked_url to '{original_url}'")
-    
-    print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: Step 1 complete - Set {urls_set} original URLs")
-    
+
     # Step 2: Generate Short.io tracking links (same as PDF generator does)
-    print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: Step 2 - Attempting Short.io link generation")
     try:
         from link_tracker import LinkTracker
-        print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: LinkTracker imported successfully")
-        
+
         link_tracker = LinkTracker()
-        print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: LinkTracker created")
-        print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: LinkTracker.is_available = {getattr(link_tracker, 'is_available', 'ATTR_MISSING')}")
-        print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: Has create_short_link = {hasattr(link_tracker, 'create_short_link')}")
-        
+
         if hasattr(link_tracker, 'create_short_link') and link_tracker.is_available:
-            print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: LinkTracker ready - processing {len(df)} jobs")
-            short_links_created = 0
-            
             for idx, job in df.iterrows():
                 original_url = job.get('meta.tracked_url', '')
-                print(f"🔍 Job {idx}: Processing URL '{original_url[:50]}...'")
-                
+
                 if original_url and not original_url.startswith('https://freeworldjobs.short.gy'):
                     # Build tags matching PDF generator format exactly
                     tags = []
-                    
+
                     # Coach tag
                     coach_user = agent_params.get('coach_username', '') or ''
                     if coach_user:
                         tags.append(f"coach:{coach_user}")
-                    
+
                     # Market tag
                     market = agent_params.get('location', 'Unknown') or 'Unknown'
                     tags.append(f"market:{market}")
-                    
+
                     # Route tag
                     route = str(job.get('ai.route_type', '')).lower() or 'unknown'
                     tags.append(f"route:{route}")
-                    
+
                     # Match quality tag
                     match = str(job.get('ai.match', '')).lower() or 'unknown'
                     tags.append(f"match:{match}")
-                    
+
                     # Fair chance tag
                     fair = str(job.get('ai.fair_chance', '')).lower()
                     fair_flag = 'true' if 'fair_chance_employer' in fair else 'false'
                     tags.append(f"fair:{fair_flag}")
-                    
+
                     # Candidate tag
                     cand_id = agent_params.get('agent_uuid', '') or ''
                     if cand_id:
                         tags.append(f"candidate:{cand_id}")
-                    
-                    print(f"🔍 Job {idx}: Tags = {tags}")
-                    
+
                     # Create Short.io link
                     title = job.get('source.title', '').strip()
-                    print(f"🔍 Job {idx}: Creating Short.io link for '{title[:30]}...'")
-                    
+
                     try:
                         short_url = link_tracker.create_short_link(original_url, title=title, tags=tags)
-                        print(f"🔍 Job {idx}: Short.io returned: '{short_url}'")
-                        
+
                         if short_url and short_url != original_url:
                             df.at[idx, 'meta.tracked_url'] = short_url
-                            short_links_created += 1
-                            print(f"✅ Job {idx}: Updated to Short.io URL: '{short_url}'")
-                        else:
-                            print(f"⚠️ Job {idx}: Short.io returned same URL or empty")
-                    except Exception as e:
-                        print(f"❌ Job {idx}: Short.io link creation failed: {e}")
-                else:
-                    print(f"🔍 Job {idx}: Skipping (no URL or already a Short.io link)")
-            
-            print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: Step 2 complete - Created {short_links_created} Short.io links")
-        else:
-            print("❌ UPDATE_JOB_TRACKING_FOR_AGENT: LinkTracker not available or configured - using original URLs")
-            print(f"   - has create_short_link: {hasattr(link_tracker, 'create_short_link')}")
-            print(f"   - is_available: {getattr(link_tracker, 'is_available', 'MISSING')}")
-            
-    except ImportError as e:
-        print(f"❌ UPDATE_JOB_TRACKING_FOR_AGENT: LinkTracker import failed: {e}")
-    except Exception as e:
-        print(f"❌ UPDATE_JOB_TRACKING_FOR_AGENT: Link tracking setup failed: {e}")
-    
-    # Final debug: Show what we're returning
-    final_tracked_count = 0
-    final_short_count = 0
-    for idx, job in df.iterrows():
-        tracked_url = job.get('meta.tracked_url', '')
-        if tracked_url:
-            final_tracked_count += 1
-            if tracked_url.startswith('https://freeworldjobs.short.gy'):
-                final_short_count += 1
-    
-    print(f"🔍 UPDATE_JOB_TRACKING_FOR_AGENT: Final result - {final_tracked_count} jobs with tracked URLs ({final_short_count} Short.io links)")
-    
+                    except Exception:
+                        pass  # Keep original URL on error
+
+    except (ImportError, Exception):
+        pass  # Keep original URLs if link tracking fails
+
     return df
 
 def get_market_options() -> List[str]:

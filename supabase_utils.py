@@ -925,12 +925,12 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
         if reported_urls:
             # Supabase doesn't have NOT IN, so we'll filter after retrieval
             pass  # We'll filter these out after getting results
-        
-        # Market filter (crucial for R1 deduplication) - use market field for consistent matching
+
+        # Market filter FIRST (crucial for performance and R1 deduplication)
         # Use provided market parameter, otherwise fall back to location
         market_value = market or location
         query = query.eq('market', market_value)
-        
+
         # Time filter - use updated_at to catch renewed/active jobs
         query = query.gte('updated_at', cutoff_time.isoformat())
 
