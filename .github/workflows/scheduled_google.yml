@@ -1,0 +1,44 @@
+name: Scheduled Google Jobs Scraper
+
+on:
+  schedule:
+    # Tue/Thu at 2am Central (7am UTC)
+    - cron: '0 7 * * 2,4'
+  workflow_dispatch:  # Allow manual trigger for testing
+
+jobs:
+  google-scraper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10  # Just submits task to Outscraper
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Submit Google Jobs scrape to Outscraper
+        env:
+          OUTSCRAPER_API_KEY: ${{ secrets.OUTSCRAPER_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          python run_scheduled_google.py
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: google-logs-${{ github.run_number }}
+          path: |
+            *.log
+            *.txt
+          retention-days: 7

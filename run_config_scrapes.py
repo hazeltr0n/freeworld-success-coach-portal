@@ -28,11 +28,18 @@ def run_indeed_scrapes(scrapes: List[Dict]) -> Dict:
         print(f"   No Experience Filter: {scrape.get('no_experience', True)}")
 
         try:
-            # Build search params for all markets
+            # Build search params for specified markets (or all if not specified)
             from market_mapper import MarketMapper
 
             market_mapper = MarketMapper()
-            markets = market_mapper.get_all_markets()
+
+            # Check if specific markets are designated in config
+            if 'markets' in scrape and scrape['markets']:
+                markets = scrape['markets']
+                print(f"   🎯 Using designated markets: {', '.join(markets)}")
+            else:
+                markets = market_mapper.get_all_markets()
+                print(f"   ⚠️  No markets specified, using ALL markets: {', '.join(markets)}")
 
             total_jobs = 0
             total_quality = 0
