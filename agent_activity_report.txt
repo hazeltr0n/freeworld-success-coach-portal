@@ -1,0 +1,37 @@
+1      Unknown                             561de432-5c27-469b-b652-c9589a20b7c6   149     
+2      Unknown                             991972d4-6b4d-45dd-95e1-0f5138becbd5   101     
+3      Demo Free Agent                     demo_agent_001                         74      
+4      Unknown                             10dfb059-5f27-444e-978b-e3c4626db2eb   42      
+5      Morris Rolfe                        5eafb5b2-237a-4072-8ef5-7bfa4deb42e1   31      
+6      Unknown                             27bbc24d-f267-410f-b218-03a5c5b17b38   28      
+7      332af985 2bce 4eaa 88a3 1727f941f74f 332af985-2bce-4eaa-88a3-1727f941f74f   26      
+8      Eva Tran                            d345601e-db75-4abf-9aa0-8923a54f71a2   22      
+9      Unknown                             256ce4bf-32f3-11ef-937f-de2fe15254ef   16      
+10     Unknown                             9d19cabf-c511-4308-8e7c-3bf6b574d61c   8       
+
+📊 TOP 10 AGENTS - CLICK ACTIVITY (Last 14 Days)
+================================================================================
+Generated: 2025-10-30 20:13:08 UTC
+
+Rank   Agent Name                          Agent ID                               Clicks  
+--------------------------------------------------------------------------------
+1      Unknown                             561de432-5c27-469b-b652-c9589a20b7c6   149     
+2      Unknown                             991972d4-6b4d-45dd-95e1-0f5138becbd5   101     
+3      Demo Free Agent                     demo_agent_001                         74      
+4      Unknown                             10dfb059-5f27-444e-978b-e3c4626db2eb   42      
+5      Morris Rolfe                        5eafb5b2-237a-4072-8ef5-7bfa4deb42e1   31      
+6      Unknown                             27bbc24d-f267-410f-b218-03a5c5b17b38   28      
+7      332af985 2bce 4eaa 88a3 1727f941f74f 332af985-2bce-4eaa-88a3-1727f941f74f   26      
+8      Eva Tran                            d345601e-db75-4abf-9aa0-8923a54f71a2   22      
+9      Unknown                             256ce4bf-32f3-11ef-937f-de2fe15254ef   16      
+10     Unknown                             9d19cabf-c511-4308-8e7c-3bf6b574d61c   8       
+--------------------------------------------------------------------------------
+
+📈 SUMMARY STATISTICS
+Total unique agents in last 14 days: 47
+Total clicks in last 14 days: 611
+Average clicks per agent: 13.0
+Top 10 agents represent: 81.3% of total clicks
+
+
+✅ Report saved to: agent_activity_report.txt
