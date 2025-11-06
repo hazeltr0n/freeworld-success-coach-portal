@@ -9,7 +9,6 @@ Uses EXACT same logic as main search page multi-market mode
 
 import sys
 from datetime import datetime, timezone
-from market_mapper import MarketMapper
 from pipeline_wrapper import StreamlitPipelineWrapper
 
 # Hardcoded configuration
@@ -55,20 +54,8 @@ def main():
     print(f"   Total searches: {len(MARKETS)} markets × {len(SEARCH_TERMS)} terms = {len(MARKETS) * len(SEARCH_TERMS)} searches")
     print(f"   Expected jobs: ~{len(MARKETS) * len(SEARCH_TERMS) * JOBS_PER_SEARCH:,}")
 
-    # Market to location mapping - use "City, ST" format from MARKET_TO_LOCATION_MAP
-    # This matches pipeline_wrapper.py format for Indeed scraper
-    MARKET_TO_LOCATION = {
-        "Dallas": "Dallas, TX",
-        "Houston": "Houston, TX",
-        "Phoenix": "Phoenix, AZ",
-        "Trenton": "Trenton, NJ",
-        "Newark": "Newark, NJ",
-        "Denver": "Denver, CO",
-        "Inland Empire": "Ontario, CA",  # Representative city for Inland Empire
-        "Bay Area": "Berkeley, CA",  # Representative city for Bay Area
-        "Stockton": "Stockton, CA",
-        "Las Vegas": "Las Vegas, NV"
-    }
+    # Market names only - terminal script handles location mapping internally
+    # No need for MARKET_TO_LOCATION map anymore
 
     # Track overall stats
     total_jobs_found = 0
@@ -83,10 +70,7 @@ def main():
         print(f"{'='*80}\n")
 
         for market in MARKETS:
-            # Use market name directly - terminal script will handle the mapping
-            location = MARKET_TO_LOCATION.get(market, market)
-
-            print(f"   📍 {market} ({location})")
+            print(f"   📍 {market}")
 
             try:
                 # Initialize pipeline
@@ -95,7 +79,7 @@ def main():
                 # Build parameters (same as main search page Indeed Fresh Only mode)
                 params = {
                     'mode': 'sample',
-                    'location': location,
+                    'market': market,  # JUST THE MARKET NAME - terminal script handles location mapping
                     'search_terms': search_term,
                     'search_radius': 50,
                     'exact_location': False,

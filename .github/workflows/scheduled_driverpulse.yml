@@ -25,12 +25,50 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Install Playwright browsers
+        run: |
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Test Gmail IMAP connection
+        env:
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: |
+          python -c "
+          from driver_pulse_2fa_imap import GmailIMAPCodeExtractor
+
+          print('🔍 Testing Gmail IMAP connection...')
+          extractor = GmailIMAPCodeExtractor()
+          if extractor.connect():
+              print('✅ Gmail IMAP ready - no OAuth token bullshit!')
+              extractor.disconnect()
+          else:
+              print('❌ Gmail IMAP connection failed')
+              exit(1)
+          "
+
+      - name: Refresh DriverPulse authentication
+        env:
+          DRIVER_PULSE_EMAIL: ${{ secrets.DRIVER_PULSE_EMAIL }}
+          DRIVER_PULSE_FIRST_NAME: ${{ secrets.DRIVER_PULSE_FIRST_NAME }}
+          DRIVER_PULSE_LAST_NAME: ${{ secrets.DRIVER_PULSE_LAST_NAME }}
+          DRIVER_PULSE_PHONE: ${{ secrets.DRIVER_PULSE_PHONE }}
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          python refresh_driverpulse_auth.py --headless
+
       - name: Run DriverPulse scraper
         env:
           DRIVER_PULSE_EMAIL: ${{ secrets.DRIVER_PULSE_EMAIL }}
           DRIVER_PULSE_FIRST_NAME: ${{ secrets.DRIVER_PULSE_FIRST_NAME }}
           DRIVER_PULSE_LAST_NAME: ${{ secrets.DRIVER_PULSE_LAST_NAME }}
           DRIVER_PULSE_PHONE: ${{ secrets.DRIVER_PULSE_PHONE }}
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

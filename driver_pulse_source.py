@@ -26,9 +26,9 @@ try:
 except ImportError:
     PLAYWRIGHT_AVAILABLE = False
 
-# Gmail API for 2FA (optional)
+# Gmail IMAP for 2FA (optional) - No OAuth token refresh bullshit!
 try:
-    from driver_pulse_2fa import GmailCodeExtractor
+    from driver_pulse_2fa_imap import GmailIMAPCodeExtractor
     GMAIL_2FA_AVAILABLE = True
 except ImportError:
     GMAIL_2FA_AVAILABLE = False
@@ -181,7 +181,7 @@ class DriverPulseSource:
             raise DriverPulseAuthError(f"Failed to load authentication: {str(e)}")
 
     def create_new_authentication(self, email: str, first_name: str, last_name: str, phone: str,
-                                gmail_credentials: str = "gmail_credentials.json",
+                                gmail_credentials: str = None,  # Deprecated - kept for backward compatibility
                                 headless: bool = None) -> bool:
         """
         Create new authentication session using Playwright login with 2FA support.
@@ -191,7 +191,7 @@ class DriverPulseSource:
             first_name: First name
             last_name: Last name
             phone: Phone number
-            gmail_credentials: Path to Gmail API credentials for 2FA
+            gmail_credentials: Deprecated - IMAP uses env vars (GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
             headless: Run in headless mode (None=auto-detect, True=headless, False=headed)
 
         Returns:
@@ -205,14 +205,20 @@ class DriverPulseSource:
 
         logger.info("🚀 Creating new authentication session...")
 
-        # Initialize Gmail 2FA if available
+        # Initialize Gmail IMAP 2FA if available (uses env vars: GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
         gmail_extractor = None
-        if GMAIL_2FA_AVAILABLE and os.path.exists(gmail_credentials):
-            gmail_extractor = GmailCodeExtractor()
-            if gmail_extractor.setup_gmail_api():
-                logger.info("✅ Gmail 2FA ready")
-            else:
-                gmail_extractor = None
+        if GMAIL_2FA_AVAILABLE:
+            try:
+                gmail_extractor = GmailIMAPCodeExtractor()
+                if gmail_extractor.connect():
+                    logger.info("✅ Gmail IMAP 2FA ready - no OAuth token bullshit!")
+                else:
+                    raise DriverPulseAuthError("Gmail IMAP connection failed - cannot proceed with automated auth")
+            except ValueError as e:
+                # Missing credentials
+                raise DriverPulseAuthError(f"Gmail IMAP setup failed: {e}")
+            except Exception as e:
+                raise DriverPulseAuthError(f"Gmail IMAP connection failed: {e}")
 
         # Auto-detect headless mode: use headless if Gmail 2FA is available
         if headless is None:
