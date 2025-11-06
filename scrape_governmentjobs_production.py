@@ -98,6 +98,7 @@ async def extract_job_from_jsonld(page, job_url: str, job_title: str, market: st
             desc_html = json_ld['description']
             desc_html = html.unescape(desc_html)
             job_data['source.description'] = desc_html
+            job_data['source.description_raw'] = desc_html  # Pipeline expects this field
 
         # Employer
         if 'hiringOrganization' in json_ld:

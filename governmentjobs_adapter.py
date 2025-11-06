@@ -11,7 +11,7 @@ from typing import Dict, Any
 import os
 
 # Import pipeline components
-from pipeline_v3 import JobSearchPipeline
+from pipeline_v3 import FreeWorldPipelineV3
 from scrape_governmentjobs_production import scrape_all_markets
 
 
@@ -126,66 +126,64 @@ class GovernmentJobsPipelineIntegration:
         print(f"🔄 Running Pipeline v3.1")
         print(f"{'='*80}\n")
 
-        pipeline = JobSearchPipeline(
-            run_id=self.run_id,
-            search_terms=search_terms,
-            coach_username=coach_username
-        )
+        pipeline = FreeWorldPipelineV3()
 
         # Stage 1: Ingestion (already done by scraper)
-        # The DataFrame from scraper is already in pipeline format
-        pipeline.df = df.copy()
-        print(f"✅ Stage 1: Ingestion - {len(pipeline.df)} jobs from GovernmentJobs\n")
+        print(f"✅ Stage 1: Ingestion - {len(df)} jobs from GovernmentJobs\n")
 
-        # Stage 2: Normalization (already done - GovernmentJobs data is clean)
-        print(f"✅ Stage 2: Normalization - GovernmentJobs data pre-normalized\n")
+        # Stage 2: Normalization (GovernmentJobs data should already be normalized, but run for consistency)
+        df = pipeline._stage2_normalization(df)
+        print(f"✅ Stage 2: Normalization - {len(df)} jobs\n")
 
         # Stage 3: Business Rules
-        pipeline.df = pipeline._apply_business_rules(pipeline.df)
-        print(f"✅ Stage 3: Business Rules - {len(pipeline.df)} jobs passed\n")
+        df = pipeline._stage3_business_rules(df, "", filter_settings)
+        print(f"✅ Stage 3: Business Rules - {len(df)} jobs passed\n")
 
         # Stage 4: Deduplication
-        initial_count = len(pipeline.df)
-        pipeline.df = pipeline._deduplicate_jobs(pipeline.df)
-        dedup_removed = initial_count - len(pipeline.df)
-        print(f"✅ Stage 4: Deduplication - Removed {dedup_removed} duplicates, {len(pipeline.df)} unique jobs\n")
+        initial_count = len(df)
+        df = pipeline._stage4_deduplication(df)
+        dedup_removed = initial_count - len(df)
+        print(f"✅ Stage 4: Deduplication - Removed {dedup_removed} duplicates, {len(df)} unique jobs\n")
 
         # Stage 5: AI Classification
-        pipeline.df = pipeline._classify_jobs(
-            pipeline.df,
-            classifier_type=filter_settings.get('classifier_type', 'CDL Job Classifier')
-        )
-        print(f"✅ Stage 5: AI Classification - {len(pipeline.df)} jobs classified\n")
+        classifier_type = filter_settings.get('classifier_type', 'CDL Job Classifier')
+
+        if classifier_type == "CDL Job Classifier":
+            df = pipeline._stage5_ai_classification(df, classifier_type="cdl")
+        elif classifier_type == "Pathway Classifier":
+            df = pipeline._stage5_ai_classification(df, classifier_type="pathway")
+        elif classifier_type == "Both (CDL + Pathway)":
+            df = pipeline._stage5_ai_classification(df, classifier_type="cdl")
+            df = pipeline._stage5_ai_classification(df, classifier_type="pathway")
+
+        print(f"✅ Stage 5: AI Classification - {len(df)} jobs classified\n")
 
         # Stage 6: Routing Logic
-        pipeline.df = pipeline._apply_routing_logic(pipeline.df, filter_settings)
+        df = pipeline._stage6_routing_logic(df, filter_settings)
 
         # Count quality jobs (good/so-so)
-        quality_count = len(pipeline.df[pipeline.df['ai.match'].isin(['good', 'so-so'])])
+        quality_count = len(df[df['ai.match'].isin(['good', 'so-so'])])
         print(f"✅ Stage 6: Routing - {quality_count} quality jobs (good/so-so)\n")
 
         # Stage 7: Link Tracking (generate tracked URLs)
-        pipeline.df = pipeline._generate_tracked_urls(
-            pipeline.df,
-            coach_username=coach_username
-        )
+        df = pipeline._stage7_link_tracking(df, coach_username=coach_username)
         print(f"✅ Stage 7: Link Tracking - Generated tracked URLs for quality jobs\n")
 
         # Stage 8: Data Storage (upload to Supabase)
-        upload_count = pipeline._store_to_supabase(pipeline.df)
+        upload_count = pipeline._stage8_data_storage(df)
         print(f"✅ Stage 8: Data Storage - Uploaded {upload_count} jobs to Supabase\n")
 
         print(f"\n{'='*80}")
         print(f"✅ Pipeline Complete!")
         print(f"{'='*80}")
-        print(f"Total Jobs: {len(pipeline.df)}")
+        print(f"Total Jobs: {len(df)}")
         print(f"Quality Jobs: {quality_count} (good/so-so)")
         print(f"Uploaded to Supabase: {upload_count}")
         print(f"{'='*80}\n")
 
         return {
-            'jobs_df': pipeline.df,
-            'job_count': len(pipeline.df),
+            'jobs_df': df,
+            'job_count': len(df),
             'quality_job_count': quality_count,
             'run_id': self.run_id
         }
