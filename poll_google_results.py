@@ -10,8 +10,20 @@ import os
 import sys
 import csv
 import requests
+import logging
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
+
+# Configure logging to both file and stdout
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('/tmp/google_poller.log'),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
 
 def get_pending_google_tasks() -> List[Dict]:
     """Get Google tasks that have been submitted but not yet processed"""
@@ -61,9 +73,10 @@ def check_outscraper_task(task_id: str) -> Optional[Dict]:
 
         # Step 2: Task complete - download the actual results
         print(f"   📥 Downloading results from Outscraper...")
+        sys.stdout.flush()  # Force flush to ensure output is visible
         download_url = f"https://api.outscraper.cloud/requests/{task_id}?format=json"
 
-        download_response = requests.get(download_url, headers=headers, timeout=60)
+        download_response = requests.get(download_url, headers=headers, timeout=300)  # 5 minute timeout for large files
         download_response.raise_for_status()
 
         # Parse the downloaded JSON data
@@ -233,54 +246,87 @@ def update_job_status(job_id: int, status: str, result_data: Dict):
 
 def main():
     """Main poller execution"""
-    print(f"\n{'='*80}")
-    print(f"🔍 GOOGLE RESULTS POLLER")
-    print(f"⏰ {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
-    print(f"{'='*80}\n")
+    try:
+        logger.info("="*80)
+        logger.info("🔍 GOOGLE RESULTS POLLER")
+        logger.info(f"⏰ {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
+        logger.info("="*80)
+        sys.stdout.flush()
 
-    # Get pending Google tasks
-    pending_tasks = get_pending_google_tasks()
+        # Get pending Google tasks
+        pending_tasks = get_pending_google_tasks()
 
-    if not pending_tasks:
-        print("📭 No pending Google tasks found")
-        return
+        if not pending_tasks:
+            logger.info("📭 No pending Google tasks found")
+            return
 
-    print(f"📋 Found {len(pending_tasks)} pending Google task(s)\n")
+        logger.info(f"📋 Found {len(pending_tasks)} pending Google task(s)")
+        sys.stdout.flush()
 
-    processed_count = 0
+        processed_count = 0
+        total_jobs_processed = 0
 
-    for task in pending_tasks:
-        job_id = task['id']
-        task_id = task.get('request_id')
-        search_params = task.get('search_params', {})
-        csv_mapping = search_params.get('csv_mapping', 'google_query_to_market.csv')
+        for task in pending_tasks:
+            job_id = task['id']
+            task_id = task.get('request_id')
+            search_params = task.get('search_params', {})
+            csv_mapping = search_params.get('csv_mapping', 'google_query_to_market.csv')
 
-        print(f"🔍 Checking task {task_id} (Job ID: {job_id})")
+            logger.info(f"\n🔍 Checking task {task_id} (Job ID: {job_id})")
+            sys.stdout.flush()
 
-        # Check if Outscraper task is complete
-        results = check_outscraper_task(task_id)
+            # Check if Outscraper task is complete
+            results = check_outscraper_task(task_id)
 
-        if not results:
-            print(f"   ⏳ Not ready yet, will check again later\n")
-            continue
+            if not results:
+                logger.info(f"   ⏳ Not ready yet, will check again later")
+                sys.stdout.flush()
+                continue
 
-        print(f"   ✅ Task complete! Processing results...")
+            logger.info(f"   ✅ Task complete! Processing results...")
+            sys.stdout.flush()
 
-        # Process results through pipeline
-        result_data = process_google_results(task_id, results, csv_mapping)
+            # Process results through pipeline
+            result_data = process_google_results(task_id, results, csv_mapping)
 
-        # Update job status
-        if result_data['success']:
-            update_job_status(job_id, 'completed', result_data)
-            processed_count += 1
-        else:
-            update_job_status(job_id, 'failed', result_data)
+            # CRITICAL: Fail loudly if zero jobs found
+            if result_data['success'] and result_data['total_jobs'] == 0:
+                error_msg = f"❌ ZERO JOBS FOUND - Batch completed but produced no results!"
+                logger.error(error_msg)
+                result_data['success'] = False
+                result_data['error'] = error_msg
+                update_job_status(job_id, 'failed', result_data)
+                # Exit with error code so GitHub Actions shows this as a failure
+                sys.exit(1)
 
-        print()
+            # Update job status
+            if result_data['success']:
+                total_jobs_processed += result_data['total_jobs']
+                update_job_status(job_id, 'completed', result_data)
+                processed_count += 1
+                logger.info(f"   ✅ Success: {result_data['total_jobs']} jobs, {result_data['quality_jobs']} quality")
+            else:
+                logger.error(f"   ❌ Failed: {result_data.get('error', 'Unknown error')}")
+                update_job_status(job_id, 'failed', result_data)
 
-    print(f"{'='*80}")
-    print(f"✅ Poller complete: {processed_count}/{len(pending_tasks)} tasks processed")
-    print(f"{'='*80}\n")
+            sys.stdout.flush()
+
+        logger.info("\n" + "="*80)
+        logger.info(f"✅ Poller complete: {processed_count}/{len(pending_tasks)} tasks processed")
+        logger.info(f"📊 Total jobs processed: {total_jobs_processed}")
+        logger.info("="*80)
+        sys.stdout.flush()
+
+    except Exception as e:
+        logger.error(f"\n{'='*80}")
+        logger.error(f"💥 FATAL ERROR IN POLLER")
+        logger.error(f"{'='*80}")
+        logger.error(f"Error: {str(e)}")
+        logger.error(f"{'='*80}")
+        import traceback
+        traceback.print_exc()
+        sys.stdout.flush()
+        sys.exit(1)
 
 
 if __name__ == "__main__":

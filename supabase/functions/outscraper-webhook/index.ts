@@ -129,24 +129,17 @@ serve(async (req) => {
 
     // Handle different status values (Outscraper sends "Success", we also handle "SUCCESS")
     if (status?.toUpperCase() === 'SUCCESS') {
-      // Job completed successfully
-      console.log(`🎉 Job ${job.id} completed successfully`)
+      // Job completed successfully - trigger GitHub Actions to process it
+      console.log(`🎉 Job ${job.id} completed on Outscraper - triggering GitHub Actions`)
 
-      // Update job status to completed
-      const { error: updateError } = await supabase
-        .from('async_job_queue')
-        .update({
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-          result_count: 0, // Will be updated when results are processed
-          quality_job_count: 0 // Will be updated when results are processed
-        })
-        .eq('id', job.id)
+      // Trigger GitHub Actions workflow to download and process results
+      const githubToken = Deno.env.get('GITHUB_TOKEN')
+      const githubRepo = Deno.env.get('GITHUB_REPO') // Format: "owner/repo"
 
-      if (updateError) {
-        console.log(`❌ Error updating job: ${updateError.message}`)
+      if (!githubToken || !githubRepo) {
+        console.log(`⚠️ GitHub credentials missing - cannot trigger workflow`)
         return new Response(
-          JSON.stringify({ error: 'Failed to update job status' }),
+          JSON.stringify({ error: 'GitHub credentials not configured' }),
           {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -154,39 +147,78 @@ serve(async (req) => {
         )
       }
 
-      // Create notification for the coach
-      if (job.coach_username) {
-        const { error: notifyError } = await supabase
-          .from('coach_notifications')
-          .insert({
-            coach_username: job.coach_username,
-            message: `✅ Google Jobs search completed! Results are being processed for ${job.search_params?.location || 'your location'}.`,
-            notification_type: 'search_complete',
-            job_id: job.id,
-            created_at: new Date().toISOString()
+      try {
+        // Trigger the poll_google_scrapes workflow
+        const workflowDispatchUrl = `https://api.github.com/repos/${githubRepo}/actions/workflows/poll_google_scrapes.yml/dispatches`
+
+        const githubResponse = await fetch(workflowDispatchUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${githubToken}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'Supabase-Edge-Function'
+          },
+          body: JSON.stringify({
+            ref: 'main' // or your default branch name
           })
+        })
 
-        if (notifyError) {
-          console.log(`⚠️ Failed to create notification: ${notifyError.message}`)
-        } else {
-          console.log(`📬 Notification sent to coach: ${job.coach_username}`)
+        if (!githubResponse.ok) {
+          const errorText = await githubResponse.text()
+          console.log(`❌ Failed to trigger GitHub Actions: ${githubResponse.status} - ${errorText}`)
+          return new Response(
+            JSON.stringify({ error: 'Failed to trigger GitHub Actions workflow' }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
         }
+
+        console.log(`✅ GitHub Actions workflow triggered successfully for job ${job.id}`)
+
+        // Create notification for the coach
+        if (job.coach_username) {
+          const { error: notifyError } = await supabase
+            .from('coach_notifications')
+            .insert({
+              coach_username: job.coach_username,
+              message: `✅ Google Jobs search completed! Results are being processed for ${job.search_params?.location || 'your location'}.`,
+              notification_type: 'search_complete',
+              job_id: job.id,
+              created_at: new Date().toISOString()
+            })
+
+          if (notifyError) {
+            console.log(`⚠️ Failed to create notification: ${notifyError.message}`)
+          } else {
+            console.log(`📬 Notification sent to coach: ${job.coach_username}`)
+          }
+        }
+
+        return new Response(
+          JSON.stringify({
+            status: 'ok',
+            message: `GitHub Actions workflow triggered for job ${job.id}`,
+            job_id: job.id,
+            request_id: requestId
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      } catch (error) {
+        console.log(`❌ Error triggering GitHub Actions: ${error.message}`)
+        return new Response(
+          JSON.stringify({ error: 'Failed to trigger processing workflow' }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
       }
-
-      console.log(`✅ Job ${job.id} marked as completed`)
-
-      return new Response(
-        JSON.stringify({
-          status: 'ok',
-          message: `Job ${job.id} processed successfully`,
-          job_id: job.id,
-          request_id: requestId
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
 
     } else if (status?.toUpperCase() === 'FAILED' || status?.toUpperCase() === 'ERROR') {
       // Job failed
