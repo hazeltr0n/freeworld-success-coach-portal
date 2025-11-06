@@ -32,7 +32,7 @@ SEARCH_TERMS = [
     "Local CDL Home Daily"
 ]
 
-JOBS_PER_SEARCH = 500
+JOBS_PER_SEARCH = 500  # Display only - actual limit controlled by mode ('large' = 500)
 
 def main():
     """Run multi-market Indeed searches"""
@@ -95,7 +95,6 @@ def main():
                     'generate_html': False,
                     'candidate_id': '',
                     'candidate_name': '',
-                    'max_jobs': JOBS_PER_SEARCH,
                     'coach_username': 'scheduled_indeed'
                 }
 
