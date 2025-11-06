@@ -24,7 +24,7 @@ on:
 jobs:
   poll-google-results:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 180  # 3 hours max - allows time to download and process large batches
 
     steps:
       - name: Checkout code

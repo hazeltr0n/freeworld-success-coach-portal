@@ -5,10 +5,14 @@ import aiohttp
 import time
 import concurrent.futures
 import pandas as pd
+import warnings
 from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Suppress asyncio task destruction warnings (harmless cleanup noise)
+warnings.filterwarnings('ignore', message='.*Task was destroyed but it is pending.*')
 
 class JobClassifier:
     def __init__(self):

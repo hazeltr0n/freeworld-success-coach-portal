@@ -55,8 +55,20 @@ def main():
     print(f"   Total searches: {len(MARKETS)} markets × {len(SEARCH_TERMS)} terms = {len(MARKETS) * len(SEARCH_TERMS)} searches")
     print(f"   Expected jobs: ~{len(MARKETS) * len(SEARCH_TERMS) * JOBS_PER_SEARCH:,}")
 
-    # Initialize market mapper to get proper cities
-    market_mapper = MarketMapper()
+    # Market to location mapping - use "City, ST" format from MARKET_TO_LOCATION_MAP
+    # This matches pipeline_wrapper.py format for Indeed scraper
+    MARKET_TO_LOCATION = {
+        "Dallas": "Dallas, TX",
+        "Houston": "Houston, TX",
+        "Phoenix": "Phoenix, AZ",
+        "Trenton": "Trenton, NJ",
+        "Newark": "Newark, NJ",
+        "Denver": "Denver, CO",
+        "Inland Empire": "Ontario, CA",  # Representative city for Inland Empire
+        "Bay Area": "Berkeley, CA",  # Representative city for Bay Area
+        "Stockton": "Stockton, CA",
+        "Las Vegas": "Las Vegas, NV"
+    }
 
     # Track overall stats
     total_jobs_found = 0
@@ -71,16 +83,8 @@ def main():
         print(f"{'='*80}\n")
 
         for market in MARKETS:
-            # Get primary city for this market (same logic as main search page)
-            cities = market_mapper.get_cities_in_market(market)
-
-            if not cities:
-                print(f"   ⚠️  {market}: No cities found, skipping")
-                failed_searches += 1
-                continue
-
-            # Use first city as location (same as main search page)
-            location = cities[0]
+            # Use market name directly - terminal script will handle the mapping
+            location = MARKET_TO_LOCATION.get(market, market)
 
             print(f"   📍 {market} ({location})")
 
