@@ -32,7 +32,7 @@ SEARCH_TERMS = [
     "Local CDL Home Daily"
 ]
 
-JOBS_PER_SEARCH = 250
+JOBS_PER_SEARCH = 500
 
 def main():
     """Run multi-market Indeed searches"""
@@ -78,7 +78,7 @@ def main():
 
                 # Build parameters (same as main search page Indeed Fresh Only mode)
                 params = {
-                    'mode': 'sample',
+                    'mode': 'large',  # 500 jobs per search
                     'market': market,  # JUST THE MARKET NAME - terminal script handles location mapping
                     'search_terms': search_term,
                     'search_radius': 50,
