@@ -27,26 +27,23 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Create Gmail credentials file
-        run: |
-          echo '${{ secrets.DRIVER_PULSE_GMAIL_CREDENTIALS }}' | base64 -d > gmail_credentials.json
-
-      - name: Create Gmail token file
-        run: |
-          echo '${{ secrets.DRIVER_PULSE_GMAIL_TOKEN }}' | base64 -d > gmail_token.json
-
-      - name: Refresh Gmail token
-        continue-on-error: true
+      - name: Test Gmail IMAP connection
+        env:
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         run: |
           python -c "
-          from driver_pulse_2fa import GmailCodeExtractor
+          from driver_pulse_2fa_imap import GmailIMAPCodeExtractor
+          import os
 
-          print('🔍 Refreshing Gmail token...')
-          extractor = GmailCodeExtractor()
-          if extractor.setup_gmail_api():
-              print('✅ Gmail token refreshed and ready')
+          print('🔍 Testing Gmail IMAP connection...')
+          extractor = GmailIMAPCodeExtractor()
+          if extractor.connect():
+              print('✅ Gmail IMAP ready - no OAuth token bullshit!')
+              extractor.disconnect()
           else:
-              print('⚠️ Gmail token refresh failed - will attempt to continue')
+              print('❌ Gmail IMAP connection failed')
+              exit(1)
           "
 
       - name: Update job status to processing
