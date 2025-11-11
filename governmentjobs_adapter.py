@@ -13,6 +13,7 @@ import os
 # Import pipeline components
 from pipeline_v3 import FreeWorldPipelineV3
 from scrape_governmentjobs_production import scrape_all_markets
+from canonical_transforms import transform_ingest_governmentjobs
 
 
 class GovernmentJobsPipelineIntegration:
@@ -128,10 +129,13 @@ class GovernmentJobsPipelineIntegration:
 
         pipeline = FreeWorldPipelineV3()
 
-        # Stage 1: Ingestion (already done by scraper)
-        print(f"✅ Stage 1: Ingestion - {len(df)} jobs from GovernmentJobs\n")
+        # Stage 1: Ingestion - Use transform function to ensure proper schema
+        print(f"📥 Stage 1: Ingestion - Transforming {len(df)} jobs\n")
+        jobs_list = df.to_dict('records')
+        df = transform_ingest_governmentjobs(jobs_list, self.run_id)
+        print(f"✅ Stage 1: Ingestion Complete - {len(df)} jobs\n")
 
-        # Stage 2: Normalization (GovernmentJobs data should already be normalized, but run for consistency)
+        # Stage 2: Normalization
         df = pipeline._stage2_normalization(df)
         print(f"✅ Stage 2: Normalization - {len(df)} jobs\n")
 
@@ -159,31 +163,46 @@ class GovernmentJobsPipelineIntegration:
         print(f"✅ Stage 5: AI Classification - {len(df)} jobs classified\n")
 
         # Stage 6: Routing Logic
-        df = pipeline._stage6_routing_logic(df, filter_settings)
+        df = pipeline._stage6_routing(df, filter_settings)
 
         # Count quality jobs (good/so-so)
         quality_count = len(df[df['ai.match'].isin(['good', 'so-so'])])
         print(f"✅ Stage 6: Routing - {quality_count} quality jobs (good/so-so)\n")
 
-        # Stage 7: Link Tracking (generate tracked URLs)
-        df = pipeline._stage7_link_tracking(df, coach_username=coach_username)
-        print(f"✅ Stage 7: Link Tracking - Generated tracked URLs for quality jobs\n")
+        # Stage 7: Output Generation (generates tracked URLs and files)
+        results = pipeline._stage7_output(
+            df,
+            market="GovernmentJobs",
+            custom_location=None,
+            generate_pdf=False,
+            generate_csv=False,
+            generate_html=False,
+            force_memory_only=False,
+            show_prepared_for=True
+        )
+
+        # Get DataFrame with tracked URLs from results
+        df_with_links = results.get('jobs_df', df)
+        print(f"✅ Stage 7: Output Generation - Generated tracked URLs for quality jobs\n")
 
         # Stage 8: Data Storage (upload to Supabase)
-        upload_count = pipeline._stage8_data_storage(df)
+        pipeline._stage8_storage(df_with_links, push_to_airtable=False)
+
+        # Count how many jobs were uploaded
+        upload_count = len(df_with_links[df_with_links['ai.match'].isin(['good', 'so-so'])])
         print(f"✅ Stage 8: Data Storage - Uploaded {upload_count} jobs to Supabase\n")
 
         print(f"\n{'='*80}")
         print(f"✅ Pipeline Complete!")
         print(f"{'='*80}")
-        print(f"Total Jobs: {len(df)}")
+        print(f"Total Jobs: {len(df_with_links)}")
         print(f"Quality Jobs: {quality_count} (good/so-so)")
         print(f"Uploaded to Supabase: {upload_count}")
         print(f"{'='*80}\n")
 
         return {
-            'jobs_df': df,
-            'job_count': len(df),
+            'jobs_df': df_with_links,
+            'job_count': len(df_with_links),
             'quality_job_count': quality_count,
             'run_id': self.run_id
         }

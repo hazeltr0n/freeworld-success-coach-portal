@@ -1349,6 +1349,56 @@ def view_fresh_quality(df: pd.DataFrame) -> pd.DataFrame:
 # Field standardization functions REMOVED - Each output format now handles 
 # its own canonical field mapping at the output layer for easier debugging
 
+def transform_ingest_governmentjobs(raw_data: List[Dict], run_id: str) -> pd.DataFrame:
+    """
+    Convert GovernmentJobs scraper data to canonical DataFrame format
+
+    The GovernmentJobs scraper already outputs data in canonical format with
+    source.* fields, so this is mainly validation and ensuring schema completeness.
+
+    Args:
+        raw_data: List of job dictionaries from GovernmentJobs scraper
+        run_id: Unique identifier for this pipeline run
+
+    Returns:
+        DataFrame with source.* fields populated
+    """
+    if not raw_data:
+        return ensure_schema(pd.DataFrame())
+
+    # GovernmentJobs scraper already outputs canonical format
+    df = pd.DataFrame(raw_data)
+
+    print(f"🏛️  GovernmentJobs ingestion: {len(df)} jobs")
+
+    # Ensure all required source fields exist
+    required_fields = {
+        'id.job': '',
+        'id.source': 'governmentjobs',
+        'source.title': '',
+        'source.company': '',
+        'source.description_raw': '',
+        'source.location_raw': '',
+        'source.url': '',
+        'sys.is_fresh_job': True,
+    }
+
+    for field, default in required_fields.items():
+        if field not in df.columns:
+            df[field] = default
+            print(f"⚠️  Added missing field: {field}")
+
+    # Ensure schema compliance
+    df = ensure_schema(df)
+
+    # Add system metadata
+    df['sys.classification_source'] = 'pending'
+
+    print(f"✅ GovernmentJobs transform complete: {len(df)} jobs")
+
+    return df
+
+
 if __name__ == "__main__":
     # Test transform functions
     print("🔧 Canonical Transforms Test")

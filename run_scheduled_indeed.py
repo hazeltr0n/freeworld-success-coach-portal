@@ -3,8 +3,8 @@
 Scheduled Indeed Multi-Market Scraper
 Runs Mon/Wed/Fri at 2am Central
 
-10 Markets × 4 Search Terms × 250 jobs = ~10,000 total searches
-Uses EXACT same logic as main search page multi-market mode
+10 Markets × 4 Search Terms × 500 jobs each = ~20,000 total jobs requested
+Single pipeline call processes all markets + terms (40 Indeed API queries)
 """
 
 import sys
@@ -63,76 +63,83 @@ def main():
     successful_searches = 0
     failed_searches = 0
 
-    # Run searches for each term across all markets
-    for search_term in SEARCH_TERMS:
-        print(f"\n{'='*80}")
-        print(f"🔍 SEARCH TERM: {search_term}")
-        print(f"{'='*80}\n")
+    # Combine all search terms into comma-separated string
+    # Pipeline will create separate Indeed queries for each term, each getting 500 jobs
+    all_search_terms = ", ".join(SEARCH_TERMS)
 
-        for market in MARKETS:
-            print(f"   📍 {market}")
+    print(f"\n🔍 Combined search terms: {all_search_terms}")
+    print(f"   Each term will get {JOBS_PER_SEARCH} jobs = {JOBS_PER_SEARCH * len(SEARCH_TERMS)} total per market")
+    print(f"\n📍 All markets: {', '.join(MARKETS)}")
+    print(f"   Expected total: {len(MARKETS)} markets × {len(SEARCH_TERMS)} terms × {JOBS_PER_SEARCH} jobs = ~{len(MARKETS) * len(SEARCH_TERMS) * JOBS_PER_SEARCH:,} jobs\n")
 
-            try:
-                # Initialize pipeline
-                pipeline = StreamlitPipelineWrapper()
+    # Run ONE pipeline call with ALL markets and ALL search terms
+    # Pipeline will loop through markets internally and combine results
+    print(f"{'='*80}")
+    print(f"🚀 STARTING FULL MULTI-MARKET INDEED SCRAPE")
+    print(f"{'='*80}\n")
 
-                # Build parameters (same as main search page Indeed Fresh Only mode)
-                params = {
-                    'mode': 'large',  # 500 jobs per search
-                    'market': market,  # JUST THE MARKET NAME - terminal script handles location mapping
-                    'search_terms': search_term,
-                    'search_radius': 50,
-                    'exact_location': False,
-                    'force_fresh': True,  # Force fresh Indeed search
-                    'force_fresh_classification': False,
-                    'no_experience': True,  # Entry-level friendly
-                    'memory_only': False,
-                    'search_sources': {'indeed': True, 'google': False},  # Indeed only
-                    'search_strategy': 'fresh_first',
-                    'push_to_airtable': False,
-                    'generate_pdf': False,
-                    'generate_csv': False,
-                    'generate_html': False,
-                    'candidate_id': '',
-                    'candidate_name': '',
-                    'coach_username': 'scheduled_indeed'
-                }
+    try:
+        # Initialize pipeline
+        pipeline = StreamlitPipelineWrapper()
 
-                # Run the pipeline
-                df, metadata = pipeline.run_pipeline(params)
+        # Build parameters - pass ALL markets as a list
+        params = {
+            'mode': 'large',  # 500 jobs per search term per market
+            'markets': MARKETS,  # ALL 10 MARKETS - pipeline loops through them
+            'search_terms': all_search_terms,  # ALL 4 TERMS - pipeline creates 4 separate Indeed queries per market
+            'search_radius': 50,
+            'exact_location': False,
+            'force_fresh': True,  # Force fresh Indeed search
+            'force_fresh_classification': False,
+            'no_experience': True,  # Entry-level friendly
+            'memory_only': False,
+            'search_sources': {'indeed': True, 'google': False},  # Indeed only
+            'search_strategy': 'fresh_first',
+            'push_to_airtable': False,
+            'generate_pdf': False,
+            'generate_csv': False,
+            'generate_html': False,
+            'candidate_id': '',
+            'candidate_name': '',
+            'coach_username': 'scheduled_indeed'
+        }
 
-                if metadata.get('success', False) and df is not None and not df.empty:
-                    job_count = len(df)
-                    quality_count = len(df[df.get('ai.match', '').isin(['good', 'so-so'])]) if 'ai.match' in df.columns else 0
+        # Run the pipeline (single call for all markets)
+        df, metadata = pipeline.run_pipeline(params)
 
-                    total_jobs_found += job_count
-                    total_quality_jobs += quality_count
-                    successful_searches += 1
+        if metadata.get('success', False) and df is not None and not df.empty:
+            job_count = len(df)
+            quality_count = len(df[df.get('ai.match', '').isin(['good', 'so-so'])]) if 'ai.match' in df.columns else 0
 
-                    print(f"      ✅ {job_count} jobs ({quality_count} quality)")
-                else:
-                    print(f"      ⚠️  No jobs found")
-                    failed_searches += 1
+            total_jobs_found = job_count
+            total_quality_jobs = quality_count
+            successful_searches = 1
 
-            except Exception as e:
-                print(f"      ❌ Error: {e}")
-                failed_searches += 1
-                continue
+            print(f"\n✅ SCRAPE COMPLETE: {job_count} total jobs ({quality_count} quality)")
+        else:
+            print(f"\n⚠️  No jobs found")
+            failed_searches = 1
+
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
+        failed_searches = 1
 
     # Final summary
     print(f"\n{'='*80}")
     print(f"✅ SCRAPE COMPLETE")
     print(f"{'='*80}")
-    print(f"   Successful searches: {successful_searches}/{len(MARKETS) * len(SEARCH_TERMS)}")
-    print(f"   Failed searches: {failed_searches}")
+    print(f"   Markets searched: {len(MARKETS)}")
+    print(f"   Search terms: {len(SEARCH_TERMS)}")
+    print(f"   Total queries: {len(MARKETS) * len(SEARCH_TERMS)}")
+    print(f"   Pipeline calls: 1 (all markets + terms combined)")
     print(f"   Total jobs found: {total_jobs_found:,}")
     print(f"   Quality jobs (good/so-so): {total_quality_jobs:,}")
+    print(f"   Success: {'Yes' if successful_searches > 0 else 'No'}")
     print(f"{'='*80}\n")
 
-    # Exit with error code if too many failures
-    failure_rate = failed_searches / (len(MARKETS) * len(SEARCH_TERMS))
-    if failure_rate > 0.5:
-        print(f"⚠️  High failure rate ({failure_rate:.1%}), exiting with error code")
+    # Exit with error code if scrape failed
+    if failed_searches > 0:
+        print(f"❌ Scrape failed, exiting with error code")
         sys.exit(1)
 
     sys.exit(0)

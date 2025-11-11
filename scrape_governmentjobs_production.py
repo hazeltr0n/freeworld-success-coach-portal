@@ -80,13 +80,20 @@ async def extract_job_from_jsonld(page, job_url: str, job_title: str, market: st
             return None
 
         # Parse JSON-LD into clean job data
+        # Generate unique job ID from URL
+        import hashlib
+        job_id = hashlib.md5(job_url.encode()).hexdigest()[:16]
+
         job_data = {
+            "id.job": job_id,
+            "id.source": "governmentjobs",
             "source.url": job_url,
             "source.platform": "GovernmentJobs",
             "meta.scraped_at": datetime.now().isoformat(),
             "meta.run_id": run_id,
             "meta.search_terms": keyword,
             "meta.market": market,
+            "sys.is_fresh_job": True,  # All scraped jobs are fresh
         }
 
         # Title
@@ -121,7 +128,7 @@ async def extract_job_from_jsonld(page, job_url: str, job_title: str, market: st
                     location_parts.append(addr['addressRegion'])
 
                 if location_parts:
-                    job_data['source.location'] = ', '.join(location_parts)
+                    job_data['source.location_raw'] = ', '.join(location_parts)
 
                 # Postal code
                 if 'postalCode' in addr:
@@ -138,7 +145,7 @@ async def extract_job_from_jsonld(page, job_url: str, job_title: str, market: st
 
                     job_data['salary_min'] = min_val
                     job_data['salary_max'] = max_val
-                    job_data['source.salary'] = f"${min_val:,.2f} - ${max_val:,.2f} Annually"
+                    job_data['source.salary_raw'] = f"${min_val:,.2f} - ${max_val:,.2f} Annually"
 
         # Posted Date
         if 'datePosted' in json_ld:
@@ -150,6 +157,7 @@ async def extract_job_from_jsonld(page, job_url: str, job_title: str, market: st
 
         # Apply URL (use the current page URL)
         job_data['apply_url'] = job_url
+        job_data['source.url'] = job_url  # Pipeline expects this field
 
         return job_data
 
@@ -394,14 +402,7 @@ async def scrape_all_markets(
         # Add source row ID
         df['id.source_row'] = range(len(df))
 
-        # Add unique job ID (will be replaced by hash-based ID in pipeline)
-        df['id.job'] = df.apply(
-            lambda row: f"governmentjobs_{row['id.source_row']}_{run_id}",
-            axis=1
-        )
-
-        # Add source platform
-        df['id.source'] = 'governmentjobs'
+        # Note: id.job, id.source, and sys.is_fresh_job are already set in extract_job_from_jsonld()
 
         return df
     else:
