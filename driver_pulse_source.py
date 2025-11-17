@@ -519,6 +519,9 @@ class DriverPulseSource:
             return None
         except json.JSONDecodeError as e:
             logger.error(f"❌ Invalid JSON response for {misc_function}: {str(e)}")
+            logger.error(f"   Response status: {response.status_code}")
+            logger.error(f"   Response text (first 500 chars): {response.text[:500]}")
+            logger.error(f"   This usually means session expired - auth needs refresh")
             return None
 
     def search_companies(self,

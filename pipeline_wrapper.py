@@ -616,10 +616,10 @@ class StreamlitPipelineWrapper:
             print(f"🚀 Running command: {' '.join(cmd)}")
             print(f"📁 Working directory: {self.parent_dir}")
             
-            # Run the command with 5 minute timeout for all searches
+            # Run the command with extended timeout for multi-market searches
             import time
             start_time = time.time()
-            timeout = 300  # 5 minutes for all searches
+            timeout = 900  # 15 minutes for all searches (10 markets × 4 search terms × ~30s each)
             
             result = subprocess.run(
                 cmd, 

@@ -1,0 +1,844 @@
+{
+  "timestamp": "2025-11-06T12:32:02.990894",
+  "url": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+  "window_objects": {
+    "windowDataProps": [
+      "oncontentvisibilityautostatechange",
+      "onformdata",
+      "onloadeddata",
+      "onloadedmetadata",
+      "onpopstate",
+      "__uspapi",
+      "dataLayer",
+      "jobClickCounterUrl",
+      "enableJobDetailRedesign",
+      "editJobAlertIndex",
+      "gJobs",
+      "setJobAlert",
+      "addJobAlert",
+      "updateJobAlert",
+      "getJobAlertFilterChangePrefix",
+      "getJobAlertChangeMessage",
+      "changeJobAlert",
+      "jobAlertLocationFieldAfterRender",
+      "jobAlertKeywordFieldAfterRender",
+      "closeJobAlertOnKeydown"
+    ]
+  },
+  "json_scripts_count": 2,
+  "structured_data": {
+    "jsonLd": [
+      {
+        "@context": "https://schema.org/",
+        "@type": "JobPosting",
+        "title": "Youth Program Bus Driver",
+        "description": "The purpose of this position is to safely transport youth program participants on field trips while ensuring the safety of students during transport, loading and unloading from the City&#39;s passenger bus.&lt;ul&gt;&lt;li&gt;Safely transport youth program participants on field trips using a passenger bus.&lt;/li&gt;&lt;li&gt;Inspect bus before and after each field trip and report any operating and equipment deficiencies.&lt;/li&gt;&lt;li&gt;Maintain discipline on bus and ensure passenger safety.&lt;/li&gt;&lt;li&gt;Record mileage and hours driven for each trip.&lt;/li&gt;&lt;/ul&gt;&lt;ul&gt;&lt;li&gt;A minimum of 21 years of age is required.&lt;/li&gt;&lt;li&gt;Two or more years&amp;nbsp;of experience driving a school bus is preferred.&lt;/li&gt;&lt;li&gt;Any combination of education and experience equivalent to graduation from high school.&lt;/li&gt;&lt;/ul&gt;&lt;span style=&quot;color: inherit; font-style: normal; text-indent: 0&quot;&gt;Employment is conditional upon successful completion of a criminal background check, drug and alcohol test, and a motor vehicle review. Successfully complete the FMCSA Clearinghouse background check process.&amp;nbsp;&lt;/span&gt;Work requires the use of standard technical skills appropriate to the work environment of the organization.&amp;nbsp;&lt;br&gt;&lt;br&gt;Knowledge of traffic laws and safety regulations.&amp;nbsp; Skill in the safe operation of passenger buses.&amp;nbsp; Ability to adhere to established routes and assigned time schedules.&lt;br&gt;&lt;br&gt;Ability to act as a role-model to the students attending our program.&amp;nbsp; Ability to assist children using patience and understanding.&amp;nbsp;&lt;br&gt;&lt;br&gt;Ability to establish and maintain effective working relationships with co-workers, the general public, and program participants.&amp;nbsp; Work requires regular interaction involving exchange and receipt of information.&lt;br&gt;&lt;br&gt;This position normally performs the duty assignment after receiving detailed instructions as to methods, procedures, and desired end results with little room for deviation. The immediate supervisor may, at times, provide close and constant review.&lt;br&gt;&lt;br&gt;&lt;u&gt;Special Requirements:&lt;/u&gt;&lt;p style=&quot;margin: 0 0 10px&quot;&gt;Be available to work various weekday shifts between the hours of 7:30 a.m. - 5:00 p.m. during the summer break and as needed during the school year when Carrollton-Farmers Branch ISD students are on break (Thanksgiving, Winter break, Spring break, etc.).&lt;br&gt;&lt;br&gt;&lt;span style=&quot;color: rgba(0, 0, 0, 1); font-style: normal; margin: 0; padding: 0; text-align: left; text-indent: 0; width: auto&quot;&gt;This position is classified as a DOT position and is subject to drug and alcohol testing, ongoing driver record checks, and is subject to all U.S. DOT regulations during the course of employment.&lt;/span&gt;&amp;nbsp;&lt;/p&gt;&lt;u&gt;Licenses and Certificates:&lt;/u&gt;&lt;p style=&quot;margin: 0 0 10px&quot;&gt;Possess a valid Class A or B CDL with Passenger endorsement with a good motor vehicle record and the ability to maintain while employed.&lt;/p&gt;&lt;u&gt;Work Environment:&lt;/u&gt;&lt;p style=&quot;margin: 0 0 10px&quot;&gt;Work performed in clean surroundings does not usually subject employee to any disagreeable elements; requires little physical effort in working with light, easy to handle materials (up to 20 lbs.) &amp;nbsp;Occasionally lifts objects weighing 50 lbs. &amp;nbsp;Walking, standing, and reaching are part of the physical demands of this position.&lt;/p&gt;&lt;br&gt;",
+        "datePosted": "2024-08-27",
+        "employmentType": "OTHER",
+        "directApply": true,
+        "hiringOrganization": {
+          "@type": "Organization",
+          "name": "City of Farmers Branch",
+          "sameAs": "http://www.farmersbranchtx.gov",
+          "logo": ""
+        },
+        "jobLocation": {
+          "@type": "Place",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Farmers Branch, TX",
+            "addressRegion": "TX",
+            "postalCode": "75234",
+            "addressCountry": "US"
+          }
+        },
+        "baseSalary": {
+          "@type": "MonetaryAmount",
+          "currency": "USD",
+          "value": {
+            "@type": "QuantitativeValue",
+            "minValue": 30472,
+            "maxValue": 45676.8,
+            "unitText": "YEAR"
+          }
+        }
+      }
+    ],
+    "microdata": [
+      "Found 0 itemscope elements"
+    ],
+    "opengraph": [
+      {
+        "property": "og:title",
+        "content": "Youth Program Bus Driver in Farmers Branch, TX | GovernmentJobs.com"
+      },
+      {
+        "property": "og:description",
+        "content": "Apply for Youth Program Bus Driver position in Farmers Branch, TX through GovernmentJobs.com. Join our team and become a part of City of Farmers Branch community."
+      },
+      {
+        "property": "og:image",
+        "content": "https://cdn.neogov.com/assets/images/gjobs-logo-orange-v1.png"
+      }
+    ]
+  },
+  "api_requests": [
+    {
+      "url": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+      "method": "GET",
+      "headers": {
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\""
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/bundles/stylesRedesign?v=0KWY0aYox9FZONoP8dgiXVWo1w4_pSwYMXRL35EvA_g1",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/bundles/responsiveStyles?v=NdfGrX96y7mQy4G5AeE2fpl8gcjn-djWA6lK6i4f0DQ1",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/bundles/onlineAppStyles?v=jS5rQqcCwc5XxBngYPqzCFeWOrsefRIUkZjtIbPIzHg1",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/bundles/bootstrapRedesignInclude?v=mdhqXgXGdSNhFFfzE459rkl4HhjbTj93M1bg9Tn7L-E1",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/Content/Styles/ckeditor/image.bundle.min.css",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/bundles/patternLibraryFonts?v=Fdw0dlGLChLXCv21-Gw_EuGwSj82CJdZBNT-jclnYEg1",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/bundles/onlineAppDoc?v=vAUX4AXGKCMDUpgliVdr9BrTL2D3WEx6OD3EHcj-4wQ1",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.google.com/recaptcha/api.js",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://chat.governmentjobs.com/embed.min.js",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/Content/Images/Icons/profile-icon.png",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/Content/Images/Icons/bell-white.svg",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/bundles/jobDetailsNavigationStyles?v=VQMl3eZsUv4wgd5ToZyrGaPo-zAOPi3BZuq79toaBr41",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/Content/Images/Icons/Arrows/long-arrow-left-16.svg",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/bundles/jobDetailsNavigationScripts?v=rKxIuF-9P8m8lsczAdakUF2R8ySwSfAvBvhcxoLmD201",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/Content/Images/Indicators/load-drawer.gif",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/Content/Images/GJOBS-Black.svg",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/Content/Images/Black-PoweredByNeogov.svg",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.google.com/recaptcha/api/js/recaptcha_ajax.js",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://platform-api.sharethis.com/js/sharethis.js",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/bundles/vendorAndCommonJs?v=b-vOGzJ2UPP28KtOfu3QRvTfIwH_tJlkJ5zUDIf7Gtw1",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/bundles/onlineAppSignInScripts?v=jN8Z5zZ-Zzm_C7OyRjVvwRpzR7q4G4kqGKXJ_mcyxCM1",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/bundles/gJobsScripts?v=OVa4TGJo5c57agRWaM2x6WYRAVq-mylzOpaGcpxzt841",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/bundles/showHidePasswordScripts?v=65JVOvKqbwcIxBuJUkFzIcZCd4PGimv_aHjKz_h5yfU1",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/bundles/jobApplyRedesignBundle?v=oEIRBtASCf60k_IvRijY2niwoJbi8X3XX45NUHiXzHI1",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "blob:https://www.governmentjobs.com/d3dc4ecc-1139-409a-be82-e396614dbbcb",
+      "method": "GET",
+      "headers": {
+        "accept": "*/*"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/Content/Images/gjobs-white.svg",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/bundles/stylesRedesign?v=0KWY0aYox9FZONoP8dgiXVWo1w4_pSwYMXRL35EvA_g1",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/Content/Images/x-twitter.svg",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/bundles/onlineAppStyles?v=jS5rQqcCwc5XxBngYPqzCFeWOrsefRIUkZjtIbPIzHg1",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/Content/Images/x-twitter-white.svg",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/bundles/onlineAppStyles?v=jS5rQqcCwc5XxBngYPqzCFeWOrsefRIUkZjtIbPIzHg1",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/Content/Fonts/ss-social/ss-social-regular.woff",
+      "method": "GET",
+      "headers": {
+        "origin": "https://www.governmentjobs.com",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/bundles/stylesRedesign?v=0KWY0aYox9FZONoP8dgiXVWo1w4_pSwYMXRL35EvA_g1",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/Content/PatternLibraryFonts/HRCoreIcons/hrcore-medium.woff?10-04-2017",
+      "method": "GET",
+      "headers": {
+        "origin": "https://www.governmentjobs.com",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/bundles/patternLibraryFonts?v=Fdw0dlGLChLXCv21-Gw_EuGwSj82CJdZBNT-jclnYEg1",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/Vendor/AgencyPatternLibrary/Fonts/font-awesome-4.0.3/fonts/fontawesome-webfont.woff?v=4.0.3",
+      "method": "GET",
+      "headers": {
+        "origin": "https://www.governmentjobs.com",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/bundles/stylesRedesign?v=0KWY0aYox9FZONoP8dgiXVWo1w4_pSwYMXRL35EvA_g1",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/Content/Fonts/ss-symbolicons-line/ss-symbolicons-line.woff",
+      "method": "GET",
+      "headers": {
+        "origin": "https://www.governmentjobs.com",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/bundles/stylesRedesign?v=0KWY0aYox9FZONoP8dgiXVWo1w4_pSwYMXRL35EvA_g1",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "blob:https://www.governmentjobs.com/b95fdca6-7eb8-4496-9821-3711b5f9e67d",
+      "method": "GET",
+      "headers": {
+        "accept": "*/*"
+      }
+    },
+    {
+      "url": "blob:https://www.governmentjobs.com/70fd3d21-997d-4b7f-995a-3aedbee475e1",
+      "method": "GET",
+      "headers": {
+        "accept": "*/*"
+      }
+    },
+    {
+      "url": "blob:https://www.governmentjobs.com/8487d035-fcd8-4660-b0ae-1b7a8806f317",
+      "method": "GET",
+      "headers": {
+        "accept": "*/*"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/api/textCaptcha/isCaptchaRequiredForLogin",
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0",
+        "__requestverificationtoken": "iWoaU4oaBzPqZSkH3xaYE5pa7ecm7P45SY0RcsA-pdIXpukroIT-dPOPJAqPqCOM5VzWAbQhxdRTEGs4y4rMFlgAVMg1",
+        "x-requested-with": "XMLHttpRequest",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "accept": "*/*"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/api/textCaptcha/isCaptchaRequiredForRegister",
+      "method": "POST",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0",
+        "__requestverificationtoken": "iWoaU4oaBzPqZSkH3xaYE5pa7ecm7P45SY0RcsA-pdIXpukroIT-dPOPJAqPqCOM5VzWAbQhxdRTEGs4y4rMFlgAVMg1",
+        "x-requested-with": "XMLHttpRequest",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "accept": "*/*"
+      }
+    },
+    {
+      "url": "blob:https://www.governmentjobs.com/6057b133-d1b1-4d32-b7b0-21ee44d18dae",
+      "method": "GET",
+      "headers": {
+        "accept": "*/*"
+      }
+    },
+    {
+      "url": "blob:https://www.governmentjobs.com/b44d844d-5fec-4a28-8f94-bb63430e3a2b",
+      "method": "GET",
+      "headers": {
+        "accept": "*/*"
+      }
+    },
+    {
+      "url": "blob:https://www.governmentjobs.com/c2f65166-ce7e-48ca-bd2e-a9f3e48f8b6c",
+      "method": "GET",
+      "headers": {
+        "accept": "*/*"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/bundles/styles/typekit",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/bundles/dropDown",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/bundles/placeholderIESpecific",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/bundles/styles/signatureStyles",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.google.com/recaptcha/api/js/recaptcha_ajax.js",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/api/definitions/sessionExpirationData",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "x-requested-with": "XMLHttpRequest",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "accept": "*/*",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/api/authenticate/isLoggedIn?_=1762453917872",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "x-requested-with": "XMLHttpRequest",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "accept": "*/*",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/api/HtmlTemplates/GetSignInTemplates?v=q6Koypn_qUl5GBM4SwoF5FsIXdM-eYd7IYUtVoRDL401",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "x-requested-with": "XMLHttpRequest",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "accept": "*/*",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://platform-api.sharethis.com/js/sharethis.js",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "blob:https://www.governmentjobs.com/736d0c97-6f7e-4b4d-9f74-0afadaba2bc1",
+      "method": "GET",
+      "headers": {
+        "accept": "*/*"
+      }
+    },
+    {
+      "url": "blob:https://www.governmentjobs.com/08404a49-9820-4ecc-98c2-bcfd08a2400f",
+      "method": "GET",
+      "headers": {
+        "accept": "*/*"
+      }
+    },
+    {
+      "url": "https://l.sharethis.com/pview?event=pview&hostname=www.governmentjobs.com&location=%2Fjobs%2F4638897-0%2Fyouth-program-bus-driver&product=custom-share-buttons&url=https%3A%2F%2Fwww.governmentjobs.com%2Fjobs%2F4638897-0%2Fyouth-program-bus-driver&source=sharethis.js&fcmp=false&fcmpv2=false&has_segmentio=false&title=Youth%20Program%20Bus%20Driver%20in%20Farmers%20Branch%2C%20TX%20%7C%20GovernmentJobs.com&cms=unknown&publisher=604aa6cf1ec66e0011e92cf2&sop=true&version=st_sop.js&lang=en&description=Apply%20for%20Youth%20Program%20Bus%20Driver%20position%20in%20Farmers%20Branch%2C%20TX%20through%20GovernmentJobs.com.%20Join%20our%20team%20and%20become%20a%20part%20of%20City%20of%20Farmers%20Branch%20community.&ua=%22Not%3DA%3FBrand%22%3Bv%3D%2224%22%2C%20%22Chromium%22%3Bv%3D%22140%22&ua_mobile=false&ua_platform=macOS&ua_full_version_list=%22Not%3DA%3FBrand%22%3Bv%3D%2224.0.0.0%22%2C%20%22Chromium%22%3Bv%3D%22140.0.7339.16%22&ua_platform_version=15.5.0&uuid=681c13a4-d27f-45d5-98b8-9f1cefaf9f10",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/Content/Fonts/nunito-sans/nunito-sans-v15-latin-regular.woff2",
+      "method": "GET",
+      "headers": {
+        "origin": "https://www.governmentjobs.com",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/bundles/styles/typekit",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/Content/Fonts/nunito-sans/nunito-sans-v15-latin-700.woff2",
+      "method": "GET",
+      "headers": {
+        "origin": "https://www.governmentjobs.com",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/bundles/styles/typekit",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.facebook.com/x/oauth/status?client_id=165379957142713&input_token&origin=1&redirect_uri=https%3A%2F%2Fwww.governmentjobs.com%2Fjobs%2F4638897-0%2Fyouth-program-bus-driver&sdk=joey&wants_cookie_data=true",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/Content/Images/eye-closed.svg",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/Content/Images/eye.svg",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://www.governmentjobs.com/Content/Images/Indicators/load.gif",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/jobs/4638897-0/youth-program-bus-driver",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://l.sharethis.com/sc?event=pview&hostname=www.governmentjobs.com&location=%2Fjobs%2F4638897-0%2Fyouth-program-bus-driver&product=custom-share-buttons&url=https%3A%2F%2Fwww.governmentjobs.com%2Fjobs%2F4638897-0%2Fyouth-program-bus-driver&source=sharethis.js&fcmp=false&fcmpv2=false&has_segmentio=false&title=Youth%20Program%20Bus%20Driver%20in%20Farmers%20Branch%2C%20TX%20%7C%20GovernmentJobs.com&cms=unknown&publisher=604aa6cf1ec66e0011e92cf2&sop=true&version=st_sop.js&lang=en&description=Apply%20for%20Youth%20Program%20Bus%20Driver%20position%20in%20Farmers%20Branch%2C%20TX%20through%20GovernmentJobs.com.%20Join%20our%20team%20and%20become%20a%20part%20of%20City%20of%20Farmers%20Branch%20community.&ua=%22Not%3DA%3FBrand%22%3Bv%3D%2224%22%2C%20%22Chromium%22%3Bv%3D%22140%22&ua_mobile=false&ua_platform=macOS&ua_full_version_list=%22Not%3DA%3FBrand%22%3Bv%3D%2224.0.0.0%22%2C%20%22Chromium%22%3Bv%3D%22140.0.7339.16%22&ua_platform_version=15.5.0&uuid=681c13a4-d27f-45d5-98b8-9f1cefaf9f10&samesite=None",
+      "method": "GET",
+      "headers": {
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "referer": "https://www.governmentjobs.com/"
+      }
+    },
+    {
+      "url": "blob:https://www.governmentjobs.com/76bc4655-ba7c-4a1d-a633-e73c08bdfcfb",
+      "method": "GET",
+      "headers": {
+        "accept": "*/*"
+      }
+    },
+    {
+      "url": "blob:https://www.governmentjobs.com/93ec94d9-cbc0-4651-9620-b02ee5dba59b",
+      "method": "GET",
+      "headers": {
+        "accept": "*/*"
+      }
+    },
+    {
+      "url": "https://t.sharethis.com/1/k/t.dhj?cid=c010&cls=B&dmn=www.governmentjobs.com&rnd=1762453918362",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://platform-api.sharethis.com/panorama.js",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://px.ads.linkedin.com/attribution_trigger?pid=4362145&time=1762453918884&url=https%3A%2F%2Fwww.governmentjobs.com%2Fjobs%2F4638897-0%2Fyouth-program-bus-driver",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "accept": "*",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://px.ads.linkedin.com/collect?v=2&fmt=js&pid=4362145&time=1762453918884&li_adsId=799f4466-e80b-4169-b9ad-610548f41cd5&url=https%3A%2F%2Fwww.governmentjobs.com%2Fjobs%2F4638897-0%2Fyouth-program-bus-driver",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "sec-ch-ua-mobile": "?0"
+      }
+    },
+    {
+      "url": "https://px.ads.linkedin.com/collect?v=2&fmt=js&pid=4362145&time=1762453918884&li_adsId=799f4466-e80b-4169-b9ad-610548f41cd5&url=https%3A%2F%2Fwww.governmentjobs.com%2Fjobs%2F4638897-0%2Fyouth-program-bus-driver&cookiesTest=true",
+      "method": "GET",
+      "headers": {
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "referer": "https://www.governmentjobs.com/"
+      }
+    },
+    {
+      "url": "https://www.linkedin.com/px/li_sync?redirect=https%3A%2F%2Fpx.ads.linkedin.com%2Fcollect%3Fv%3D2%26fmt%3Djs%26pid%3D4362145%26time%3D1762453918884%26li_adsId%3D799f4466-e80b-4169-b9ad-610548f41cd5%26url%3Dhttps%253A%252F%252Fwww.governmentjobs.com%252Fjobs%252F4638897-0%252Fyouth-program-bus-driver%26cookiesTest%3Dtrue%26liSync%3Dtrue",
+      "method": "GET",
+      "headers": {
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "referer": "https://www.governmentjobs.com/"
+      }
+    },
+    {
+      "url": "blob:https://www.governmentjobs.com/34c827b6-1ef4-4cbd-919b-736023c6faff",
+      "method": "GET",
+      "headers": {
+        "accept": "*/*"
+      }
+    },
+    {
+      "url": "blob:https://www.governmentjobs.com/c5dc74bc-1e56-4db0-bfe7-816ebf0c68cd",
+      "method": "GET",
+      "headers": {
+        "accept": "*/*"
+      }
+    },
+    {
+      "url": "https://px.ads.linkedin.com/collect?v=2&fmt=js&pid=4362145&time=1762453918884&li_adsId=799f4466-e80b-4169-b9ad-610548f41cd5&url=https%3A%2F%2Fwww.governmentjobs.com%2Fjobs%2F4638897-0%2Fyouth-program-bus-driver&cookiesTest=true&liSync=true",
+      "method": "GET",
+      "headers": {
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "referer": "https://www.governmentjobs.com/"
+      }
+    },
+    {
+      "url": "https://idsync.rlcdn.com/1000.gif?memo=CO6UGBIeChoIARCuXxoTMzY1NjcwNDk2MTc4MTE3MDI1MBAAGg0In9OzyAYSBQjoBxAAQgBKAA",
+      "method": "GET",
+      "headers": {
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "referer": "https://t.sharethis.com/"
+      }
+    },
+    {
+      "url": "https://www.chatbase.co/api/get-chatbot-styles/-Ygm0iLb6Weh8Vwaj5_0w",
+      "method": "GET",
+      "headers": {
+        "sec-ch-ua-platform": "\"macOS\"",
+        "referer": "https://www.governmentjobs.com/",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"24\", \"Chromium\";v=\"140\"",
+        "content-type": "application/json",
+        "sec-ch-ua-mobile": "?0"
+      }
+    }
+  ],
+  "framework_detection": []
+}
