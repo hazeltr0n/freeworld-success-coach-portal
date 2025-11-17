@@ -14815,52 +14815,16 @@ ZIP_TO_MARKETS = {
     "Inland Empire"
   ],
   "75208": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75216": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75225": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75228": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "92325": [
     "Inland Empire"
@@ -14873,280 +14837,73 @@ ZIP_TO_MARKETS = {
     "Inland Empire"
   ],
   "75210": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75211": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75215": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75220": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75222": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75202": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75203": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75204": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75205": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75206": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75214": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75217": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75219": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75221": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75223": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75226": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75227": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75229": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75230": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75231": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75232": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75234": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75235": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "76134": [
     "Dallas"
@@ -15161,346 +14918,94 @@ ZIP_TO_MARKETS = {
     "Inland Empire"
   ],
   "75248": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75250": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75283": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "90831": [
     "Inland Empire"
   ],
   "75286": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75267": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "90052": [
     "Inland Empire"
   ],
   "75270": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75242": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75245": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75251": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75246": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75254": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75258": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75261": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75262": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75263": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75264": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75265": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75275": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75237": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75238": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75240": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75241": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75247": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75249": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75252": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75277": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75284": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75285": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "76136": [
     "Dallas"
@@ -15518,334 +15023,91 @@ ZIP_TO_MARKETS = {
     "Inland Empire"
   ],
   "75310": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "90067": [
     "Inland Empire"
   ],
   "75312": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75334": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75343": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75320": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75355": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75323": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75326": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75339": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75356": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75340": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75367": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75344": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75370": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75303": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75313": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75336": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75342": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75360": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75368": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "76137": [
     "Dallas"
   ],
   "75315": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75350": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75353": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75357": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75359": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75363": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75364": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "76103": [
     "Dallas"
@@ -15863,172 +15125,46 @@ ZIP_TO_MARKETS = {
     "Inland Empire"
   ],
   "75373": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75374": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75382": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75376": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75386": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75387": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75393": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75378": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75391": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75392": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75394": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75397": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75395": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75396": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "76104": [
     "Dallas"
@@ -16055,40 +15191,13 @@ ZIP_TO_MARKETS = {
     "Dallas"
   ],
   "75389": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75380": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75398": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "76101": [
     "Dallas"
@@ -21621,16 +20730,7 @@ ZIP_TO_MARKETS = {
     "Denver"
   ],
   "75065": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75067": [
     "Houston",
@@ -21673,52 +20773,16 @@ ZIP_TO_MARKETS = {
     "Dallas"
   ],
   "75201": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75212": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75233": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75236": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "91412": [
     "Inland Empire"
@@ -21733,64 +20797,19 @@ ZIP_TO_MARKETS = {
     "Sacramento"
   ],
   "75244": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75287": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75354": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75379": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75390": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75482": [
     "Lufkin",
@@ -27178,64 +26197,19 @@ ZIP_TO_MARKETS = {
     "Newark"
   ],
   "75209": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75260": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75301": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75358": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75372": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "76166": [
     "Dallas"
@@ -27431,40 +26405,13 @@ ZIP_TO_MARKETS = {
     "Sacramento"
   ],
   "75243": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75381": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75218": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "80211": [
     "Denver"
@@ -27604,64 +26551,19 @@ ZIP_TO_MARKETS = {
     "Trenton"
   ],
   "75207": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75224": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75295": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75346": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75371": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "79403": [
     "79404"
@@ -28123,76 +27025,22 @@ ZIP_TO_MARKETS = {
     "Rochester"
   ],
   "75239": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75253": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75266": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75294": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75369": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "75388": [
-    "Bay Area",
-    "Denver",
-    "Trenton",
-    "Phoenix",
-    "Las Vegas",
-    "Houston",
-    "Dallas",
-    "Inland Empire",
-    "Newark",
-    "Stockton"
+    "Dallas"
   ],
   "79414": [
     "79404"
