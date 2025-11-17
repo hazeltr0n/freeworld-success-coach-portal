@@ -176,6 +176,54 @@ class DriverPulseToPipelineAdapter:
 
         return df
 
+    def _select_best_market(self, zip_code: str, markets: List[str], state: str = '') -> str:
+        """Select the geographically correct market from a list of possibilities
+
+        Args:
+            zip_code: The job's ZIP code
+            markets: List of possible markets from ZIP_TO_MARKETS
+            state: The job's state code (e.g., 'TX', 'CA')
+
+        Returns:
+            The best matching market name
+        """
+        # State to markets mapping (prioritize correct state)
+        state_markets = {
+            'TX': ['Dallas', 'Houston'],
+            'CA': ['Bay Area', 'Stockton', 'Inland Empire'],
+            'NJ': ['Newark', 'Trenton'],
+            'AZ': ['Phoenix'],
+            'CO': ['Denver'],
+            'NV': ['Las Vegas']
+        }
+
+        # If we have state info, prioritize markets in that state
+        if state and state in state_markets:
+            # Filter to state-specific markets, maintaining preference order
+            for preferred_market in state_markets[state]:
+                if preferred_market in markets:
+                    return preferred_market
+
+        # Fallback: Use ZIP → City, ST lookup to determine state
+        if ZIP_LOOKUP_AVAILABLE and zip_code:
+            city_state = ZIP_TO_CITY_STATE.get(str(zip_code), '')
+            if city_state:
+                # Extract state from "City, ST" format
+                if ', ' in city_state:
+                    inferred_state = city_state.split(', ')[-1].strip()
+                    # Handle "Dallas-Fort Worth, TX 75006" format
+                    if ' ' in inferred_state:
+                        inferred_state = inferred_state.split()[0]
+
+                    if inferred_state in state_markets:
+                        # Return first matching market in preference order
+                        for preferred_market in state_markets[inferred_state]:
+                            if preferred_market in markets:
+                                return preferred_market
+
+        # Last resort: Return first market
+        return markets[0]
+
     def _convert_to_outscraper_format(self, jobs: List[Dict]) -> List[Dict]:
         """Convert DriverPulse job format to Outscraper-compatible format
 
@@ -230,8 +278,8 @@ class DriverPulseToPipelineAdapter:
                 if not markets:
                     continue  # Skip ZIPs not in our markets
 
-                # Use first market in list
-                market = markets[0]
+                # Choose geographically correct market based on actual location
+                market = self._select_best_market(job_zip, markets, job.get('state', ''))
 
                 outscraper_job = self._create_outscraper_job(job, job_zip, market)
                 outscraper_jobs.append(outscraper_job)
