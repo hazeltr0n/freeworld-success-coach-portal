@@ -559,56 +559,26 @@ def render_portal_link_section(search_params: dict, candidate_name: str, candida
                 'show_prepared_for': search_params.get('show_prepared_for', True),
             })
 
-        # Generate portal link using free agent system
-        try:
-            from free_agent_system import generate_agent_url
-        except ImportError:
-            st.error("❌ Cannot import generate_agent_url from free_agent_system")
-            return
-
-        # Add agent and coach info to portal config
-        portal_config.update({
+        # Build agent data dict for generate_tracked_portal_link
+        agent_data = {
+            'agent_uuid': candidate_id,
             'agent_name': candidate_name.strip(),
             'location': final_location,
-            'agent_uuid': candidate_id,
             'coach_username': search_params.get('coach_username', ''),
-            'coach_name': search_params.get('coach_name', '')
-        })
+            **portal_config  # Include all portal config params
+        }
 
-        # Generate Supabase edge function URL
+        # Use the same function as Free Agent Management for consistency
         try:
-            edge_function_url = generate_agent_url(candidate_id, portal_config)
-            if not edge_function_url:
-                st.error("❌ Failed to generate edge function URL")
-                return
-        except Exception as e:
-            st.error(f"❌ Error generating agent URL: {e}")
+            from app import generate_tracked_portal_link
+        except ImportError:
+            st.error("❌ Cannot import generate_tracked_portal_link from app")
             return
 
-        # Create Short.io link
         try:
-            from link_tracker import LinkTracker
-            link_tracker = LinkTracker()
+            shortened_url = generate_tracked_portal_link(agent_data)
 
-            # Build tags for analytics
-            tags = [
-                f"coach:{search_params.get('coach_username', 'unknown')}",
-                f"search_type:{search_type}",
-                f"mode:{portal_config.get('mode', 'unknown')}"
-            ]
-
-            # Add memory-specific tag
-            if is_memory_search:
-                tags.append("memory_search")
-
-            shortened_url = link_tracker.create_short_link(
-                edge_function_url,
-                title="Portal Link",
-                tags=tags,
-                candidate_id=candidate_id
-            )
-
-            if shortened_url:
+            if shortened_url and not shortened_url.startswith("Missing"):
                 # Display success message and link
                 st.success("✅ Portal link generated successfully!")
 
@@ -639,12 +609,10 @@ def render_portal_link_section(search_params: dict, candidate_name: str, candida
                     st.expander("🔧 Portal Configuration (Debug)", expanded=False).json(portal_config)
 
             else:
-                st.error("❌ Failed to create Short.io link")
+                st.error(f"❌ Failed to create portal link: {shortened_url}")
 
-        except ImportError:
-            st.error("❌ Link tracking module not available")
         except Exception as e:
-            st.error(f"❌ Error creating short link: {e}")
+            st.error(f"❌ Error creating portal link: {e}")
 
     except Exception as e:
         st.error(f"❌ Portal link generation error: {e}")

@@ -157,11 +157,12 @@ def jobs_dataframe_to_dicts(df, candidate_id: str = None) -> List[Dict]:
         job_id_display = job_id[:8] if job_id != 'unknown' else 'unknown'
         print(f"🔍 HTML Job {job_id_display}: tracked='{tracked}', source='{source_url[:60]}...', clean='{clean_url[:60] if clean_url else 'None'}...'")
 
-        apply_url = tracked or source_url or clean_url
+        # Use original job URL for display and tracking (skip Short.io tracked URLs)
+        original_url = source_url or clean_url
+        apply_url = original_url  # Always use original URL, not Short.io
 
         # Display truncated original URL so user knows where they're going
         # (e.g., "indeed.com/viewjob/jk=abc123..." instead of short.io link)
-        original_url = source_url or clean_url or apply_url
         if original_url:
             # Remove protocol and truncate to ~35 chars
             display_url = original_url.replace('https://', '').replace('http://', '').replace('www.', '')
