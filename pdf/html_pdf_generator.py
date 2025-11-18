@@ -151,14 +151,25 @@ def jobs_dataframe_to_dicts(df, candidate_id: str = None) -> List[Dict]:
         tracked = _clean_text(r.get('meta.tracked_url', ''))
         source_url = _clean_text(r.get('source.url', ''))
         clean_url = _clean_text(r.get('clean_apply_url', ''))
-        
+
         # Use full job_id for database matching (not truncated)
         job_id = r.get('id.job', 'unknown')
         job_id_display = job_id[:8] if job_id != 'unknown' else 'unknown'
         print(f"🔍 HTML Job {job_id_display}: tracked='{tracked}', source='{source_url[:60]}...', clean='{clean_url[:60] if clean_url else 'None'}...'")
 
         apply_url = tracked or source_url or clean_url
-        display_link = apply_url
+
+        # Display truncated original URL so user knows where they're going
+        # (e.g., "indeed.com/viewjob/jk=abc123..." instead of short.io link)
+        original_url = source_url or clean_url or apply_url
+        if original_url:
+            # Remove protocol and truncate to ~35 chars
+            display_url = original_url.replace('https://', '').replace('http://', '').replace('www.', '')
+            if len(display_url) > 35:
+                display_url = display_url[:32] + '...'
+            display_link = display_url
+        else:
+            display_link = ''
 
         # Generate edge function URL for click tracking in PDFs
         tracking_url = apply_url  # Default to same as apply_url

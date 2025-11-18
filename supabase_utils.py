@@ -1022,57 +1022,10 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
                 non_empty = df[field].notna().sum()
                 print(f"   {field}: {non_empty}/{len(df)} jobs have values")
         
-        # Generate tracking URLs with rate limiting
-        if jobs and coach_username and agent_uuid:
-            print("🔗 Generating Short.io tracking URLs with rate limiting...")
-            
-            try:
-                from link_tracker import LinkTracker
-                import time
-                
-                link_tracker = LinkTracker()
-                
-                for i, job in enumerate(jobs):
-                    # Use apply_url as the base URL for tracking
-                    base_url = job.get('apply_url', '') or job.get('indeed_job_url', '') or job.get('clean_apply_url', '')
-                    
-                    if base_url:
-                        # Create tracking tags
-                        tags = [
-                            f"coach:{coach_username}",
-                            f"candidate:{agent_uuid}",
-                            f"market:{market or 'unknown'}",
-                            "type:job_application"
-                        ]
-                        
-                        # Generate tracked URL
-                        try:
-                            tracked_url = link_tracker.create_short_link(
-                                base_url, 
-                                title=f"Job: {job.get('job_title', 'CDL Position')}",
-                                tags=tags,
-                                candidate_id=agent_uuid
-                            )
-                            
-                            if tracked_url and tracked_url.startswith('https://freeworldjobs.short.gy'):
-                                job['tracked_url'] = tracked_url
-                            
-                            # Rate limiting: 1 second delay every 10 jobs
-                            if (i + 1) % 10 == 0:
-                                print(f"   Generated {i + 1}/{len(jobs)} tracking URLs... (rate limiting)")
-                                time.sleep(1.0)
-                                
-                        except Exception as e:
-                            print(f"   Failed to create tracking URL for job {i + 1}: {e}")
-                            continue
-                
-                tracked_count = sum(1 for job in jobs if job.get('tracked_url'))
-                print(f"🔗 Generated {tracked_count}/{len(jobs)} tracking URLs")
-                
-            except Exception as e:
-                print(f"❌ Link generation failed: {e}")
-                print("📄 Portal will use original apply URLs directly")
-        
+        # Use existing tracked URLs from database (no Short.io wrapping)
+        # Jobs already have Supabase edge function URLs from pipeline stage 7
+        # This avoids creating duplicate Short.io links on every portal access
+
         return jobs
         
     except Exception as e:

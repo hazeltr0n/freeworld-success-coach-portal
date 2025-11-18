@@ -220,60 +220,9 @@ def update_job_tracking_for_agent(df: pd.DataFrame, agent_params: Dict) -> pd.Da
             if original_url:
                 df.at[idx, 'meta.tracked_url'] = original_url
 
-    # Step 2: Generate Short.io tracking links (same as PDF generator does)
-    try:
-        from link_tracker import LinkTracker
-
-        link_tracker = LinkTracker()
-
-        if hasattr(link_tracker, 'create_short_link') and link_tracker.is_available:
-            for idx, job in df.iterrows():
-                original_url = job.get('meta.tracked_url', '')
-
-                if original_url and not original_url.startswith('https://freeworldjobs.short.gy'):
-                    # Build tags matching PDF generator format exactly
-                    tags = []
-
-                    # Coach tag
-                    coach_user = agent_params.get('coach_username', '') or ''
-                    if coach_user:
-                        tags.append(f"coach:{coach_user}")
-
-                    # Market tag
-                    market = agent_params.get('location', 'Unknown') or 'Unknown'
-                    tags.append(f"market:{market}")
-
-                    # Route tag
-                    route = str(job.get('ai.route_type', '')).lower() or 'unknown'
-                    tags.append(f"route:{route}")
-
-                    # Match quality tag
-                    match = str(job.get('ai.match', '')).lower() or 'unknown'
-                    tags.append(f"match:{match}")
-
-                    # Fair chance tag
-                    fair = str(job.get('ai.fair_chance', '')).lower()
-                    fair_flag = 'true' if 'fair_chance_employer' in fair else 'false'
-                    tags.append(f"fair:{fair_flag}")
-
-                    # Candidate tag
-                    cand_id = agent_params.get('agent_uuid', '') or ''
-                    if cand_id:
-                        tags.append(f"candidate:{cand_id}")
-
-                    # Create Short.io link
-                    title = job.get('source.title', '').strip()
-
-                    try:
-                        short_url = link_tracker.create_short_link(original_url, title=title, tags=tags)
-
-                        if short_url and short_url != original_url:
-                            df.at[idx, 'meta.tracked_url'] = short_url
-                    except Exception:
-                        pass  # Keep original URL on error
-
-    except (ImportError, Exception):
-        pass  # Keep original URLs if link tracking fails
+    # Step 2: Use existing tracking URLs directly (no Short.io wrapping)
+    # Jobs already have Supabase edge function URLs from pipeline stage 7
+    # This avoids creating duplicate Short.io links every time agent views portal
 
     return df
 
