@@ -6634,11 +6634,7 @@ ZIP_TO_MARKETS = {
   "07018": [
     "Newark"
   ],
-  "95758": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "95758": ["Sacramento", "Stockton"],
   "07022": [
     "Newark"
   ],
@@ -6833,11 +6829,7 @@ ZIP_TO_MARKETS = {
   "76065": [
     "Dallas"
   ],
-  "95691": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "95691": ["Sacramento", "Stockton"],
   "07083": [
     "Newark",
     "Trenton"
@@ -7124,19 +7116,11 @@ ZIP_TO_MARKETS = {
     "Newark",
     "Trenton"
   ],
-  "95817": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "95817": ["Sacramento", "Stockton"],
   "91041": [
     "Inland Empire"
   ],
-  "95828": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "95828": ["Sacramento", "Stockton"],
   "91046": [
     "Inland Empire"
   ],
@@ -7871,11 +7855,7 @@ ZIP_TO_MARKETS = {
   "92056": [
     "Inland Empire"
   ],
-  "95853": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "95853": ["Sacramento", "Stockton"],
   "92049": [
     "Inland Empire"
   ],
@@ -8415,27 +8395,15 @@ ZIP_TO_MARKETS = {
   "85144": [
     "Phoenix"
   ],
-  "95624": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "95624": ["Sacramento", "Stockton"],
   "85288": [
     "Phoenix"
   ],
-  "95757": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "95757": ["Sacramento", "Stockton"],
   "18302": [
     "Trenton"
   ],
-  "95759": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "95759": ["Sacramento", "Stockton"],
   "95319": [
     "Stockton"
   ],
@@ -8537,18 +8505,8 @@ ZIP_TO_MARKETS = {
   "85335": [
     "Phoenix"
   ],
-  "94533": [
-    "95820",
-    "Sacramento",
-    "Bay Area",
-    "Stockton"
-  ],
-  "94534": [
-    "95820",
-    "Sacramento",
-    "Bay Area",
-    "Stockton"
-  ],
+  "94533": ["Sacramento", "Bay Area", "Stockton"],
+  "94534": ["Sacramento", "Bay Area", "Stockton"],
   "11486": [
     "Newark"
   ],
@@ -9336,16 +9294,8 @@ ZIP_TO_MARKETS = {
   "95641": [
     "Stockton"
   ],
-  "95776": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95814": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "95776": ["Sacramento", "Stockton"],
+  "95814": ["Sacramento", "Stockton"],
   "19048": [
     "Camden",
     "Trenton"
@@ -9371,11 +9321,7 @@ ZIP_TO_MARKETS = {
   "50135": [
     "Des Moines"
   ],
-  "91367": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "91367": ["Sacramento", "Stockton"],
   "92630": [
     "Inland Empire"
   ],
@@ -9418,21 +9364,9 @@ ZIP_TO_MARKETS = {
   "11696": [
     "Newark"
   ],
-  "91371": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "91399": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95695": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "91371": ["Sacramento", "Stockton"],
+  "91399": ["Sacramento", "Stockton"],
+  "95695": ["Sacramento", "Stockton"],
   "07099": [
     "Newark",
     "Trenton"
@@ -9523,11 +9457,7 @@ ZIP_TO_MARKETS = {
   "90632": [
     "Inland Empire"
   ],
-  "91364": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "91364": ["Sacramento", "Stockton"],
   "92344": [
     "Inland Empire"
   ],
@@ -11526,39 +11456,14 @@ ZIP_TO_MARKETS = {
   "55990": [
     "Rochester"
   ],
-  "95210": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
+  "95210": ["Sacramento", "Bay Area", "Stockton"],
   "55938": [
     "Rochester"
   ],
-  "95213": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
-  "95215": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
-  "95267": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
-  "95269": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
+  "95213": ["Sacramento", "Bay Area", "Stockton"],
+  "95215": ["Sacramento", "Bay Area", "Stockton"],
+  "95267": ["Sacramento", "Bay Area", "Stockton"],
+  "95269": ["Sacramento", "Bay Area", "Stockton"],
   "07045": [
     "Newark"
   ],
@@ -11593,12 +11498,7 @@ ZIP_TO_MARKETS = {
   "92522": [
     "Inland Empire"
   ],
-  "95202": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
+  "95202": ["Sacramento", "Bay Area", "Stockton"],
   "77406": [
     "Houston"
   ],
@@ -11631,36 +11531,11 @@ ZIP_TO_MARKETS = {
   "75042": [
     "Dallas"
   ],
-  "95203": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
-  "95219": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
-  "95290": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
-  "95297": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
-  "95298": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
+  "95203": ["Sacramento", "Bay Area", "Stockton"],
+  "95219": ["Sacramento", "Bay Area", "Stockton"],
+  "95290": ["Sacramento", "Bay Area", "Stockton"],
+  "95297": ["Sacramento", "Bay Area", "Stockton"],
+  "95298": ["Sacramento", "Bay Area", "Stockton"],
   "75040": [
     "Dallas"
   ],
@@ -11724,36 +11599,11 @@ ZIP_TO_MARKETS = {
     "Inland Empire",
     "Stockton"
   ],
-  "95201": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
-  "95204": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
-  "95206": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
-  "95208": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
-  "95209": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
+  "95201": ["Sacramento", "Bay Area", "Stockton"],
+  "95204": ["Sacramento", "Bay Area", "Stockton"],
+  "95206": ["Sacramento", "Bay Area", "Stockton"],
+  "95208": ["Sacramento", "Bay Area", "Stockton"],
+  "95209": ["Sacramento", "Bay Area", "Stockton"],
   "77497": [
     "Houston"
   ],
@@ -12093,9 +11943,7 @@ ZIP_TO_MARKETS = {
   "77523": [
     "Houston"
   ],
-  "79316": [
-    "79404"
-  ],
+  "79316": ["Dallas", "Houston"],
   "85201": [
     "Phoenix"
   ],
@@ -12346,24 +12194,12 @@ ZIP_TO_MARKETS = {
   "92799": [
     "Inland Empire"
   ],
-  "95605": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95799": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "95605": ["Sacramento", "Stockton"],
+  "95799": ["Sacramento", "Stockton"],
   "90265": [
     "Inland Empire"
   ],
-  "95798": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "95798": ["Sacramento", "Stockton"],
   "80602": [
     "Denver"
   ],
@@ -18041,16 +17877,8 @@ ZIP_TO_MARKETS = {
   "55906": [
     "Rochester"
   ],
-  "94211": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94230": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "94211": ["Sacramento", "Stockton"],
+  "94230": ["Sacramento", "Stockton"],
   "85099": [
     "Phoenix"
   ],
@@ -18060,21 +17888,9 @@ ZIP_TO_MARKETS = {
   "55904": [
     "Rochester"
   ],
-  "94239": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94246": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94247": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "94239": ["Sacramento", "Stockton"],
+  "94246": ["Sacramento", "Stockton"],
+  "94247": ["Sacramento", "Stockton"],
   "95674": [
     "Sacramento"
   ],
@@ -18084,59 +17900,19 @@ ZIP_TO_MARKETS = {
   "85061": [
     "Phoenix"
   ],
-  "94207": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94208": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94229": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94235": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "94207": ["Sacramento", "Stockton"],
+  "94208": ["Sacramento", "Stockton"],
+  "94229": ["Sacramento", "Stockton"],
+  "94235": ["Sacramento", "Stockton"],
   "10579": [
     "Newark"
   ],
-  "94237": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94209": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94243": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94244": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94245": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94248": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "94237": ["Sacramento", "Stockton"],
+  "94209": ["Sacramento", "Stockton"],
+  "94243": ["Sacramento", "Stockton"],
+  "94244": ["Sacramento", "Stockton"],
+  "94245": ["Sacramento", "Stockton"],
+  "94248": ["Sacramento", "Stockton"],
   "55903": [
     "Rochester"
   ],
@@ -18189,288 +17965,72 @@ ZIP_TO_MARKETS = {
   "85083": [
     "Phoenix"
   ],
-  "94203": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94205": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94232": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94240": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94249": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "94203": ["Sacramento", "Stockton"],
+  "94205": ["Sacramento", "Stockton"],
+  "94232": ["Sacramento", "Stockton"],
+  "94240": ["Sacramento", "Stockton"],
+  "94249": ["Sacramento", "Stockton"],
   "55959": [
     "Rochester"
   ],
-  "95811": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "95811": ["Sacramento", "Stockton"],
   "10009": [
     "Newark"
   ],
-  "94259": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95819": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95820": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95821": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94267": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95822": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95823": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95824": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95825": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95826": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94268": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94269": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95829": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95830": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95832": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94273": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94283": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95833": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95834": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94286": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "94259": ["Sacramento", "Stockton"],
+  "95819": ["Sacramento", "Stockton"],
+  "95820": ["Sacramento", "Stockton"],
+  "95821": ["Sacramento", "Stockton"],
+  "94267": ["Sacramento", "Stockton"],
+  "95822": ["Sacramento", "Stockton"],
+  "95823": ["Sacramento", "Stockton"],
+  "95824": ["Sacramento", "Stockton"],
+  "95825": ["Sacramento", "Stockton"],
+  "95826": ["Sacramento", "Stockton"],
+  "94268": ["Sacramento", "Stockton"],
+  "94269": ["Sacramento", "Stockton"],
+  "95829": ["Sacramento", "Stockton"],
+  "95830": ["Sacramento", "Stockton"],
+  "95832": ["Sacramento", "Stockton"],
+  "94273": ["Sacramento", "Stockton"],
+  "94283": ["Sacramento", "Stockton"],
+  "95833": ["Sacramento", "Stockton"],
+  "95834": ["Sacramento", "Stockton"],
+  "94286": ["Sacramento", "Stockton"],
   "19056": [
     "Trenton"
   ],
-  "94287": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94289": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94294": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94296": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95813": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95816": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95818": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95831": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94261": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94262": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94271": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94274": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94277": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94278": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94280": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94288": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94290": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94295": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94297": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94299": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94257": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94256": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94263": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94284": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94298": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95815": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95827": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "94287": ["Sacramento", "Stockton"],
+  "94289": ["Sacramento", "Stockton"],
+  "94294": ["Sacramento", "Stockton"],
+  "94296": ["Sacramento", "Stockton"],
+  "95813": ["Sacramento", "Stockton"],
+  "95816": ["Sacramento", "Stockton"],
+  "95818": ["Sacramento", "Stockton"],
+  "95831": ["Sacramento", "Stockton"],
+  "94261": ["Sacramento", "Stockton"],
+  "94262": ["Sacramento", "Stockton"],
+  "94271": ["Sacramento", "Stockton"],
+  "94274": ["Sacramento", "Stockton"],
+  "94277": ["Sacramento", "Stockton"],
+  "94278": ["Sacramento", "Stockton"],
+  "94280": ["Sacramento", "Stockton"],
+  "94288": ["Sacramento", "Stockton"],
+  "94290": ["Sacramento", "Stockton"],
+  "94295": ["Sacramento", "Stockton"],
+  "94297": ["Sacramento", "Stockton"],
+  "94299": ["Sacramento", "Stockton"],
+  "94257": ["Sacramento", "Stockton"],
+  "94256": ["Sacramento", "Stockton"],
+  "94263": ["Sacramento", "Stockton"],
+  "94284": ["Sacramento", "Stockton"],
+  "94298": ["Sacramento", "Stockton"],
+  "95815": ["Sacramento", "Stockton"],
+  "95827": ["Sacramento", "Stockton"],
   "94135": [
     "Bay Area"
   ],
-  "94282": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "94282": ["Sacramento", "Stockton"],
   "50169": [
     "Des Moines"
   ],
@@ -18510,90 +18070,30 @@ ZIP_TO_MARKETS = {
   "94119": [
     "Bay Area"
   ],
-  "95836": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "95836": ["Sacramento", "Stockton"],
   "94128": [
     "Bay Area"
   ],
-  "95837": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95838": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "95837": ["Sacramento", "Stockton"],
+  "95838": ["Sacramento", "Stockton"],
   "94133": [
     "Bay Area"
   ],
-  "95851": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95852": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95840": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95857": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95865": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95867": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95899": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95860": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95864": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95894": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "95851": ["Sacramento", "Stockton"],
+  "95852": ["Sacramento", "Stockton"],
+  "95840": ["Sacramento", "Stockton"],
+  "95857": ["Sacramento", "Stockton"],
+  "95865": ["Sacramento", "Stockton"],
+  "95867": ["Sacramento", "Stockton"],
+  "95899": ["Sacramento", "Stockton"],
+  "95860": ["Sacramento", "Stockton"],
+  "95864": ["Sacramento", "Stockton"],
+  "95894": ["Sacramento", "Stockton"],
   "91345": [
     "Inland Empire"
   ],
-  "95841": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95866": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "95841": ["Sacramento", "Stockton"],
+  "95866": ["Sacramento", "Stockton"],
   "92402": [
     "Inland Empire"
   ],
@@ -19787,9 +19287,7 @@ ZIP_TO_MARKETS = {
   "85147": [
     "Phoenix"
   ],
-  "79408": [
-    "79404"
-  ],
+  "79408": ["Dallas", "Houston"],
   "91775": [
     "Inland Empire"
   ],
@@ -19799,69 +19297,35 @@ ZIP_TO_MARKETS = {
   "91795": [
     "Inland Empire"
   ],
-  "79411": [
-    "79404"
-  ],
+  "79411": ["Dallas", "Houston"],
   "95673": [
     "Sacramento"
   ],
-  "79416": [
-    "79404"
-  ],
-  "79452": [
-    "79404"
-  ],
-  "79490": [
-    "79404"
-  ],
-  "79491": [
-    "79404"
-  ],
+  "79416": ["Dallas", "Houston"],
+  "79452": ["Dallas", "Houston"],
+  "79490": ["Dallas", "Houston"],
+  "79491": ["Dallas", "Houston"],
   "85247": [
     "Phoenix"
   ],
-  "79407": [
-    "79404"
-  ],
+  "79407": ["Dallas", "Houston"],
   "95692": [
     "Sacramento"
   ],
   "50476": [
     "Des Moines"
   ],
-  "79424": [
-    "79404"
-  ],
-  "79402": [
-    "79404"
-  ],
-  "79405": [
-    "79404"
-  ],
-  "79406": [
-    "79404"
-  ],
-  "79409": [
-    "79404"
-  ],
-  "79410": [
-    "79404"
-  ],
-  "79412": [
-    "79404"
-  ],
-  "79413": [
-    "79404"
-  ],
-  "79415": [
-    "79404"
-  ],
-  "79423": [
-    "79404"
-  ],
-  "79430": [
-    "79404"
-  ],
+  "79424": ["Dallas", "Houston"],
+  "79402": ["Dallas", "Houston"],
+  "79405": ["Dallas", "Houston"],
+  "79406": ["Dallas", "Houston"],
+  "79409": ["Dallas", "Houston"],
+  "79410": ["Dallas", "Houston"],
+  "79412": ["Dallas", "Houston"],
+  "79413": ["Dallas", "Houston"],
+  "79415": ["Dallas", "Houston"],
+  "79423": ["Dallas", "Houston"],
+  "79430": ["Dallas", "Houston"],
   "18080": [
     "Trenton"
   ],
@@ -19914,18 +19378,10 @@ ZIP_TO_MARKETS = {
     "Bay Area",
     "Inland Empire"
   ],
-  "79453": [
-    "79404"
-  ],
-  "79457": [
-    "79404"
-  ],
-  "79464": [
-    "79404"
-  ],
-  "79499": [
-    "79404"
-  ],
+  "79453": ["Dallas", "Houston"],
+  "79457": ["Dallas", "Houston"],
+  "79464": ["Dallas", "Houston"],
+  "79499": ["Dallas", "Houston"],
   "54615": [
     "Rochester"
   ],
@@ -19935,45 +19391,18 @@ ZIP_TO_MARKETS = {
   "94591": [
     "Bay Area"
   ],
-  "76707": [
-    "76701",
-    "Waco"
-  ],
+  "76707": ["Dallas", "Houston"],
   "10213": [
     "Newark"
   ],
-  "76705": [
-    "76701",
-    "Waco"
-  ],
-  "76706": [
-    "76701",
-    "Waco"
-  ],
-  "76711": [
-    "76701",
-    "Waco"
-  ],
-  "76715": [
-    "76701",
-    "Waco"
-  ],
-  "76795": [
-    "76701",
-    "Waco"
-  ],
-  "76797": [
-    "76701",
-    "Waco"
-  ],
-  "76799": [
-    "76701",
-    "Waco"
-  ],
-  "76708": [
-    "76701",
-    "Waco"
-  ],
+  "76705": ["Dallas", "Houston"],
+  "76706": ["Dallas", "Houston"],
+  "76711": ["Dallas", "Houston"],
+  "76715": ["Dallas", "Houston"],
+  "76795": ["Dallas", "Houston"],
+  "76797": ["Dallas", "Houston"],
+  "76799": ["Dallas", "Houston"],
+  "76708": ["Dallas", "Houston"],
   "78202": [
     "San Antonio"
   ],
@@ -19995,17 +19424,11 @@ ZIP_TO_MARKETS = {
   "78215": [
     "San Antonio"
   ],
-  "76714": [
-    "76701",
-    "Waco"
-  ],
+  "76714": ["Dallas", "Houston"],
   "78218": [
     "San Antonio"
   ],
-  "76710": [
-    "76701",
-    "Waco"
-  ],
+  "76710": ["Dallas", "Houston"],
   "78221": [
     "San Antonio"
   ],
@@ -20063,14 +19486,8 @@ ZIP_TO_MARKETS = {
   "78222": [
     "San Antonio"
   ],
-  "76716": [
-    "76701",
-    "Waco"
-  ],
-  "76798": [
-    "76701",
-    "Waco"
-  ],
+  "76716": ["Dallas", "Houston"],
+  "76798": ["Dallas", "Houston"],
   "78207": [
     "San Antonio"
   ],
@@ -20131,10 +19548,7 @@ ZIP_TO_MARKETS = {
   "78223": [
     "San Antonio"
   ],
-  "76702": [
-    "76701",
-    "Waco"
-  ],
+  "76702": ["Dallas", "Houston"],
   "78261": [
     "San Antonio"
   ],
@@ -20912,13 +20326,8 @@ ZIP_TO_MARKETS = {
   "76651": [
     "Dallas"
   ],
-  "76655": [
-    "76701"
-  ],
-  "76701": [
-    "76701",
-    "Waco"
-  ],
+  "76655": ["Dallas", "Houston"],
+  "76701": ["Dallas", "Houston"],
   "77004": [
     "Houston"
   ],
@@ -21040,9 +20449,7 @@ ZIP_TO_MARKETS = {
   "78109": [
     "San Antonio"
   ],
-  "79401": [
-    "79404"
-  ],
+  "79401": ["Dallas", "Houston"],
   "80002": [
     "Denver"
   ],
@@ -21646,36 +21053,20 @@ ZIP_TO_MARKETS = {
   "18356": [
     "Trenton"
   ],
-  "76682": [
-    "76701"
-  ],
-  "76684": [
-    "76701"
-  ],
-  "76691": [
-    "76701"
-  ],
+  "76682": ["Dallas", "Houston"],
+  "76684": ["Dallas", "Houston"],
+  "76691": ["Dallas", "Houston"],
   "77334": [
     "Houston"
   ],
   "77367": [
     "Houston"
   ],
-  "79329": [
-    "79404"
-  ],
-  "79330": [
-    "79404"
-  ],
-  "79336": [
-    "79404"
-  ],
-  "79343": [
-    "79404"
-  ],
-  "79351": [
-    "79404"
-  ],
+  "79329": ["Dallas", "Houston"],
+  "79330": ["Dallas", "Houston"],
+  "79336": ["Dallas", "Houston"],
+  "79343": ["Dallas", "Houston"],
+  "79351": ["Dallas", "Houston"],
   "75661": [
     "Lufkin"
   ],
@@ -21727,15 +21118,9 @@ ZIP_TO_MARKETS = {
   "75949": [
     "Lufkin"
   ],
-  "76570": [
-    "76701"
-  ],
-  "76624": [
-    "76701"
-  ],
-  "76630": [
-    "76701"
-  ],
+  "76570": ["Dallas", "Houston"],
+  "76624": ["Dallas", "Houston"],
+  "76630": ["Dallas", "Houston"],
   "75670": [
     "Lufkin"
   ],
@@ -21754,51 +21139,25 @@ ZIP_TO_MARKETS = {
   "75969": [
     "Lufkin"
   ],
-  "76557": [
-    "76701"
-  ],
-  "76632": [
-    "76701"
-  ],
+  "76557": ["Dallas", "Houston"],
+  "76632": ["Dallas", "Houston"],
   "75980": [
     "Lufkin"
   ],
-  "76637": [
-    "76701"
-  ],
-  "76649": [
-    "76701"
-  ],
-  "76656": [
-    "76701"
-  ],
-  "76654": [
-    "76701"
-  ],
-  "76661": [
-    "76701"
-  ],
-  "76685": [
-    "76701"
-  ],
-  "76689": [
-    "76701"
-  ],
-  "76712": [
-    "76701"
-  ],
-  "76665": [
-    "76701"
-  ],
-  "79346": [
-    "79404"
-  ],
+  "76637": ["Dallas", "Houston"],
+  "76649": ["Dallas", "Houston"],
+  "76656": ["Dallas", "Houston"],
+  "76654": ["Dallas", "Houston"],
+  "76661": ["Dallas", "Houston"],
+  "76685": ["Dallas", "Houston"],
+  "76689": ["Dallas", "Houston"],
+  "76712": ["Dallas", "Houston"],
+  "76665": ["Dallas", "Houston"],
+  "79346": ["Dallas", "Houston"],
   "75791": [
     "Lufkin"
   ],
-  "79313": [
-    "79404"
-  ],
+  "79313": ["Dallas", "Houston"],
   "75750": [
     "Lufkin"
   ],
@@ -21814,69 +21173,33 @@ ZIP_TO_MARKETS = {
   "19405": [
     "Trenton"
   ],
-  "76634": [
-    "76701"
-  ],
-  "76638": [
-    "76701"
-  ],
-  "76640": [
-    "76701"
-  ],
-  "76652": [
-    "76701"
-  ],
-  "76657": [
-    "76701"
-  ],
-  "76664": [
-    "76701"
-  ],
+  "76634": ["Dallas", "Houston"],
+  "76638": ["Dallas", "Houston"],
+  "76640": ["Dallas", "Houston"],
+  "76652": ["Dallas", "Houston"],
+  "76657": ["Dallas", "Houston"],
+  "76664": ["Dallas", "Houston"],
   "85003": [
     "Phoenix"
   ],
-  "79357": [
-    "79404"
-  ],
-  "79363": [
-    "79404"
-  ],
-  "79366": [
-    "79404"
-  ],
-  "79372": [
-    "79404"
-  ],
+  "79357": ["Dallas", "Houston"],
+  "79363": ["Dallas", "Houston"],
+  "79366": ["Dallas", "Houston"],
+  "79372": ["Dallas", "Houston"],
   "85362": [
     "Phoenix"
   ],
-  "79373": [
-    "79404"
-  ],
-  "79364": [
-    "79404"
-  ],
-  "79367": [
-    "79404"
-  ],
-  "79379": [
-    "79404"
-  ],
-  "79383": [
-    "79404"
-  ],
+  "79373": ["Dallas", "Houston"],
+  "79364": ["Dallas", "Houston"],
+  "79367": ["Dallas", "Houston"],
+  "79379": ["Dallas", "Houston"],
+  "79383": ["Dallas", "Houston"],
   "85363": [
     "Phoenix"
   ],
-  "79380": [
-    "79404"
-  ],
-  "79381": [
-    "79404"
-  ],
-  "79382": [
-    "79404"
-  ],
+  "79380": ["Dallas", "Houston"],
+  "79381": ["Dallas", "Houston"],
+  "79382": ["Dallas", "Houston"],
   "92341": [
     "Inland Empire"
   ],
@@ -21943,11 +21266,7 @@ ZIP_TO_MARKETS = {
   "94163": [
     "Bay Area"
   ],
-  "94258": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "94258": ["Sacramento", "Stockton"],
   "92179": [
     "Inland Empire"
   ],
@@ -24428,12 +23747,7 @@ ZIP_TO_MARKETS = {
   "92075": [
     "Inland Empire"
   ],
-  "95211": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
+  "95211": ["Sacramento", "Bay Area", "Stockton"],
   "19362": [
     "Trenton"
   ],
@@ -25855,16 +25169,8 @@ ZIP_TO_MARKETS = {
   "94132": [
     "Bay Area"
   ],
-  "94206": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94254": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "94206": ["Sacramento", "Stockton"],
+  "94254": ["Sacramento", "Stockton"],
   "94501": [
     "Bay Area"
   ],
@@ -25909,18 +25215,8 @@ ZIP_TO_MARKETS = {
     "Bay Area",
     "Stockton"
   ],
-  "95205": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
-  "95207": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
+  "95205": ["Sacramento", "Bay Area", "Stockton"],
+  "95207": ["Sacramento", "Bay Area", "Stockton"],
   "92111": [
     "Inland Empire"
   ],
@@ -25991,11 +25287,7 @@ ZIP_TO_MARKETS = {
   "95992": [
     "Sacramento"
   ],
-  "94285": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "94285": ["Sacramento", "Stockton"],
   "94401": [
     "Bay Area"
   ],
@@ -26126,12 +25418,7 @@ ZIP_TO_MARKETS = {
   "92308": [
     "Inland Empire"
   ],
-  "95212": [
-    "Sacramento",
-    "95820",
-    "Bay Area",
-    "Stockton"
-  ],
+  "95212": ["Sacramento", "Bay Area", "Stockton"],
   "75046": [
     "Dallas"
   ],
@@ -26299,21 +25586,9 @@ ZIP_TO_MARKETS = {
   "91104": [
     "Inland Empire"
   ],
-  "94252": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94291": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95842": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "94252": ["Sacramento", "Stockton"],
+  "94291": ["Sacramento", "Stockton"],
+  "95842": ["Sacramento", "Stockton"],
   "92406": [
     "Inland Empire"
   ],
@@ -26502,11 +25777,7 @@ ZIP_TO_MARKETS = {
   "55902": [
     "Rochester"
   ],
-  "94234": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "94234": ["Sacramento", "Stockton"],
   "77223": [
     "Houston"
   ],
@@ -26524,11 +25795,7 @@ ZIP_TO_MARKETS = {
     "Bay Area",
     "Stockton"
   ],
-  "95887": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "95887": ["Sacramento", "Stockton"],
   "94155": [
     "Bay Area"
   ],
@@ -26565,20 +25832,10 @@ ZIP_TO_MARKETS = {
   "75371": [
     "Dallas"
   ],
-  "79403": [
-    "79404"
-  ],
-  "79493": [
-    "79404"
-  ],
-  "76704": [
-    "76701",
-    "Waco"
-  ],
-  "76796": [
-    "76701",
-    "Waco"
-  ],
+  "79403": ["Dallas", "Houston"],
+  "79493": ["Dallas", "Houston"],
+  "76704": ["Dallas", "Houston"],
+  "76796": ["Dallas", "Houston"],
   "78206": [
     "San Antonio"
   ],
@@ -26612,26 +25869,10 @@ ZIP_TO_MARKETS = {
   "80295": [
     "Denver"
   ],
-  "94204": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94250": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95812": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95873": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "94204": ["Sacramento", "Stockton"],
+  "94250": ["Sacramento", "Stockton"],
+  "95812": ["Sacramento", "Stockton"],
+  "95873": ["Sacramento", "Stockton"],
   "19106": [
     "Camden",
     "Trenton"
@@ -26729,11 +25970,7 @@ ZIP_TO_MARKETS = {
   "95703": [
     "Sacramento"
   ],
-  "94293": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "94293": ["Sacramento", "Stockton"],
   "95612": [
     "Sacramento"
   ],
@@ -26776,13 +26013,8 @@ ZIP_TO_MARKETS = {
   "50466": [
     "Des Moines"
   ],
-  "79404": [
-    "79404"
-  ],
-  "76703": [
-    "76701",
-    "Waco"
-  ],
+  "79404": ["Dallas", "Houston"],
+  "76703": ["Dallas", "Houston"],
   "55438": [
     "Rochester"
   ],
@@ -26874,15 +26106,9 @@ ZIP_TO_MARKETS = {
   "95957": [
     "Sacramento"
   ],
-  "76643": [
-    "76701"
-  ],
-  "79314": [
-    "79404"
-  ],
-  "79353": [
-    "79404"
-  ],
+  "76643": ["Dallas", "Houston"],
+  "79314": ["Dallas", "Houston"],
+  "79353": ["Dallas", "Houston"],
   "92191": [
     "Inland Empire"
   ],
@@ -27042,9 +26268,7 @@ ZIP_TO_MARKETS = {
   "75388": [
     "Dallas"
   ],
-  "79414": [
-    "79404"
-  ],
+  "79414": ["Dallas", "Houston"],
   "78217": [
     "San Antonio"
   ],
@@ -27209,11 +26433,7 @@ ZIP_TO_MARKETS = {
     "Sacramento",
     "Stockton"
   ],
-  "91365": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "91365": ["Sacramento", "Stockton"],
   "11120": [
     "Newark"
   ],
@@ -27243,26 +26463,10 @@ ZIP_TO_MARKETS = {
   "80270": [
     "Denver"
   ],
-  "94236": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94253": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "94279": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
-  "95835": [
-    "Sacramento",
-    "95820",
-    "Stockton"
-  ],
+  "94236": ["Sacramento", "Stockton"],
+  "94253": ["Sacramento", "Stockton"],
+  "94279": ["Sacramento", "Stockton"],
+  "95835": ["Sacramento", "Stockton"],
   "19185": [
     "Camden",
     "Trenton"
@@ -27335,9 +26539,7 @@ ZIP_TO_MARKETS = {
   "90740": [
     "Inland Empire"
   ],
-  "76671": [
-    "76701"
-  ],
+  "76671": ["Dallas", "Houston"],
   "95606": [
     "Stockton"
   ],
@@ -27426,18 +26628,10 @@ ZIP_TO_MARKETS = {
   "91040": [
     "Inland Empire"
   ],
-  "76680": [
-    "76701"
-  ],
-  "79350": [
-    "79404"
-  ],
-  "79356": [
-    "79404"
-  ],
-  "79358": [
-    "79404"
-  ],
+  "76680": ["Dallas", "Houston"],
+  "79350": ["Dallas", "Houston"],
+  "79356": ["Dallas", "Houston"],
+  "79358": ["Dallas", "Houston"],
   "95436": [
     "Bay Area"
   ],
@@ -27528,9 +26722,7 @@ ZIP_TO_MARKETS = {
   "75688": [
     "Lufkin"
   ],
-  "76524": [
-    "76701"
-  ],
+  "76524": ["Dallas", "Houston"],
   "21918": [
     "Trenton"
   ],

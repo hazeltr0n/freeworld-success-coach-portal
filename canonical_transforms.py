@@ -1176,6 +1176,7 @@ def apply_market_assignment(df: pd.DataFrame, market: str, is_custom_location: b
       so deduplication still works.
     - If market parameter is empty/blank AND meta.market already has per-row values,
       preserve the existing per-row values (for multi-market sources like DriverPulse).
+    - If market is a ZIP code, convert it to proper market name using ZIP_TO_MARKETS.
     """
 
     # VALIDATION: Non-custom locations should NOT have ", ST" format
@@ -1197,6 +1198,22 @@ def apply_market_assignment(df: pd.DataFrame, market: str, is_custom_location: b
 
     # Enforce market formatting for global market assignment
     market_value = market if is_custom_location else market.split(',')[0] if isinstance(market, str) else market
+
+    # Convert ZIP code markets to proper market names
+    # This handles custom location searches where user entered a ZIP code
+    if isinstance(market_value, str) and market_value.isdigit() and len(market_value) == 5:
+        try:
+            from zip_market_lookup import ZIP_TO_MARKETS
+            markets_for_zip = ZIP_TO_MARKETS.get(market_value, [])
+            if markets_for_zip:
+                # Use first market in the list (prefer first valid market)
+                converted_market = markets_for_zip[0]
+                print(f"📍 Converted ZIP {market_value} to market: {converted_market}")
+                market_value = converted_market
+            else:
+                print(f"⚠️ ZIP {market_value} not found in ZIP_TO_MARKETS - keeping as-is")
+        except ImportError:
+            print(f"⚠️ zip_market_lookup not available for ZIP {market_value} conversion")
 
     return df.assign(**{
         'meta.market': market_value,
