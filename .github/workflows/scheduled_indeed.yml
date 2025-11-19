@@ -9,7 +9,7 @@ on:
 jobs:
   indeed-scraper:
     runs-on: ubuntu-latest
-    timeout-minutes: 180  # 3 hours max - allows time for large batches
+    timeout-minutes: 195  # 3h 15m max - allows time for large batches
 
     steps:
       - name: Checkout code

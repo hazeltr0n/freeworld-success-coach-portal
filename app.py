@@ -5099,16 +5099,15 @@ def main():
                                                                             tags.append(f"candidate:{candidate_id}")
                                                                         if candidate_name:
                                                                             tags.append(f"agent:{candidate_name.replace(' ', '-')}")
-                                                                        
-                                                                        job_title = job.get('source.title', f"Job {job_id[:8]}")
-                                                                        tracked_url = link_tracker.create_short_link(
+
+                                                                        # Generate edge function URL for click tracking (no Short.io)
+                                                                        tracked_url = link_tracker.generate_edge_function_url(
                                                                             original_url,
-                                                                            title=f"{market} - {job_title}",
-                                                                            tags=tags,
-                                                                            candidate_id=candidate_id
+                                                                            candidate_id=candidate_id,
+                                                                            tags=tags
                                                                         )
-                                                                        
-                                                                        if tracked_url and tracked_url != original_url:
+
+                                                                        if tracked_url:
                                                                             url_mapping[job_id] = tracked_url
                                                                     except Exception as e:
                                                                         print(f"Link generation failed for {job_id[:8]}: {e}")
@@ -7420,14 +7419,15 @@ def show_combined_batches_and_scheduling_page(coach):
                                             tags.append(f"match:{job.get('ai.match')}")
                                         if job.get('ai.route_type'):
                                             tags.append(f"route:{job.get('ai.route_type')}")
-                                        
-                                        tracked_url = link_tracker.create_short_link(
+
+                                        # Generate edge function URL for click tracking (no Short.io)
+                                        tracked_url = link_tracker.generate_edge_function_url(
                                             original_url,
-                                            title=f"CSV Import: {job_title}",
+                                            candidate_id=None,
                                             tags=tags
                                         )
-                                        
-                                        if tracked_url and tracked_url != original_url:
+
+                                        if tracked_url:
                                             df_final.at[idx, 'meta.tracked_url'] = tracked_url
                                         else:
                                             df_final.at[idx, 'meta.tracked_url'] = original_url

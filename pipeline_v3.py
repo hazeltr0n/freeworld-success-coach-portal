@@ -406,17 +406,16 @@ class FreeWorldPipelineV3:
                                 if row.get('ai.route_type'):
                                     tags.append(f"route:{row.get('ai.route_type')}")
                                 
-                                job_title = row.get('source.title', 'CDL Position')[:50]
-                                tracked_url = link_tracker.create_short_link(
+                                # Generate edge function URL for click tracking (no Short.io)
+                                tracked_url = link_tracker.generate_edge_function_url(
                                     original_url,
-                                    title=f"Memory: {job_title}",
-                                    tags=tags,
-                                    candidate_id=candidate_id
+                                    candidate_id=candidate_id,
+                                    tags=tags
                                 )
-                                
-                                if tracked_url and tracked_url != original_url:
+
+                                if tracked_url:
                                     final_df.at[idx, 'meta.tracked_url'] = tracked_url
-                                    print(f"🔗 Generated tracking URL for {job_id[:8]}")
+                                    print(f"🔗 Generated edge function URL for {job_id[:8]}")
                                 else:
                                     final_df.at[idx, 'meta.tracked_url'] = original_url
                                     print(f"⚠️ Using original URL for {job_id[:8]}")
@@ -1898,30 +1897,28 @@ Return ONLY the formatted HTML version, no explanation or markdown code blocks."
                                     or os.getenv('FREEWORLD_CANDIDATE_ID', 'demo_agent_001')
                                 )
 
-                                # Prepare tags for Short.io
+                                # Prepare tags for edge function tracking
                                 tags = []
                                 if coach_username:
                                     tags.append(f"coach:{coach_username}")
                                 if candidate_id:
                                     tags.append(f"candidate:{candidate_id}")
                                 if candidate_name:
-                                    tags.append(f"agent:{candidate_name.replace(' ', '-')}") # Short.io tags prefer dashes
+                                    tags.append(f"agent:{candidate_name.replace(' ', '-')}")
                                 if market:
                                     tags.append(f"market:{market}")
-                                
-                                # Use actual job title for better tracking context
-                                job_title_for_tracking = job.get('source.title', f"Job {job_id[:8]}")
 
-                                tracked_url = link_tracker.create_short_link(
+                                # Generate edge function URL for click tracking (no Short.io)
+                                tracked_url = link_tracker.generate_edge_function_url(
                                     original_url,
-                                    title=job_title_for_tracking,
+                                    candidate_id=candidate_id,
                                     tags=tags
                                 )
-                                if tracked_url and tracked_url != original_url:
+                                if tracked_url:
                                     url_mapping[job_id] = tracked_url
-                                    print(f"✅ Created tracked URL for {job_id[:8]}: {tracked_url}")
+                                    print(f"✅ Created edge function URL for {job_id[:8]}")
                                 else:
-                                    print(f"❌ Link shortening returned invalid URL for {job_id[:8]}: expected new URL, got {tracked_url}")
+                                    print(f"❌ Edge function URL generation failed for {job_id[:8]}")
                                     url_mapping[job_id] = original_url
                             except Exception as e:
                                 print(f"❌ Link shortening failed for {job_id[:8]}: {e}")
