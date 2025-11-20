@@ -1923,16 +1923,18 @@ def main():
 
         st.markdown("---")
 
-        # Preview of coach letter (read-only)
-        st.markdown(f"#### Letter from Coach {st.session_state.coach_name} (Preview)")
-        with st.expander("📖 Preview Coach Support Letter", expanded=False):
-            st.markdown(f"""
-            <div style="background: white; border-radius: 12px; padding: 20px; border-left: 4px solid #593CBC;">
-                <div style="white-space: pre-wrap; line-height: 1.8; font-size: 15px; color: #191931;">
-{st.session_state.coach_letter}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+        # Editable text area for Coach letter
+        st.markdown(f"#### Letter from Coach {st.session_state.coach_name} (Editable)")
+        edited_coach_letter = st.text_area(
+            "Edit the coach letter below:",
+            value=st.session_state.coach_letter,
+            height=400,
+            key="edit_coach_letter",
+            help="Feel free to edit any part of the coach's support letter"
+        )
+
+        # Update session state with edited content
+        st.session_state.coach_letter = edited_coach_letter
 
         st.markdown("---")
 

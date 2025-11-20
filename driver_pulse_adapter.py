@@ -667,9 +667,9 @@ class DriverPulsePipelineIntegration:
             # Step 6: Final routing
             df = pipeline._stage6_routing(df, "")
 
-            # Step 7: Link tracking (generate Short.io links)
-            # We don't need PDF/CSV/HTML files, just the link tracking
-            # Stage 7 updates pipeline.df internally with tracked URLs
+            # Step 7: Link tracking (SKIP for scheduled scraper)
+            # We don't need PDF/CSV/HTML files or link tracking for scheduled scrapers
+            # Stage 7 updates pipeline.df internally with original URLs
             pipeline._stage7_output(
                 df=df,
                 market="",
@@ -677,7 +677,8 @@ class DriverPulsePipelineIntegration:
                 generate_pdf=False,
                 generate_csv=False,
                 generate_html=False,
-                force_memory_only=False
+                force_memory_only=False,
+                skip_link_tracking=True  # Skip link generation for scheduled DriverPulse scraper
             )
 
             # Step 8: Data storage (upload to Supabase)

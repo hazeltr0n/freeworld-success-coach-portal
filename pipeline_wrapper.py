@@ -453,6 +453,7 @@ class StreamlitPipelineWrapper:
                         force_fresh_classification=params.get('force_fresh_classification', False),
                         force_memory_only=memory_only_mode,
                         force_link_generation=params.get('force_link_generation', False),
+                        skip_link_tracking=params.get('skip_link_tracking', False),  # NEW: Skip link tracking for scheduled scrapers
                         hardcoded_market=None,
                         custom_location=custom_location if custom_location else None,
                         generate_pdf=params.get('generate_pdf', False),  # Respect PDF generation request from UI
