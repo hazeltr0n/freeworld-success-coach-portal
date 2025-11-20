@@ -2658,7 +2658,7 @@ def show_manage_agents_tab(coach, coach_manager):
         def get_editable_data_hash(df_row):
             """Get hash of just the editable fields for comparison"""
             editable_fields = [
-                'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Quality', 'Lookback', 'Show Prepared For', 'City', 'State', 'ZIP', 'Radius (mi)', 'Admin Portal',
+                'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Quality', 'Lookback', 'Show Prepared For', 'Active', 'City', 'State', 'ZIP', 'Radius (mi)', 'Admin Portal',
                 'CDL Jobs', 'Dock→Driver', 'CDL Training', 'Warehouse→Driver', 'Logistics', 'Non-CDL', 'Warehouse'
             ]
             # Only include fields that actually exist in the DataFrame (safety check for column name changes)
