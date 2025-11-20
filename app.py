@@ -2642,7 +2642,7 @@ def show_manage_agents_tab(coach, coach_manager):
             df,
             column_config=column_config,
             hide_index=True,
-            use_container_width=True,  # Auto-expand to container width
+            width="stretch",  # Auto-expand to container width
             num_rows="fixed",  # Don't allow adding/removing rows
             key="agent_editor"
         )
@@ -3289,7 +3289,7 @@ def show_track_applications_tab(coach, coach_manager):
                     'Company': st.column_config.TextColumn('Company', disabled=True, width="medium"),
                     'Job Title': st.column_config.TextColumn('Job Title', disabled=True, width="large")
                 },
-                use_container_width=True,
+                width="stretch",
                 height=400,
                 hide_index=True,
                 key="applications_editor"

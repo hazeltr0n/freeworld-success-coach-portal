@@ -1474,7 +1474,7 @@ def main():
         else:
             coach_name = coach_selection
 
-        if st.button("Continue ➡️", use_container_width=True):
+        if st.button("Continue ➡️", width="stretch"):
             # Validate all fields are filled
             if not agent_name or not agent_phone or not agent_email or not coach_name:
                 st.error("⚠️ Please fill out all fields before continuing.")
@@ -1523,14 +1523,14 @@ def main():
                 # Show preview for images
                 for i, uploaded_file in enumerate(uploaded_files):
                     if uploaded_file.type.startswith('image'):
-                        st.image(uploaded_file, caption=f"Page {i+1}", use_container_width=True)
+                        st.image(uploaded_file, caption=f"Page {i+1}", width="stretch")
 
         # Always-present buttons outside tabs
         st.markdown("---")
         col1, col2 = st.columns([2, 1])
 
         with col1:
-            if st.button("✅ Submit & Continue", use_container_width=True, key="submit_notification"):
+            if st.button("✅ Submit & Continue", width="stretch", key="submit_notification"):
                 # Check if we have text or files
                 has_text = bool(st.session_state.temp_notification_text.strip())
                 has_files = uploaded_files is not None and len(uploaded_files) > 0
@@ -1578,7 +1578,7 @@ def main():
                     st.warning("⚠️ Please paste text or upload files before continuing.")
 
         with col2:
-            if st.button("⏭️ Skip", use_container_width=True, key="skip_notification"):
+            if st.button("⏭️ Skip", width="stretch", key="skip_notification"):
                 st.session_state.notification_text = "No notification provided"
                 st.session_state.notification_analysis = "Notification not provided by user"
                 st.session_state.step = 'notification_explanation'
@@ -1623,7 +1623,7 @@ def main():
         **Don't have it?** No problem - we can still help you write a great response!
         """)
 
-        if st.button("➡️ Continue to Background Check", use_container_width=True):
+        if st.button("➡️ Continue to Background Check", width="stretch"):
             st.session_state.step = 'background_check'
             st.rerun()
 
@@ -1678,14 +1678,14 @@ def main():
 
                 for i, uploaded_file in enumerate(bg_uploaded_files):
                     if uploaded_file.type.startswith('image'):
-                        st.image(uploaded_file, caption=f"Page {i+1}", use_container_width=True)
+                        st.image(uploaded_file, caption=f"Page {i+1}", width="stretch")
 
         # Always-present buttons outside tabs
         st.markdown("---")
         col1, col2 = st.columns([2, 1])
 
         with col1:
-            if st.button("✅ Submit & Continue", use_container_width=True, key="submit_bg"):
+            if st.button("✅ Submit & Continue", width="stretch", key="submit_bg"):
                 # Check if we have text or files
                 has_text = bool(st.session_state.temp_bg_text.strip())
                 has_files = bg_uploaded_files is not None and len(bg_uploaded_files) > 0
@@ -1753,7 +1753,7 @@ def main():
                     st.warning("⚠️ Please paste text or upload files, or click Skip to continue without background check.")
 
         with col2:
-            if st.button("⏭️ Skip", use_container_width=True, key="skip_bg"):
+            if st.button("⏭️ Skip", width="stretch", key="skip_bg"):
                 # Initialize conversation - no background check analyzed
                 first_question = CONVERSATION_QUESTIONS[0]["question"]
                 st.session_state.messages = [
@@ -1780,7 +1780,7 @@ def main():
         Just answer naturally - we're having a conversation. There are no wrong answers.
         """)
 
-        if st.button("➡️ Start Questions", use_container_width=True, type="primary"):
+        if st.button("➡️ Start Questions", width="stretch", type="primary"):
             st.session_state.step = 'chat'
             st.rerun()
 
@@ -1911,7 +1911,7 @@ def main():
             placeholder="Type your answer here, or use your device's voice input..."
         )
 
-        if st.button("📤 Submit Response", use_container_width=True, key="submit_response"):
+        if st.button("📤 Submit Response", width="stretch", key="submit_response"):
             if user_response.strip():
                 process_user_response(user_response.strip())
             else:
@@ -1938,11 +1938,11 @@ def main():
 
         col1, col2 = st.columns([1, 1])
         with col1:
-            if st.button("✨ Generate My Letters", use_container_width=True):
+            if st.button("✨ Generate My Letters", width="stretch"):
                 st.session_state.step = 'generating'
                 st.rerun()
         with col2:
-            if st.button("⬅️ Start Over", key="restart", use_container_width=True):
+            if st.button("⬅️ Start Over", key="restart", width="stretch"):
                 st.session_state.step = 'coach_select'
                 st.session_state.messages = []
                 st.session_state.current_question = 0
@@ -2017,7 +2017,7 @@ def main():
         # Action buttons
         col1, col2 = st.columns([2, 1])
         with col1:
-            if st.button("✅ Looks Good - Generate PDFs", use_container_width=True):
+            if st.button("✅ Looks Good - Generate PDFs", width="stretch"):
                 with st.spinner("🎨 Creating your beautiful professional documents..."):
                     pdfs = generate_pdfs(
                         st.session_state.agent_name,
@@ -2032,7 +2032,7 @@ def main():
                 st.rerun()
 
         with col2:
-            if st.button("⬅️ Start Over", key="restart_from_review", use_container_width=True):
+            if st.button("⬅️ Start Over", key="restart_from_review", width="stretch"):
                 st.session_state.step = 'coach_select'
                 st.session_state.messages = []
                 st.session_state.current_question = 0
@@ -2056,7 +2056,7 @@ def main():
                     data=combined_package,
                     file_name=f"{st.session_state.agent_name.replace(' ', '_')}_Complete_Response_Package.pdf",
                     mime="application/pdf",
-                    use_container_width=True,
+                    width="stretch",
                     type="primary"
                 )
                 st.caption("💡 This single PDF contains all three documents (3 pages). You can also download them individually below.")
@@ -2082,7 +2082,7 @@ def main():
                 data=st.session_state.pdfs['agent_letter'],
                 file_name=f"{st.session_state.agent_name.replace(' ', '_')}_Response_Letter.pdf",
                 mime="application/pdf",
-                use_container_width=True
+                width="stretch"
             )
 
         st.markdown("---")
@@ -2104,7 +2104,7 @@ def main():
                 data=st.session_state.pdfs['coach_letter'],
                 file_name=f"Coach_{st.session_state.coach_name.replace(' ', '_')}_Support_Letter.pdf",
                 mime="application/pdf",
-                use_container_width=True
+                width="stretch"
             )
 
         st.markdown("---")
@@ -2119,7 +2119,7 @@ def main():
                 data=st.session_state.pdfs['certificate'],
                 file_name=f"{st.session_state.agent_name.replace(' ', '_')}_FreeWorld_Certificate.pdf",
                 mime="application/pdf",
-                use_container_width=True
+                width="stretch"
             )
 
         st.markdown("---")
@@ -2155,7 +2155,7 @@ def main():
 
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("🔄 Create Another Package", use_container_width=True):
+            if st.button("🔄 Create Another Package", width="stretch"):
                 for key in ['notification_text', 'notification_analysis', 'background_check_text', 'background_check_analysis',
                            'messages', 'generated_letter', 'coach_letter', 'pdfs', 'step', 'current_question',
                            'awaiting_followup', 'agent_name', 'coach_name']:
@@ -2164,7 +2164,7 @@ def main():
                 st.rerun()
 
         with col2:
-            if st.button("📧 Email Package to Myself", use_container_width=True, disabled=True):
+            if st.button("📧 Email Package to Myself", width="stretch", disabled=True):
                 st.info("Coming soon! For now, use the download buttons above.")
 
     # Footer
