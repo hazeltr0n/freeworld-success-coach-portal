@@ -2559,9 +2559,8 @@ def show_manage_agents_tab(coach, coach_manager):
                 help="Include 'Prepared for [Agent] by Coach [Coach]' message in portal",
                 width="small"
             ),
-            # INDIVIDUAL PATHWAY CHECKBOX COLUMNS (replacing ListColumn)
-            'CDL Jobs': st.column_config.CheckboxColumn("CDL", width="small", help="Traditional CDL driving positions"),
-            # Hide pathway columns - not needed in main view
+            # Hide all pathway columns - not needed in main view
+            'CDL Jobs': None,
             'Dock→Driver': None,
             'CDL Training': None,
             'Warehouse→Driver': None,
