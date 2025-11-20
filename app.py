@@ -2478,6 +2478,7 @@ def show_manage_agents_tab(coach, coach_manager):
                 disabled=True,
                 width="medium"
             ),
+            'Status': None,  # Hidden - not needed in main view
             'Placement': st.column_config.TextColumn(
                 "Placement",
                 help="Airtable placement status (synced)",
@@ -2490,12 +2491,7 @@ def show_manage_agents_tab(coach, coach_manager):
                 disabled=True,
                 width="medium"  # Increased from small to medium for full text visibility
             ),
-            'Coaches': st.column_config.TextColumn(
-                "Coaches",
-                help="All coaches assigned to this agent",
-                disabled=True,
-                width="medium"
-            ),
+            'Coaches': None,  # Hidden - not needed in main view
             'City': st.column_config.TextColumn(
                 "City",
                 help="Agent's city - editable",
@@ -2565,12 +2561,13 @@ def show_manage_agents_tab(coach, coach_manager):
             ),
             # INDIVIDUAL PATHWAY CHECKBOX COLUMNS (replacing ListColumn)
             'CDL Jobs': st.column_config.CheckboxColumn("CDL", width="small", help="Traditional CDL driving positions"),
-            'Dock→Driver': st.column_config.CheckboxColumn("Dock→CDL", width="small", help="Dock worker to CDL driver transition"),
-            'CDL Training': st.column_config.CheckboxColumn("Training", width="small", help="Company-sponsored CDL programs"),
-            'Warehouse→Driver': st.column_config.CheckboxColumn("Warehouse→CDL", width="small", help="Warehouse to driving progression"),
-            'Logistics': st.column_config.CheckboxColumn("Logistics", width="small", help="Logistics career advancement"),
-            'Non-CDL': st.column_config.CheckboxColumn("Non-CDL", width="small", help="Non-CDL driving positions"),
-            'Warehouse': st.column_config.CheckboxColumn("Warehouse", width="small", help="General warehouse opportunities"),
+            # Hide pathway columns - not needed in main view
+            'Dock→Driver': None,
+            'CDL Training': None,
+            'Warehouse→Driver': None,
+            'Logistics': None,
+            'Non-CDL': None,
+            'Warehouse': None,
             'Clicks (All)': st.column_config.NumberColumn(
                 "Clicks (All)",
                 help="Total clicks since agent was created",
@@ -2897,6 +2894,9 @@ def show_manage_agents_tab(coach, coach_manager):
             with col1:
                 if st.button("🗑️ Confirm Delete Selected", type="secondary"):
                     delete_count = 0
+                    deleted_names = []
+                    failed_names = []
+
                     for _, agent_row in agents_to_delete.iterrows():
                         agent_uuid = agent_row['_agent_uuid']
                         agent_name = agent_row['Name']
@@ -2904,19 +2904,25 @@ def show_manage_agents_tab(coach, coach_manager):
                             from free_agent_system import delete_agent_profile
                             if delete_agent_profile(coach.username, agent_uuid):
                                 delete_count += 1
-                                st.success(f"✅ Deleted {agent_name}")
+                                deleted_names.append(agent_name)
                             else:
-                                st.error(f"❌ Failed to delete {agent_name}")
+                                failed_names.append(agent_name)
                         except Exception as e:
-                            st.error(f"❌ Error deleting {agent_name}: {e}")
-                    
-                    if delete_count > 0:
-                        st.success(f"✅ Successfully deleted {delete_count} agent(s)")
-                        # Clear cache to reload fresh data
-                        agents_cache_key = f'agents_{coach.username}_{show_deleted}'
-                        if agents_cache_key in st.session_state:
-                            del st.session_state[agents_cache_key]
-                        st.rerun()
+                            failed_names.append(f"{agent_name} ({str(e)})")
+
+                    # Clear cache to reload fresh data
+                    agents_cache_key = f'agents_{coach.username}_{show_deleted}'
+                    if agents_cache_key in st.session_state:
+                        del st.session_state[agents_cache_key]
+
+                    # Show results AFTER clearing cache but BEFORE rerun
+                    if deleted_names:
+                        st.success(f"✅ Deleted {len(deleted_names)} agent(s): {', '.join(deleted_names)}")
+                    if failed_names:
+                        st.error(f"❌ Failed to delete: {', '.join(failed_names)}")
+
+                    # Rerun to refresh the table
+                    st.rerun()
             with col2:
                 if st.button("❌ Cancel", type="primary"):
                     st.rerun()
