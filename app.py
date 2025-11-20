@@ -2449,12 +2449,12 @@ def show_manage_agents_tab(coach, coach_manager):
                     'Created': agent.get('created_at', '')[:10] if agent.get('created_at') else '',
                     'Portal Link': agent.get('portal_url', 'No link generated'),
                     'Admin Portal': agent.get('admin_portal_url', ''),
-                    'Restore' if not is_active else 'Delete': False,  # Checkbox for restore/deletion
+                    'Active': is_active,  # Editable checkbox for active status
                     # Hidden fields for updates
                     '_agent_uuid': agent.get('agent_uuid', ''),
                     '_created_at': agent.get('created_at', ''),
                     '_original_data': agent,  # Store original for comparison
-                    '_is_active': is_active  # Store active status
+                    '_is_active': is_active  # Store original active status
             }
             agent_data.append(agent_row)
 
@@ -2626,15 +2626,16 @@ def show_manage_agents_tab(coach, coach_manager):
                 disabled=True,
                 width="small"
             ),
-            'Delete': st.column_config.CheckboxColumn(
-                "Delete",
-                help="Check to mark for deletion",
+            'Active': st.column_config.CheckboxColumn(
+                "Active",
+                help="Uncheck to soft-delete agent (will hide from main view)",
                 width="small"
             ),
             # Hide internal columns
             '_agent_uuid': None,
             '_created_at': None,
-            '_original_data': None
+            '_original_data': None,
+            '_is_active': None
         }
         
         # Show the editable data table
@@ -2743,6 +2744,7 @@ def show_manage_agents_tab(coach, coach_manager):
                                 'match_level': str(edited['Quality']),
                                 'lookback_hours': lookback_hours,  # Save as integer for database
                                 'show_prepared_for': bool(edited['Show Prepared For']),
+                                'is_active': bool(edited['Active']),  # Handle active/inactive status
                                 'coach_username': coach.username,  # Add coach username for portal link generation
                                 'agent_city': str(edited.get('City', '')),
                                 'agent_state': str(edited.get('State', '')),
@@ -2883,84 +2885,6 @@ def show_manage_agents_tab(coach, coach_manager):
                 if st.button("↩️ Discard Changes"):
                     # Reset by clearing session state and rerunning
                     st.session_state.agent_table_last_saved = {}
-                    st.rerun()
-        
-        # Handle bulk deletions
-        agents_to_delete = edited_df[edited_df['Delete'] == True]
-        if not agents_to_delete.empty:
-            st.warning(f"⚠️ {len(agents_to_delete)} agent(s) marked for deletion")
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("🗑️ Confirm Delete Selected", type="secondary"):
-                    delete_count = 0
-                    deleted_names = []
-                    failed_names = []
-
-                    for _, agent_row in agents_to_delete.iterrows():
-                        agent_uuid = agent_row['_agent_uuid']
-                        agent_name = agent_row['Name']
-                        try:
-                            from free_agent_system import delete_agent_profile
-                            if delete_agent_profile(coach.username, agent_uuid):
-                                delete_count += 1
-                                deleted_names.append(agent_name)
-                            else:
-                                failed_names.append(agent_name)
-                        except Exception as e:
-                            failed_names.append(f"{agent_name} ({str(e)})")
-
-                    # Clear cache to reload fresh data
-                    agents_cache_key = f'agents_{coach.username}_{show_deleted}'
-                    if agents_cache_key in st.session_state:
-                        del st.session_state[agents_cache_key]
-
-                    # Show results AFTER clearing cache but BEFORE rerun
-                    if deleted_names:
-                        st.success(f"✅ Deleted {len(deleted_names)} agent(s): {', '.join(deleted_names)}")
-                    if failed_names:
-                        st.error(f"❌ Failed to delete: {', '.join(failed_names)}")
-
-                    # Rerun to refresh the table
-                    st.rerun()
-            with col2:
-                if st.button("❌ Cancel", type="primary"):
-                    st.rerun()
-        
-        # Handle bulk restores
-        agents_to_restore = edited_df[edited_df.get('Restore', pd.Series([False]*len(edited_df))) == True]
-        if not agents_to_restore.empty:
-            st.success(f"🔄 {len(agents_to_restore)} agent(s) marked for restore")
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("🔄 Confirm Restore Selected", type="primary"):
-                    restore_count = 0
-                    for _, agent_row in agents_to_restore.iterrows():
-                        agent_uuid = agent_row['_agent_uuid'] 
-                        agent_name = agent_row['Name']
-                        try:
-                            from supabase_utils import get_client
-                            client = get_client()
-                            if client:
-                                result = client.table('agent_profiles').update({
-                                    'is_active': True,
-                                    'last_accessed': 'NOW()'
-                                }).eq('coach_username', coach.username).eq('agent_uuid', agent_uuid).execute()
-                                
-                                if result.data:
-                                    restore_count += 1
-                                    st.success(f"✅ Restored {agent_name}")
-                                else:
-                                    st.error(f"❌ Failed to restore {agent_name}")
-                            else:
-                                st.error(f"❌ Database connection failed for {agent_name}")
-                        except Exception as e:
-                            st.error(f"❌ Error restoring {agent_name}: {e}")
-                    
-                    if restore_count > 0:
-                        st.success(f"✅ Successfully restored {restore_count} agent(s)")
-                        st.rerun()
-            with col2:
-                if st.button("❌ Cancel Restore", type="secondary"):
                     st.rerun()
         
         # Bulk actions
