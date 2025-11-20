@@ -708,6 +708,77 @@ Generate a powerful, credible support letter that provides third-party validatio
     except Exception as e:
         return f"Error generating coach letter: {str(e)}"
 
+class PersonalLetterPDF(FPDF):
+    """Simple personal letter - looks like written at home on a computer"""
+
+    def __init__(self, agent_name="", agent_phone="", agent_email=""):
+        super().__init__(orientation='P', unit='pt', format='Letter')
+        self.set_margins(72, 72, 72)  # Standard 1-inch margins
+        self.set_auto_page_break(True, margin=72)
+
+        self.agent_name = agent_name
+        self.agent_phone = agent_phone
+        self.agent_email = agent_email
+
+    def header(self):
+        """Simple header - just agent contact info, no logo or branding"""
+        # Agent's contact info at top (like a resume)
+        self.set_font('Arial', '', 11)
+        self.set_text_color(40, 40, 40)
+
+        # Name
+        self.set_xy(72, 50)
+        self.cell(0, 14, self.agent_name, align='L')
+
+        # Phone and email on same line
+        if self.agent_phone or self.agent_email:
+            self.set_xy(72, 64)
+            contact_parts = []
+            if self.agent_phone:
+                contact_parts.append(self.agent_phone)
+            if self.agent_email:
+                contact_parts.append(self.agent_email)
+            self.cell(0, 14, " | ".join(contact_parts), align='L')
+
+        self.ln(30)
+
+    def footer(self):
+        """No footer - keep it simple and personal"""
+        pass
+
+    def add_letter_content(self, content):
+        """Add letter content with simple, readable formatting"""
+        self.set_font('Arial', '', 11)
+        self.set_text_color(40, 40, 40)
+
+        # Sanitize Unicode characters
+        def sanitize_unicode(text):
+            replacements = {
+                '\u2018': "'", '\u2019': "'",
+                '\u201C': '"', '\u201D': '"',
+                '\u2013': '-', '\u2014': '--',
+                '\u2026': '...'
+            }
+            for unicode_char, ascii_char in replacements.items():
+                text = text.replace(unicode_char, ascii_char)
+            return text
+
+        # Split content into paragraphs
+        paragraphs = content.split('\n\n')
+
+        for para in paragraphs:
+            if para.strip():
+                clean_para = sanitize_unicode(para.strip())
+                self.set_x(self.l_margin)
+
+                # Simple formatting - no special handling
+                if clean_para.startswith('Sincerely') or clean_para.startswith('Best regards'):
+                    self.ln(8)
+                    self.multi_cell(0, 15, clean_para)
+                else:
+                    self.multi_cell(0, 15, clean_para)
+                    self.ln(8)
+
 class FreeWorldLetterPDF(FPDF):
     """Professional legal letterhead generator for FreeWorld"""
 
@@ -1017,12 +1088,17 @@ def generate_pdfs(agent_name, coach_name, response_letter, coach_letter, agent_p
     # Format phone number for professional display
     formatted_phone = format_phone_number(agent_phone)
 
-    # 1. Free Agent Response Letter
+    # 1. Free Agent Response Letter - PERSONAL STYLE (no FreeWorld branding)
     try:
-        pdf1 = FreeWorldLetterPDF()
+        pdf1 = PersonalLetterPDF(
+            agent_name=agent_name,
+            agent_phone=formatted_phone,
+            agent_email=agent_email
+        )
         pdf1.add_page()
-        pdf1.set_xy(72, 120)
-        pdf1.set_font('Times', '', 11)
+        # Date below contact info
+        pdf1.set_xy(72, 110)
+        pdf1.set_font('Arial', '', 11)
         pdf1.cell(0, 15, datetime.now().strftime("%B %d, %Y"))
         pdf1.ln(30)
         pdf1.set_x(72)  # Reset x position to left margin before adding content
