@@ -65,25 +65,26 @@ class ShortIOBulkDeleter:
         print(f"   (Skipping validation - account is over limit)")
 
     def get_all_links(self, limit: int = None) -> List[Dict[str, Any]]:
-        """Fetch all links from Short.io domain"""
+        """Fetch all links from Short.io domain using cursor-based pagination"""
         all_links = []
-        offset = 0
         page_size = 150  # Short.io max per page
+        next_token = None
 
         print(f"\n🔍 Fetching links from Short.io...")
 
         while True:
             try:
                 params = {
-                    "domain": self.domain,  # Use domain name instead of domain_id
+                    "domain_id": 1475162,  # Use domain ID for freeworldjobs.short.gy
                     "limit": page_size,
-                    "offset": offset
                 }
+                if next_token:
+                    params["pageToken"] = next_token
 
                 response = self.session.get(f"{self.base_url}/api/links", params=params)
 
                 if response.status_code != 200:
-                    print(f"⚠️ API error at offset {offset}: {response.status_code}")
+                    print(f"⚠️ API error: {response.status_code}")
                     break
 
                 data = response.json()
@@ -100,11 +101,11 @@ class ShortIOBulkDeleter:
                     all_links = all_links[:limit]
                     break
 
-                # Stop if we've fetched everything
-                if len(links) < page_size:
+                # Get next page token for cursor-based pagination
+                next_token = data.get('nextPageToken')
+                if not next_token:
                     break
 
-                offset += page_size
                 time.sleep(0.1)  # Be nice to API
 
             except Exception as e:

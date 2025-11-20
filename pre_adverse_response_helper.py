@@ -432,8 +432,10 @@ Dear {contact_name},
 - Express gratitude for consideration
 
 **SIGNATURE:**
+**CRITICAL: Use EXACTLY the contact information provided below. DO NOT modify or extract different information from the notification or conversation.**
+
 "Sincerely,"
-Then on separate lines:
+Then on separate lines (use these EXACT values):
 {agent_name}
 {agent_phone}
 {agent_email}
@@ -721,26 +723,8 @@ class PersonalLetterPDF(FPDF):
         self.agent_email = agent_email
 
     def header(self):
-        """Simple header - just agent contact info, no logo or branding"""
-        # Agent's contact info at top (like a resume)
-        self.set_font('Arial', '', 11)
-        self.set_text_color(40, 40, 40)
-
-        # Name
-        self.set_xy(72, 50)
-        self.cell(0, 14, self.agent_name, align='L')
-
-        # Phone and email on same line
-        if self.agent_phone or self.agent_email:
-            self.set_xy(72, 64)
-            contact_parts = []
-            if self.agent_phone:
-                contact_parts.append(self.agent_phone)
-            if self.agent_email:
-                contact_parts.append(self.agent_email)
-            self.cell(0, 14, " | ".join(contact_parts), align='L')
-
-        self.ln(30)
+        """No header - contact info is in signature at bottom of letter"""
+        pass
 
     def footer(self):
         """No footer - keep it simple and personal"""
@@ -1096,8 +1080,8 @@ def generate_pdfs(agent_name, coach_name, response_letter, coach_letter, agent_p
             agent_email=agent_email
         )
         pdf1.add_page()
-        # Date below contact info
-        pdf1.set_xy(72, 110)
+        # Date at top (no header anymore - contact info is in signature)
+        pdf1.set_xy(72, 72)
         pdf1.set_font('Arial', '', 11)
         pdf1.cell(0, 15, datetime.now().strftime("%B %d, %Y"))
         pdf1.ln(30)

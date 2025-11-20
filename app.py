@@ -2461,11 +2461,11 @@ def show_manage_agents_tab(coach, coach_manager):
         df = pd.DataFrame(agent_data)
         # Reorder columns with new placement/employment/coaches columns at the front
         desired_order = [
-            'Status', 'Name', 'Placement', 'Employment', 'Coaches',
+            'Name', 'Active', 'Placement', 'Employment',
             'Clicks (All)', 'Clicks (14d)', 'Apps (All)', 'Apps (14d)',
             'Score', 'Activity', 'Last Applied', 'Market', 'Route', 'Fair Chance', 'Max Jobs', 'Quality', 'Lookback', 'Show Prepared For',
             'CDL Jobs', 'Dock→Driver', 'CDL Training', 'Warehouse→Driver', 'Logistics', 'Non-CDL', 'Warehouse',
-            'City', 'State', 'ZIP', 'Radius (mi)', 'Created', 'Portal Link', 'Admin Portal', 'Delete', 'Restore',
+            'City', 'State', 'ZIP', 'Radius (mi)', 'Created', 'Portal Link', 'Admin Portal',
             '_agent_uuid', '_created_at', '_original_data', '_is_active'
         ]
         df = df[[c for c in desired_order if c in df.columns]]
@@ -2477,6 +2477,11 @@ def show_manage_agents_tab(coach, coach_manager):
                 help="Free Agent's full name",
                 disabled=True,
                 width="medium"
+            ),
+            'Active': st.column_config.CheckboxColumn(
+                "Active",
+                help="Uncheck to soft-delete agent (will hide from main view)",
+                width="small"
             ),
             'Status': None,  # Hidden - not needed in main view
             'Placement': st.column_config.TextColumn(
@@ -2626,11 +2631,6 @@ def show_manage_agents_tab(coach, coach_manager):
                 disabled=True,
                 width="small"
             ),
-            'Active': st.column_config.CheckboxColumn(
-                "Active",
-                help="Uncheck to soft-delete agent (will hide from main view)",
-                width="small"
-            ),
             # Hide internal columns
             '_agent_uuid': None,
             '_created_at': None,
@@ -2643,6 +2643,7 @@ def show_manage_agents_tab(coach, coach_manager):
             df,
             column_config=column_config,
             hide_index=True,
+            height=600,  # Enable scrolling for large tables
             width="stretch",  # Auto-expand to container width
             num_rows="fixed",  # Don't allow adding/removing rows
             key="agent_editor"
@@ -2686,6 +2687,12 @@ def show_manage_agents_tab(coach, coach_manager):
             # Check if this agent's data has changed since last save
             if agent_uuid not in st.session_state.agent_table_last_saved or \
                st.session_state.agent_table_last_saved[agent_uuid] != current_hash:
+                changes_detected = True
+
+            # Also explicitly check for Active field changes (checkbox may not trigger hash change properly)
+            original_active = df.iloc[idx]['Active']
+            edited_active = edited_df.iloc[idx]['Active']
+            if original_active != edited_active:
                 changes_detected = True
 
         # Save changes button (instead of auto-save on every edit)
