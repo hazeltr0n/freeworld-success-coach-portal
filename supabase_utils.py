@@ -451,8 +451,7 @@ def delete_agent_profile_from_supabase(coach_username: str, agent_uuid: str) -> 
     try:
         # Soft delete: Set is_active=False on the agent profile
         result = client.table('agent_profiles').update({
-            'is_active': False,
-            'updated_at': 'NOW()'
+            'is_active': False
         }).eq('agent_uuid', agent_uuid).execute()
 
         if result.data:
