@@ -444,6 +444,7 @@ class EnhancedTerminalJobSearch:
                 'force_fresh': force_fresh,
                 'force_fresh_classification': force_fresh_classification,
                 'force_memory_only': memory_only,
+                'skip_link_tracking': skip_link_tracking,
                 'custom_location': location if is_custom_location else None,
                 'filter_settings': filter_settings or {},
                 'search_sources': search_sources or {'indeed': True, 'google': False},
@@ -487,7 +488,7 @@ class EnhancedTerminalJobSearch:
             return False, None
 
 
-    def run_search(self, selected_markets, custom_location, search_terms, route_filter, airtable_upload, mode_info, force_fresh=False, force_fresh_classification=False, memory_only=False, radius=50, no_experience=True, business_rules=True, deduplication=True, experience_filter=True, classification_model="gpt-4o-mini", batch_size=25, generate_pdf=True, generate_csv=True, generate_html=True, save_parquet=False, filter_settings=None, search_sources=None, search_strategy="balanced", classifier_type="cdl"):
+    def run_search(self, selected_markets, custom_location, search_terms, route_filter, airtable_upload, mode_info, force_fresh=False, force_fresh_classification=False, memory_only=False, radius=50, no_experience=True, business_rules=True, deduplication=True, experience_filter=True, classification_model="gpt-4o-mini", batch_size=25, generate_pdf=True, generate_csv=True, generate_html=True, save_parquet=False, skip_link_tracking=False, filter_settings=None, search_sources=None, search_strategy="balanced", classifier_type="cdl"):
         """Execute the search using Pipeline v3 or v2 with fallback"""
         print(f"\n=== STARTING MULTI-LOCATION JOB SEARCH ===")
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -920,11 +921,13 @@ def main(generate_html: bool = False):
                        help='Generate HTML portal (default: False)')
     parser.add_argument('--no-html', action='store_true',
                        help='Disable HTML generation')
+    parser.add_argument('--skip-link-tracking', action='store_true',
+                       help='Skip all link tracking (no Short.io, no edge functions) - for scheduled scrapers')
     parser.add_argument('--save-parquet', action='store_true',
                        help='Save parquet checkpoint files (default: False)')
-    parser.add_argument('--airtable', action='store_true', 
+    parser.add_argument('--airtable', action='store_true',
                        help='Upload results to Airtable')
-    
+
     # Pipeline control parameters
     parser.add_argument('--force-fresh', action='store_true',
                        help='Force fresh scraping (ignore memory system)')
@@ -1043,6 +1046,7 @@ def main(generate_html: bool = False):
             force_fresh=args.force_fresh,
             force_fresh_classification=args.force_fresh_classification,
             memory_only=args.memory_only,
+            skip_link_tracking=args.skip_link_tracking,
             search_sources=search_sources,
             search_strategy=args.search_strategy,
             classifier_type=args.classifier_type,

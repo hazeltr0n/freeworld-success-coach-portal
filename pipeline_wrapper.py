@@ -576,6 +576,10 @@ class StreamlitPipelineWrapper:
             if not params.get('generate_csv', True):
                 cmd.append('--no-csv')
 
+            # Add skip link tracking flag for scheduled scrapers
+            if params.get('skip_link_tracking', False):
+                cmd.append('--skip-link-tracking')
+
             # Set coach name in environment and preserve Python path
             env = os.environ.copy()
             if params.get('coach_name'):
