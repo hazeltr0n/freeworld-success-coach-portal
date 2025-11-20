@@ -126,7 +126,8 @@ class StreamlitPipelineWrapper:
                 force_memory_only=force_memory_only,
                 mode_info=mode_info or {'mode': 'sample', 'limit': max_jobs},
                 show_prepared_for=show_prepared_for,
-                classifier_type=classifier_type
+                classifier_type=classifier_type,
+                skip_link_tracking=False  # Agent portal needs tracking
             )
             
             return results
