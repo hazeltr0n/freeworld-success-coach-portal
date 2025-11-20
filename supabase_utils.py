@@ -439,48 +439,31 @@ def load_agent_profiles_from_supabase(coach_username: str, include_inactive: boo
         return [], str(e)
 
 def delete_agent_profile_from_supabase(coach_username: str, agent_uuid: str) -> Tuple[bool, str | None]:
-    """Remove coach's assignment to an agent (soft delete from agent_coaches junction table)
+    """Soft-delete an agent profile by setting is_active=False
 
-    This does NOT delete the agent profile, only the coach-agent relationship.
-    If other coaches have this agent, they retain access.
+    This marks the agent as inactive rather than hard-deleting the record.
+    Preserves historical data and allows for recovery.
     """
     client = get_client()
     if client is None:
         return False, "Supabase client not available"
 
     try:
-        # First check if agent_coaches table exists (for backwards compatibility)
-        try:
-            # Soft delete the coach-agent relationship from junction table
-            result = client.table('agent_coaches').update({
-                'is_active': False,
-                'updated_at': 'NOW()'
-            }).eq('coach_username', coach_username).eq('agent_uuid', agent_uuid).execute()
+        # Soft delete: Set is_active=False on the agent profile
+        result = client.table('agent_profiles').update({
+            'is_active': False,
+            'updated_at': 'NOW()'
+        }).eq('agent_uuid', agent_uuid).execute()
 
-            print(f"✅ Removed coach assignment: {coach_username} → {agent_uuid}")
+        if result.data:
+            print(f"✅ Agent profile soft-deleted (is_active=False): {agent_uuid}")
             return True, None
-
-        except Exception as junction_error:
-            # Fallback: Remove coach from coach_usernames array in agent_profiles
-            print(f"⚠️ agent_coaches table not found, removing coach from array: {junction_error}")
-
-            # Get current agent profile
-            agent_result = client.table('agent_profiles').select('coach_usernames').eq('agent_uuid', agent_uuid).execute()
-
-            if agent_result.data:
-                current_coaches = agent_result.data[0].get('coach_usernames', []) or []
-                if coach_username in current_coaches:
-                    current_coaches.remove(coach_username)
-
-                # Update the array
-                result = client.table('agent_profiles').update({
-                    'coach_usernames': current_coaches,
-                    'updated_at': 'NOW()'
-                }).eq('agent_uuid', agent_uuid).execute()
-
-            return True, None
+        else:
+            print(f"❌ No agent found with UUID: {agent_uuid}")
+            return False, "Agent not found"
 
     except Exception as e:
+        print(f"❌ Error soft-deleting agent: {e}")
         return False, str(e)
 
 def update_agent_last_accessed(agent_uuid: str) -> Tuple[bool, str | None]:
