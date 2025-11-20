@@ -752,7 +752,7 @@ class EnhancedTerminalJobSearch:
         
         input("\nPress Enter to exit...")
 
-    def run_quick_command(self, markets=None, market=None, custom_location=None, mode="sample", route="both", terms="CDL Driver No Experience", radius=50, no_experience=True, business_rules=True, deduplication=True, experience_filter=True, classification_model="gpt-4o-mini", batch_size=25, generate_pdf=True, generate_csv=True, generate_html=True, save_parquet=False, airtable=False, force_fresh=False, force_fresh_classification=False, memory_only=False, search_sources=None, search_strategy="balanced", classifier_type="cdl", dry_run=False):
+    def run_quick_command(self, markets=None, market=None, custom_location=None, mode="sample", route="both", terms="CDL Driver No Experience", radius=50, no_experience=True, business_rules=True, deduplication=True, experience_filter=True, classification_model="gpt-4o-mini", batch_size=25, generate_pdf=True, generate_csv=True, generate_html=True, save_parquet=False, airtable=False, force_fresh=False, force_fresh_classification=False, memory_only=False, search_sources=None, search_strategy="balanced", classifier_type="cdl", dry_run=False, skip_link_tracking=False):
         """Run a quick command-line search with parameters"""
         
         # Location to Market mapping for new format
@@ -844,7 +844,8 @@ class EnhancedTerminalJobSearch:
                 save_parquet=save_parquet,
                 search_sources=search_sources,
                 search_strategy=search_strategy,
-                classifier_type=classifier_type
+                classifier_type=classifier_type,
+                skip_link_tracking=skip_link_tracking
             )
             
             if success:
