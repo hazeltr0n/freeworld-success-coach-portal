@@ -133,12 +133,24 @@ def extract_contact_name(notification_text):
             messages=[
                 {
                     "role": "system",
-                    "content": """Extract ONLY the contact person's name from this pre-adverse notification for use in a letter salutation.
+                    "content": """Extract ONLY the EMPLOYER CONTACT PERSON'S name from this pre-adverse notification for use in a letter salutation.
 
-If there's a specific person mentioned (e.g., "Contact John Smith" or "Sincerely, Jane Doe"), return just their name.
-If there's NO specific contact person mentioned, return exactly: "Hiring Team"
+**CRITICAL: DO NOT extract the applicant's/driver's/candidate's name. We need the EMPLOYER representative's name.**
 
-Return ONLY the name, nothing else."""
+Look for:
+- Names that appear after "Sincerely," or "Best regards," at the end
+- Names mentioned as "Contact [Name]" or "For questions, reach out to [Name]"
+- Names with job titles like "HR Manager", "Recruiter", "Hiring Manager", etc.
+- Names in signature blocks
+
+DO NOT extract:
+- The applicant's/candidate's/driver's name (usually mentioned early in the letter as "Dear [Name]" or "regarding your application")
+- Company names
+
+If there's a specific employer contact person clearly identified, return just their name in format suitable for "Dear [Name],"
+If there's NO clear employer contact person mentioned, return exactly: "To whom it may concern"
+
+Return ONLY the name or "To whom it may concern", nothing else."""
                 },
                 {
                     "role": "user",
@@ -150,10 +162,10 @@ Return ONLY the name, nothing else."""
         )
 
         name = response.choices[0].message.content.strip()
-        return name if name else "Hiring Team"
+        return name if name else "To whom it may concern"
     except Exception as e:
         print(f"Error extracting contact name: {e}")
-        return "Hiring Team"
+        return "To whom it may concern"
 
 def analyze_notification(notification_text):
     """Analyze the pre-adverse notification to understand context and instructions"""
@@ -283,7 +295,7 @@ def chat_with_gpt(messages):
 
 # Voice/TTS features removed per user request
 
-def generate_response_letter(conversation_history, notification_text, agent_name="", contact_name="Hiring Team", agent_phone="", agent_email=""):
+def generate_response_letter(conversation_history, notification_text, agent_name="", contact_name="To whom it may concern", agent_phone="", agent_email=""):
     """Generate a professional response letter based on the conversation"""
 
     # Extract key points from conversation
@@ -496,7 +508,7 @@ Generate the letter now."""
     except Exception as e:
         return f"Error generating letter: {str(e)}"
 
-def generate_coach_letter(agent_name, coach_name, conversation_history, notification_analysis, contact_name="Hiring Team"):
+def generate_coach_letter(agent_name, coach_name, conversation_history, notification_analysis, contact_name="To whom it may concern"):
     """Generate a supportive letter from the coach"""
     try:
         client = get_openai_client()
@@ -1192,7 +1204,7 @@ def initialize_session_state():
     if 'notification_analysis' not in st.session_state:
         st.session_state.notification_analysis = ""
     if 'contact_name' not in st.session_state:
-        st.session_state.contact_name = "Hiring Team"
+        st.session_state.contact_name = "To whom it may concern"
     if 'background_check_text' not in st.session_state:
         st.session_state.background_check_text = ""
     if 'background_check_analysis' not in st.session_state:
