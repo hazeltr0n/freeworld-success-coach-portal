@@ -425,7 +425,7 @@ class EnhancedTerminalJobSearch:
             print("\n👋 Goodbye!")
             sys.exit(0)
 
-    def run_search_v3(self, location, search_terms, route_filter, airtable_upload, mode_info, force_fresh=False, force_fresh_classification=False, memory_only=False, is_custom_location=False, radius=50, no_experience=True, business_rules=True, deduplication=True, experience_filter=True, classification_model="gpt-4o-mini", batch_size=25, generate_pdf=True, generate_csv=True, generate_html=True, save_parquet=False, filter_settings=None, search_sources=None, search_strategy="balanced", classifier_type="cdl"):
+    def run_search_v3(self, location, search_terms, route_filter, airtable_upload, mode_info, force_fresh=False, force_fresh_classification=False, memory_only=False, is_custom_location=False, radius=50, no_experience=True, business_rules=True, deduplication=True, experience_filter=True, classification_model="gpt-4o-mini", batch_size=25, generate_pdf=True, generate_csv=True, generate_html=True, save_parquet=False, skip_link_tracking=False, filter_settings=None, search_sources=None, search_strategy="balanced", classifier_type="cdl"):
         """Run search using Pipeline v3"""
         print(f"🚀 Using Pipeline v3 for location: {location}")
         
@@ -542,6 +542,7 @@ class EnhancedTerminalJobSearch:
                     generate_csv=generate_csv,
                     generate_html=generate_html,
                     save_parquet=save_parquet,
+                    skip_link_tracking=skip_link_tracking,
                     filter_settings=filter_settings,
                     search_sources=search_sources,
                     search_strategy=search_strategy,
@@ -577,6 +578,7 @@ class EnhancedTerminalJobSearch:
                         generate_csv=generate_csv,
                         generate_html=generate_html,
                         save_parquet=save_parquet,
+                        skip_link_tracking=skip_link_tracking,
                         filter_settings=filter_settings,
                         search_sources=search_sources,
                         search_strategy=search_strategy,
