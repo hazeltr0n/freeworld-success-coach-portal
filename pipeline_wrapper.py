@@ -313,21 +313,11 @@ class StreamlitPipelineWrapper:
             if combined_df is None:
                 combined_df = pd.DataFrame() if pd else None
 
-            # Stage 99 parquet fallback only if absolutely no jobs returned
+            # REMOVED: Parquet and CSV fallback
+            # For memory-only searches, if no jobs found, return empty results
+            # Don't load old parquet/CSV files from different markets
             if combined_df.empty:
-                try:
-                    combined_df = _load_latest_stage99_parquet()
-                    if not combined_df.empty:
-                        print(f"✅ Successfully loaded {len(combined_df)} jobs from stage 99 parquet fallback")
-                    else:
-                        print("⚠️ No stage 99 parquet found or empty - falling back to CSV aggregation")
-                        combined_df = _load_recent_market_csvs(locations_to_run, minutes=max(60, int(params.get('memory_hours', 72)) * 60 // 60))
-                except Exception as e:
-                    print(f"⚠️ Stage 99 parquet fallback failed: {e} - falling back to CSV aggregation")
-                    try:
-                        combined_df = _load_recent_market_csvs(locations_to_run, minutes=max(60, int(params.get('memory_hours', 72)) * 60 // 60))
-                    except Exception:
-                        pass
+                print("📭 No jobs found in memory - returning empty results (no fallback)")
 
             # Extract efficiency metrics from collected pipeline results
             memory_efficiency = 100.0  # Default for memory search

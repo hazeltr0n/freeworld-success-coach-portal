@@ -185,30 +185,31 @@ class JobMemoryDB:
                     skipped_jobs.append({'job_id': job_id, 'final_status': final_status, 'match': str(match), 'reason': 'No valid AI classification', 'summary': str(summary)[:50]})
                     continue
                     
-                # Market sanitization: ensure no state abbreviations and map representative cities
+                # Market sanitization: preserve custom locations as-is, normalize known markets
                 def _sanitize_market(val: str) -> str:
                     try:
                         from shared_search import MARKET_TO_LOCATION
                         std = {m: m for m in MARKET_TO_LOCATION.keys()}
-                        inv = {v: k for k, v in MARKET_TO_LOCATION.items()}  # City, ST -> Market
                         city_map = {v.split(',')[0].strip().lower(): k for k, v in MARKET_TO_LOCATION.items()}
                     except Exception:
-                        std, inv, city_map = {}, {}, {}
+                        std, city_map = {}, {}
                     s = str(val or '').strip()
                     if not s:
                         return ''
+                    # CRITICAL: Preserve custom locations with commas as-is (e.g., "Austin, TX")
+                    # Only normalize if it's a known market name (no comma)
                     if s in std:
                         return s
-                    if s in inv:
-                        return inv[s]
-                    if ',' in s:
-                        s = s.split(',')[0].strip()
-                    if s.lower() in city_map:
-                        return city_map[s.lower()]
-                    if s.lower() == 'berkeley':
-                        return 'Bay Area'
-                    if s.lower() == 'ontario':
-                        return 'Inland Empire'
+                    # REMOVED: inv check that was converting "Austin, TX" back to "Austin"
+                    # Only look up in city_map if there's NO comma (known market)
+                    if ',' not in s:
+                        if s.lower() in city_map:
+                            return city_map[s.lower()]
+                        if s.lower() == 'berkeley':
+                            return 'Bay Area'
+                        if s.lower() == 'ontario':
+                            return 'Inland Empire'
+                    # Return as-is (preserves "Austin, TX", "ZIP 12345", "spice girls", etc.)
                     return s
 
                 # Convert all values to strings as expected by RPC function
@@ -636,13 +637,17 @@ class JobMemoryDB:
                 ).gte('updated_at', cutoff_str)
             
             # Add location filter if provided
+            # FIX: Use .eq() for market exact match instead of .ilike() to handle commas in location names
             if location and location.strip():
-                location_clean = location.strip().lower()
-                query = query.or_(
-                    f'location.ilike.%{location_clean}%,'
-                    f'normalized_location.ilike.%{location_clean}%,'
-                    f'market.ilike.%{location_clean}%'
-                )
+                location_clean = location.strip()
+                # Try exact market match first (handles "Austin, TX" perfectly)
+                try:
+                    query = query.eq('market', location_clean)
+                except Exception as e:
+                    print(f"⚠️ Exact market match failed: {e}, trying fuzzy search")
+                    # Fallback to case-insensitive partial match (but avoid OR with commas)
+                    location_lower = location_clean.lower()
+                    query = query.ilike('market', f'%{location_lower}%')
                 
             # Order by freshness (newest first) and limit
             query = query.order('created_at', desc=True).limit(limit)
@@ -686,13 +691,16 @@ class JobMemoryDB:
                                 'match_level', ['good', 'so-so']
                             ).gte('updated_at', cutoff_str)
                         
+                        # FIX: Use .eq() for market exact match instead of .ilike() to handle commas
                         if location and location.strip():
-                            location_clean = location.strip().lower()
-                            query = query.or_(
-                                f'location.ilike.%{location_clean}%,'
-                                f'normalized_location.ilike.%{location_clean}%,'
-                                f'market.ilike.%{location_clean}%'
-                            )
+                            location_clean = location.strip()
+                            # Exact market match (handles "Austin, TX" perfectly)
+                            try:
+                                query = query.eq('market', location_clean)
+                            except Exception as e:
+                                print(f"⚠️ Exact market match failed: {e}")
+                                location_lower = location_clean.lower()
+                                query = query.ilike('market', f'%{location_lower}%')
                             
                         query = query.order('created_at', desc=True).limit(limit)
                         result = query.execute()

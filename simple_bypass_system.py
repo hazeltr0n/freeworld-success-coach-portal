@@ -35,14 +35,11 @@ class SimpleBypassSystem:
         try:
             cutoff_time = datetime.now() - timedelta(hours=hours_back)
             cutoff_str = cutoff_time.isoformat()
-            
+
             # Get recent quality jobs from memory database for this specific location
-            # Extract city name from location for better matching
-            location_parts = location.replace(',', '').split()
-            city_name = location_parts[0] if location_parts else location
-            
+            # FIXED: Query by market field instead of location for custom location support
             result = self.memory_db.supabase.table('jobs').select(
-                'job_id', 'job_title', 'company', 'location', 'job_description', 'match_level', 
+                'job_id', 'job_title', 'company', 'location', 'job_description', 'match_level',
                 'match_reason', 'apply_url', 'classified_at', 'route_type', 'market',
                 'salary', 'fair_chance', 'endorsements',
                 'summary'  # CRITICAL: Include summary for complete contract
@@ -53,7 +50,7 @@ class SimpleBypassSystem:
             ).filter(
                 'summary', 'neq', 'nan'  # Exclude string "nan" values (database cleanup needed)
             ).gte('classified_at', cutoff_str).ilike(
-                'location', f'%{city_name}%'  # Filter by city name in the database query
+                'market', f'%{location}%'  # FIXED: Query market field (handles "Austin, TX" correctly)
             ).limit(100).execute()  # Get up to 100 quality jobs
             
             if not result.data:
@@ -224,34 +221,41 @@ class SimpleBypassSystem:
         }
     
     def _filter_by_location(self, df: pd.DataFrame, location: str) -> pd.DataFrame:
-        """Filter DataFrame by location with flexible matching"""
+        """Filter DataFrame by market with flexible matching"""
         if df.empty or not location:
             return df
-        
+
         # Normalize the target location
         location_lower = location.lower().strip()
-        
-        # Extract city from location (handle "City, ST" format)
-        if ',' in location_lower:
-            city = location_lower.split(',')[0].strip()
-            state = location_lower.split(',')[1].strip()
+
+        # FIXED: Filter by market field instead of location field
+        # This handles custom locations like "Austin, TX" correctly
+        if 'market' in df.columns:
+            market_mask = df['market'].str.lower().str.contains(location_lower, na=False)
+            filtered_df = df[market_mask].copy()
         else:
-            city = location_lower
-            state = ''
-        
-        # Filter jobs that match the location
-        location_mask = df['location'].str.lower().str.contains(city, na=False)
-        
-        # If we have state info, also try to match that
-        if state and len(state) >= 2:
-            state_mask = df['location'].str.lower().str.contains(state, na=False)
-            location_mask = location_mask | state_mask
-        
-        filtered_df = df[location_mask].copy()
-        
+            # Fallback to location-based filtering if market column missing
+            # Extract city from location (handle "City, ST" format)
+            if ',' in location_lower:
+                city = location_lower.split(',')[0].strip()
+                state = location_lower.split(',')[1].strip()
+            else:
+                city = location_lower
+                state = ''
+
+            # Filter jobs that match the location
+            location_mask = df['location'].str.lower().str.contains(city, na=False)
+
+            # If we have state info, also try to match that
+            if state and len(state) >= 2:
+                state_mask = df['location'].str.lower().str.contains(state, na=False)
+                location_mask = location_mask | state_mask
+
+            filtered_df = df[location_mask].copy()
+
         if len(filtered_df) > 0:
-            logger.info(f"   Location filter: {len(df)} → {len(filtered_df)} jobs for '{location}'")
-        
+            logger.info(f"   Market filter: {len(df)} → {len(filtered_df)} jobs for '{location}'")
+
         return filtered_df
     
     def _apply_route_filter(self, df: pd.DataFrame, route_filter: str) -> pd.DataFrame:
