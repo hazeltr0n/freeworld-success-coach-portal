@@ -330,7 +330,150 @@ def main():
 
     with tab2:
         st.header("📊 My Activity")
-        st.info("🚧 Activity tracking coming soon! You'll see jobs you've viewed and applied to here.")
+
+        # Fetch click events for this agent
+        client = get_client()
+
+        try:
+            # Get applications from job_feedback table
+            job_feedback = client.table('job_feedback').select('*').eq('candidate_id', agent_id).eq('feedback_type', 'i_applied_to_this_job').order('created_at', desc=True).limit(100).execute()
+
+            # Get all click events for job views
+            click_events = client.table('click_events').select('*').eq('candidate_id', agent_id).order('clicked_at', desc=True).limit(100).execute()
+
+            # Get aggregated stats
+            candidate_stats = client.table('candidate_clicks').select('*').eq('candidate_id', agent_id).execute()
+
+            total_clicks = candidate_stats.data[0].get('clicks', 0) if candidate_stats.data else 0
+
+            # Process applications from job_feedback
+            application_events = []
+            for feedback in job_feedback.data:
+                # Enrich with full job details using job_id
+                job_id = feedback.get('job_id')
+                if job_id:
+                    try:
+                        job_result = client.table('jobs').select('apply_url, match_level, route_type').eq('job_id', job_id).limit(1).execute()
+
+                        if job_result.data:
+                            job = job_result.data[0]
+                            feedback['apply_url'] = job.get('apply_url')
+                            feedback['match'] = job.get('match_level')
+                            feedback['route'] = job.get('route_type')
+                    except Exception as e:
+                        print(f"Error enriching application: {e}")
+
+                # Map created_at to clicked_at for consistent display
+                feedback['clicked_at'] = feedback.get('created_at')
+                application_events.append(feedback)
+
+            # Process click events for job views (skip portal URLs)
+            regular_clicks = []
+            for event in click_events.data:
+                url = event.get('original_url', '')
+
+                # Skip portal URLs (they contain 'agent_job_feed' or 'agent_id=')
+                if 'agent_job_feed' in url or 'agent_id=' in url:
+                    continue
+
+                # Look up job details - prefer job_id if available, fallback to URL match
+                try:
+                    job_id = event.get('job_id')
+
+                    if job_id:
+                        # Use job_id for direct lookup (preferred method)
+                        job_result = client.table('jobs').select('job_title, company, match_level, route_type, apply_url').eq('job_id', job_id).limit(1).execute()
+                    else:
+                        # Fallback to URL matching for older records
+                        job_result = client.table('jobs').select('job_title, company, match_level, route_type, apply_url').eq('tracked_url', url).limit(1).execute()
+
+                    if job_result.data:
+                        job = job_result.data[0]
+                        event['job_title'] = job.get('job_title')
+                        event['company'] = job.get('company')
+                        event['match'] = job.get('match_level')
+                        event['route'] = job.get('route_type')
+                        event['apply_url'] = job.get('apply_url')
+                except Exception as e:
+                    print(f"Error enriching click event: {e}")
+
+                regular_clicks.append(event)
+
+            # Metrics
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Total Job Clicks", total_clicks)
+            with col2:
+                st.metric("Total Applications", len(application_events))
+
+            st.markdown("---")
+
+            # Helper function to format match quality
+            def format_match_quality(match):
+                if match == 'good':
+                    return 'Excellent Match'
+                elif match == 'so-so':
+                    return 'Possible Fit'
+                else:
+                    return match or 'Unknown'
+
+            # Applications Section
+            st.subheader("📝 Your Applications")
+            if application_events:
+                st.caption(f"Showing {len(application_events)} applications")
+
+                for event in application_events:
+                    job_title = event.get('job_title') or 'Job Title Not Available'
+                    company = event.get('company') or 'Company Not Available'
+                    date_str = event.get('clicked_at', 'Unknown date')[:10]
+
+                    with st.expander(f"{company} - {date_str}", expanded=False):
+                        st.write(f"**Job:** {job_title}")
+                        st.write(f"**Company:** {company}")
+                        st.write(f"**Date:** {event.get('clicked_at', 'N/A')[:19]}")
+                        st.write(f"**Application Link:** {event.get('apply_url', event.get('original_url', 'N/A'))}")
+
+                        # Show quality/route info if available
+                        if event.get('match'):
+                            st.write(f"**Match Quality:** {format_match_quality(event.get('match'))}")
+                        if event.get('route'):
+                            st.write(f"**Route Type:** {event.get('route')}")
+                        if event.get('market'):
+                            st.write(f"**Market:** {event.get('market')}")
+            else:
+                st.info("No applications yet. When you click 'Apply' on a job, it will show up here!")
+
+            st.markdown("---")
+
+            # Click History Section
+            st.subheader("👁️ Jobs You've Viewed")
+            if regular_clicks:
+                st.caption(f"Showing last {len(regular_clicks)} job views")
+
+                for event in regular_clicks:
+                    job_title = event.get('job_title') or 'Job Title Not Available'
+                    company = event.get('company') or 'Company Not Available'
+                    date_str = event.get('clicked_at', 'Unknown date')[:10]
+
+                    with st.expander(f"{company} - {date_str}", expanded=False):
+                        st.write(f"**Job:** {job_title}")
+                        st.write(f"**Company:** {company}")
+                        st.write(f"**Date:** {event.get('clicked_at', 'N/A')[:19]}")
+                        st.write(f"**Link:** {event.get('apply_url', event.get('original_url', 'N/A'))}")
+
+                        # Show quality/route info if available
+                        if event.get('match'):
+                            st.write(f"**Match Quality:** {format_match_quality(event.get('match'))}")
+                        if event.get('route'):
+                            st.write(f"**Route Type:** {event.get('route')}")
+                        if event.get('market'):
+                            st.write(f"**Market:** {event.get('market')}")
+            else:
+                st.info("No job views yet. Start searching to see your history here!")
+
+        except Exception as e:
+            st.error(f"Error loading activity data: {e}")
+            st.info("Your activity tracking will appear here once you start viewing jobs.")
 
 if __name__ == "__main__":
     main()

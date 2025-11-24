@@ -69,6 +69,7 @@ serve(async (req) => {
       "true",
       "yes"
     ].includes(fairRaw.toLowerCase()) : null;
+    const job_id = url.searchParams.get("job_id");
 
     // Initialize Supabase
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -90,7 +91,8 @@ serve(async (req) => {
         market,
         route,
         match,
-        fair
+        fair,
+        job_id
       },
       insert: {
         attempted: false,
@@ -113,6 +115,7 @@ serve(async (req) => {
         if (route) base.route = route;
         if (match) base.match = match;
         if (fair !== null) base.fair = fair;
+        if (job_id) base.job_id = job_id;
 
         // Enrich missing fields from agent_profiles when candidate_id is present
         try {

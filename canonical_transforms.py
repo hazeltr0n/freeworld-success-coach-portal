@@ -1199,6 +1199,12 @@ def apply_market_assignment(df: pd.DataFrame, market: str, is_custom_location: b
     # Enforce market formatting for global market assignment
     market_value = market if is_custom_location else market.split(',')[0] if isinstance(market, str) else market
 
+    # DEBUG: Log market assignment
+    print(f"🔍 MARKET ASSIGNMENT DEBUG:")
+    print(f"   market parameter = '{market}'")
+    print(f"   is_custom_location = {is_custom_location}")
+    print(f"   market_value (final) = '{market_value}'")
+
     # Convert ZIP code markets to proper market names
     # This handles custom location searches where user entered a ZIP code
     if isinstance(market_value, str) and market_value.isdigit() and len(market_value) == 5:

@@ -675,7 +675,15 @@ class FreeWorldPipelineV3:
         # Store custom location flag for market assignment
         # Detect custom locations: either explicitly passed OR location contains comma (city, state format)
         self._is_custom_location = (custom_location is not None) or (',' in str(location))
-        
+
+        # DEBUG: Log custom location detection
+        print(f"🔍 CUSTOM LOCATION DEBUG:")
+        print(f"   location = '{location}'")
+        print(f"   custom_location = '{custom_location}'")
+        print(f"   _is_custom_location = {self._is_custom_location}")
+        if self._is_custom_location:
+            print(f"   ✅ Will store market as-is (no comma stripping)")
+
         # Initialize canonical DataFrame
         canonical_df = build_empty_df()
         
@@ -744,7 +752,7 @@ class FreeWorldPipelineV3:
             results = self._stage7_output(
                 canonical_df, hardcoded_market or location, custom_location,
                 generate_pdf, generate_csv, generate_html, force_memory_only,
-                show_prepared_for, skip_link_tracking
+                force_link_generation, show_prepared_for, skip_link_tracking
             )
 
             # STAGE 8: DATA STORAGE
@@ -1758,6 +1766,7 @@ Return ONLY the formatted HTML version, no explanation or markdown code blocks."
         generate_csv: bool,
         generate_html: bool, # New parameter for HTML generation
         force_memory_only: bool = False,
+        force_link_generation: bool = False,  # Force link generation even for memory-only mode
         show_prepared_for: bool = True,
         skip_link_tracking: bool = False  # NEW: Skip all link generation
     ) -> Dict[str, Any]:
