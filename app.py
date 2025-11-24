@@ -449,6 +449,7 @@ def airtable_find_candidates(query: str, by: str = "name", limit: int = 10, skip
                 "city": f.get("city") or f.get("City") or "",
                 "state": f.get("state") or f.get("State") or "",
                 "zip_code": f.get("zipcode") or f.get("Zipcode") or f.get("ZIP") or "",
+                "cbsa": f.get("CBSA") or f.get("cbsa") or "",  # Core Based Statistical Area for market mapping
                 "admin_portal_url": f.get("Admin Portal Record") or f.get("admin_portal_url") or "",
                 "placement_status": f.get("placementStatus") or f.get("Placement Status") or "",
                 "employment_status": f.get("employmentStatus") or f.get("Employment Status") or "",
@@ -644,6 +645,70 @@ def generate_secure_portal_token(agent_uuid: str) -> str:
     """Generate secure token for agent portal access"""
     import hashlib
     return hashlib.md5(f"{agent_uuid}:FreeWorld2025".encode()).hexdigest()[:12]
+
+def map_cbsa_to_market(cbsa: str) -> str:
+    """Map a CBSA (Core Based Statistical Area) to a FreeWorld market
+
+    Args:
+        cbsa: CBSA string from Airtable (e.g., "Dallas-Fort Worth-Arlington, TX")
+
+    Returns:
+        Market name from our 10 FreeWorld markets or "Houston" as fallback
+    """
+    if not cbsa or pd.isna(cbsa):
+        return "Houston"  # Default fallback
+
+    # Direct CBSA → Market mapping for our 10 markets
+    CBSA_TO_MARKET = {
+        # Dallas
+        "Dallas-Fort Worth-Arlington, TX": "Dallas",
+
+        # Houston
+        "Houston-The Woodlands-Sugar Land, TX": "Houston",
+
+        # Trenton
+        "Trenton-Princeton, NJ": "Trenton",
+
+        # Newark
+        "New York-Newark-Jersey City, NY-NJ-PA": "Newark",
+
+        # Las Vegas
+        "Las Vegas-Henderson-Paradise, NV": "Las Vegas",
+
+        # Bay Area (multiple CBSAs)
+        "San Francisco-Oakland-Berkeley, CA": "Bay Area",
+        "San Jose-Sunnyvale-Santa Clara, CA": "Bay Area",
+        "Santa Rosa-Petaluma, CA": "Bay Area",
+        "Napa, CA": "Bay Area",
+        "Vallejo, CA": "Bay Area",
+
+        # Stockton
+        "Stockton, CA": "Stockton",
+        "Stockton-Lodi, CA": "Stockton",
+
+        # Inland Empire
+        "Riverside-San Bernardino-Ontario, CA": "Inland Empire",
+        "Los Angeles-Long Beach-Anaheim, CA": "Inland Empire",  # LA metro often overlaps
+
+        # Phoenix
+        "Phoenix-Mesa-Chandler, AZ": "Phoenix",
+        "Phoenix-Mesa-Scottsdale, AZ": "Phoenix",
+
+        # Denver
+        "Denver-Aurora-Lakewood, CO": "Denver",
+    }
+
+    cbsa_normalized = str(cbsa).strip()
+
+    # Direct lookup
+    if cbsa_normalized in CBSA_TO_MARKET:
+        market = CBSA_TO_MARKET[cbsa_normalized]
+        print(f"✅ Mapped CBSA '{cbsa}' → {market}")
+        return market
+
+    # Fallback to Houston
+    print(f"⚠️ CBSA '{cbsa}' not in our 10 markets, defaulting to Houston")
+    return "Houston"
 
 def create_secure_portal_link(base_url: str, agent_uuid: str, agent_data: dict = None) -> str:
     """Create secure portal link with token validation and search parameters"""
@@ -1808,6 +1873,10 @@ def show_manage_agents_tab(coach, coach_manager):
                         chosen = results[idx]
                         
                         # Create agent profile with default settings
+                        # Map CBSA to market if available
+                        cbsa = chosen.get('cbsa', '')
+                        market = map_cbsa_to_market(cbsa) if cbsa else 'Houston'
+
                         agent_data = {
                             'agent_uuid': chosen.get('uuid', ''),
                             'agent_name': chosen.get('name', ''),
@@ -1819,7 +1888,8 @@ def show_manage_agents_tab(coach, coach_manager):
                             'placement_status': chosen.get('placement_status', ''),
                             'employment_status': chosen.get('employment_status', ''),
                             'airtable_synced_at': datetime.now(timezone.utc).isoformat(),
-                            'location': 'Houston',  # Default market
+                            'cbsa': cbsa,  # Store CBSA from Airtable
+                            'location': market,  # Map CBSA to FreeWorld market
                             'route_filter': 'both',
                             'fair_chance_only': False,
                             'max_jobs': 25,
@@ -3749,6 +3819,23 @@ def show_pre_adverse_helper():
         import traceback
         st.code(traceback.format_exc())
 
+def show_agent_portal_v2():
+    """Show the agent portal v2 with interactive filters"""
+    try:
+        # Import and run the main function
+        from agent_portal_v2 import main as run_portal_v2
+        run_portal_v2()
+
+    except ImportError as e:
+        st.error("❌ Agent Portal V2 not found")
+        st.markdown("The portal feature is not available in this deployment.")
+        st.code(str(e))
+    except Exception as e:
+        st.error(f"❌ Error loading portal: {str(e)}")
+        st.code(str(e))
+        import traceback
+        st.code(traceback.format_exc())
+
 def show_loan_calculator():
     """Show the loan calculator portal"""
     try:
@@ -3797,15 +3884,22 @@ def main():
         params = st.query_params
         agent_config = params.get("agent_config") or params.get("config")
         agent_uuid_param = params.get("agent")
+        agent_id_param = params.get("agent_id")  # NEW: agent_portal_v2 parameter
         debug_frame_param = params.get("debug_frame")
         loan_calculator_param = params.get("loan_calculator") or params.get("loan")
         pre_adverse_param = params.get("pre_adverse") or params.get("helper")
     except Exception: # Fallback if query params fail
         agent_config = None
         agent_uuid_param = None
+        agent_id_param = None
         debug_frame_param = None
         loan_calculator_param = None
         pre_adverse_param = None
+
+    # Route to agent portal v2 if agent_id parameter detected
+    if agent_id_param:
+        show_agent_portal_v2()
+        st.stop()
 
     # Route to pre-adverse response helper if parameter detected
     if pre_adverse_param:
