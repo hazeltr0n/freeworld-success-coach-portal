@@ -149,6 +149,8 @@ class LinkTracker:
                     parsed['match'] = val
                 elif key == 'fair':
                     parsed['fair'] = val
+                elif key == 'job_id':
+                    parsed['job_id'] = val
         except Exception:
             pass
         return parsed

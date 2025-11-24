@@ -349,7 +349,7 @@ def main():
             # Process applications from job_feedback
             application_events = []
             for feedback in job_feedback.data:
-                # Enrich with full job details using job_id
+                # job_feedback already has job_title and company, but try to enrich with jobs table if job_id exists
                 job_id = feedback.get('job_id')
                 if job_id:
                     try:
@@ -357,11 +357,27 @@ def main():
 
                         if job_result.data:
                             job = job_result.data[0]
-                            feedback['apply_url'] = job.get('apply_url')
-                            feedback['match'] = job.get('match_level')
-                            feedback['route'] = job.get('route_type')
+                            # Only override if we got better data from jobs table
+                            if job.get('apply_url'):
+                                feedback['apply_url'] = job.get('apply_url')
+                            if job.get('match_level'):
+                                feedback['match'] = job.get('match_level')
+                            if job.get('route_type'):
+                                feedback['route'] = job.get('route_type')
                     except Exception as e:
                         print(f"Error enriching application: {e}")
+
+                # Extract actual URL from job_url if it's a click-redirect-lite URL
+                job_url = feedback.get('job_url', '')
+                if 'click-redirect-lite' in job_url and '?target=' in job_url:
+                    try:
+                        from urllib.parse import urlparse, parse_qs, unquote
+                        parsed = urlparse(job_url)
+                        params = parse_qs(parsed.query)
+                        if 'target' in params:
+                            feedback['extracted_url'] = unquote(params['target'][0])
+                    except:
+                        pass
 
                 # Map created_at to clicked_at for consistent display
                 feedback['clicked_at'] = feedback.get('created_at')
@@ -431,7 +447,8 @@ def main():
                         st.write(f"**Job:** {job_title}")
                         st.write(f"**Company:** {company}")
                         st.write(f"**Date:** {event.get('clicked_at', 'N/A')[:19]}")
-                        st.write(f"**Application Link:** {event.get('apply_url', event.get('original_url', 'N/A'))}")
+                        # For applications, prefer apply_url (from jobs table), fallback to job_url (from job_feedback)
+                        st.write(f"**Application Link:** {event.get('apply_url') or event.get('job_url') or 'N/A'}")
 
                         # Show quality/route info if available
                         if event.get('match'):
@@ -459,7 +476,8 @@ def main():
                         st.write(f"**Job:** {job_title}")
                         st.write(f"**Company:** {company}")
                         st.write(f"**Date:** {event.get('clicked_at', 'N/A')[:19]}")
-                        st.write(f"**Link:** {event.get('apply_url', event.get('original_url', 'N/A'))}")
+                        # For job views, prefer apply_url (from jobs table), fallback to original_url (from click_events)
+                        st.write(f"**Link:** {event.get('apply_url') or event.get('original_url') or 'N/A'}")
 
                         # Show quality/route info if available
                         if event.get('match'):

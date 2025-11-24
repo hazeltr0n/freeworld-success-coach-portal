@@ -83,7 +83,7 @@ def backfill_tracked_urls():
             continue
 
         # Generate tags
-        tags = []
+        tags = [f"job_id:{job_id}"]
         if coach:
             tags.append(f"coach:{coach}")
         if source:
