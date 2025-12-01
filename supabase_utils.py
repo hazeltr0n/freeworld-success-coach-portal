@@ -917,19 +917,20 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
         query = query.gte('updated_at', cutoff_time.isoformat())
 
         # Quality filter - use agent preference or default to good/so-so
+        # Parse match_level string into list (handles "good and so-so and bad" format)
+        match_levels = ['good', 'so-so']  # default
         if match_level:
-            if match_level == 'good':
-                query = query.eq('match_level', 'good')
-            elif match_level == 'so-so':
-                query = query.eq('match_level', 'so-so')
-            elif match_level in ['good and so-so', 'both']:
-                query = query.in_('match_level', ['good', 'so-so'])
-            else:
-                # Default to good/so-so if unrecognized
-                query = query.in_('match_level', ['good', 'so-so'])
-        else:
-            # Default to good/so-so if no preference specified
-            query = query.in_('match_level', ['good', 'so-so'])
+            if isinstance(match_level, list):
+                match_levels = match_level
+            elif ' and ' in match_level:
+                match_levels = [m.strip() for m in match_level.split(' and ')]
+            elif match_level in ['good', 'so-so', 'bad']:
+                match_levels = [match_level]
+            elif match_level == 'both':
+                match_levels = ['good', 'so-so']
+
+        query = query.in_('match_level', match_levels)
+        include_bad = 'bad' in match_levels
 
         # Enhanced feedback filtering
         # Exclude permanently flagged jobs
@@ -969,6 +970,19 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
             jobs_filtered = jobs_before - len(jobs)
             if jobs_filtered > 0:
                 print(f"🚫 Filtered out {jobs_filtered} reported jobs")
+
+        # Filter out owner-operator and school bus jobs when showing 'bad' jobs
+        # These are unsuitable even for experienced drivers
+        if include_bad:
+            EXCLUDE_PATTERNS = ['own truck', 'owner', '1099', 'lease purchase', 'school bus', 'own vehicle']
+            jobs_before = len(jobs)
+            jobs = [
+                job for job in jobs
+                if not any(pattern in (job.get('match_reason') or '').lower() for pattern in EXCLUDE_PATTERNS)
+            ]
+            jobs_filtered = jobs_before - len(jobs)
+            if jobs_filtered > 0:
+                print(f"🚫 Filtered out {jobs_filtered} owner-operator/school bus jobs from 'bad' results")
 
         # ZIP radius filtering (agent-level location filtering)
         if agent_zip and zip_radius_miles:

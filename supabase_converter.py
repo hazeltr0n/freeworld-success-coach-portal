@@ -317,7 +317,20 @@ def search_memory_jobs(location: str, limit: int = 100, days_back: int = 7,
             jobs_filtered = jobs_before - len(jobs_data)
             if jobs_filtered > 0:
                 print(f"🚫 Filtered out {jobs_filtered} reported jobs")
-        
+
+        # Filter out owner-operator and school bus jobs when showing 'bad' jobs
+        # These are unsuitable even for experienced drivers
+        if 'bad' in match_levels:
+            EXCLUDE_PATTERNS = ['own truck', 'owner', '1099', 'lease purchase', 'school bus', 'own vehicle']
+            jobs_before = len(jobs_data)
+            jobs_data = [
+                job for job in jobs_data
+                if not any(pattern in (job.get('match_reason') or '').lower() for pattern in EXCLUDE_PATTERNS)
+            ]
+            jobs_filtered = jobs_before - len(jobs_data)
+            if jobs_filtered > 0:
+                print(f"🚫 Filtered out {jobs_filtered} owner-operator/school bus jobs from 'bad' results")
+
         print(f"📦 Found {len(jobs_data)} memory jobs in Supabase (after feedback filtering)")
         
         # Debug: Show actual route_type values in the returned data

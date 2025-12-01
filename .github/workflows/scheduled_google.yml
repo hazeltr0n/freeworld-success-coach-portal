@@ -2,8 +2,8 @@ name: Scheduled Google Jobs Scraper
 
 on:
   schedule:
-    # Tue/Thu at 2am Central (7am UTC)
-    - cron: '0 7 * * 2,4'
+    # Mon/Thu at 2am Central (7am UTC)
+    - cron: '0 7 * * 1,4'
   workflow_dispatch:  # Allow manual trigger for testing
 
 jobs:

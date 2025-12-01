@@ -615,7 +615,7 @@ class StreamlitPipelineWrapper:
             # Run the command with extended timeout for multi-market searches
             import time
             start_time = time.time()
-            timeout = 1800  # 30 minutes for all searches (10 markets × 4 search terms × ~30s each)
+            timeout = 7200  # 2 hours for large multi-market searches
             
             result = subprocess.run(
                 cmd, 
