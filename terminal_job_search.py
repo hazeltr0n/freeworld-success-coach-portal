@@ -437,6 +437,7 @@ class EnhancedTerminalJobSearch:
                 'search_terms': ', '.join(search_terms),  # v3 expects comma-separated string
                 'route_filter': route_filter,
                 'radius': radius,
+                'commute_time': commute_time,  # Indeed commute time (0=exact, 15, 25, 35, 45, 60, 90 mins)
                 'no_experience': no_experience,
                 'generate_pdf': generate_pdf,
                 'generate_csv': generate_csv,
@@ -754,7 +755,7 @@ class EnhancedTerminalJobSearch:
         
         input("\nPress Enter to exit...")
 
-    def run_quick_command(self, markets=None, market=None, custom_location=None, mode="sample", route="both", terms="CDL Driver No Experience", radius=50, no_experience=True, business_rules=True, deduplication=True, experience_filter=True, classification_model="gpt-4o-mini", batch_size=25, generate_pdf=True, generate_csv=True, generate_html=True, save_parquet=False, airtable=False, force_fresh=False, force_fresh_classification=False, memory_only=False, search_sources=None, search_strategy="balanced", classifier_type="cdl", dry_run=False, skip_link_tracking=False):
+    def run_quick_command(self, markets=None, market=None, custom_location=None, mode="sample", route="both", terms="CDL Driver No Experience", radius=50, commute_time=35, no_experience=True, business_rules=True, deduplication=True, experience_filter=True, classification_model="gpt-4o-mini", batch_size=25, generate_pdf=True, generate_csv=True, generate_html=True, save_parquet=False, airtable=False, force_fresh=False, force_fresh_classification=False, memory_only=False, search_sources=None, search_strategy="balanced", classifier_type="cdl", dry_run=False, skip_link_tracking=False):
         """Run a quick command-line search with parameters"""
         
         # Location to Market mapping for new format
@@ -875,9 +876,11 @@ def main(generate_html: bool = False):
     parser.add_argument('--terms', default='CDL Driver No Experience',
                        help='Search terms (comma-separated)')
     parser.add_argument('--radius', type=int, choices=[0, 25, 50, 100], default=50,
-                       help='Search radius in miles (default: 50, use 0 for exact location)')
+                       help='DEPRECATED: Use --commute-time instead. Search radius in miles.')
+    parser.add_argument('--commute-time', type=int, choices=[0, 15, 25, 35, 45, 60, 90], default=35,
+                       help='Indeed commute time filter (default: 35 min). Options: 0=exact location, 15, 25, 35, 45, 60, 90 minutes')
     parser.add_argument('--exact-location', action='store_true',
-                       help='Search exact location only (sets radius=0, faster and more stable)')
+                       help='DEPRECATED: Use --commute-time 0 instead. Search exact location only.')
     
     # Job source parameters
     parser.add_argument('--sources', choices=['indeed', 'google', 'both'], default='indeed',
@@ -998,12 +1001,17 @@ def main(generate_html: bool = False):
         no_experience = args.no_experience and not args.disable_no_experience
         business_rules = args.enable_business_rules and not args.disable_business_rules
         
-        # Handle exact location flag (overrides radius)
-        radius = 0 if args.exact_location else args.radius
+        # Handle commute time (replaces radius for Indeed)
+        # --exact-location sets commute_time to 0 for backwards compatibility
+        commute_time = args.commute_time
         if args.exact_location:
-            print(f"📍 Exact location mode enabled (radius=0)")
+            commute_time = 0
+            print(f"📍 Exact location mode enabled (commute_time=0)")
         else:
-            print(f"🔍 Using radius search ({radius} miles)")
+            print(f"🔍 Using commute time filter ({commute_time} min)")
+
+        # Keep radius for backwards compatibility (deprecated)
+        radius = 0 if args.exact_location else args.radius
         deduplication = args.enable_deduplication and not args.disable_deduplication
         experience_filter = args.enable_experience_filter and not args.disable_experience_filter
         generate_pdf = args.generate_pdf and not args.no_pdf
@@ -1034,6 +1042,7 @@ def main(generate_html: bool = False):
             route=args.route,
             terms=args.terms,
             radius=radius,
+            commute_time=commute_time,
             no_experience=no_experience,
             business_rules=business_rules,
             deduplication=deduplication,

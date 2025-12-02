@@ -462,6 +462,7 @@ class StreamlitPipelineWrapper:
                         generate_csv=False,
                         generate_html=True,
                         radius=params.get('search_radius', 50),
+                        commute_time=params.get('commute_time', 35),  # Indeed commute time (0=exact, 15, 25, 35, 45, 60, 90 mins)
                         no_experience=params.get('no_experience', True),
                         filter_settings=params.get('filter_settings', {}),
                         search_sources=direct_sources,
@@ -539,21 +540,9 @@ class StreamlitPipelineWrapper:
             if params.get('route_filter', 'both') != 'both':
                 cmd.extend(['--route', params.get('route_filter')])
             
-            # Add radius parameter if specified
-            if 'radius' in params:
-                radius = params['radius']
-                if radius == 0:
-                    # Use exact location flag for radius=0
-                    cmd.append('--exact-location')
-                else:
-                    cmd.extend(['--radius', str(radius)])
-            elif 'search_radius' in params:
-                radius = params['search_radius'] 
-                if radius == 0:
-                    # Use exact location flag for radius=0
-                    cmd.append('--exact-location')
-                else:
-                    cmd.extend(['--radius', str(radius)])
+            # Add commute time parameter for Indeed searches (replaces radius)
+            commute_time = params.get('commute_time', 35)  # Default 35 min commute
+            cmd.extend(['--commute-time', str(commute_time)])
             
             # Airtable upload disabled in pipeline; ignore UI flag
             

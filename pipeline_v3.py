@@ -631,6 +631,7 @@ class FreeWorldPipelineV3:
         generate_csv: bool = True,
         generate_html: bool = True, # New parameter
         radius: int = 50,
+        commute_time: int = 35,  # Indeed commute time in minutes (0=exact, 15, 25, 35, 45, 60, 90)
         no_experience: bool = True,
         filter_settings: Dict[str, bool] = None,
         search_sources: Dict[str, bool] = None,
@@ -697,6 +698,7 @@ class FreeWorldPipelineV3:
                 route_filter, force_fresh, force_memory_only,
                 classifier_type=classifier_type,
                 radius=radius,
+                commute_time=commute_time,
                 no_experience=no_experience,
                 search_sources=search_sources,
                 search_strategy=search_strategy
@@ -849,6 +851,7 @@ class FreeWorldPipelineV3:
         force_memory_only: bool,
         classifier_type: str = "cdl",
         radius: int = 50,
+        commute_time: int = 35,  # Indeed commute time in minutes (0=exact, 15, 25, 35, 45, 60, 90)
         no_experience: bool = True,
         search_sources: Dict[str, bool] = None,
         search_strategy: str = "balanced"
@@ -1029,27 +1032,28 @@ class FreeWorldPipelineV3:
                 if num_queries > 1:
                     print(f"   📊 Each query will get {effective_limit} jobs = up to {effective_limit * num_queries} total jobs")
 
-                # Market searches: Use center ZIP + 100 mile radius
-                # Custom location searches: Use location string + custom radius
+                # Market searches: Use center ZIP + default commute time
+                # Custom location searches: Use location string + custom commute time
                 from market_config import get_market_center_zip
                 market_zip = get_market_center_zip(location)
 
                 if market_zip:
-                    # Market search - use ZIP + 100 miles
+                    # Market search - use ZIP + 90 min commute (broad coverage)
                     encoded_location = market_zip
-                    indeed_radius = 100
-                    print(f"   📍 Market search mode: {location} center ZIP {market_zip} + 100 mile radius")
+                    indeed_commute = 90  # Broad coverage for market searches
+                    print(f"   📍 Market search mode: {location} center ZIP {market_zip} + 90 min commute")
                 else:
-                    # Custom location search - use location string + custom radius
+                    # Custom location search - use location string + user-selected commute time
                     encoded_location = query_location.replace(' ', '+').replace(',', '%2C')
-                    indeed_radius = radius
-                    print(f"   📍 Custom location mode: '{query_location}' + {radius} mile radius")
+                    indeed_commute = commute_time
+                    print(f"   📍 Custom location mode: '{query_location}' + {commute_time} min commute")
 
                 indeed_urls = []
 
                 for term in search_terms_list:
                     encoded_term = term.replace(' ', '+')
-                    indeed_url = f"https://www.indeed.com/jobs?q={encoded_term}&l={encoded_location}&radius={int(indeed_radius)}"
+                    # Use commuteTime parameter instead of radius (Indeed's new URL format)
+                    indeed_url = f"https://www.indeed.com/jobs?q={encoded_term}&l={encoded_location}&commuteTime={int(indeed_commute)}"
                     if no_experience:
                         # Add "no experience" search context
                         indeed_url += "&sc=0kf%3Aattr%28D7S5D%29%3B"

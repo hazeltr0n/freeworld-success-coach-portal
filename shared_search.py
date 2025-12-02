@@ -44,25 +44,28 @@ QUERY_LOCATION_OVERRIDES: Dict[str, str] = {
     "Inland Empire, CA": "Ontario, CA",
 }
 
-def build_indeed_query_url(search_term: str, location: str, radius: int = 50, no_experience: bool = True) -> str:
+def build_indeed_query_url(search_term: str, location: str, commute_time: int = 35, no_experience: bool = True, radius: int = None) -> str:
     """Build an Indeed search URL with all relevant parameters.
 
-    - search_term: e.g., "CDL Driver"  
+    - search_term: e.g., "CDL Driver"
     - location: market name (e.g. "Dallas") or custom location - will be converted to location format
-    - radius: miles
+    - commute_time: minutes (0=exact location, 15, 25, 35, 45, 60, 90) - Indeed's new URL format
     - no_experience: include no-experience filter when True
+    - radius: DEPRECATED - kept for backwards compatibility, will use commute_time instead
     """
     # Convert market name to location format for Indeed API
     # E.g. "Dallas" → "Dallas, TX", "Bay Area" → "Berkeley, CA"
     loc = MARKET_TO_LOCATION.get(location, location)
-    
+
     # Apply any additional overrides if needed
     loc = QUERY_LOCATION_OVERRIDES.get(loc, loc)
-    
+
     base_url = "https://www.indeed.com/jobs"
     q = search_term.replace(' ', '+')
     l = loc.replace(' ', '+').replace(',', '%2C')
-    url = f"{base_url}?q={q}&l={l}&radius={int(radius)}"
+
+    # Use commuteTime parameter (Indeed's new URL format, replaces radius)
+    url = f"{base_url}?q={q}&l={l}&commuteTime={int(commute_time)}"
     if no_experience:
         url += "&sc=0kf%3Aattr%28D7S5D%29%3B"
     return url

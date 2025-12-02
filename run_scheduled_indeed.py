@@ -87,8 +87,7 @@ def main():
             'mode': 'large',  # 500 jobs per search term per market
             'markets': MARKETS,  # ALL 10 MARKETS - pipeline loops through them
             'search_terms': all_search_terms,  # ALL 4 TERMS - pipeline creates 4 separate Indeed queries per market
-            'search_radius': 50,
-            'exact_location': False,
+            'commute_time': 90,  # 90 min commute for broad market coverage
             'force_fresh': True,  # Force fresh Indeed search
             'force_fresh_classification': False,
             'no_experience': True,  # Entry-level friendly

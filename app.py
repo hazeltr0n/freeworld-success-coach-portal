@@ -4234,13 +4234,23 @@ def main():
                 )
 
             with col5:
-                search_radius_tab = st.selectbox(
-                    "📏 Search Radius:",
-                    [25, 50, 100],
-                    index=1,  # default to 50
-                    help="Search radius in miles from target location",
-                    key="tab_search_radius"
+                commute_time_options = {
+                    "Exact Location": 0,
+                    "15 min commute": 15,
+                    "25 min commute": 25,
+                    "35 min commute": 35,
+                    "45 min commute": 45,
+                    "60 min commute": 60,
+                    "90 min commute": 90
+                }
+                commute_time_display = st.selectbox(
+                    "📏 Indeed Commute Time:",
+                    list(commute_time_options.keys()),
+                    index=3,  # default to 35 min
+                    help="Indeed search area by commute time (replaces radius)",
+                    key="tab_commute_time"
                 )
+                commute_time_tab = commute_time_options[commute_time_display]
 
             with col6:
                 classifier_type_tab = st.selectbox(
@@ -4256,19 +4266,9 @@ def main():
         # Row 3: Additional Options
         st.markdown("##### ⚙️ Additional Options")
         with st.container():
-            col7, col8, col9 = st.columns(3)
+            col7, col8 = st.columns(2)
 
             with col7:
-                exact_location_tab = st.checkbox(
-                    "📍 Use exact location only",
-                    value=False,
-                    help="Search only the specified city (radius=0)",
-                    key="tab_exact_location"
-                )
-                if exact_location_tab:
-                    search_radius_tab = 0
-
-            with col8:
                 no_experience_tab = st.checkbox(
                     "📋 Indeed No Experience Filter",
                     value=True,
@@ -4601,7 +4601,7 @@ def main():
                     'mode': search_mode_tab,
                     'search_terms': search_terms_tab,
                     'push_to_airtable': False,
-                    'search_radius': search_radius_tab,
+                    'commute_time': commute_time_tab,
                     'classifier_type': classifier_type_value_tab,
                     'force_fresh_classification': force_fresh_classification_tab if 'force_fresh_classification_tab' in locals() else False,
                     'coach_name': coach.full_name,
@@ -4988,7 +4988,7 @@ def main():
                         search_params = {
                             'mode': search_mode_tab,
                             'search_terms': search_terms_tab,
-                            'search_radius': search_radius_tab,
+                            'commute_time': commute_time_tab,
                             'route_filter': pdf_route_type_filter_tab,
                             'no_experience': no_experience_tab,
                             'fair_chance_only': pdf_fair_chance_only_tab,
@@ -5038,7 +5038,7 @@ def main():
                         search_params = {
                             'mode': search_mode_tab,
                             'search_terms': search_terms_tab,
-                            'search_radius': search_radius_tab,
+                            'commute_time': commute_time_tab,
                             'route_filter': pdf_route_type_filter_tab,
                             'no_experience': no_experience_tab,
                             'fair_chance_only': pdf_fair_chance_only_tab,

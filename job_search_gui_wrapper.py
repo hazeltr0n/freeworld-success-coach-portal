@@ -67,8 +67,8 @@ class FreeWorldJobScraperGUIWrapper:
                 self.MARKET_SEARCH_QUERIES = MARKET_SEARCH_QUERIES
                 self.terminal_search = terminal_search
                 
-            def build_indeed_url(self, search_term, location, radius, no_experience=True):
-                return build_indeed_query_url(search_term, location, int(radius), no_experience)
+            def build_indeed_url(self, search_term, location, commute_time=35, no_experience=True):
+                return build_indeed_query_url(search_term, location, int(commute_time), no_experience)
         
         self.cli_form = MockCLIForm(self.terminal_search)
         
