@@ -676,6 +676,19 @@ def run_progressive_pipeline(pipeline, params, display_location: str = None):
             # Get location to run
             location = params.get('custom_location') or params.get('location', display_location)
 
+            # CRITICAL: Set _is_custom_location on pipeline BEFORE calling stages
+            # This flag is normally set in run_complete_pipeline(), but progressive mode
+            # calls stages directly, so we must set it here.
+            # Uses location_type from UI selector (most reliable), falls back to heuristics
+            location_type = params.get('location_type')
+            if location_type is not None:
+                pipe._is_custom_location = (location_type == 'custom')
+            else:
+                custom_location = params.get('custom_location')
+                pipe._is_custom_location = (custom_location is not None) or (',' in str(location))
+
+            print(f"🔍 PROGRESSIVE MODE: _is_custom_location = {pipe._is_custom_location} (location_type='{location_type}')")
+
             # Import required modules
             from jobs_schema import build_empty_df
 

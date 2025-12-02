@@ -185,8 +185,7 @@ def process_google_results(task_id: str, results_data: Dict, csv_mapping: str) -
             generate_pdf=False,
             generate_csv=False,
             generate_html=False,
-            force_memory_only=False,
-            skip_link_tracking=True  # Skip link generation for scheduled Google scraper
+            force_memory_only=False
         )
 
         # Upload to Supabase

@@ -425,7 +425,7 @@ class EnhancedTerminalJobSearch:
             print("\n👋 Goodbye!")
             sys.exit(0)
 
-    def run_search_v3(self, location, search_terms, route_filter, airtable_upload, mode_info, force_fresh=False, force_fresh_classification=False, memory_only=False, is_custom_location=False, radius=50, no_experience=True, business_rules=True, deduplication=True, experience_filter=True, classification_model="gpt-4o-mini", batch_size=25, generate_pdf=True, generate_csv=True, generate_html=True, save_parquet=False, skip_link_tracking=False, filter_settings=None, search_sources=None, search_strategy="balanced", classifier_type="cdl"):
+    def run_search_v3(self, location, search_terms, route_filter, airtable_upload, mode_info, force_fresh=False, force_fresh_classification=False, memory_only=False, is_custom_location=False, radius=50, commute_time=35, no_experience=True, business_rules=True, deduplication=True, experience_filter=True, classification_model="gpt-4o-mini", batch_size=25, generate_pdf=True, generate_csv=True, generate_html=True, save_parquet=False, filter_settings=None, search_sources=None, search_strategy="balanced", classifier_type="cdl"):
         """Run search using Pipeline v3"""
         print(f"🚀 Using Pipeline v3 for location: {location}")
         
@@ -445,8 +445,8 @@ class EnhancedTerminalJobSearch:
                 'force_fresh': force_fresh,
                 'force_fresh_classification': force_fresh_classification,
                 'force_memory_only': memory_only,
-                'skip_link_tracking': skip_link_tracking,
                 'custom_location': location if is_custom_location else None,
+                'location_type': 'custom' if is_custom_location else 'markets',  # Pass to pipeline for market assignment
                 'filter_settings': filter_settings or {},
                 'search_sources': search_sources or {'indeed': True, 'google': False},
                 'search_strategy': search_strategy,
@@ -489,7 +489,7 @@ class EnhancedTerminalJobSearch:
             return False, None
 
 
-    def run_search(self, selected_markets, custom_location, search_terms, route_filter, airtable_upload, mode_info, force_fresh=False, force_fresh_classification=False, memory_only=False, radius=50, no_experience=True, business_rules=True, deduplication=True, experience_filter=True, classification_model="gpt-4o-mini", batch_size=25, generate_pdf=True, generate_csv=True, generate_html=True, save_parquet=False, skip_link_tracking=False, filter_settings=None, search_sources=None, search_strategy="balanced", classifier_type="cdl"):
+    def run_search(self, selected_markets, custom_location, search_terms, route_filter, airtable_upload, mode_info, force_fresh=False, force_fresh_classification=False, memory_only=False, radius=50, commute_time=35, no_experience=True, business_rules=True, deduplication=True, experience_filter=True, classification_model="gpt-4o-mini", batch_size=25, generate_pdf=True, generate_csv=True, generate_html=True, save_parquet=False, filter_settings=None, search_sources=None, search_strategy="balanced", classifier_type="cdl"):
         """Execute the search using Pipeline v3 or v2 with fallback"""
         print(f"\n=== STARTING MULTI-LOCATION JOB SEARCH ===")
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -533,6 +533,7 @@ class EnhancedTerminalJobSearch:
                     memory_only=memory_only,
                     is_custom_location=custom_location is not None,
                     radius=radius,
+                    commute_time=commute_time,
                     no_experience=no_experience,
                     business_rules=business_rules,
                     deduplication=deduplication,
@@ -543,7 +544,6 @@ class EnhancedTerminalJobSearch:
                     generate_csv=generate_csv,
                     generate_html=generate_html,
                     save_parquet=save_parquet,
-                    skip_link_tracking=skip_link_tracking,
                     filter_settings=filter_settings,
                     search_sources=search_sources,
                     search_strategy=search_strategy,
@@ -569,6 +569,7 @@ class EnhancedTerminalJobSearch:
                         memory_only=memory_only,
                         is_custom_location=False,
                         radius=radius,
+                        commute_time=commute_time,
                         no_experience=no_experience,
                         business_rules=business_rules,
                         deduplication=deduplication,
@@ -579,7 +580,6 @@ class EnhancedTerminalJobSearch:
                         generate_csv=generate_csv,
                         generate_html=generate_html,
                         save_parquet=save_parquet,
-                        skip_link_tracking=skip_link_tracking,
                         filter_settings=filter_settings,
                         search_sources=search_sources,
                         search_strategy=search_strategy,
@@ -755,7 +755,7 @@ class EnhancedTerminalJobSearch:
         
         input("\nPress Enter to exit...")
 
-    def run_quick_command(self, markets=None, market=None, custom_location=None, mode="sample", route="both", terms="CDL Driver No Experience", radius=50, commute_time=35, no_experience=True, business_rules=True, deduplication=True, experience_filter=True, classification_model="gpt-4o-mini", batch_size=25, generate_pdf=True, generate_csv=True, generate_html=True, save_parquet=False, airtable=False, force_fresh=False, force_fresh_classification=False, memory_only=False, search_sources=None, search_strategy="balanced", classifier_type="cdl", dry_run=False, skip_link_tracking=False):
+    def run_quick_command(self, markets=None, market=None, custom_location=None, mode="sample", route="both", terms="CDL Driver No Experience", radius=50, commute_time=35, no_experience=True, business_rules=True, deduplication=True, experience_filter=True, classification_model="gpt-4o-mini", batch_size=25, generate_pdf=True, generate_csv=True, generate_html=True, save_parquet=False, airtable=False, force_fresh=False, force_fresh_classification=False, memory_only=False, search_sources=None, search_strategy="balanced", classifier_type="cdl", dry_run=False):
         """Run a quick command-line search with parameters"""
         
         # Location to Market mapping for new format
@@ -835,6 +835,7 @@ class EnhancedTerminalJobSearch:
                 force_fresh_classification=force_fresh_classification,
                 memory_only=memory_only,
                 radius=radius,
+                commute_time=commute_time,
                 no_experience=no_experience,
                 business_rules=business_rules,
                 deduplication=deduplication,
@@ -847,8 +848,7 @@ class EnhancedTerminalJobSearch:
                 save_parquet=save_parquet,
                 search_sources=search_sources,
                 search_strategy=search_strategy,
-                classifier_type=classifier_type,
-                skip_link_tracking=skip_link_tracking
+                classifier_type=classifier_type
             )
             
             if success:
@@ -927,8 +927,6 @@ def main(generate_html: bool = False):
                        help='Generate HTML portal (default: False)')
     parser.add_argument('--no-html', action='store_true',
                        help='Disable HTML generation')
-    parser.add_argument('--skip-link-tracking', action='store_true',
-                       help='Skip all link tracking (no Short.io, no edge functions) - for scheduled scrapers')
     parser.add_argument('--save-parquet', action='store_true',
                        help='Save parquet checkpoint files (default: False)')
     parser.add_argument('--airtable', action='store_true',
@@ -1058,7 +1056,6 @@ def main(generate_html: bool = False):
             force_fresh=args.force_fresh,
             force_fresh_classification=args.force_fresh_classification,
             memory_only=args.memory_only,
-            skip_link_tracking=args.skip_link_tracking,
             search_sources=search_sources,
             search_strategy=args.search_strategy,
             classifier_type=args.classifier_type,

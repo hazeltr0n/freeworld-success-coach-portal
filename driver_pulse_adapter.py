@@ -677,8 +677,7 @@ class DriverPulsePipelineIntegration:
                 generate_pdf=False,
                 generate_csv=False,
                 generate_html=False,
-                force_memory_only=False,
-                skip_link_tracking=True  # Skip link generation for scheduled DriverPulse scraper
+                force_memory_only=False
             )
 
             # Step 8: Data storage (upload to Supabase)

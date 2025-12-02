@@ -1206,8 +1206,10 @@ def apply_market_assignment(df: pd.DataFrame, market: str, is_custom_location: b
     print(f"   market_value (final) = '{market_value}'")
 
     # Convert ZIP code markets to proper market names
-    # This handles custom location searches where user entered a ZIP code
-    if isinstance(market_value, str) and market_value.isdigit() and len(market_value) == 5:
+    # ONLY for standard market searches - NEVER for custom locations
+    # Custom locations keep user input VERBATIM (user types 95204, market = 95204)
+    # DriverPulse is unaffected - it sets per-row markets and exits early above
+    if not is_custom_location and isinstance(market_value, str) and market_value.isdigit() and len(market_value) == 5:
         try:
             from zip_market_lookup import ZIP_TO_MARKETS
             markets_for_zip = ZIP_TO_MARKETS.get(market_value, [])
@@ -1220,6 +1222,8 @@ def apply_market_assignment(df: pd.DataFrame, market: str, is_custom_location: b
                 print(f"⚠️ ZIP {market_value} not found in ZIP_TO_MARKETS - keeping as-is")
         except ImportError:
             print(f"⚠️ zip_market_lookup not available for ZIP {market_value} conversion")
+    elif is_custom_location:
+        print(f"✅ CUSTOM LOCATION: Keeping market value VERBATIM as '{market_value}'")
 
     return df.assign(**{
         'meta.market': market_value,

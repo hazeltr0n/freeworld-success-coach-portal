@@ -15,14 +15,8 @@ import uuid
 PIPELINE_CACHE_VERSION = "v3.1-supabase-filter-fix-20250905"
 import asyncio
 
-# Link tracker for URL shortening
-try:
-    from link_tracker import LinkTracker
-except ImportError:
-    try:
-        from link_tracker import LinkTracker
-    except ImportError:
-        LinkTracker = None
+# Link tracker REMOVED - only portal links use Short.io now
+# Job searches no longer generate tracked URLs
 
 # HTML generation for portal
 try:
@@ -178,8 +172,7 @@ class FreeWorldPipelineV3:
         show_prepared_for: bool = True,
         # NUCLEAR FIX: Add Free Agent parameters
         candidate_name: str = "",
-        candidate_id: str = "",
-        force_link_generation: bool = False
+        candidate_id: str = ""
     ) -> Dict[str, Any]:
         """
         Memory-only search with advanced filtering - no API costs.
@@ -366,101 +359,13 @@ class FreeWorldPipelineV3:
 
             print(f"✅ Final selection: {len(final_df)} jobs for output")
 
-            # Smart link generation for memory searches - generate for jobs without tracking URLs
-            print("🔗 Checking memory jobs for missing tracking URLs...")
-            try:
-                # Ensure meta.tracked_url column exists
-                if 'meta.tracked_url' not in final_df.columns:
-                    final_df['meta.tracked_url'] = ''
-                
-                # Find jobs without tracking URLs or with original URLs as placeholders
-                jobs_without_tracking = final_df[
-                    (final_df['meta.tracked_url'].fillna('') == '') |
-                    (final_df['meta.tracked_url'] == final_df['source.url'])
-                ]
-                
-                if len(jobs_without_tracking) > 0 or force_link_generation:
-                    from link_tracker import LinkTracker
-                    link_tracker = LinkTracker()
-                    
-                    if force_link_generation:
-                        jobs_to_process = final_df
-                        print(f"🔗 Force link generation enabled - processing all {len(jobs_to_process)} jobs")
-                    else:
-                        jobs_to_process = jobs_without_tracking
-                        print(f"🔗 Generating tracking URLs for {len(jobs_to_process)} memory jobs without tracking")
-                    
-                    if link_tracker.is_available:
-                        for idx, row in jobs_to_process.iterrows():
-                            job_id = row['id.job']
-                            original_url = row.get('source.url', '')
-                            
-                            if original_url and original_url.startswith('http'):
-                                # Create meaningful tags for memory jobs
-                                tags = ['source:memory']
-                                if candidate_id:
-                                    tags.append(f"candidate:{candidate_id}")
-                                if coach_username:
-                                    tags.append(f"coach:{coach_username}")
-                                if row.get('meta.market'):
-                                    tags.append(f"market:{row.get('meta.market')}")
-                                if row.get('ai.match'):
-                                    tags.append(f"match:{row.get('ai.match')}")
-                                if row.get('ai.route_type'):
-                                    tags.append(f"route:{row.get('ai.route_type')}")
-                                
-                                # Generate edge function URL for click tracking (no Short.io)
-                                tracked_url = link_tracker.generate_edge_function_url(
-                                    original_url,
-                                    candidate_id=candidate_id,
-                                    tags=tags
-                                )
-
-                                if tracked_url:
-                                    final_df.at[idx, 'meta.tracked_url'] = tracked_url
-                                    print(f"🔗 Generated edge function URL for {job_id[:8]}")
-                                else:
-                                    final_df.at[idx, 'meta.tracked_url'] = original_url
-                                    print(f"⚠️ Using original URL for {job_id[:8]}")
-                        
-                        print(f"✅ Link generation complete for memory search")
-                        
-                        # Update Supabase with new tracking URLs
-                        try:
-                            tracking_updates = {}
-                            for idx, row in jobs_to_process.iterrows():
-                                job_id = row.get('id.job')
-                                tracked_url = final_df.at[idx, 'meta.tracked_url']
-                                if job_id and tracked_url and tracked_url != row.get('source.url', ''):
-                                    tracking_updates[job_id] = tracked_url
-                            
-                            if tracking_updates:
-                                success = self.memory_db.update_tracking_urls(tracking_updates)
-                                if success:
-                                    print(f"✅ Updated {len(tracking_updates)} tracking URLs in Supabase")
-                                else:
-                                    print(f"⚠️ Failed to update tracking URLs in Supabase")
-                        except Exception as update_e:
-                            print(f"⚠️ Error updating tracking URLs in Supabase: {update_e}")
-                    else:
-                        print("⚠️ LinkTracker not available - using original URLs")
-                        final_df.loc[jobs_to_process.index, 'meta.tracked_url'] = jobs_to_process['source.url']
-                else:
-                    print("ℹ️ All memory jobs already have tracking URLs")
-                
-                # Final fallback - ensure no empty tracking URLs
-                missing_urls = final_df['meta.tracked_url'].fillna('') == ''
-                if missing_urls.any():
-                    final_df.loc[missing_urls, 'meta.tracked_url'] = final_df.loc[missing_urls, 'source.url']
-                    print(f"🔄 Fallback: filled {missing_urls.sum()} remaining empty tracking URLs")
-                    
-            except Exception as e:
-                print(f"⚠️ Link generation error: {e}")
-                # Emergency fallback
-                if 'meta.tracked_url' not in final_df.columns:
-                    final_df['meta.tracked_url'] = ''
-                missing_urls = final_df['meta.tracked_url'].fillna('') == ''
-                final_df.loc[missing_urls, 'meta.tracked_url'] = final_df.loc[missing_urls, 'source.url']
+            # NO LINK TRACKING FOR JOB SEARCHES - only portal links use Short.io
+            # Just use original source URLs directly
+            if 'meta.tracked_url' not in final_df.columns:
+                final_df['meta.tracked_url'] = ''
+            # Set tracked_url to source.url (no shortening)
+            final_df['meta.tracked_url'] = final_df['source.url']
+            print(f"✅ Using original URLs for {len(final_df)} jobs (no link tracking)")
 
             # Generate outputs
             files = {}
@@ -623,8 +528,6 @@ class FreeWorldPipelineV3:
         force_fresh: bool = False,
         force_fresh_classification: bool = False,
         force_memory_only: bool = False,
-        force_link_generation: bool = False,
-        skip_link_tracking: bool = False,  # NEW: Skip link generation entirely (for scheduled scrapers)
         hardcoded_market: str = None,
         custom_location: str = None,
         generate_pdf: bool = True,
@@ -641,7 +544,8 @@ class FreeWorldPipelineV3:
         candidate_name: str = "",
         candidate_id: str = "",
         show_prepared_for: bool = True,
-        classifier_type: str = "cdl"
+        classifier_type: str = "cdl",
+        location_type: str = None  # 'custom' or 'markets' - passed from UI selector
     ) -> Dict[str, Any]:
         """
         Execute complete pipeline with single canonical DataFrame
@@ -677,12 +581,17 @@ class FreeWorldPipelineV3:
         pipeline_start_time = time.time()
         
         # Store custom location flag for market assignment
-        # Detect custom locations: either explicitly passed OR location contains comma (city, state format)
-        self._is_custom_location = (custom_location is not None) or (',' in str(location))
+        # PRIORITY: Use location_type from UI selector if provided (most reliable)
+        # Fallback: Check custom_location param or comma in location
+        if location_type is not None:
+            self._is_custom_location = (location_type == 'custom')
+        else:
+            self._is_custom_location = (custom_location is not None) or (',' in str(location))
 
         # DEBUG: Log custom location detection
         print(f"🔍 CUSTOM LOCATION DEBUG:")
         print(f"   location = '{location}'")
+        print(f"   location_type = '{location_type}' (from UI selector)")
         print(f"   custom_location = '{custom_location}'")
         print(f"   _is_custom_location = {self._is_custom_location}")
         if self._is_custom_location:
@@ -757,7 +666,7 @@ class FreeWorldPipelineV3:
             results = self._stage7_output(
                 canonical_df, hardcoded_market or location, custom_location,
                 generate_pdf, generate_csv, generate_html, force_memory_only,
-                force_link_generation, show_prepared_for, skip_link_tracking
+                show_prepared_for
             )
 
             # STAGE 8: DATA STORAGE
@@ -1038,10 +947,10 @@ class FreeWorldPipelineV3:
                 market_zip = get_market_center_zip(location)
 
                 if market_zip:
-                    # Market search - use ZIP + 90 min commute (broad coverage)
+                    # Market search - use ZIP + user-selected commute time
                     encoded_location = market_zip
-                    indeed_commute = 90  # Broad coverage for market searches
-                    print(f"   📍 Market search mode: {location} center ZIP {market_zip} + 90 min commute")
+                    indeed_commute = commute_time  # Respect user's commute time selection
+                    print(f"   📍 Market search mode: {location} center ZIP {market_zip} + {commute_time} min commute")
                 else:
                     # Custom location search - use location string + user-selected commute time
                     encoded_location = query_location.replace(' ', '+').replace(',', '%2C')
@@ -1771,13 +1680,11 @@ Return ONLY the formatted HTML version, no explanation or markdown code blocks."
         custom_location: str,
         generate_pdf: bool,
         generate_csv: bool,
-        generate_html: bool, # New parameter for HTML generation
+        generate_html: bool,
         force_memory_only: bool = False,
-        force_link_generation: bool = False,  # Force link generation even for memory-only mode
-        show_prepared_for: bool = True,
-        skip_link_tracking: bool = False  # NEW: Skip all link generation
+        show_prepared_for: bool = True
     ) -> Dict[str, Any]:
-        """Stage 7: Generate output files"""
+        """Stage 7: Generate output files (NO link tracking - only portal links use Short.io)"""
         
         print("📄 STAGE 7: OUTPUT GENERATION")
         
@@ -1808,182 +1715,27 @@ Return ONLY the formatted HTML version, no explanation or markdown code blocks."
         included_mask = df['route.final_status'].astype(str).str.startswith('included:')
         results['included_jobs'] = included_mask.sum()
 
-        # Generate tracked URLs for ALL quality jobs (good/so-so), regardless of filter status
+        # NO LINK TRACKING FOR JOB SEARCHES - only portal links use Short.io
+        # Just use original source URLs directly
         quality_mask = exportable_df['ai.match'].isin(['good', 'so-so'])
         quality_jobs_df = exportable_df[quality_mask]
 
-        # NEW: Skip link tracking entirely if flag is set (for scheduled scrapers)
-        if skip_link_tracking:
-            print(f"⏭️  SKIPPING LINK TRACKING: {len(quality_jobs_df)} quality jobs will use original URLs (scheduled scraper mode)")
-            # Ensure original URLs are in meta.tracked_url for consistency
-            url_mapping = {}
-            for _, job in quality_jobs_df.iterrows():
-                job_id = job.get('id.job', '')
-                original_url = job.get('source.url', '')
-                if job_id and original_url:
-                    url_mapping[job_id] = original_url
+        print(f"✅ Using original URLs for {len(quality_jobs_df)} quality jobs (no link tracking)")
 
-            if url_mapping:
-                df = apply_tracked_urls(df, url_mapping)
-                exportable_df = view_exportable(df)
+        # Ensure meta.tracked_url column exists and contains original URLs
+        url_mapping = {}
+        for _, job in quality_jobs_df.iterrows():
+            job_id = job.get('id.job', '')
+            original_url = job.get('source.url', '')
+            if job_id and original_url:
+                url_mapping[job_id] = original_url
 
-            # Save df to instance variable for Stage 8
-            self.df = df
-        else:
-            # Original link tracking logic
-            print(f"🔗 Generating tracking links for {len(quality_jobs_df)} quality jobs (good/so-so) out of {len(exportable_df)} total")
+        if url_mapping:
+            df = apply_tracked_urls(df, url_mapping)
+            exportable_df = view_exportable(df)
 
-            has_tracked_url_col = 'meta.tracked_url' in quality_jobs_df.columns
-            quality_urls_empty = (quality_jobs_df['meta.tracked_url'].isna() | (quality_jobs_df['meta.tracked_url'] == '')).all() if has_tracked_url_col else True
-
-            # Debug tracked URL status
-            if has_tracked_url_col:
-                non_null_count = quality_jobs_df['meta.tracked_url'].notna().sum()
-                print(f"🔍 Quality jobs with non-null tracked URLs: {non_null_count}")
-                if non_null_count > 0:
-                    print(f"🔍 Sample non-null URLs: {quality_jobs_df['meta.tracked_url'].dropna().head(3).tolist()}")
-
-            print(f"🔍 URL Debug: has_tracked_url_col={has_tracked_url_col}, quality_urls_empty={quality_urls_empty}, quality_jobs={len(quality_jobs_df)}")
-
-            # Smart link generation: Skip if most jobs already have tracking URLs (speed optimization)
-            if len(quality_jobs_df) > 0:
-                # Check how many jobs already have tracking URLs
-                jobs_with_urls = quality_jobs_df['meta.tracked_url'].notna() & (quality_jobs_df['meta.tracked_url'] != '') & (quality_jobs_df['meta.tracked_url'] != quality_jobs_df.get('source.url', ''))
-                existing_url_count = jobs_with_urls.sum() if has_tracked_url_col else 0
-                total_jobs = len(quality_jobs_df)
-                url_coverage = existing_url_count / total_jobs if total_jobs > 0 else 0
-
-                # Skip link generation if >80% of jobs already have tracking URLs (smart memory optimization)
-                should_skip_generation = (
-                    (force_memory_only and not force_link_generation) or  # Original memory-only logic
-                    (url_coverage >= 0.8)  # New smart optimization: >80% coverage
-                )
-
-                if should_skip_generation:
-                    print(f"⚡ SMART LINK OPTIMIZATION: Skipping link generation ({existing_url_count}/{total_jobs} jobs have tracking URLs, {url_coverage:.1%} coverage)")
-                    print("✅ Using existing tracking URLs from memory (massive speed boost!)")
-
-                    # Fallback: Fill any missing tracking URLs with original URLs (safety net)
-                    missing_urls = quality_jobs_df['meta.tracked_url'].isna() | (quality_jobs_df['meta.tracked_url'] == '')
-                    if missing_urls.any():
-                        jobs_need_fallback = missing_urls.sum()
-                        print(f"🔄 Filling {jobs_need_fallback} missing tracking URLs with original URLs as fallback")
-
-                        # Build url_mapping for jobs needing fallback
-                        url_mapping = {}
-                        for _, job in quality_jobs_df[missing_urls].iterrows():
-                            job_id = job.get('id.job', '')
-                            fallback_url = job.get('source.url', '')
-                            if job_id and fallback_url:
-                                url_mapping[job_id] = fallback_url
-
-                        # Apply fallback URLs using proper apply_tracked_urls function
-                        df = apply_tracked_urls(df, url_mapping)
-
-                        # Regenerate exportable_df and quality_jobs_df from updated df
-                        exportable_df = view_exportable(df)
-                        quality_jobs_df = exportable_df[quality_mask]
-
-                    # CRITICAL: Always save df to instance variable for Stage 8
-                    self.df = df
-
-                else:
-                    print("🔗 Generating tracked URLs...")
-                    # Initialize link tracker
-                    link_tracker = None
-                    if LinkTracker:
-                        try:
-                            tracker_instance = LinkTracker()
-                            if tracker_instance.is_available:
-                                link_tracker = tracker_instance
-                                print("✅ LinkTracker initialized successfully")
-                            else:
-                                print("⚠️ LinkTracker initialization failed or service unavailable, will use original URLs")
-                        except Exception as e:
-                            print(f"⚠️ LinkTracker initialization error: {e}, will use original URLs")
-                    else:
-                        print("⚠️ LinkTracker class not available, will use original URLs")
-
-                    url_mapping = {}
-                    for _, job in quality_jobs_df.iterrows():
-                        # Get the best available URL
-                        original_url = (
-                            job.get('source.url', '') or
-                            job.get('clean_apply_url', '')
-                        )
-                        job_id = job.get('id.job', '')
-
-                        # Debug URL lookup
-                        print(f"🔍 Job {job_id[:8]}: URL={original_url[:50]}..." if original_url else f"🔍 Job {job_id[:8]}: NO URL FOUND")
-
-                        if original_url and len(original_url) > 10:
-                            if link_tracker:
-                                try:
-                                    # Create shortened tracked URL
-                                    # Get coach/candidate info from environment (set by Streamlit wrapper or terminal script)
-                                    # Prefer canonical agent.* fields in the DataFrame; fall back to environment
-                                    coach_username = (
-                                        str(job.get('agent.coach_username') or '').strip()
-                                        or os.getenv('FREEWORLD_COACH_USERNAME', 'demo_coach')
-                                    )
-                                    candidate_name = (
-                                        str(job.get('agent.name') or '').strip()
-                                        or os.getenv('FREEWORLD_CANDIDATE_NAME', 'Demo Free Agent')
-                                    )
-                                    candidate_id = (
-                                        str(job.get('agent.uuid') or '').strip()
-                                        or os.getenv('FREEWORLD_CANDIDATE_ID', 'demo_agent_001')
-                                    )
-
-                                    # Prepare tags for edge function tracking
-                                    tags = []
-                                    if coach_username:
-                                        tags.append(f"coach:{coach_username}")
-                                    if candidate_id:
-                                        tags.append(f"candidate:{candidate_id}")
-                                    if candidate_name:
-                                        tags.append(f"agent:{candidate_name.replace(' ', '-')}")
-                                    if market:
-                                        tags.append(f"market:{market}")
-
-                                    # Generate edge function URL for click tracking (no Short.io)
-                                    tracked_url = link_tracker.generate_edge_function_url(
-                                        original_url,
-                                        candidate_id=candidate_id,
-                                        tags=tags
-                                    )
-                                    if tracked_url:
-                                        url_mapping[job_id] = tracked_url
-                                        print(f"✅ Created edge function URL for {job_id[:8]}")
-                                    else:
-                                        print(f"❌ Edge function URL generation failed for {job_id[:8]}")
-                                        url_mapping[job_id] = original_url
-                                except Exception as e:
-                                    print(f"❌ Link shortening failed for {job_id[:8]}: {e}")
-                                    url_mapping[job_id] = original_url
-                            else:
-                                print(f"❌ LinkTracker not available for job {job_id[:8]}")
-                                url_mapping[job_id] = original_url
-
-                    # Apply tracked URLs to main dataframe
-                    df = apply_tracked_urls(df, url_mapping)
-
-                    # Save updated df to instance variable so stage 8 can access tracked URLs
-                    self.df = df
-
-                    # IMPORTANT: Recreate exportable_df from updated df (since df is now a new object with tracked URLs)
-                    exportable_df = view_exportable(df)
-
-                    # Recreate quality_jobs_df from updated exportable_df
-                    included_jobs_mask = exportable_df['route.final_status'].astype(str).str.startswith('included:')
-                    quality_jobs_df = exportable_df[included_jobs_mask]
-
-                    print(f"✅ Generated {len(url_mapping)} tracked URLs for {len(quality_jobs_df)} quality jobs")
-                    print(f"🔍 Applied tracked URLs to df and recreated exportable_df and quality_jobs_df")
-
-                    # Store tracked URLs count for UI display
-                    self.tracked_urls_count = len(url_mapping)
-                    results['tracked_urls_count'] = len(url_mapping)
+        # Save df to instance variable for Stage 8
+        self.df = df
 
         # Generate CSV (always generate, even if empty for testing)
         if generate_csv:

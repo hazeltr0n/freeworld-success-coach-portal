@@ -98,7 +98,6 @@ def main():
             'generate_pdf': False,
             'generate_csv': False,
             'generate_html': False,
-            'skip_link_tracking': True,  # NEW: Skip all link tracking (no Short.io, no edge function)
             'candidate_id': '',
             'candidate_name': '',
             'coach_username': 'scheduled_indeed'

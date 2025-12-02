@@ -126,8 +126,7 @@ class StreamlitPipelineWrapper:
                 force_memory_only=force_memory_only,
                 mode_info=mode_info or {'mode': 'sample', 'limit': max_jobs},
                 show_prepared_for=show_prepared_for,
-                classifier_type=classifier_type,
-                skip_link_tracking=False  # Agent portal needs tracking
+                classifier_type=classifier_type
             )
             
             return results
@@ -290,7 +289,6 @@ class StreamlitPipelineWrapper:
                     # NUCLEAR FIX: Pass Free Agent parameters directly to pipeline_v3
                     candidate_name=params.get('candidate_name', ''),
                     candidate_id=params.get('candidate_id', ''),
-                    force_link_generation=params.get('force_link_generation', False),
                     show_prepared_for=params.get('show_prepared_for', True)
                 )
 
@@ -389,7 +387,7 @@ class StreamlitPipelineWrapper:
         try:
             # UI direct path (avoid subprocess/CSV parsing) - skip if memory_only (has own path)
             if params.get('ui_direct', False) and not params.get('memory_only', False):
-                print(f"🎯 Using UI_DIRECT path - force_link_generation={params.get('force_link_generation', False)}")
+                print(f"🎯 Using UI_DIRECT path (no link tracking)")
                 from pipeline_v3 import FreeWorldPipelineV3
                 if not hasattr(self, 'pipeline_v3') or self.pipeline_v3 is None:
                     self.pipeline_v3 = FreeWorldPipelineV3()
@@ -454,8 +452,6 @@ class StreamlitPipelineWrapper:
                         force_fresh=params.get('force_fresh', False),
                         force_fresh_classification=params.get('force_fresh_classification', False),
                         force_memory_only=memory_only_mode,
-                        force_link_generation=params.get('force_link_generation', False),
-                        skip_link_tracking=params.get('skip_link_tracking', False),  # NEW: Skip link tracking for scheduled scrapers
                         hardcoded_market=None,
                         custom_location=custom_location if custom_location else None,
                         generate_pdf=params.get('generate_pdf', False),  # Respect PDF generation request from UI
@@ -472,7 +468,8 @@ class StreamlitPipelineWrapper:
                         candidate_name=params.get('candidate_name', ''),
                         candidate_id=params.get('candidate_id', ''),
                         show_prepared_for=params.get('show_prepared_for', True),
-                        classifier_type=params.get('classifier_type', 'cdl')
+                        classifier_type=params.get('classifier_type', 'cdl'),
+                        location_type=params.get('location_type')  # Pass UI selector value
                     )
 
                     df_part = results.get('jobs_df') if isinstance(results, dict) else (pd.DataFrame() if pd else None)
@@ -509,7 +506,7 @@ class StreamlitPipelineWrapper:
 
             # Check if this is a memory-only search - use direct Python call for performance
             if params.get('memory_only', False):
-                print(f"🐌 Using OLD memory-only path - force_link_generation={params.get('force_link_generation', False)}")
+                print(f"🐌 Using OLD memory-only path (no link tracking)")
                 return self._run_memory_only_pipeline(params)
             
             # For all other searches, use subprocess to terminal script
@@ -566,10 +563,6 @@ class StreamlitPipelineWrapper:
                 cmd.append('--no-pdf')
             if not params.get('generate_csv', True):
                 cmd.append('--no-csv')
-
-            # Add skip link tracking flag for scheduled scrapers
-            if params.get('skip_link_tracking', False):
-                cmd.append('--skip-link-tracking')
 
             # Set coach name in environment and preserve Python path
             env = os.environ.copy()
