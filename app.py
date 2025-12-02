@@ -5014,7 +5014,13 @@ def main():
                         st.balloons()
                         
                 else:
-                    st.error(f"❌ Search failed: {metadata.get('error', 'Unknown error') if metadata else 'No data returned'}")
+                    # Check for filter-related "no results" vs actual error
+                    if metadata and metadata.get('no_results_message'):
+                        st.warning(f"📭 {metadata.get('no_results_message')}")
+                        if metadata.get('no_results_tip'):
+                            st.info(f"💡 **Tip:** {metadata.get('no_results_tip')}")
+                    else:
+                        st.error(f"❌ Search failed: {metadata.get('error', 'No jobs found') if metadata else 'No data returned'}")
                     if show_html_preview_tab and jobs_dataframe_to_dicts and render_jobs_html and not df.empty and search_type_tab not in ['indeed_fresh', 'indeed']:
                         render_html_preview(
                             df=df,
@@ -6147,7 +6153,13 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                 if not df.empty:
                     st.balloons()
             else:
-                st.error(f"❌ Memory search failed: {metadata.get('error', 'Unknown error')}")
+                # Check for filter-related "no results" vs actual error
+                if metadata and metadata.get('no_results_message'):
+                    st.warning(f"📭 {metadata.get('no_results_message')}")
+                    if metadata.get('no_results_tip'):
+                        st.info(f"💡 **Tip:** {metadata.get('no_results_tip')}")
+                else:
+                    st.error(f"❌ Memory search failed: {metadata.get('error', 'No jobs found')}")
 
             # Always show debug logs for memory search (collapsed)
             if mem_logs.strip() or mem_debug_summary:

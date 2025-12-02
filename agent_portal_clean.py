@@ -251,11 +251,41 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
             else:
                 error_msg = metadata.get('error', 'No jobs found in memory')
                 print(f"❌ CLEAN AGENT PORTAL: Memory search failed - {error_msg}")
+
+                # Send email notification for empty portal
+                try:
+                    from pdf.html_pdf_generator import _notify_empty_portal
+                    _notify_empty_portal(
+                        agent_name=agent_params.get('agent_name') or agent_params.get('name'),
+                        agent_id=agent_params.get('agent_uuid') or agent_params.get('candidate_id'),
+                        location=location,
+                        filters=agent_params
+                    )
+                except Exception as notify_err:
+                    print(f"📧 Notification error: {notify_err}")
+
                 return f"""
-                <div class='fw-splash'>
-                    <h1>No Jobs Found</h1>
-                    <p>No jobs found in memory for location: {location}</p>
-                    <p>Error: {error_msg}</p>
+                <div style="
+                    text-align: center;
+                    padding: 60px 24px;
+                    background: #ffffff;
+                    border-radius: 16px;
+                    border: 1px solid #e5e7eb;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+                    max-width: 400px;
+                    margin: 40px auto;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                ">
+                    <div style="font-size: 48px; margin-bottom: 16px;">🔍</div>
+                    <h2 style="color: #111827; font-size: 20px; font-weight: 600; margin: 0 0 12px 0;">
+                        No Jobs Available Right Now
+                    </h2>
+                    <p style="color: #6b7280; font-size: 15px; margin: 0 0 8px 0; line-height: 1.5;">
+                        We're working on finding opportunities that match your preferences.
+                    </p>
+                    <p style="color: #059669; font-size: 14px; font-weight: 500; margin: 16px 0 0 0;">
+                        Check back soon — new jobs are added regularly!
+                    </p>
                 </div>
                 """
             
@@ -264,9 +294,24 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
         import traceback
         print(f"❌ CLEAN AGENT PORTAL: Traceback - {traceback.format_exc()}")
         return f"""
-        <div class='fw-splash'>
-            <h1>Clean Portal Error</h1>
-            <p>{e}</p>
+        <div style="
+            text-align: center;
+            padding: 60px 24px;
+            background: #ffffff;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            max-width: 400px;
+            margin: 40px auto;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        ">
+            <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+            <h2 style="color: #111827; font-size: 20px; font-weight: 600; margin: 0 0 12px 0;">
+                Something Went Wrong
+            </h2>
+            <p style="color: #6b7280; font-size: 15px; margin: 0 0 8px 0; line-height: 1.5;">
+                We couldn't load your jobs right now. Please try again later.
+            </p>
         </div>
         """
 

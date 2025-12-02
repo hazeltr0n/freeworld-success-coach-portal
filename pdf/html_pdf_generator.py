@@ -15,6 +15,40 @@ _empty_portal_notified = {}  # {agent_id: last_notified_timestamp}
 _NOTIFICATION_COOLDOWN_HOURS = 24
 
 
+def _send_email_smtp(to_email: str, subject: str, html_body: str, text_body: str = None):
+    """Send email via Gmail SMTP with app password (simple, no OAuth)."""
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+
+    gmail_address = os.getenv('GMAIL_ADDRESS')
+    gmail_app_password = os.getenv('GMAIL_APP_PASSWORD')
+
+    if not gmail_address or not gmail_app_password:
+        print("📧 GMAIL_ADDRESS or GMAIL_APP_PASSWORD not set, skipping email")
+        return False
+
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['From'] = gmail_address
+        msg['To'] = to_email
+        msg['Subject'] = subject
+
+        if text_body:
+            msg.attach(MIMEText(text_body, 'plain'))
+        msg.attach(MIMEText(html_body, 'html'))
+
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(gmail_address, gmail_app_password)
+            server.sendmail(gmail_address, to_email, msg.as_string())
+
+        print(f"📧 Email sent to {to_email}")
+        return True
+    except Exception as e:
+        print(f"📧 SMTP error: {e}")
+        return False
+
+
 def _notify_empty_portal(agent_name: str, agent_id: str, location: str, filters: dict = None):
     """Send email notification when an agent sees empty portal (rate-limited)."""
     try:
@@ -35,20 +69,28 @@ def _notify_empty_portal(agent_name: str, agent_id: str, location: str, filters:
         # Build filter description
         filter_desc = []
         if filters:
-            if filters.get('route_type_filter'):
-                filter_desc.append(f"Routes: {', '.join(filters.get('route_type_filter', []))}")
+            route_filter = filters.get('route_type_filter') or filters.get('route_filter')
+            if route_filter:
+                # Handle both list and string formats
+                if isinstance(route_filter, list):
+                    filter_desc.append(f"Routes: {', '.join(route_filter)}")
+                else:
+                    filter_desc.append(f"Routes: {route_filter}")
             if filters.get('fair_chance_only'):
                 filter_desc.append("Fair chance only")
-            if filters.get('match_quality_filter'):
-                filter_desc.append(f"Quality: {', '.join(filters.get('match_quality_filter', []))}")
+            quality_filter = filters.get('match_quality_filter') or filters.get('match_level')
+            if quality_filter:
+                # Handle both list and string formats
+                if isinstance(quality_filter, list):
+                    filter_desc.append(f"Quality: {', '.join(quality_filter)}")
+                else:
+                    filter_desc.append(f"Quality: {quality_filter}")
 
         filter_summary = " | ".join(filter_desc) if filter_desc else "Default filters"
 
         # Send notification in background thread to not block rendering
         def send_async():
             try:
-                from send_scrape_notification import send_email
-
                 subject = f"🔍 Empty Portal: {agent_name or 'Unknown Agent'}"
 
                 html_body = f"""
@@ -77,7 +119,7 @@ Time: {now.strftime('%Y-%m-%d %H:%M:%S')}
 Consider running a fresh Indeed search for this market/filter combination.
 """
 
-                send_email(notify_email, subject, html_body, text_body)
+                _send_email_smtp(notify_email, subject, html_body, text_body)
                 print(f"📧 Empty portal notification sent for {agent_name}")
 
             except Exception as e:

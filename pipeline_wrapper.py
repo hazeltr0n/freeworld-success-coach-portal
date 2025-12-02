@@ -339,6 +339,14 @@ class StreamlitPipelineWrapper:
                 
                 print(f"🔧 Extracted metrics: memory_eff={memory_efficiency}%, cost=${total_cost:.3f}, time={processing_time:.1f}s")
 
+            # Extract no_results info from pipeline results if available
+            no_results_message = None
+            no_results_tip = None
+            if all_results_metrics:
+                latest_result = all_results_metrics[-1]
+                no_results_message = latest_result.get('no_results_message')
+                no_results_tip = latest_result.get('no_results_tip')
+
             metadata = {
                 'success': not combined_df.empty,
                 'total_jobs': int(len(combined_df)),
@@ -352,6 +360,9 @@ class StreamlitPipelineWrapper:
                 'cost_per_quality_job': cost_per_quality_job,
                 'processing_time': processing_time,
                 'duration': processing_time,  # Alternative key name
+                # Pass through filter-related messages
+                'no_results_message': no_results_message,
+                'no_results_tip': no_results_tip,
             }
             return combined_df, metadata
         
