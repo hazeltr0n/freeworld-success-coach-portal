@@ -5889,25 +5889,36 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
 
             # No CSV fallback here — rely on pipeline behavior only
 
-            # If no jobs, surface helpful diagnostics inline
+            # If no jobs, show helpful message with actionable tip
             if (df is None or df.empty) and (not metadata.get('success', False)):
-                try:
-                    import os
-                    from job_memory_db import JobMemoryDB
-                    st.warning("No jobs returned. Running quick diagnostics…")
-                    st.caption(f"Location used: {display_location} | Lookback: {params.get('memory_hours', 'n/a')}h | Terms: '{params.get('search_terms','')}'")
-                    # Env check
-                    su = os.getenv('SUPABASE_URL'); sk = os.getenv('SUPABASE_ANON_KEY')
-                    st.write(f"SUPABASE_URL set: {'✅' if su else '❌'}  |  SUPABASE_ANON_KEY set: {'✅' if sk else '❌'}")
-                    # Connection test
+                # Check if this is a filter-related "no results" (vs actual error)
+                no_results_msg = metadata.get('no_results_message')
+                no_results_tip = metadata.get('no_results_tip')
+
+                if no_results_msg:
+                    # Filter-related empty results - show friendly message
+                    st.warning(f"📭 {no_results_msg}")
+                    if no_results_tip:
+                        st.info(f"💡 **Tip:** {no_results_tip}")
+                else:
+                    # Actual technical issue - show diagnostics
                     try:
-                        conn = JobMemoryDB().test_connection()
-                        ok = conn.get('success', False)
-                        st.write(f"Supabase connection: {'✅ OK' if ok else '❌ Failed'} — {conn.get('message','')}" )
-                    except Exception as _e:
-                        st.write(f"Supabase connection test error: {_e}")
-                except Exception:
-                    pass
+                        import os
+                        from job_memory_db import JobMemoryDB
+                        st.warning("No jobs returned. Running quick diagnostics…")
+                        st.caption(f"Location used: {display_location} | Lookback: {params.get('memory_hours', 'n/a')}h | Terms: '{params.get('search_terms','')}'")
+                        # Env check
+                        su = os.getenv('SUPABASE_URL'); sk = os.getenv('SUPABASE_ANON_KEY')
+                        st.write(f"SUPABASE_URL set: {'✅' if su else '❌'}  |  SUPABASE_ANON_KEY set: {'✅' if sk else '❌'}")
+                        # Connection test
+                        try:
+                            conn = JobMemoryDB().test_connection()
+                            ok = conn.get('success', False)
+                            st.write(f"Supabase connection: {'✅ OK' if ok else '❌ Failed'} — {conn.get('message','')}" )
+                        except Exception as _e:
+                            st.write(f"Supabase connection test error: {_e}")
+                    except Exception:
+                        pass
             
             # Store results in session state (same as Indeed button, with HTML/portal data)
             st.session_state.last_results = {

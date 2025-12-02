@@ -8,6 +8,90 @@ import pandas as pd
 import re
 import html as _html
 import os
+import threading
+
+# Rate limiting for empty portal notifications (avoid spam)
+_empty_portal_notified = {}  # {agent_id: last_notified_timestamp}
+_NOTIFICATION_COOLDOWN_HOURS = 24
+
+
+def _notify_empty_portal(agent_name: str, agent_id: str, location: str, filters: dict = None):
+    """Send email notification when an agent sees empty portal (rate-limited)."""
+    try:
+        # Rate limit: only notify once per agent per 24 hours
+        now = _dt.datetime.now()
+        cache_key = agent_id or agent_name or "unknown"
+        last_notified = _empty_portal_notified.get(cache_key)
+
+        if last_notified:
+            hours_since = (now - last_notified).total_seconds() / 3600
+            if hours_since < _NOTIFICATION_COOLDOWN_HOURS:
+                print(f"📧 Skipping empty portal notification for {agent_name} (notified {hours_since:.1f}h ago)")
+                return
+
+        # Get notification email (default to james@freeworld.org)
+        notify_email = os.getenv('NOTIFICATION_EMAIL', 'james@freeworld.org')
+
+        # Build filter description
+        filter_desc = []
+        if filters:
+            if filters.get('route_type_filter'):
+                filter_desc.append(f"Routes: {', '.join(filters.get('route_type_filter', []))}")
+            if filters.get('fair_chance_only'):
+                filter_desc.append("Fair chance only")
+            if filters.get('match_quality_filter'):
+                filter_desc.append(f"Quality: {', '.join(filters.get('match_quality_filter', []))}")
+
+        filter_summary = " | ".join(filter_desc) if filter_desc else "Default filters"
+
+        # Send notification in background thread to not block rendering
+        def send_async():
+            try:
+                from send_scrape_notification import send_email
+
+                subject = f"🔍 Empty Portal: {agent_name or 'Unknown Agent'}"
+
+                html_body = f"""
+                <html>
+                <body style="font-family: Arial, sans-serif; padding: 20px;">
+                    <h2 style="color: #dc2626;">🔍 Agent Portal Showing No Jobs</h2>
+                    <p><strong>Agent:</strong> {agent_name or 'Unknown'}</p>
+                    <p><strong>Agent ID:</strong> {agent_id or 'N/A'}</p>
+                    <p><strong>Location:</strong> {location or 'Unknown'}</p>
+                    <p><strong>Filters:</strong> {filter_summary}</p>
+                    <p><strong>Time:</strong> {now.strftime('%Y-%m-%d %H:%M:%S')}</p>
+                    <hr>
+                    <p style="color: #666;">Consider running a fresh Indeed search for this market/filter combination.</p>
+                </body>
+                </html>
+                """
+
+                text_body = f"""Empty Portal Alert
+
+Agent: {agent_name or 'Unknown'}
+Agent ID: {agent_id or 'N/A'}
+Location: {location or 'Unknown'}
+Filters: {filter_summary}
+Time: {now.strftime('%Y-%m-%d %H:%M:%S')}
+
+Consider running a fresh Indeed search for this market/filter combination.
+"""
+
+                send_email(notify_email, subject, html_body, text_body)
+                print(f"📧 Empty portal notification sent for {agent_name}")
+
+            except Exception as e:
+                print(f"📧 Failed to send empty portal notification: {e}")
+
+        # Update rate limit cache
+        _empty_portal_notified[cache_key] = now
+
+        # Send in background
+        thread = threading.Thread(target=send_async, daemon=True)
+        thread.start()
+
+    except Exception as e:
+        print(f"📧 Error in empty portal notification: {e}")
 
 BASE = Path(__file__).resolve().parents[1]
 TEMPLATES = BASE / "templates"
@@ -339,6 +423,15 @@ def render_jobs_html(jobs: List[Dict], agent_params=None, *, fragment: bool = Fa
     # Optionally hide job cards entirely via env flag (for quick QA/lockdown)
     if os.getenv('FREEWORLD_PORTAL_HIDE_JOBS', '0') == '1':
         jobs = []
+
+    # Send notification if agent portal is showing no jobs
+    if not jobs and raw_agent:
+        _notify_empty_portal(
+            agent_name=raw_agent,
+            agent_id=candidate_id,
+            location=location,
+            filters=agent_params
+        )
 
     # IMPORTANT: Do not generate or infer links here.
     # The Free Agent portal must only show the canonical tracked link provided by the pipeline.

@@ -112,10 +112,10 @@
     {% else %}
     <!-- No jobs found state -->
     <section class="no-jobs-container">
-        <div class="no-jobs-message">
-            <h2>No jobs found matching your criteria</h2>
-            <p>Try adjusting your search filters or check back later for new opportunities.</p>
-        </div>
+        <div class="no-jobs-icon">🔍</div>
+        <h2 class="no-jobs-title">No Jobs Available Right Now</h2>
+        <p class="no-jobs-subtitle">We're working on finding opportunities that match your preferences.</p>
+        <p class="no-jobs-action">Check back soon — new jobs are added regularly!</p>
     </section>
     {% endfor %}
 </main>
@@ -151,24 +151,42 @@
         box-shadow: var(--shadow-lg);
     }
     
-    /* No jobs state */
+    /* No jobs state - clean, friendly design */
     .no-jobs-container {
         text-align: center;
-        padding: 60px 20px;
-        background: var(--fw-card-bg);
-        border-radius: var(--radius-md);
-        border: 2px dashed var(--fw-card-border);
+        padding: 60px 24px;
+        background: #ffffff;
+        border-radius: 16px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        max-width: 400px;
+        margin: 40px auto;
     }
-    
-    .no-jobs-message h2 {
-        color: var(--fw-midnight);
-        margin-bottom: var(--space-md);
+
+    .no-jobs-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+    }
+
+    .no-jobs-title {
+        color: #111827;
         font-size: 20px;
+        font-weight: 600;
+        margin: 0 0 12px 0;
     }
-    
-    .no-jobs-message p {
-        color: #666;
+
+    .no-jobs-subtitle {
+        color: #6b7280;
+        font-size: 15px;
+        margin: 0 0 8px 0;
+        line-height: 1.5;
+    }
+
+    .no-jobs-action {
+        color: #059669;
         font-size: 14px;
+        font-weight: 500;
+        margin: 16px 0 0 0;
     }
     
     /* Print optimizations for multi-page */
@@ -219,7 +237,17 @@
         }
         
         .no-jobs-container {
-            padding: 40px 16px;
+            padding: 40px 20px;
+            margin: 20px 16px;
+            max-width: none;
+        }
+
+        .no-jobs-icon {
+            font-size: 40px;
+        }
+
+        .no-jobs-title {
+            font-size: 18px;
         }
     }
 </style>

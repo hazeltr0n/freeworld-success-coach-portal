@@ -275,33 +275,36 @@ class FreeWorldPipelineV3:
                 print(f"⚠️ Supabase converter path failed: {e}")
 
             if canonical_df is None or canonical_df.empty:
-                # Fallback: use JobMemoryDB and transform to canonical
-                memory_jobs = self.memory_db.search_jobs(
-                    search_terms=search_terms if text_search else None,
-                    location=query_location,
-                    radius=radius,
-                    limit=max_jobs * 3,
-                    hours=hours,
-                    text_search=text_search
-                )
-                if not memory_jobs:
-                    print("❌ No jobs found in memory database")
-                    import pandas as pd
-                    return {
-                        'status': 'completed',
-                        'jobs_df': pd.DataFrame(),  # Empty DataFrame for no results
-                        'bypass_executed': True,  # Still success, just no results
-                        'total_jobs': 0,
-                        'quality_jobs': 0,
-                        'files': {},
-                        'timing': {
-                            'total_time': time.time() - start_time
-                        },
-                        'source': 'memory_only'
-                    }
-                from canonical_transforms import transform_ingest_memory
-                canonical_df = transform_ingest_memory(memory_jobs, self.run_id)
-            
+                # No fallback - respect the filters and return empty with helpful message
+                filter_desc = []
+                if route_type_filter and route_type_filter != ['Local', 'OTR', 'Unknown']:
+                    filter_desc.append(f"route types: {', '.join(route_type_filter)}")
+                if match_quality_filter and match_quality_filter != ['good', 'so-so']:
+                    filter_desc.append(f"quality: {', '.join(match_quality_filter)}")
+                if fair_chance_only:
+                    filter_desc.append("fair chance employers only")
+
+                filter_summary = " | ".join(filter_desc) if filter_desc else "current filters"
+
+                print(f"📭 No jobs found matching filters: {filter_summary}")
+                print(f"💡 TIP: Run a Fresh Indeed search to load jobs matching these criteria")
+
+                import pandas as pd
+                return {
+                    'status': 'completed',
+                    'jobs_df': pd.DataFrame(),
+                    'bypass_executed': True,
+                    'total_jobs': 0,
+                    'quality_jobs': 0,
+                    'files': {},
+                    'timing': {
+                        'total_time': time.time() - start_time
+                    },
+                    'source': 'memory_only',
+                    'no_results_message': f"No jobs found matching: {filter_summary}",
+                    'no_results_tip': "Run a Fresh Indeed search to load jobs matching these filters into the database."
+                }
+
             print(f"📊 Found {len(canonical_df)} jobs in memory")
             
             # DISABLED AGAIN: Deduplication still causing one job issue  
