@@ -2501,7 +2501,8 @@ def show_manage_agents_tab(coach, coach_manager):
                     'Route': agent.get('route_filter', 'both'),
                     'Fair Chance': agent.get('fair_chance_only', False),
                     'Max Jobs': agent.get('max_jobs', 25),
-                    'Quality': agent.get('match_level', 'good and so-so'),
+                    # Convert stored "good and so-so and bad" back to "all jobs" for display
+                    'Quality': 'all jobs' if agent.get('match_level') == 'good and so-so and bad' else agent.get('match_level', 'good and so-so'),
                     'Lookback': f"{agent.get('lookback_hours', 72)}h",
                     'Show Prepared For': agent.get('show_prepared_for', True),
                     # INDIVIDUAL PATHWAY CHECKBOXES (instead of ListColumn)
@@ -2619,7 +2620,7 @@ def show_manage_agents_tab(coach, coach_manager):
                 "Quality",
                 help="AI match quality filter for jobs",
                 width="small",
-                options=["good", "so-so", "good and so-so", "all"],
+                options=["good", "so-so", "good and so-so", "all jobs"],
                 required=True
             ),
             'Lookback': st.column_config.SelectboxColumn(
@@ -2813,12 +2814,17 @@ def show_manage_agents_tab(coach, coach_manager):
                             lookback_str = str(edited['Lookback'])
                             lookback_hours = int(lookback_str.replace('h', '').strip()) if lookback_str.endswith('h') else 72
 
+                            # Convert "all jobs" UI option to the actual match levels
+                            quality_value = str(edited['Quality'])
+                            if quality_value == 'all jobs':
+                                quality_value = 'good and so-so and bad'
+
                             updated_agent.update({
                                 'location': str(edited['Market']),  # Save as 'location' for legacy compatibility
                                 'route_filter': str(edited['Route']),
                                 'fair_chance_only': bool(edited['Fair Chance']),
                                 'max_jobs': convert_max_jobs(edited['Max Jobs']),
-                                'match_level': str(edited['Quality']),
+                                'match_level': quality_value,
                                 'lookback_hours': lookback_hours,  # Save as integer for database
                                 'show_prepared_for': bool(edited['Show Prepared For']),
                                 'is_active': bool(edited['Active']),  # Handle active/inactive status
@@ -4129,111 +4135,333 @@ def main():
     if selected_tab == "🔍 Job Search":
         # Job Search tab - main interface controls
         st.header("🔍 Job Search")
-        
-        # RESPONSIVE Search Parameters Section
-        st.header("🎯 Search Parameters")
 
-        # Row 1: Location and Search Settings
-        st.markdown("##### 📍 Location & Search Settings")
-        with st.container():
-            col1, col2, col3 = st.columns([1.5, 2.5, 1.5])
+        # Import helper functions for UI components
+        from display_utils import render_free_agent_lookup, render_pdf_config
+
+        # Initialize all variables with defaults to prevent NameError in results section
+        location_tab = None
+        location_type_tab = "Select Market"
+        custom_location_tab = ""
+        selected_market_tab = None
+        selected_markets_tab = []
+        search_mode_tab = 'sample'
+        search_terms_tab = "CDL Driver No Experience"
+        commute_time_tab = 35
+        classifier_type_value_tab = 'cdl'
+        no_experience_tab = True
+        memory_time_period_tab = '72h'
+        force_fresh_classification_tab = False
+        push_to_airtable_tab = False
+
+        # PDF config defaults
+        max_jobs_pdf_tab = 50
+        pdf_route_type_filter_tab = ['Local', 'OTR', 'Unknown']
+        pdf_match_quality_filter_tab = ['good', 'so-so']
+        pathway_preferences_tab = []
+        pdf_fair_chance_only_tab = False
+        show_html_preview_tab = False
+        generate_portal_link_tab = False
+        show_prepared_for_tab = True
+        enable_pdf_generation_tab = True
+
+        # Candidate defaults
+        candidate_id_tab = ""
+        candidate_name_tab = ""
+
+        # Button state
+        memory_clicked_tab = False
+        indeed_fresh_clicked_tab = False
+
+        # Get available markets
+        markets = pipeline.get_markets()
+
+        # Create sub-tabs for Memory vs Fresh Indeed
+        memory_tab, fresh_tab = st.tabs(["💾 Memory Search", "🔍 Fresh Indeed Search"])
+
+        # ==================== MEMORY SEARCH TAB ====================
+        with memory_tab:
+            st.markdown("Search cached jobs from Supabase memory - instant results, no API costs. Use this tab for PDF and portal generation.")
+
+            # Location Selection (market or custom)
+            st.markdown("##### 📍 Location Selection")
+            col1, col2 = st.columns([1, 3])
 
             with col1:
-                location_options_tab = ["Select Market"]
+                mem_location_options = ["Select Market"]
                 if check_coach_permission('can_use_custom_locations'):
-                    location_options_tab.append("Custom Location")
+                    mem_location_options.append("Custom Location")
 
-                location_type_tab = st.radio(
+                mem_location_type = st.radio(
                     "Location Type:",
-                    location_options_tab,
-                    help="Choose from preset markets or enter a custom location",
-                    key="tab_location_type"
+                    mem_location_options,
+                    help="Choose a preset market or enter a custom location",
+                    key="mem_location_type"
                 )
 
             with col2:
-                location_tab = None
-                selected_market_tab = None  # Initialize variable
-                if location_type_tab == "Select Market":
-                    markets = pipeline.get_markets()
-
-                    # Check if memory search is being used - restrict to single market only
-                    memory_search_active = memory_clicked_tab if 'memory_clicked_tab' in locals() else False
-
-                    if memory_search_active:
-                        # Memory search: force single market selection
-                        selected_market_tab = st.selectbox(
-                            "Target Market:",
-                            [""] + markets,
-                            help="Memory search supports single market only",
-                            key="tab_selected_market_memory"
-                        )
-                        # Convert to list format for compatibility
-                        selected_markets_tab = [selected_market_tab] if selected_market_tab else []
-                        if selected_market_tab:
-                            st.info("💾 Memory search: Single market mode")
+                if mem_location_type == "Select Market":
+                    mem_selected_market = st.selectbox(
+                        "Target Market:",
+                        [""] + markets,
+                        help="Memory search supports single market only",
+                        key="mem_selected_market"
+                    )
+                    if mem_selected_market:
+                        st.success(f"📍 Selected Market: {mem_selected_market}")
                     else:
-                        # Regular search: allow multiple markets
-                        selected_markets_tab = st.multiselect(
-                            "Target Markets:",
-                            markets,
-                            help="Select one or multiple markets to search",
-                            key="tab_selected_markets"
-                        )
-                        # Set selected_market_tab for compatibility
-                        selected_market_tab = selected_markets_tab[0] if selected_markets_tab else None
-                    if selected_markets_tab:
-                        if len(selected_markets_tab) == 1:
-                            location_tab = selected_markets_tab[0]
-                            st.success(f"📍 Selected Market: {location_tab}")
-                        else:
-                            location_tab = selected_markets_tab  # List of markets for multi-market search
-                            st.success(f"📍 Selected Markets: {', '.join(selected_markets_tab)}")
-                    else:
-                        st.warning("👆 Please select at least one market")
-
-                elif location_type_tab == "Custom Location":
-                    custom_location_tab = st.text_input(
+                        st.warning("👆 Please select a market")
+                else:
+                    mem_custom_location = st.text_input(
                         "Enter ZIP code, city, or state:",
                         placeholder="e.g., 90210, Austin TX, California",
-                        help="Enter any US location - ZIP code, city name, or state",
-                        key="tab_custom_location"
+                        help="Enter any US location",
+                        key="mem_custom_location"
                     )
-                    if custom_location_tab:
-                        location_tab = custom_location_tab.strip()
-                        st.success(f"📍 Custom Location: {location_tab}")
+                    if mem_custom_location:
+                        st.success(f"📍 Custom Location: {mem_custom_location}")
                     else:
                         st.warning("👆 Please enter a location")
 
-            with col3:
-                # Use shared constants to prevent duplication
-                mode_display_map_tab = MODE_DISPLAY_MAP
-                search_display_options_tab = MODE_DISPLAY_OPTIONS.copy()
-                if check_coach_permission('can_access_full_mode'):
-                    search_display_options_tab.append("1000 jobs")
-
-                search_mode_display_tab = st.selectbox(
-                    "📊 Job Quantity:",
-                    search_display_options_tab,
-                    index=1,  # default to "100 jobs"
-                    help="Number of jobs to analyze and classify",
-                    key="tab_search_mode_display"
+            # Lookback Period and ZIP Radius in one row
+            col1, col2, col3 = st.columns([1, 1, 1])
+            with col1:
+                st.markdown("##### ⏰ Lookback Period")
+                mem_time_period = st.selectbox(
+                    "Search jobs from:",
+                    options=['24h', '48h', '72h', '96h'],
+                    index=2,  # default to 72h
+                    help="How far back to search in the memory cache",
+                    key="mem_time_period"
                 )
-                search_mode_tab = mode_display_map_tab[search_mode_display_tab]
+            with col2:
+                st.markdown("##### 📍 ZIP Code (Optional)")
+                mem_zip_code = st.text_input(
+                    "Filter by ZIP:",
+                    placeholder="e.g., 77001",
+                    help="Optional: Filter jobs within radius of this ZIP code",
+                    key="mem_zip_code"
+                )
+            with col3:
+                st.markdown("##### 📏 Radius (mi)")
+                mem_zip_radius = st.selectbox(
+                    "Search radius:",
+                    options=[10, 25, 50, 75, 100],
+                    index=1,  # default to 25 miles
+                    help="Miles from ZIP code to include jobs",
+                    key="mem_zip_radius"
+                )
 
-        # Row 2: Search Terms and Advanced Options
-        st.markdown("##### 🔍 Search Terms & Options")
-        with st.container():
-            col4, col5, col6 = st.columns([2, 1.5, 1.5])
+            # Free Agent Lookup
+            mem_candidate_id, mem_candidate_name = render_free_agent_lookup("mem_")
 
-            with col4:
-                search_terms_tab = st.text_input(
-                    "🔍 Search Terms:",
+            # PDF/Portal Configuration (inline, simplified - no pathway preferences)
+            st.markdown("### 📄 PDF & Portal Configuration")
+
+            if check_coach_permission('can_generate_pdf'):
+                # Max jobs for PDF
+                mem_max_jobs_pdf = st.selectbox(
+                    "📊 Maximum jobs in PDF:",
+                    options=[10, 25, 50, 100, 250],
+                    index=4,  # default to 250
+                    help="Maximum jobs to include in PDF/portal",
+                    key="mem_max_jobs_pdf"
+                )
+
+                # Route Types and Job Quality
+                col1, col2 = st.columns(2)
+                with col1:
+                    mem_pdf_route_filter = st.multiselect(
+                        "🛣️ Route types:",
+                        options=['Local', 'OTR', 'Unknown'],
+                        default=['Local', 'OTR', 'Unknown'],
+                        help="Which route types to include",
+                        key="mem_pdf_route_filter"
+                    )
+                with col2:
+                    mem_pdf_quality_filter = st.multiselect(
+                        "⭐ Job quality levels:",
+                        options=['good', 'so-so', 'bad'],
+                        default=['good', 'so-so'],
+                        help="Which quality levels to include",
+                        key="mem_pdf_quality_filter"
+                    )
+
+                # Checkboxes row
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    mem_fair_chance_only = st.checkbox(
+                        "🤝 Fair chance only",
+                        value=False,
+                        help="Only jobs friendly to people with records",
+                        key="mem_fair_chance_only"
+                    )
+                with col2:
+                    mem_show_html_preview = st.checkbox(
+                        "👁️ HTML preview",
+                        value=False,
+                        help="Preview PDF layout in HTML format",
+                        key="mem_show_html_preview"
+                    )
+                with col3:
+                    mem_generate_portal = st.checkbox(
+                        "🔗 Generate portal link",
+                        value=False,
+                        help="Create a shareable job portal",
+                        key="mem_generate_portal"
+                    )
+
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    mem_show_prepared_for = st.checkbox(
+                        "👤 Show 'prepared for'",
+                        value=True,
+                        help="Include personalized message",
+                        key="mem_show_prepared_for"
+                    )
+                with col2:
+                    mem_enable_pdf = st.checkbox(
+                        "📄 Enable PDF",
+                        value=True,
+                        help="Generate downloadable PDF",
+                        key="mem_enable_pdf"
+                    )
+            else:
+                st.info("📄 PDF generation not available - contact admin for access")
+                mem_max_jobs_pdf = 50
+                mem_pdf_route_filter = ['Local', 'OTR', 'Unknown']
+                mem_pdf_quality_filter = ['good', 'so-so']
+                mem_fair_chance_only = False
+                mem_show_html_preview = False
+                mem_generate_portal = False
+                mem_show_prepared_for = True
+                mem_enable_pdf = False
+
+            # Search Button
+            st.markdown("---")
+            memory_clicked_tab = st.button(
+                "💾 Search Memory",
+                help="Search cached jobs - instant results, no API costs",
+                key="mem_search_btn",
+                use_container_width=True
+            )
+
+            # Set variables when Memory search is triggered
+            if memory_clicked_tab:
+                if mem_location_type == "Select Market":
+                    location_tab = mem_selected_market
+                    location_type_tab = "Select Market"
+                    selected_market_tab = mem_selected_market
+                    selected_markets_tab = [mem_selected_market] if mem_selected_market else []
+                else:
+                    location_tab = mem_custom_location.strip() if mem_custom_location else None
+                    location_type_tab = "Custom Location"
+                    custom_location_tab = mem_custom_location
+                    selected_market_tab = None
+                    selected_markets_tab = []
+
+                memory_time_period_tab = mem_time_period
+                classifier_type_value_tab = "cdl"  # Always CDL
+                # ZIP code radius filtering
+                mem_agent_zip = mem_zip_code.strip() if mem_zip_code else None
+                mem_agent_zip_radius = mem_zip_radius
+                # Free Agent from session state
+                candidate_id_tab = st.session_state.get('candidate_id', '')
+                candidate_name_tab = st.session_state.get('candidate_name', '')
+                # PDF config
+                max_jobs_pdf_tab = mem_max_jobs_pdf
+                pdf_route_type_filter_tab = mem_pdf_route_filter
+                pdf_match_quality_filter_tab = mem_pdf_quality_filter
+                pathway_preferences_tab = []  # Not used
+                pdf_fair_chance_only_tab = mem_fair_chance_only
+                show_html_preview_tab = mem_show_html_preview
+                generate_portal_link_tab = mem_generate_portal
+                show_prepared_for_tab = mem_show_prepared_for
+                enable_pdf_generation_tab = mem_enable_pdf
+
+        # ==================== FRESH INDEED SEARCH TAB ====================
+        with fresh_tab:
+            # Check permission first
+            _can_fresh = check_coach_permission('can_pull_fresh_jobs')
+            if not _can_fresh:
+                st.warning("🔒 Fresh Indeed scraping is disabled for your account. Contact admin for access.")
+            else:
+                st.markdown("Fetch fresh jobs from Indeed API and save to database. Use the **Memory Search** tab afterward to generate PDFs and portals.")
+
+            # Location Selection (multi-market or custom)
+            st.markdown("##### 📍 Location Selection")
+            col1, col2 = st.columns([1, 3])
+
+            with col1:
+                fresh_location_options = ["Select Market(s)"]
+                if check_coach_permission('can_use_custom_locations'):
+                    fresh_location_options.append("Custom Location")
+
+                fresh_location_type = st.radio(
+                    "Location Type:",
+                    fresh_location_options,
+                    help="Choose preset markets or enter a custom location",
+                    key="fresh_location_type"
+                )
+
+            with col2:
+                if fresh_location_type == "Select Market(s)":
+                    fresh_selected_markets = st.multiselect(
+                        "Target Markets:",
+                        markets,
+                        help="Select one or multiple markets to search",
+                        key="fresh_selected_markets"
+                    )
+                    if fresh_selected_markets:
+                        if len(fresh_selected_markets) == 1:
+                            st.success(f"📍 Selected Market: {fresh_selected_markets[0]}")
+                        else:
+                            st.success(f"📍 Selected Markets: {', '.join(fresh_selected_markets)}")
+                    else:
+                        st.warning("👆 Please select at least one market")
+                else:
+                    fresh_custom_location = st.text_input(
+                        "Enter ZIP code, city, or state:",
+                        placeholder="e.g., 90210, Austin TX, California",
+                        help="Enter any US location",
+                        key="fresh_custom_location"
+                    )
+                    if fresh_custom_location:
+                        st.success(f"📍 Custom Location: {fresh_custom_location}")
+                    else:
+                        st.warning("👆 Please enter a location")
+
+            # Search Parameters
+            st.markdown("##### 🔍 Search Parameters")
+            col1, col2 = st.columns(2)
+
+            with col1:
+                fresh_search_terms = st.text_input(
+                    "Search Terms:",
                     value="CDL Driver No Experience",
                     help="Job search keywords. Use commas for multiple terms",
-                    key="tab_search_terms"
+                    key="fresh_search_terms"
                 )
 
-            with col5:
+            with col2:
+                # Job Quantity
+                mode_display_map_tab = MODE_DISPLAY_MAP
+                search_display_options = MODE_DISPLAY_OPTIONS.copy()
+                if check_coach_permission('can_access_full_mode'):
+                    search_display_options.append("1000 jobs")
+
+                fresh_search_mode_display = st.selectbox(
+                    "Job Quantity:",
+                    search_display_options,
+                    index=1,  # default to "100 jobs"
+                    help="Number of jobs to fetch and classify",
+                    key="fresh_search_mode_display"
+                )
+                fresh_search_mode = mode_display_map_tab[fresh_search_mode_display]
+
+            # Additional Options Row
+            col1, col2, col3 = st.columns(3)
+            with col1:
                 commute_time_options = {
                     "Exact Location": 0,
                     "15 min commute": 15,
@@ -4243,334 +4471,84 @@ def main():
                     "60 min commute": 60,
                     "90 min commute": 90
                 }
-                commute_time_display = st.selectbox(
-                    "📏 Indeed Commute Time:",
+                fresh_commute_display = st.selectbox(
+                    "📏 Commute Time:",
                     list(commute_time_options.keys()),
-                    index=3,  # default to 35 min
-                    help="Indeed search area by commute time (replaces radius)",
-                    key="tab_commute_time"
+                    index=5,  # default to 60 min
+                    help="Indeed search area by commute time",
+                    key="fresh_commute_time"
                 )
-                commute_time_tab = commute_time_options[commute_time_display]
+                fresh_commute_time = commute_time_options[fresh_commute_display]
 
-            with col6:
-                classifier_type_tab = st.selectbox(
-                    "🧠 Job Type:",
-                    ["CDL Traditional", "Career Pathways"],
-                    index=0,  # default to CDL Traditional
-                    help="CDL Traditional: Focus on experienced CDL driving jobs\nCareer Pathways: Include warehouse-to-driver, dock-to-driver, and training opportunities",
-                    key="tab_classifier_type"
-                )
-                # Convert display to internal value
-                classifier_type_value_tab = "cdl" if classifier_type_tab == "CDL Traditional" else "pathway"
-
-        # Row 3: Additional Options
-        st.markdown("##### ⚙️ Additional Options")
-        with st.container():
-            col7, col8 = st.columns(2)
-
-            with col7:
-                no_experience_tab = st.checkbox(
-                    "📋 Indeed No Experience Filter",
+            with col2:
+                fresh_no_experience = st.checkbox(
+                    "📋 No Experience Filter",
                     value=True,
                     help="Include jobs that don't require prior experience",
-                    key="tab_no_experience"
+                    key="fresh_no_experience"
                 )
-        
-        # Set default value for removed advanced options
-        push_to_airtable_tab = False
-        
-        
-        # Free Agent Portal/PDF Configuration
-        st.markdown("### 📄 Free Agent Portal/PDF Configuration")
-        
-        # Only show PDF generation if coach has permission
-        if check_coach_permission('can_generate_pdf'):
-            # Row 1: Max Jobs - automatically set based on search mode
-            search_mode_to_pdf_limit = {
-                'test': 10,    # "10 jobs" → 10 in PDF
-                'mini': 50,    # "50 jobs" → 50 in PDF  
-                'sample': 100, # "100 jobs" → 100 in PDF
-                'medium': 100, # "250 jobs" → 100 in PDF (cap for readability)
-                'large': 100,  # "500 jobs" → 100 in PDF (cap for readability)
-                'full': 100    # "1000 jobs" → 100 in PDF (cap for readability)
-            }
-            default_pdf_limit = search_mode_to_pdf_limit.get(search_mode_tab, 50)
-            default_index = 2  # default to 50
-            pdf_options = [10, 25, 50, 100, 250]
-            if default_pdf_limit in pdf_options:
-                default_index = pdf_options.index(default_pdf_limit)
-            
-            max_jobs_pdf_tab = st.selectbox(
-                "📊 Maximum jobs:",
-                options=pdf_options,
-                index=default_index,
-                help=f"Auto-set to {default_pdf_limit} based on '{search_mode_display_tab}' selection"
-                # No key = always follows search mode default
-            )
-            
-            # Row 2: Route Types, Job Quality Levels, and Pathway Filter
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                pdf_route_type_filter_tab = st.multiselect(
-                    "🛣️ Route types:",
-                    options=['Local', 'OTR', 'Unknown'],
-                    default=['Local', 'OTR', 'Unknown'],
-                    help="Which driving route types to include in PDF",
-                    key="tab_pdf_route_type_filter"
-                )
-            with col2:
-                pdf_match_quality_filter_tab = st.multiselect(
-                    "⭐ Job quality levels:",
-                    options=['good', 'so-so', 'bad'],
-                    default=['good', 'so-so'],
-                    help="Which AI quality assessments to include in PDF",
-                    key="tab_pdf_match_quality_filter"
-                )
-            with col3:
-                # Unified Career Pathways filter (works for both CDL and Career Pathways classifiers)
-                pathway_options = [
-                    ("cdl_pathway", "CDL Pathway"),
-                    ("dock_to_driver", "Dock to Driver"),
-                    ("internal_cdl_training", "CDL Training Programs"),
-                    ("warehouse_to_driver", "Warehouse to Driver"),
-                    ("logistics_progression", "Logistics Career Progression"),
-                    ("non_cdl_driving", "Non-CDL Driving"),
-                    ("general_warehouse", "General Warehouse"),
-                    ("construction_apprentice", "Construction Apprentice"),
-                    ("stepping_stone", "Career Stepping Stone")
-                ]
 
-                pathway_preferences_tab = st.multiselect(
-                    "🛤️ Career pathways:",
-                    options=[opt[0] for opt in pathway_options],
-                    format_func=lambda x: next(opt[1] for opt in pathway_options if opt[0] == x),
-                    default=[],
-                    key="tab_pathway_preferences",
-                    help="Filter jobs by career pathways - CDL Pathway includes traditional CDL jobs, others are Career Pathways jobs (leave empty for all)"
-                )
-            
-            # Row 3: Fair Chance Only, HTML Preview, and Portal Link
-            col_fair, col_preview, col_portal = st.columns(3)
-            with col_fair:
-                pdf_fair_chance_only_tab = st.checkbox(
-                    "🤝 Fair chance jobs only", 
-                    value=False,
-                    help="Include only jobs friendly to people with records in PDF",
-                    key="tab_pdf_fair_chance_only"
-                )
-            # Check if this is an Indeed search (needed for both preview and portal)
-            # Default to False since search_type_tab is defined later in the button handlers
-            is_indeed_search = False
-            
-            with col_preview:
-                # Disable HTML preview for Indeed searches
-                html_preview_help = "HTML preview not available for Indeed searches" if is_indeed_search else "Preview PDF layout in HTML format (same styling as PDF export)"
-                
-                show_html_preview_tab = st.checkbox(
-                    "👁️ Show HTML preview", 
-                    value=False,
-                    help=html_preview_help,
-                    disabled=is_indeed_search,
-                    key="tab_show_html_preview"
-                )
-            with col_portal:
-                # Disable portal links for any Indeed searches (fresh or memory) 
-                portal_help = "Portal links not available for Indeed searches" if is_indeed_search else "Create a shareable job portal with current filters"
-                
-                generate_portal_link_tab = st.checkbox(
-                    "🔗 Generate portal link", 
-                    value=False,
-                    help=portal_help,
-                    disabled=is_indeed_search,
-                    key="tab_generate_portal_link"
-                )
-                
-            # Row 4: Additional Options
-            col_prepared, col_pdf, col_empty = st.columns(3)
-            with col_prepared:
-                show_prepared_for_tab = st.checkbox(
-                    "👤 Show 'prepared for' message",
-                    value=True,
-                    help="Include personalized 'Prepared for [Name] by Coach [Name]' message",
-                    key="tab_show_prepared_for"
-                )
-            with col_pdf:
-                enable_pdf_generation_tab = st.checkbox(
-                    "📄 Enable PDF generation",
-                    value=True,
-                    help="Generate downloadable PDF reports for search results",
-                    key="tab_enable_pdf_generation"
-                )
-        else:
-            st.info("📄 PDF generation not available - contact admin for access")
-            # Set default values for variables that would be defined in the PDF section
-            max_jobs_pdf_tab = 50
-            pdf_route_type_filter_tab = ['Local', 'OTR', 'Unknown']
-            pdf_match_quality_filter_tab = ['good', 'so-so']
-            # pdf_include_memory_jobs_tab removed - no longer needed
-            pdf_fair_chance_only_tab = False
-            show_html_preview_tab = False
-            generate_portal_link_tab = False
-            show_prepared_for_tab = True
-            enable_pdf_generation_tab = False
-        
-        # Free Agent Lookup Section
-        st.markdown("### 👤 Free Agent Lookup")
-        col1, col2, col3 = st.columns([2, 1, 1])
-        with col1:
-            lookup_q_tab = st.text_input("Search", key="tab_candidate_lookup_q", placeholder="Type name, UUID, or email")
-        with col2:
-            lookup_by_tab = st.selectbox("By", ["name", "uuid", "email"], index=0, key="tab_candidate_lookup_by")
-        with col3:
-            st.markdown("<div style='height: 1.75rem;'></div>", unsafe_allow_html=True)
-            do_lookup_tab = st.button("🔎 Search", key="tab_do_candidate_lookup")
-        
-        if do_lookup_tab and lookup_q_tab:
-            # Use Supabase search for coach's saved agents
-            current_coach = st.session_state.get('current_coach')
-            coach_username = current_coach.username if current_coach else 'NOT LOGGED IN'
-            try:
-                from supabase_utils import supabase_find_agents
-                st.session_state.candidate_search_results_tab = supabase_find_agents(
-                    lookup_q_tab, 
-                    coach_username=coach_username, 
-                    by=lookup_by_tab, 
-                    limit=15
-                )
-            except Exception as e:
-                st.error(f"Search failed: {e}")
-                st.session_state.candidate_search_results_tab = []
-        
-        results_tab = st.session_state.get("candidate_search_results_tab", [])
-        if results_tab:
-            def _label_tab(r):
-                loc = ", ".join([x for x in [r.get('city') or '', r.get('state') or ''] if x])
-                suffix = f" ({loc})" if loc else ""
-                
-                
-                return f"{r['name']} — {r['uuid'] or 'no-uuid'}{suffix}"
-            options_tab = [_label_tab(r) for r in results_tab]
-            sel_tab = st.selectbox("Select Free Agent", options_tab, index=0, key="tab_candidate_select")
-            if sel_tab and st.button("✅ Use Selected", key="tab_use_selected_candidate"):
-                idx_tab = options_tab.index(sel_tab)
-                chosen_tab = results_tab[idx_tab]
-                st.session_state.candidate_id = chosen_tab.get("uuid", "")
-                st.session_state.candidate_name = chosen_tab.get("name", "")
-                st.rerun()  # Refresh to show the fields
-        elif do_lookup_tab and lookup_q_tab:
-            st.info("No candidates found. Try switching the search mode (name/uuid/email) or broadening your query.")
-        
-        # Manual Entry Option
-        st.markdown("**Or manually enter free agent details:**")
-        col1, col2, col3 = st.columns([2, 2, 1])
-        with col1:
-            manual_name_tab = st.text_input("Free Agent Name", key="tab_manual_name", placeholder="Enter full name")
-        with col2:
-            manual_uuid_tab = st.text_input("Agent UUID", key="tab_manual_uuid", placeholder="Enter UUID (optional)")
-        with col3:
-            st.markdown("<div style='height: 1.75rem;'></div>", unsafe_allow_html=True)
-            use_manual_tab = st.button("✅ Use Manual Entry", key="tab_use_manual_entry")
-        
-        if use_manual_tab and manual_name_tab:
-            # Generate UUID if not provided
-            if not manual_uuid_tab:
-                import uuid
-                manual_uuid_tab = str(uuid.uuid4())
-                st.info(f"Generated UUID: {manual_uuid_tab}")
-            
-            st.session_state.candidate_id = manual_uuid_tab
-            st.session_state.candidate_name = manual_name_tab
-            st.success(f"✅ Manually added: {manual_name_tab}")
-            st.rerun()  # Refresh to show the fields
-        
-        # Show candidate fields only after successful selection
-        if st.session_state.get("candidate_id") or st.session_state.get("candidate_name"):
-            candidate_id_tab = st.text_input(
-                "Selected Free Agent ID", 
-                value=st.session_state.get("candidate_id", ""), 
-                help="Selected Free Agent UUID for analytics tracking",
-                key="tab_candidate_id",
-                disabled=True  # Make it read-only
+            with col3:
+                # Advanced: Force Fresh Classification
+                fresh_force_classification = False
+                if check_coach_permission('can_force_fresh_classification'):
+                    fresh_force_classification = st.checkbox(
+                        "⚡ Force Fresh Classification",
+                        value=False,
+                        help="Re-run AI classification even on cached jobs",
+                        key="fresh_force_classification"
+                    )
+
+            # Search Button
+            st.markdown("---")
+            indeed_fresh_clicked_tab = st.button(
+                "🔍 Fetch Fresh Jobs from Indeed",
+                help="Search Indeed API and save jobs to database",
+                key="fresh_search_btn",
+                use_container_width=True,
+                disabled=not _can_fresh
             )
-            candidate_name_tab = st.text_input(
-                "Selected Free Agent Name", 
-                value=st.session_state.get("candidate_name", ""), 
-                help="Used on PDF title page and link tags",
-                key="tab_candidate_name",
-                disabled=True  # Make it read-only
-            )
-        else:
-            # Hidden fields for when no selection is made
-            candidate_id_tab = ""
-            candidate_name_tab = ""
-        
-        # Combined Row: Smart Memory and Search Options  
-        with st.container():
-            col1, col2 = st.columns([1, 1])  # Equal columns without cost
-        with col1:
-            st.markdown("### ⏰ Smart Memory")
-            memory_time_period_tab = st.selectbox(
-                "Lookback period:",
-                options=['24h', '48h', '72h', '96h'],
-                index=2,  # default to 72h
-                help="How far back the smart memory system searches for existing jobs",
-                key="tab_memory_time_period"
-            )
-        with col2:
-            st.markdown("### 🚀 Search Options")
-            # Search Options: Memory Only and Indeed Fresh Only side by side
-            col3_1, col3_2 = st.columns(2)
-            with col3_1:
-                memory_clicked_tab = st.button(
-                    "💾 Memory Only",
-                    help="Search cached jobs - instant results, no API costs",
-                    key="tab_memory_search_btn",
-                    width='stretch'
-                )
-            with col3_2:
-                # Check fresh scraping permission
-                _can_fresh = check_coach_permission('can_pull_fresh_jobs')
-                indeed_fresh_clicked_tab = st.button(
-                    "🔍 Indeed Fresh Only",
-                    help="Search Indeed API only, bypass memory cache",
-                    key="tab_indeed_fresh_btn",
-                    width='stretch',
-                    disabled=not _can_fresh
-                )
-        
-        # Brief permission hints under buttons
-        try:
-            hint_cols = st.columns(2)
-            with hint_cols[0]:
-                if not _can_fresh:
-                    st.caption("🔒 Fresh scraping disabled for this coach")
-            with hint_cols[1]:
-                if not _can_google:
-                    st.caption("🔒 Google Jobs disabled for this coach")
-        except Exception:
-            pass
-        
-        # Advanced Options for Job Search tab
-        with st.expander("🔧 Advanced Options"):
-            # Only show Force Fresh Classification if coach has permission  
-            force_fresh_classification_tab = False
-            if check_coach_permission('can_force_fresh_classification'):
-                force_fresh_classification_tab = st.checkbox(
-                    "⚡ Force Fresh Classification", 
-                    value=False, 
-                    help="Re-run AI classification even on cached jobs (useful when testing new prompts)",
-                    key="tab_force_fresh_classification"
-                )
-        
-        # Handle button clicks in Job Search tab
+
+            st.caption("💡 After fetching, switch to **Memory Search** tab to generate PDFs and portal links.")
+
+            # Set variables when Fresh Indeed search is triggered
+            if indeed_fresh_clicked_tab:
+                location_type_tab = fresh_location_type
+                if fresh_location_type == "Select Market(s)":
+                    selected_markets_tab = fresh_selected_markets
+                    selected_market_tab = fresh_selected_markets[0] if fresh_selected_markets else None
+                    if len(fresh_selected_markets) == 1:
+                        location_tab = fresh_selected_markets[0]
+                    else:
+                        location_tab = fresh_selected_markets  # List for multi-market
+                else:
+                    custom_location_tab = fresh_custom_location
+                    location_tab = fresh_custom_location.strip() if fresh_custom_location else None
+
+                search_terms_tab = fresh_search_terms
+                search_mode_tab = fresh_search_mode
+                commute_time_tab = fresh_commute_time
+                no_experience_tab = fresh_no_experience
+                classifier_type_value_tab = "cdl"  # Always CDL
+                force_fresh_classification_tab = fresh_force_classification
+                # Set PDF defaults (no PDF/portal generation for fresh search)
+                max_jobs_pdf_tab = 50
+                pdf_route_type_filter_tab = ['Local', 'OTR', 'Unknown']
+                pdf_match_quality_filter_tab = ['good', 'so-so']
+                pathway_preferences_tab = []
+                pdf_fair_chance_only_tab = False
+                show_html_preview_tab = False
+                generate_portal_link_tab = False
+                show_prepared_for_tab = False
+                enable_pdf_generation_tab = False  # Disable PDF for fresh search
+
+        # Determine which search was triggered (outside tabs)
         search_type_tab = None
         if memory_clicked_tab:
             search_type_tab = 'memory'
-        # Indeed + Memory search mode removed
         elif indeed_fresh_clicked_tab:
             search_type_tab = 'indeed_fresh'
-        # Google ordering removed from Job Search page
-        
+
         # Search results section
         st.markdown("### 📊 Search Results")
         # Debug/export helpers visible regardless of results presence
@@ -4619,6 +4597,12 @@ def main():
                         'search_strategy': 'memory_first'
                         # DO NOT set ui_direct=True - let memory searches use dedicated memory path
                     })
+                    # Add ZIP radius filtering if provided
+                    if 'mem_agent_zip' in locals() and mem_agent_zip:
+                        params.update({
+                            'agent_zip': mem_agent_zip,
+                            'zip_radius_miles': mem_agent_zip_radius
+                        })
                 # Indeed + Memory search type removed
                 elif search_type_tab == 'indeed_fresh':
                     params.update({

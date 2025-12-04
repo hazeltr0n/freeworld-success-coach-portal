@@ -1049,3 +1049,249 @@ def run_search_with_location_handling(pipeline, params, search_type_tab, coach, 
     # Coach/candidate info is already in the DataFrame from pipeline execution
     # No need to add it again here
     return df, metadata
+
+
+# === HELPER FUNCTIONS FOR JOB SEARCH TAB REFACTOR ===
+
+def render_free_agent_lookup(key_prefix: str) -> tuple:
+    """
+    Render Free Agent lookup UI component with search and manual entry.
+
+    Args:
+        key_prefix: Prefix for session state keys to avoid conflicts (e.g., 'mem_' or 'fresh_')
+
+    Returns:
+        tuple: (candidate_id, candidate_name) - selected or entered values
+    """
+    st.markdown("### 👤 Free Agent Lookup")
+
+    # Search row
+    col1, col2, col3 = st.columns([2, 1, 1])
+    with col1:
+        lookup_q = st.text_input("Search", key=f"{key_prefix}candidate_lookup_q", placeholder="Type name, UUID, or email")
+    with col2:
+        lookup_by = st.selectbox("By", ["name", "uuid", "email"], index=0, key=f"{key_prefix}candidate_lookup_by")
+    with col3:
+        st.markdown("<div style='height: 1.75rem;'></div>", unsafe_allow_html=True)
+        do_lookup = st.button("🔎 Search", key=f"{key_prefix}do_candidate_lookup")
+
+    # Handle search
+    if do_lookup and lookup_q:
+        current_coach = st.session_state.get('current_coach')
+        coach_username = current_coach.username if current_coach else 'NOT LOGGED IN'
+        try:
+            from supabase_utils import supabase_find_agents
+            st.session_state[f"{key_prefix}candidate_search_results"] = supabase_find_agents(
+                lookup_q,
+                coach_username=coach_username,
+                by=lookup_by,
+                limit=15
+            )
+        except Exception as e:
+            st.error(f"Search failed: {e}")
+            st.session_state[f"{key_prefix}candidate_search_results"] = []
+
+    # Show results
+    results = st.session_state.get(f"{key_prefix}candidate_search_results", [])
+    if results:
+        def _label(r):
+            loc = ", ".join([x for x in [r.get('city') or '', r.get('state') or ''] if x])
+            suffix = f" ({loc})" if loc else ""
+            return f"{r['name']} — {r['uuid'] or 'no-uuid'}{suffix}"
+
+        options = [_label(r) for r in results]
+        sel = st.selectbox("Select Free Agent", options, index=0, key=f"{key_prefix}candidate_select")
+        if sel and st.button("✅ Use Selected", key=f"{key_prefix}use_selected_candidate"):
+            idx = options.index(sel)
+            chosen = results[idx]
+            st.session_state.candidate_id = chosen.get("uuid", "")
+            st.session_state.candidate_name = chosen.get("name", "")
+            st.rerun()
+    elif do_lookup and lookup_q:
+        st.info("No candidates found. Try switching the search mode (name/uuid/email) or broadening your query.")
+
+    # Manual entry
+    st.markdown("**Or manually enter free agent details:**")
+    col1, col2, col3 = st.columns([2, 2, 1])
+    with col1:
+        manual_name = st.text_input("Free Agent Name", key=f"{key_prefix}manual_name", placeholder="Enter full name")
+    with col2:
+        manual_uuid = st.text_input("Agent UUID", key=f"{key_prefix}manual_uuid", placeholder="Enter UUID (optional)")
+    with col3:
+        st.markdown("<div style='height: 1.75rem;'></div>", unsafe_allow_html=True)
+        use_manual = st.button("✅ Use Manual Entry", key=f"{key_prefix}use_manual_entry")
+
+    if use_manual and manual_name:
+        import uuid
+        if not manual_uuid:
+            manual_uuid = str(uuid.uuid4())
+            st.info(f"Generated UUID: {manual_uuid}")
+
+        st.session_state.candidate_id = manual_uuid
+        st.session_state.candidate_name = manual_name
+        st.success(f"✅ Manually added: {manual_name}")
+        st.rerun()
+
+    # Show selected agent (read-only)
+    candidate_id = ""
+    candidate_name = ""
+    if st.session_state.get("candidate_id") or st.session_state.get("candidate_name"):
+        candidate_id = st.text_input(
+            "Selected Free Agent ID",
+            value=st.session_state.get("candidate_id", ""),
+            help="Selected Free Agent UUID for analytics tracking",
+            key=f"{key_prefix}candidate_id_display",
+            disabled=True
+        )
+        candidate_name = st.text_input(
+            "Selected Free Agent Name",
+            value=st.session_state.get("candidate_name", ""),
+            help="Used on PDF title page and link tags",
+            key=f"{key_prefix}candidate_name_display",
+            disabled=True
+        )
+
+    return candidate_id, candidate_name
+
+
+def render_pdf_config(key_prefix: str, search_mode: str = 'sample', check_permission_func=None) -> dict:
+    """
+    Render PDF/Portal configuration UI component.
+
+    Args:
+        key_prefix: Prefix for session state keys to avoid conflicts (e.g., 'mem_' or 'fresh_')
+        search_mode: Current search mode for default PDF limit calculation
+        check_permission_func: Function to check coach permissions (optional)
+
+    Returns:
+        dict: Configuration values for PDF generation
+    """
+    st.markdown("### 📄 Free Agent Portal/PDF Configuration")
+
+    # Check permission if function provided
+    has_permission = True
+    if check_permission_func:
+        has_permission = check_permission_func('can_generate_pdf')
+
+    if not has_permission:
+        st.info("📄 PDF generation not available - contact admin for access")
+        return {
+            'max_jobs_pdf': 50,
+            'pdf_route_type_filter': ['Local', 'OTR', 'Unknown'],
+            'pdf_match_quality_filter': ['good', 'so-so'],
+            'pathway_preferences': [],
+            'pdf_fair_chance_only': False,
+            'show_html_preview': False,
+            'generate_portal_link': False,
+            'show_prepared_for': True,
+            'enable_pdf_generation': False
+        }
+
+    # Max jobs - based on search mode
+    search_mode_to_pdf_limit = {
+        'test': 10, 'mini': 50, 'sample': 100,
+        'medium': 100, 'large': 100, 'full': 100
+    }
+    default_pdf_limit = search_mode_to_pdf_limit.get(search_mode, 50)
+    pdf_options = [10, 25, 50, 100, 250]
+    default_index = pdf_options.index(default_pdf_limit) if default_pdf_limit in pdf_options else 2
+
+    max_jobs_pdf = st.selectbox(
+        "📊 Maximum jobs:",
+        options=pdf_options,
+        index=default_index,
+        help=f"Maximum jobs to include in PDF",
+        key=f"{key_prefix}max_jobs_pdf"
+    )
+
+    # Row: Route Types, Job Quality, Pathways
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        pdf_route_type_filter = st.multiselect(
+            "🛣️ Route types:",
+            options=['Local', 'OTR', 'Unknown'],
+            default=['Local', 'OTR', 'Unknown'],
+            help="Which driving route types to include in PDF",
+            key=f"{key_prefix}pdf_route_type_filter"
+        )
+    with col2:
+        pdf_match_quality_filter = st.multiselect(
+            "⭐ Job quality levels:",
+            options=['good', 'so-so', 'bad'],
+            default=['good', 'so-so'],
+            help="Which AI quality assessments to include in PDF",
+            key=f"{key_prefix}pdf_match_quality_filter"
+        )
+    with col3:
+        pathway_options = [
+            ("cdl_pathway", "CDL Pathway"),
+            ("dock_to_driver", "Dock to Driver"),
+            ("internal_cdl_training", "CDL Training Programs"),
+            ("warehouse_to_driver", "Warehouse to Driver"),
+            ("logistics_progression", "Logistics Career Progression"),
+            ("non_cdl_driving", "Non-CDL Driving"),
+            ("general_warehouse", "General Warehouse"),
+            ("construction_apprentice", "Construction Apprentice"),
+            ("stepping_stone", "Career Stepping Stone")
+        ]
+        pathway_preferences = st.multiselect(
+            "🛤️ Career pathways:",
+            options=[opt[0] for opt in pathway_options],
+            format_func=lambda x: next(opt[1] for opt in pathway_options if opt[0] == x),
+            default=[],
+            key=f"{key_prefix}pathway_preferences",
+            help="Filter jobs by career pathways (leave empty for all)"
+        )
+
+    # Row: Fair Chance, HTML Preview, Portal Link
+    col_fair, col_preview, col_portal = st.columns(3)
+    with col_fair:
+        pdf_fair_chance_only = st.checkbox(
+            "🤝 Fair chance jobs only",
+            value=False,
+            help="Include only jobs friendly to people with records in PDF",
+            key=f"{key_prefix}pdf_fair_chance_only"
+        )
+    with col_preview:
+        show_html_preview = st.checkbox(
+            "👁️ Show HTML preview",
+            value=False,
+            help="Preview PDF layout in HTML format",
+            key=f"{key_prefix}show_html_preview"
+        )
+    with col_portal:
+        generate_portal_link = st.checkbox(
+            "🔗 Generate portal link",
+            value=False,
+            help="Create a shareable job portal with current filters",
+            key=f"{key_prefix}generate_portal_link"
+        )
+
+    # Row: Prepared For, Enable PDF
+    col_prepared, col_pdf, _ = st.columns(3)
+    with col_prepared:
+        show_prepared_for = st.checkbox(
+            "👤 Show 'prepared for' message",
+            value=True,
+            help="Include personalized 'Prepared for [Name] by Coach [Name]' message",
+            key=f"{key_prefix}show_prepared_for"
+        )
+    with col_pdf:
+        enable_pdf_generation = st.checkbox(
+            "📄 Enable PDF generation",
+            value=True,
+            help="Generate downloadable PDF reports for search results",
+            key=f"{key_prefix}enable_pdf_generation"
+        )
+
+    return {
+        'max_jobs_pdf': max_jobs_pdf,
+        'pdf_route_type_filter': pdf_route_type_filter,
+        'pdf_match_quality_filter': pdf_match_quality_filter,
+        'pathway_preferences': pathway_preferences,
+        'pdf_fair_chance_only': pdf_fair_chance_only,
+        'show_html_preview': show_html_preview,
+        'generate_portal_link': generate_portal_link,
+        'show_prepared_for': show_prepared_for,
+        'enable_pdf_generation': enable_pdf_generation
+    }
