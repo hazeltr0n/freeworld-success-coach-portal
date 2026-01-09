@@ -30,20 +30,17 @@ from send_scrape_notification import (
 )
 
 # Market configuration - same as Indeed for consistency
-# TODO: Restore full list after testing
 MARKETS = [
     "Dallas, TX",
-    # "Houston, TX",
-    # "Phoenix, AZ",
-    # "Trenton, NJ",
-    # "Newark, NJ",
-    # "Denver, CO",
-    # "Ontario, CA",      # Inland Empire
-    # "Berkeley, CA",     # Bay Area
-    # "Stockton, CA",
-    # "Las Vegas, NV",
-    # "San Antonio, TX",
-    # "Austin, TX"
+    "Houston, TX",
+    "Phoenix, AZ",
+    "Trenton, NJ",
+    "Newark, NJ",
+    "Denver, CO",
+    "Ontario, CA",      # Inland Empire
+    "Berkeley, CA",     # Bay Area
+    "Stockton, CA",
+    "Las Vegas, NV",
 ]
 
 # Market display names for reports
@@ -58,8 +55,6 @@ MARKET_DISPLAY_NAMES = {
     "Berkeley, CA": "Bay Area",
     "Stockton, CA": "Stockton",
     "Las Vegas, NV": "Las Vegas",
-    "San Antonio, TX": "San Antonio",
-    "Austin, TX": "Austin"
 }
 
 # Single search term - JSearch radius actually works, so no need for multiple terms
@@ -199,18 +194,25 @@ def main():
         df_routed = pipeline._stage6_routing(df_classified, route_filter='both')
         print(f"   ✅ Routed {len(df_routed)} jobs")
 
-        # Stage 7: Link Tracking
-        print("🔗 Stage 7: Generating tracked links...")
-        df_tracked = pipeline._stage7_link_tracking(df_routed, coach_username='scheduled_jsearch')
-        tracked_count = (df_tracked['meta.tracked_url'].notna() & (df_tracked['meta.tracked_url'] != '')).sum()
-        print(f"   ✅ Generated {tracked_count} tracked links")
+        # Stage 7: Output (includes URL handling)
+        print("📄 Stage 7: Output generation...")
+        output_results = pipeline._stage7_output(
+            df_routed,
+            market='JSearch',
+            custom_location='',
+            generate_pdf=False,
+            generate_csv=False,
+            generate_html=False,
+            force_memory_only=False
+        )
+        final_df = pipeline.df  # Get updated df from pipeline
+        print(f"   ✅ Output stage complete ({output_results.get('quality_jobs', 0)} quality jobs)")
 
         # Stage 8: Storage
         print("💾 Stage 8: Storing to Supabase...")
-        upload_count = pipeline._stage8_storage(df_tracked)
+        pipeline._stage8_storage(final_df, push_to_airtable=False)
+        upload_count = getattr(pipeline, 'supabase_upload_count', 0)
         print(f"   ✅ Uploaded {upload_count} jobs to Supabase")
-
-        final_df = df_tracked
 
     except Exception as e:
         print(f"\n❌ Pipeline error: {e}")
