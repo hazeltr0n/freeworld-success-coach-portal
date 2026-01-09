@@ -48,6 +48,10 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           SHORTIO_API_KEY: ${{ secrets.SHORTIO_API_KEY }}
           SHORTIO_DOMAIN: ${{ secrets.SHORTIO_DOMAIN }}
+          # Email notification settings (SMTP)
+          NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         run: |
           python poll_google_results.py
 

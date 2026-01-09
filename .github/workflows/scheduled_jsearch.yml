@@ -1,15 +1,15 @@
-name: Scheduled Indeed Multi-Market Scraper
+name: Scheduled JSearch Google Jobs Scraper
 
 on:
   schedule:
-    # Mon/Wed/Fri at 2am Central (7am UTC)
-    - cron: '0 7 * * 1,3,5'
+    # Tue/Thu/Sat at 2am Central (7am UTC) - offset from Indeed/DriverPulse
+    - cron: '0 7 * * 2,4,6'
   workflow_dispatch:  # Allow manual trigger for testing
 
 jobs:
-  indeed-scraper:
+  jsearch-scraper:
     runs-on: ubuntu-latest
-    timeout-minutes: 195  # 3h 15m max - allows time for large batches
+    timeout-minutes: 120  # 2 hours max
 
     steps:
       - name: Checkout code
@@ -25,12 +25,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Indeed multi-market scraper
+      - name: Run JSearch multi-market scraper
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          INDEED_API_KEY: ${{ secrets.INDEED_API_KEY }}
+          JSEARCH_API_KEY: ${{ secrets.JSEARCH_API_KEY }}
           SHORT_IO_API_KEY: ${{ secrets.SHORT_IO_API_KEY }}
           SHORT_DOMAIN: ${{ secrets.SHORT_DOMAIN }}
           # Email notification settings (SMTP)
@@ -38,13 +38,13 @@ jobs:
           GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         run: |
-          python run_scheduled_indeed.py
+          python run_scheduled_jsearch.py
 
       - name: Upload logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: indeed-logs-${{ github.run_number }}
+          name: jsearch-logs-${{ github.run_number }}
           path: |
             *.log
             *.txt

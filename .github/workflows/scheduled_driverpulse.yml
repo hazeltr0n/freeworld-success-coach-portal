@@ -74,9 +74,16 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           SHORTIO_API_KEY: ${{ secrets.SHORTIO_API_KEY }}
           SHORTIO_DOMAIN: ${{ secrets.SHORTIO_DOMAIN }}
+          # Email notification settings (uses same GMAIL_ADDRESS/GMAIL_APP_PASSWORD as IMAP)
+          NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
         run: |
           python3 -c "
+          import os
           from driver_pulse_adapter import DriverPulsePipelineIntegration
+          from send_scrape_notification import (
+              collect_job_stats_from_dataframe,
+              send_detailed_scrape_report
+          )
 
           print('🚛 Starting DriverPulse Scraper...')
           integration = DriverPulsePipelineIntegration()
@@ -97,6 +104,25 @@ jobs:
               total_jobs = len(jobs_df)
               quality_jobs = len(jobs_df[jobs_df.get('ai.match', '').isin(['good', 'so-so'])]) if 'ai.match' in jobs_df.columns else 0
               print(f'✅ DriverPulse complete: {total_jobs} jobs ({quality_jobs} quality)')
+
+              # Send notification email if configured
+              notification_email = os.getenv('NOTIFICATION_EMAIL')
+              if notification_email:
+                  print(f'📧 Sending scrape report to {notification_email}...')
+                  stats = collect_job_stats_from_dataframe(jobs_df)
+                  stats['source_name'] = 'DriverPulse'
+                  stats['markets_searched'] = ['All Markets']
+                  stats['search_terms'] = ['CDL']
+                  try:
+                      success = send_detailed_scrape_report('DriverPulse Scheduled', stats, notification_email)
+                      if success:
+                          print('✅ Scrape report sent successfully')
+                      else:
+                          print('⚠️ Failed to send scrape report (non-fatal)')
+                  except Exception as e:
+                      print(f'⚠️ Error sending scrape report: {e} (non-fatal)')
+              else:
+                  print('ℹ️ NOTIFICATION_EMAIL not set, skipping scrape report')
           else:
               print('⚠️ No jobs found')
           "

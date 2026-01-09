@@ -11,8 +11,13 @@ import sys
 import csv
 import requests
 import logging
+import pandas as pd
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
+from send_scrape_notification import (
+    collect_job_stats_from_dataframe,
+    send_detailed_scrape_report
+)
 
 # Configure logging to both file and stdout
 logging.basicConfig(
@@ -203,7 +208,8 @@ def process_google_results(task_id: str, results_data: Dict, csv_mapping: str) -
             'success': True,
             'total_jobs': total_jobs,
             'quality_jobs': quality_jobs,
-            'uploaded_count': uploaded_count
+            'uploaded_count': uploaded_count,
+            'df': pipeline.df  # Return DataFrame for notification stats
         }
 
     except Exception as e:
@@ -214,7 +220,8 @@ def process_google_results(task_id: str, results_data: Dict, csv_mapping: str) -
             'success': False,
             'total_jobs': 0,
             'quality_jobs': 0,
-            'error': str(e)
+            'error': str(e),
+            'df': None
         }
 
 
@@ -265,6 +272,7 @@ def main():
 
         processed_count = 0
         total_jobs_processed = 0
+        all_dfs = []  # Collect DataFrames for notification
 
         for task in pending_tasks:
             job_id = task['id']
@@ -305,6 +313,9 @@ def main():
                 update_job_status(job_id, 'completed', result_data)
                 processed_count += 1
                 logger.info(f"   ✅ Success: {result_data['total_jobs']} jobs, {result_data['quality_jobs']} quality")
+                # Collect DataFrame for notification
+                if result_data.get('df') is not None and not result_data['df'].empty:
+                    all_dfs.append(result_data['df'])
             else:
                 logger.error(f"   ❌ Failed: {result_data.get('error', 'Unknown error')}")
                 update_job_status(job_id, 'failed', result_data)
@@ -316,6 +327,36 @@ def main():
         logger.info(f"📊 Total jobs processed: {total_jobs_processed}")
         logger.info("="*80)
         sys.stdout.flush()
+
+        # Send notification email if configured and we have results
+        notification_email = os.getenv('NOTIFICATION_EMAIL')
+        if notification_email and all_dfs:
+            logger.info(f"\n📧 Sending scrape report to {notification_email}...")
+
+            # Combine all DataFrames
+            combined_df = pd.concat(all_dfs, ignore_index=True)
+
+            # Collect detailed stats
+            stats = collect_job_stats_from_dataframe(combined_df)
+
+            # Add search configuration info
+            stats['source_name'] = 'Google Jobs (Outscraper)'
+            stats['markets_searched'] = ['Multi-market batch']
+            stats['search_terms'] = ['CDL Driver jobs']
+
+            # Send the report
+            try:
+                success = send_detailed_scrape_report("Google Jobs", stats, notification_email)
+                if success:
+                    logger.info(f"✅ Scrape report sent successfully")
+                else:
+                    logger.warning(f"⚠️  Failed to send scrape report (non-fatal)")
+            except Exception as e:
+                logger.warning(f"⚠️  Error sending scrape report: {e} (non-fatal)")
+        elif notification_email:
+            logger.info(f"ℹ️  No results to report - skipping notification")
+        else:
+            logger.info(f"ℹ️  NOTIFICATION_EMAIL not set, skipping scrape report")
 
     except Exception as e:
         logger.error(f"\n{'='*80}")

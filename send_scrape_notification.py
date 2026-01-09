@@ -1,81 +1,30 @@
 #!/usr/bin/env python3
 """
-Send email notifications for completed scrapes via Gmail API
+Send email notifications for completed scrapes via Gmail SMTP
 """
 
 import os
-import base64
-import json
+import smtplib
 from datetime import datetime, timezone
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
-
-
-def load_gmail_credentials():
-    """Load Gmail API credentials from environment or files"""
-
-    # Try environment variable first (for GitHub Actions)
-    creds_b64 = os.getenv('DRIVER_PULSE_GMAIL_CREDENTIALS')
-    token_b64 = os.getenv('DRIVER_PULSE_GMAIL_TOKEN')
-
-    if creds_b64 and token_b64:
-        # Decode from base64
-        creds_json = base64.b64decode(creds_b64).decode('utf-8')
-        token_json = base64.b64decode(token_b64).decode('utf-8')
-
-        # Parse credentials
-        creds_data = json.loads(creds_json)
-        token_data = json.loads(token_json)
-
-        # Create credentials object
-        credentials = Credentials(
-            token=token_data.get('token'),
-            refresh_token=token_data.get('refresh_token'),
-            token_uri=creds_data['installed']['token_uri'],
-            client_id=creds_data['installed']['client_id'],
-            client_secret=creds_data['installed']['client_secret'],
-            scopes=token_data.get('scopes', ['https://www.googleapis.com/auth/gmail.send'])
-        )
-
-        return credentials
-
-    # Fallback to local files
-    elif os.path.exists('gmail_token.json'):
-        with open('gmail_token.json', 'r') as f:
-            token_data = json.load(f)
-
-        with open('gmail_credentials.json', 'r') as f:
-            creds_data = json.load(f)
-
-        credentials = Credentials(
-            token=token_data.get('token'),
-            refresh_token=token_data.get('refresh_token'),
-            token_uri=creds_data['installed']['token_uri'],
-            client_id=creds_data['installed']['client_id'],
-            client_secret=creds_data['installed']['client_secret'],
-            scopes=token_data.get('scopes', ['https://www.googleapis.com/auth/gmail.send'])
-        )
-
-        return credentials
-
-    else:
-        raise Exception("Gmail credentials not found in environment or files")
 
 
 def send_email(to_email: str, subject: str, body_html: str, body_text: str = None):
-    """Send email via Gmail API"""
+    """Send email via Gmail SMTP with app password"""
+
+    # Get credentials from environment
+    gmail_address = os.getenv('GMAIL_ADDRESS')
+    gmail_app_password = os.getenv('GMAIL_APP_PASSWORD')
+
+    if not gmail_address or not gmail_app_password:
+        print("❌ GMAIL_ADDRESS or GMAIL_APP_PASSWORD not set")
+        return False
 
     try:
-        # Load credentials
-        credentials = load_gmail_credentials()
-
-        # Build Gmail service
-        service = build('gmail', 'v1', credentials=credentials)
-
         # Create message
         message = MIMEMultipart('alternative')
+        message['From'] = gmail_address
         message['To'] = to_email
         message['Subject'] = subject
 
@@ -88,16 +37,12 @@ def send_email(to_email: str, subject: str, body_html: str, body_text: str = Non
         html_part = MIMEText(body_html, 'html')
         message.attach(html_part)
 
-        # Encode message
-        raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
+        # Send via SMTP
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(gmail_address, gmail_app_password)
+            server.sendmail(gmail_address, to_email, message.as_string())
 
-        # Send message
-        send_message = service.users().messages().send(
-            userId='me',
-            body={'raw': raw_message}
-        ).execute()
-
-        print(f"✅ Email sent successfully (Message ID: {send_message['id']})")
+        print(f"✅ Email sent successfully to {to_email}")
         return True
 
     except Exception as e:
@@ -276,6 +221,333 @@ def send_scrape_completion_notification(scrape_type: str, results: dict, recipie
     return send_email(recipient_email, subject, html_body, text_body)
 
 
+def format_detailed_scrape_report(scrape_type: str, results: dict):
+    """Format detailed scrape report with quality, route, and fair chance breakdowns"""
+
+    timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
+
+    # Extract summary stats
+    total_jobs = results.get('total_jobs', 0)
+    quality_jobs = results.get('quality_jobs', 0)
+
+    # Quality breakdown
+    ai_good = results.get('ai_good', 0)
+    ai_so_so = results.get('ai_so_so', 0)
+    ai_bad = results.get('ai_bad', 0)
+
+    # Route breakdown
+    local_routes = results.get('local_routes', 0)
+    regional_routes = results.get('regional_routes', 0)
+    otr_routes = results.get('otr_routes', 0)
+    unknown_routes = results.get('unknown_routes', 0)
+
+    # Fair chance breakdown
+    fair_chance_employer = results.get('fair_chance_employer', 0)
+    background_check_required = results.get('background_check_required', 0)
+    clean_record_required = results.get('clean_record_required', 0)
+    no_requirements_mentioned = results.get('no_requirements_mentioned', 0)
+
+    # Source info
+    source_name = results.get('source_name', scrape_type)
+    markets_searched = results.get('markets_searched', [])
+    search_terms = results.get('search_terms', [])
+
+    # Calculate percentages
+    quality_pct = (quality_jobs / total_jobs * 100) if total_jobs > 0 else 0
+    good_pct = (ai_good / total_jobs * 100) if total_jobs > 0 else 0
+    so_so_pct = (ai_so_so / total_jobs * 100) if total_jobs > 0 else 0
+    bad_pct = (ai_bad / total_jobs * 100) if total_jobs > 0 else 0
+
+    # Fair chance percentage (of quality jobs)
+    fc_employer_pct = (fair_chance_employer / quality_jobs * 100) if quality_jobs > 0 else 0
+
+    # Build HTML body
+    html_body = f"""
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 650px; margin: 0 auto; padding: 20px; }}
+            .header {{ background: linear-gradient(135deg, #4CAF50, #2E7D32); color: white; padding: 25px; text-align: center; border-radius: 8px; }}
+            .header h2 {{ margin: 0; font-size: 24px; }}
+            .content {{ background-color: #f9f9f9; padding: 25px; margin-top: 20px; border-radius: 8px; }}
+            .stats {{ background-color: white; padding: 18px; margin: 15px 0; border-left: 4px solid #4CAF50; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
+            .stats h3 {{ margin-top: 0; color: #2E7D32; font-size: 16px; }}
+            .stats ul {{ margin: 10px 0 0 0; padding-left: 20px; }}
+            .stats li {{ margin: 6px 0; }}
+            .breakdown-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 15px; }}
+            .breakdown-item {{ background: #f5f5f5; padding: 12px; border-radius: 6px; text-align: center; }}
+            .breakdown-item .value {{ font-size: 24px; font-weight: bold; color: #2E7D32; }}
+            .breakdown-item .label {{ font-size: 12px; color: #666; margin-top: 4px; }}
+            .good {{ color: #4CAF50; }}
+            .so-so {{ color: #FF9800; }}
+            .bad {{ color: #f44336; }}
+            .fair-chance {{ color: #2196F3; }}
+            .highlight {{ background-color: #E8F5E9; padding: 15px; border-radius: 6px; margin: 15px 0; }}
+            .footer {{ margin-top: 25px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; text-align: center; }}
+            table {{ width: 100%; border-collapse: collapse; margin: 10px 0; }}
+            th, td {{ padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee; }}
+            th {{ background-color: #f5f5f5; font-weight: 600; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h2>📊 {scrape_type} Scrape Report</h2>
+                <p style="margin: 10px 0 0 0; opacity: 0.9;">{timestamp}</p>
+            </div>
+
+            <div class="content">
+                <!-- Summary Highlight -->
+                <div class="highlight">
+                    <strong>🎯 Summary:</strong> Found <strong>{total_jobs:,}</strong> total jobs,
+                    <strong class="good">{quality_jobs:,}</strong> quality jobs ({quality_pct:.1f}%)
+                </div>
+
+                <!-- Quality Breakdown -->
+                <div class="stats">
+                    <h3>📈 Quality Breakdown</h3>
+                    <table>
+                        <tr>
+                            <th>Rating</th>
+                            <th>Count</th>
+                            <th>Percentage</th>
+                        </tr>
+                        <tr>
+                            <td><span class="good">✅ Good</span></td>
+                            <td><strong>{ai_good:,}</strong></td>
+                            <td>{good_pct:.1f}%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="so-so">⚡ So-So</span></td>
+                            <td><strong>{ai_so_so:,}</strong></td>
+                            <td>{so_so_pct:.1f}%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="bad">❌ Bad</span></td>
+                            <td><strong>{ai_bad:,}</strong></td>
+                            <td>{bad_pct:.1f}%</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Route Breakdown -->
+                <div class="stats">
+                    <h3>🛣️ Route Type Breakdown</h3>
+                    <p style="font-size: 12px; color: #666; margin-top: 0;">(Quality jobs only)</p>
+                    <table>
+                        <tr>
+                            <th>Route Type</th>
+                            <th>Count</th>
+                        </tr>
+                        <tr>
+                            <td>🏠 Local</td>
+                            <td><strong>{local_routes:,}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>📍 Regional</td>
+                            <td><strong>{regional_routes:,}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>🚛 OTR (Over The Road)</td>
+                            <td><strong>{otr_routes:,}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>❓ Unknown</td>
+                            <td><strong>{unknown_routes:,}</strong></td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Fair Chance Breakdown -->
+                <div class="stats">
+                    <h3>🤝 Fair Chance Breakdown</h3>
+                    <p style="font-size: 12px; color: #666; margin-top: 0;">(Quality jobs only)</p>
+                    <table>
+                        <tr>
+                            <th>Status</th>
+                            <th>Count</th>
+                        </tr>
+                        <tr>
+                            <td><span class="fair-chance">✅ Fair Chance Employer</span></td>
+                            <td><strong>{fair_chance_employer:,}</strong> ({fc_employer_pct:.1f}%)</td>
+                        </tr>
+                        <tr>
+                            <td>⚠️ Background Check Required</td>
+                            <td><strong>{background_check_required:,}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>🚫 Clean Record Required</td>
+                            <td><strong>{clean_record_required:,}</strong></td>
+                        </tr>
+                        <tr>
+                            <td>❓ No Requirements Mentioned</td>
+                            <td><strong>{no_requirements_mentioned:,}</strong></td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Search Details -->
+                <div class="stats">
+                    <h3>🔍 Search Configuration</h3>
+                    <ul>
+                        <li><strong>Source:</strong> {source_name}</li>
+                        <li><strong>Markets:</strong> {', '.join(markets_searched) if markets_searched else 'N/A'}</li>
+                        <li><strong>Search Terms:</strong> {', '.join(search_terms) if search_terms else 'N/A'}</li>
+                    </ul>
+                </div>
+
+                <p style="margin-top: 20px;">All quality jobs have been uploaded to Supabase and are available in the agent portal.</p>
+            </div>
+
+            <div class="footer">
+                <p>🤖 Generated automatically by Opptek Scheduled Scraper</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    # Build text version
+    text_body = f"""
+{scrape_type} SCRAPE REPORT
+{'='*50}
+Completion Time: {timestamp}
+
+SUMMARY
+-------
+Total Jobs: {total_jobs:,}
+Quality Jobs: {quality_jobs:,} ({quality_pct:.1f}%)
+
+QUALITY BREAKDOWN
+-----------------
+Good:   {ai_good:,} ({good_pct:.1f}%)
+So-So:  {ai_so_so:,} ({so_so_pct:.1f}%)
+Bad:    {ai_bad:,} ({bad_pct:.1f}%)
+
+ROUTE TYPE BREAKDOWN (Quality Jobs)
+-----------------------------------
+Local:    {local_routes:,}
+Regional: {regional_routes:,}
+OTR:      {otr_routes:,}
+Unknown:  {unknown_routes:,}
+
+FAIR CHANCE BREAKDOWN (Quality Jobs)
+------------------------------------
+Fair Chance Employer:      {fair_chance_employer:,} ({fc_employer_pct:.1f}%)
+Background Check Required: {background_check_required:,}
+Clean Record Required:     {clean_record_required:,}
+No Requirements Mentioned: {no_requirements_mentioned:,}
+
+SEARCH CONFIGURATION
+--------------------
+Source: {source_name}
+Markets: {', '.join(markets_searched) if markets_searched else 'N/A'}
+Search Terms: {', '.join(search_terms) if search_terms else 'N/A'}
+
+All quality jobs have been uploaded to Supabase and are available in the agent portal.
+
+---
+Generated automatically by Opptek Scheduled Scraper
+    """
+
+    return html_body, text_body
+
+
+def send_detailed_scrape_report(scrape_type: str, results: dict, recipient_email: str):
+    """Send detailed scrape report with quality, route, and fair chance breakdowns"""
+
+    # Format email content
+    html_body, text_body = format_detailed_scrape_report(scrape_type, results)
+
+    # Create subject line with key metrics
+    total_jobs = results.get('total_jobs', 0)
+    quality_jobs = results.get('quality_jobs', 0)
+    fair_chance = results.get('fair_chance_employer', 0)
+
+    subject = f"📊 {scrape_type}: {quality_jobs:,} quality jobs ({fair_chance} fair chance)"
+
+    # Send email
+    return send_email(recipient_email, subject, html_body, text_body)
+
+
+def collect_job_stats_from_dataframe(df) -> dict:
+    """
+    Collect detailed job statistics from a DataFrame.
+    Use this helper to build the results dict for send_detailed_scrape_report.
+
+    Args:
+        df: Pandas DataFrame with canonical schema fields
+
+    Returns:
+        dict with all stats needed for the detailed report
+    """
+    if df is None or df.empty:
+        return {
+            'total_jobs': 0,
+            'quality_jobs': 0,
+            'ai_good': 0,
+            'ai_so_so': 0,
+            'ai_bad': 0,
+            'local_routes': 0,
+            'regional_routes': 0,
+            'otr_routes': 0,
+            'unknown_routes': 0,
+            'fair_chance_employer': 0,
+            'background_check_required': 0,
+            'clean_record_required': 0,
+            'no_requirements_mentioned': 0
+        }
+
+    total_jobs = len(df)
+
+    # Quality breakdown
+    ai_match_col = 'ai.match' if 'ai.match' in df.columns else 'match_level'
+    ai_good = len(df[df[ai_match_col] == 'good']) if ai_match_col in df.columns else 0
+    ai_so_so = len(df[df[ai_match_col] == 'so-so']) if ai_match_col in df.columns else 0
+    ai_bad = len(df[df[ai_match_col] == 'bad']) if ai_match_col in df.columns else 0
+    quality_jobs = ai_good + ai_so_so
+
+    # Filter to quality jobs for route and fair chance breakdowns
+    quality_df = df[df[ai_match_col].isin(['good', 'so-so'])] if ai_match_col in df.columns else df
+
+    # Route breakdown (quality jobs only)
+    route_col = 'ai.route_type' if 'ai.route_type' in df.columns else 'route_type'
+    if route_col in quality_df.columns:
+        local_routes = len(quality_df[quality_df[route_col] == 'Local'])
+        regional_routes = len(quality_df[quality_df[route_col] == 'Regional'])
+        otr_routes = len(quality_df[quality_df[route_col] == 'OTR'])
+        unknown_routes = len(quality_df[quality_df[route_col] == 'Unknown'])
+    else:
+        local_routes = regional_routes = otr_routes = unknown_routes = 0
+
+    # Fair chance breakdown (quality jobs only)
+    fc_col = 'ai.fair_chance' if 'ai.fair_chance' in df.columns else 'fair_chance'
+    if fc_col in quality_df.columns:
+        fair_chance_employer = len(quality_df[quality_df[fc_col] == 'fair_chance_employer'])
+        background_check_required = len(quality_df[quality_df[fc_col] == 'background_check_required'])
+        clean_record_required = len(quality_df[quality_df[fc_col] == 'clean_record_required'])
+        no_requirements_mentioned = len(quality_df[quality_df[fc_col] == 'no_requirements_mentioned'])
+    else:
+        fair_chance_employer = background_check_required = clean_record_required = no_requirements_mentioned = 0
+
+    return {
+        'total_jobs': total_jobs,
+        'quality_jobs': quality_jobs,
+        'ai_good': ai_good,
+        'ai_so_so': ai_so_so,
+        'ai_bad': ai_bad,
+        'local_routes': local_routes,
+        'regional_routes': regional_routes,
+        'otr_routes': otr_routes,
+        'unknown_routes': unknown_routes,
+        'fair_chance_employer': fair_chance_employer,
+        'background_check_required': background_check_required,
+        'clean_record_required': clean_record_required,
+        'no_requirements_mentioned': no_requirements_mentioned
+    }
+
+
 if __name__ == "__main__":
     import sys
 
@@ -289,6 +561,33 @@ if __name__ == "__main__":
 
         recipient = os.getenv('NOTIFICATION_EMAIL', 'test@example.com')
         send_scrape_completion_notification("Test", test_results, recipient)
+
+    elif len(sys.argv) > 1 and sys.argv[1] == "test-detailed":
+        # Test detailed report
+        test_results = {
+            'total_jobs': 1250,
+            'quality_jobs': 847,
+            'ai_good': 523,
+            'ai_so_so': 324,
+            'ai_bad': 403,
+            'local_routes': 312,
+            'regional_routes': 245,
+            'otr_routes': 198,
+            'unknown_routes': 92,
+            'fair_chance_employer': 156,
+            'background_check_required': 234,
+            'clean_record_required': 89,
+            'no_requirements_mentioned': 368,
+            'source_name': 'Indeed',
+            'markets_searched': ['Dallas', 'Houston', 'Phoenix', 'Denver'],
+            'search_terms': ['CDL Driver', 'Class A Driver', 'Local CDL Home Daily']
+        }
+
+        recipient = os.getenv('NOTIFICATION_EMAIL', 'test@example.com')
+        print(f"Sending detailed test report to {recipient}...")
+        send_detailed_scrape_report("Indeed Test", test_results, recipient)
+
     else:
         print("Usage: python send_scrape_notification.py test")
-        print("Or import and use send_scrape_completion_notification() function")
+        print("       python send_scrape_notification.py test-detailed")
+        print("Or import and use send_scrape_completion_notification() or send_detailed_scrape_report()")

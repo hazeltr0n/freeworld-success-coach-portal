@@ -7,9 +7,14 @@ Runs Mon/Wed/Fri at 2am Central
 Single pipeline call processes all markets + terms (40 Indeed API queries)
 """
 
+import os
 import sys
 from datetime import datetime, timezone
 from pipeline_wrapper import StreamlitPipelineWrapper
+from send_scrape_notification import (
+    collect_job_stats_from_dataframe,
+    send_detailed_scrape_report
+)
 
 # Hardcoded configuration
 MARKETS = [
@@ -135,6 +140,33 @@ def main():
     print(f"   Quality jobs (good/so-so): {total_quality_jobs:,}")
     print(f"   Success: {'Yes' if successful_searches > 0 else 'No'}")
     print(f"{'='*80}\n")
+
+    # Send notification email if configured
+    notification_email = os.getenv('NOTIFICATION_EMAIL')
+    if notification_email and successful_searches > 0 and df is not None and not df.empty:
+        print(f"📧 Sending scrape report to {notification_email}...")
+
+        # Collect detailed stats from DataFrame
+        stats = collect_job_stats_from_dataframe(df)
+
+        # Add search configuration info
+        stats['source_name'] = 'Indeed'
+        stats['markets_searched'] = MARKETS
+        stats['search_terms'] = SEARCH_TERMS
+
+        # Send the report
+        try:
+            success = send_detailed_scrape_report("Indeed Scheduled", stats, notification_email)
+            if success:
+                print(f"✅ Scrape report sent successfully")
+            else:
+                print(f"⚠️  Failed to send scrape report (non-fatal)")
+        except Exception as e:
+            print(f"⚠️  Error sending scrape report: {e} (non-fatal)")
+    elif notification_email:
+        print(f"⚠️  Skipping notification - no successful scrape results")
+    else:
+        print(f"ℹ️  NOTIFICATION_EMAIL not set, skipping scrape report")
 
     # Exit with error code if scrape failed
     if failed_searches > 0:
