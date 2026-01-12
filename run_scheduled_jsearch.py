@@ -4,14 +4,17 @@ Scheduled JSearch (Google Jobs) Multi-Market Scraper
 Runs Tue/Thu/Sat at 2am Central via GitHub Actions
 
 Uses OpenWeb Ninja's JSearch API as Google Jobs source
-12 Markets × 1 Search Term × 20 pages × 50mi radius = ~2,000 jobs total
+237 City Queries (from google_query_to_market.csv) × 5 pages = ~10,000 raw jobs
+After dedup: ~3,000-4,000 unique jobs
 
-JSearch's radius actually works, so we only need one query per market.
+Uses same city queries as Outscraper for consistent coverage.
 """
 
 import os
 import sys
 import uuid
+import time
+import csv
 from datetime import datetime, timezone
 
 # Import JSearch adapter
@@ -29,64 +32,64 @@ from send_scrape_notification import (
     send_detailed_scrape_report
 )
 
-# Market configuration - same as Indeed for consistency
-MARKETS = [
-    "Dallas, TX",
-    "Houston, TX",
-    "Phoenix, AZ",
-    "Trenton, NJ",
-    "Newark, NJ",
-    "Denver, CO",
-    "Ontario, CA",      # Inland Empire
-    "Berkeley, CA",     # Bay Area
-    "Stockton, CA",
-    "Las Vegas, NV",
-]
-
-# Market display names for reports
-MARKET_DISPLAY_NAMES = {
-    "Dallas, TX": "Dallas",
-    "Houston, TX": "Houston",
-    "Phoenix, AZ": "Phoenix",
-    "Trenton, NJ": "Trenton",
-    "Newark, NJ": "Newark",
-    "Denver, CO": "Denver",
-    "Ontario, CA": "Inland Empire",
-    "Berkeley, CA": "Bay Area",
-    "Stockton, CA": "Stockton",
-    "Las Vegas, NV": "Las Vegas",
-}
-
-# Single search term - JSearch radius actually works, so no need for multiple terms
-SEARCH_TERM = "CDL Driver"
-
 # JSearch config
-PAGES_PER_SEARCH = 20  # Max allowed by JSearch API (200 jobs max per query)
-RADIUS_MILES = 50      # 50 mile radius - JSearch honors this
+PAGES_PER_SEARCH = 5   # 5 pages per city query (50 jobs max per city)
 DATE_POSTED = "week"   # Jobs from last 7 days
+DELAY_BETWEEN_QUERIES = 0.5  # Half second delay to avoid rate limits
+
+# Path to city queries CSV (same as Outscraper uses)
+QUERIES_CSV = "google_query_to_market.csv"
+
+
+def load_queries_from_csv(csv_path: str) -> list:
+    """
+    Load search queries from CSV file.
+    Returns list of (query, market) tuples.
+    """
+    queries = []
+    try:
+        with open(csv_path, 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                query = row.get('Query', '').strip()
+                market = row.get('Market', '').strip()
+                if query and market:
+                    queries.append((query, market))
+    except Exception as e:
+        print(f"❌ Error loading CSV: {e}")
+        return []
+
+    return queries
 
 
 def main():
-    """Run multi-market JSearch Google Jobs scrapes"""
+    """Run multi-city JSearch Google Jobs scrapes"""
     print(f"\n{'='*80}")
-    print(f"🔍 SCHEDULED JSEARCH (GOOGLE JOBS) MULTI-MARKET SCRAPER")
+    print(f"🔍 SCHEDULED JSEARCH (GOOGLE JOBS) MULTI-CITY SCRAPER")
     print(f"⏰ {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
     print(f"{'='*80}\n")
 
-    print(f"📍 Markets: {len(MARKETS)}")
-    for market in MARKETS:
-        display_name = MARKET_DISPLAY_NAMES.get(market, market)
-        print(f"   • {display_name} ({market})")
+    # Load queries from CSV
+    queries = load_queries_from_csv(QUERIES_CSV)
+    if not queries:
+        print(f"❌ No queries loaded from {QUERIES_CSV}")
+        sys.exit(1)
 
-    print(f"\n🔍 Search Term: {SEARCH_TERM}")
-    print(f"   (JSearch radius works, so single term per market is sufficient)")
+    # Count queries per market
+    markets = {}
+    for query, market in queries:
+        markets[market] = markets.get(market, 0) + 1
+
+    print(f"📍 Loaded {len(queries)} city queries across {len(markets)} markets:")
+    for market, count in sorted(markets.items(), key=lambda x: -x[1]):
+        print(f"   • {market}: {count} cities")
 
     print(f"\n📊 Configuration:")
-    print(f"   Pages per search: {PAGES_PER_SEARCH} (max 10 jobs/page)")
-    print(f"   Radius: {RADIUS_MILES} miles")
+    print(f"   Pages per city: {PAGES_PER_SEARCH} (max 10 jobs/page)")
     print(f"   Date filter: {DATE_POSTED}")
-    print(f"   Total searches: {len(MARKETS)} markets × 1 term = {len(MARKETS)}")
-    print(f"   Expected jobs: ~{len(MARKETS) * PAGES_PER_SEARCH * 8:,} (assuming 8 jobs/page avg)")
+    print(f"   Total API queries: {len(queries)}")
+    print(f"   Expected raw jobs: ~{len(queries) * PAGES_PER_SEARCH * 6:,} (assuming 6 jobs/page avg)")
+    print(f"   Expected after dedup: ~{int(len(queries) * PAGES_PER_SEARCH * 6 * 0.4):,} (60% dedup rate)")
 
     # Initialize JSearch adapter
     try:
@@ -102,20 +105,29 @@ def main():
     total_quality_jobs = 0
     all_jobs_dfs = []
     run_id = str(uuid.uuid4())[:8]
+    failed_queries = []
 
     # Initialize pipeline for classification
     print(f"\n🔧 Initializing Pipeline v3 (run_id: {run_id})...")
     pipeline = PipelineV3()
     pipeline.run_id = run_id
 
-    # Search each market (single term per market since radius works)
+    # Search each city
     print(f"\n{'='*80}")
-    print(f"🚀 STARTING JSEARCH SCRAPES")
+    print(f"🚀 STARTING JSEARCH SCRAPES ({len(queries)} queries)")
     print(f"{'='*80}\n")
 
-    for market in MARKETS:
-        display_name = MARKET_DISPLAY_NAMES.get(market, market)
-        query = f"{SEARCH_TERM} {market}"
+    current_market = None
+    market_job_count = 0
+
+    for i, (query, market) in enumerate(queries):
+        # Print market header when market changes
+        if market != current_market:
+            if current_market:
+                print(f"   📊 {current_market} subtotal: {market_job_count} jobs\n")
+            current_market = market
+            market_job_count = 0
+            print(f"📍 {market}:")
 
         try:
             # Search JSearch API
@@ -123,38 +135,63 @@ def main():
                 query=query,
                 num_pages=PAGES_PER_SEARCH,
                 date_posted=DATE_POSTED,
-                radius_km=int(RADIUS_MILES * 1.6)  # Convert to km
             )
 
-            if not jobs:
-                print(f"📍 {display_name}: ⚠️ 0 jobs")
-                continue
+            job_count = len(jobs) if jobs else 0
+            market_job_count += job_count
+            total_raw_jobs += job_count
 
-            print(f"📍 {display_name}: ✅ {len(jobs)} jobs")
-            total_raw_jobs += len(jobs)
+            # Show progress
+            city_name = query.replace("CDL Driver ", "")
+            status = f"✅ {job_count}" if job_count > 0 else "⚠️ 0"
+            print(f"   [{i+1}/{len(queries)}] {city_name}: {status}")
 
-            # Transform to canonical format
-            df = transform_jsearch_to_canonical(
-                raw_data=jobs,
-                run_id=run_id,
-                search_location=market,
-                market=display_name
-            )
+            if jobs:
+                # Transform to canonical format
+                df = transform_jsearch_to_canonical(
+                    raw_data=jobs,
+                    run_id=run_id,
+                    search_location=city_name,
+                    market=market
+                )
 
-            if not df.empty:
-                all_jobs_dfs.append(df)
+                if not df.empty:
+                    all_jobs_dfs.append(df)
+
+            # Small delay between queries to avoid rate limits
+            if DELAY_BETWEEN_QUERIES > 0:
+                time.sleep(DELAY_BETWEEN_QUERIES)
 
         except Exception as e:
-            print(f"📍 {display_name}: ❌ Error - {e}")
+            error_msg = str(e)
+            print(f"   [{i+1}/{len(queries)}] {query}: ❌ {error_msg[:50]}")
+            failed_queries.append((query, market, error_msg))
+
+            # If we get a 401, the API key might be rate limited - wait longer
+            if "401" in error_msg or "Unauthorized" in error_msg:
+                print(f"   ⏳ Rate limit? Waiting 5 seconds...")
+                time.sleep(5)
+
+    # Print final market subtotal
+    if current_market:
+        print(f"   📊 {current_market} subtotal: {market_job_count} jobs\n")
+
+    # Report failed queries
+    if failed_queries:
+        print(f"\n⚠️ Failed queries: {len(failed_queries)}")
+        for query, market, error in failed_queries[:5]:
+            print(f"   • {query}: {error[:50]}")
+        if len(failed_queries) > 5:
+            print(f"   ... and {len(failed_queries) - 5} more")
 
     # Combine all DataFrames
     if not all_jobs_dfs:
-        print(f"\n❌ No jobs found from any market")
+        print(f"\n❌ No jobs found from any query")
         sys.exit(1)
 
     import pandas as pd
     combined_df = pd.concat(all_jobs_dfs, ignore_index=True)
-    print(f"\n📊 Combined: {len(combined_df)} total jobs from all searches")
+    print(f"\n📊 Combined: {len(combined_df)} raw jobs from {len(queries)} city queries")
 
     # Run through pipeline stages
     print(f"\n{'='*80}")
@@ -224,12 +261,11 @@ def main():
     print(f"\n{'='*80}")
     print(f"✅ JSEARCH SCRAPE COMPLETE")
     print(f"{'='*80}")
-    print(f"   Markets searched: {len(MARKETS)}")
-    print(f"   Search term: {SEARCH_TERM}")
-    print(f"   Radius: {RADIUS_MILES} miles")
-    print(f"   Total API queries: {len(MARKETS)}")
+    print(f"   Markets: {len(markets)}")
+    print(f"   City queries: {len(queries)}")
+    print(f"   Failed queries: {len(failed_queries)}")
     print(f"   Raw jobs fetched: {total_raw_jobs:,}")
-    print(f"   Jobs classified: {total_classified_jobs:,}")
+    print(f"   Jobs after dedup: {total_classified_jobs:,}")
     print(f"   Quality jobs (good/so-so): {total_quality_jobs:,}")
     print(f"{'='*80}\n")
 
@@ -243,8 +279,8 @@ def main():
 
         # Add search configuration info
         stats['source_name'] = 'JSearch (Google Jobs)'
-        stats['markets_searched'] = list(MARKET_DISPLAY_NAMES.values())
-        stats['search_terms'] = [SEARCH_TERM]
+        stats['markets_searched'] = list(markets.keys())
+        stats['search_terms'] = ['CDL Driver (237 city queries)']
 
         # Send the report
         try:
