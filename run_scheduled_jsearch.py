@@ -4,8 +4,8 @@ Scheduled JSearch (Google Jobs) Multi-Market Scraper
 Runs Tue/Thu/Sat at 2am Central via GitHub Actions
 
 Uses OpenWeb Ninja's JSearch API as Google Jobs source
-237 City Queries (from google_query_to_market.csv) × 5 pages = ~10,000 raw jobs
-After dedup: ~3,000-4,000 unique jobs
+237 City Queries (from google_query_to_market.csv) × 20 pages = ~47,000 raw jobs
+After dedup: ~8,000-10,000 unique jobs
 
 Uses same city queries as Outscraper for consistent coverage.
 """
@@ -33,7 +33,7 @@ from send_scrape_notification import (
 )
 
 # JSearch config
-PAGES_PER_SEARCH = 5   # 5 pages per city query (50 jobs max per city)
+PAGES_PER_SEARCH = 20  # 20 pages per city query (200 jobs max per city)
 DATE_POSTED = "week"   # Jobs from last 7 days
 DELAY_BETWEEN_QUERIES = 0.5  # Half second delay to avoid rate limits
 
