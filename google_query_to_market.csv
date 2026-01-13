@@ -36,17 +36,20 @@ CDL Driver Concord CA,Bay Area
 CDL Driver Richmond CA,Bay Area
 CDL Driver San Rafael CA,Bay Area
 CDL Driver Campbell CA,Bay Area
-CDL Driver Rohnert Park CA,Bay Area
 CDL Driver San Jose CA,Bay Area
-CDL Driver Fairfield CA,Bay Area
-CDL Driver Napa CA,Bay Area
 CDL Driver Saratoga CA,Bay Area
-CDL Driver Suisun City CA,Bay Area
 CDL Driver Milpitas CA,Bay Area
-CDL Driver Santa Rosa CA,Bay Area
 CDL Driver Sunnyvale CA,Bay Area
 CDL Driver Vallejo CA,Bay Area
 CDL Driver Antioch CA,Bay Area
+CDL Driver Pleasanton CA,Bay Area
+CDL Driver Livermore CA,Bay Area
+CDL Driver Union City CA,Bay Area
+CDL Driver Newark CA,Bay Area
+CDL Driver Mountain View CA,Bay Area
+CDL Driver Santa Clara CA,Bay Area
+CDL Driver San Leandro CA,Bay Area
+CDL Driver Alameda CA,Bay Area
 CDL Driver Las Vegas NV,Las Vegas
 CDL Driver North Las Vegas NV,Las Vegas
 CDL Driver Henderson NV,Las Vegas
@@ -56,12 +59,12 @@ CDL Driver Paradise NV,Las Vegas
 CDL Driver Spring Valley NV,Las Vegas
 CDL Driver Boulder City NV,Las Vegas
 CDL Driver Whitney NV,Las Vegas
-CDL Driver Mount Charleston NV,Las Vegas
-CDL Driver Goodsprings NV,Las Vegas
-CDL Driver Lincoln City NV,Las Vegas
-CDL Driver Moapa Town NV,Las Vegas
-CDL Driver Indian Springs NV,Las Vegas
-CDL Driver Primm NV,Las Vegas
+CDL Driver Enterprise NV,Las Vegas
+CDL Driver Summerlin NV,Las Vegas
+CDL Driver Centennial Hills NV,Las Vegas
+CDL Driver Green Valley NV,Las Vegas
+CDL Driver Aliante NV,Las Vegas
+CDL Driver Anthem NV,Las Vegas
 CDL Driver Houston TX,Houston
 CDL Driver West University Place TX,Houston
 CDL Driver Bellaire TX,Houston
@@ -101,22 +104,20 @@ CDL Driver Upland CA,Inland Empire
 CDL Driver Chino CA,Inland Empire
 CDL Driver Highland CA,Inland Empire
 CDL Driver Grand Terrace CA,Inland Empire
-CDL Driver Fullerton CA,Inland Empire
-CDL Driver Temecula CA,Inland Empire
-CDL Driver Anaheim CA,Inland Empire
-CDL Driver La Habra CA,Inland Empire
-CDL Driver Apple Valley CA,Inland Empire
-CDL Driver Brea CA,Inland Empire
-CDL Driver El Monte CA,Inland Empire
-CDL Driver Orange CA,Inland Empire
-CDL Driver Santa Ana CA,Inland Empire
-CDL Driver Irvine CA,Inland Empire
 CDL Driver Pomona CA,Inland Empire
-CDL Driver Garden Grove CA,Inland Empire
-CDL Driver Big Bear Lake CA,Inland Empire
-CDL Driver Hesperia CA,Inland Empire
-CDL Driver Victorville CA,Inland Empire
 CDL Driver Beaumont CA,Inland Empire
+CDL Driver Chino Hills CA,Inland Empire
+CDL Driver Claremont CA,Inland Empire
+CDL Driver Montclair CA,Inland Empire
+CDL Driver Yucaipa CA,Inland Empire
+CDL Driver Loma Linda CA,Inland Empire
+CDL Driver Norco CA,Inland Empire
+CDL Driver Eastvale CA,Inland Empire
+CDL Driver Jurupa Valley CA,Inland Empire
+CDL Driver Perris CA,Inland Empire
+CDL Driver Lake Elsinore CA,Inland Empire
+CDL Driver Murrieta CA,Inland Empire
+CDL Driver Temecula CA,Inland Empire
 CDL Driver Phoenix AZ,Phoenix
 CDL Driver Mesa AZ,Phoenix
 CDL Driver Scottsdale AZ,Phoenix
@@ -133,9 +134,13 @@ CDL Driver Sun City West AZ,Phoenix
 CDL Driver Apache Junction AZ,Phoenix
 CDL Driver Fountain Hills AZ,Phoenix
 CDL Driver Queen Creek AZ,Phoenix
-CDL Driver Black Canyon City AZ,Phoenix
-CDL Driver Wittmann AZ,Phoenix
-CDL Driver Casa Grande AZ,Phoenix
+CDL Driver Buckeye AZ,Phoenix
+CDL Driver Maricopa AZ,Phoenix
+CDL Driver Paradise Valley AZ,Phoenix
+CDL Driver Cave Creek AZ,Phoenix
+CDL Driver Tolleson AZ,Phoenix
+CDL Driver Litchfield Park AZ,Phoenix
+CDL Driver El Mirage AZ,Phoenix
 CDL Driver Denver CO,Denver
 CDL Driver Aurora CO,Denver
 CDL Driver Lakewood CO,Denver
@@ -151,30 +156,31 @@ CDL Driver Broomfield CO,Denver
 CDL Driver Brighton CO,Denver
 CDL Driver Commerce City CO,Denver
 CDL Driver Boulder CO,Denver
-CDL Driver Greeley CO,Denver
 CDL Driver Longmont CO,Denver
-CDL Driver Loveland CO,Denver
-CDL Driver Shawnee CO,Denver
-CDL Driver Buffalo Creek CO,Denver
-CDL Driver Milliken CO,Denver
-CDL Driver Bailey CO,Denver
-CDL Driver Berthoud CO,Denver
-CDL Driver Byers CO,Denver
-CDL Driver Georgetown CO,Denver
-CDL Driver Lyons CO,Denver
+CDL Driver Golden CO,Denver
+CDL Driver Castle Rock CO,Denver
+CDL Driver Northglenn CO,Denver
+CDL Driver Federal Heights CO,Denver
+CDL Driver Wheat Ridge CO,Denver
+CDL Driver Lone Tree CO,Denver
+CDL Driver Louisville CO,Denver
+CDL Driver Lafayette CO,Denver
+CDL Driver Erie CO,Denver
 CDL Driver Stockton CA,Stockton
 CDL Driver Lodi CA,Stockton
 CDL Driver Manteca CA,Stockton
 CDL Driver Tracy CA,Stockton
 CDL Driver Modesto CA,Stockton
 CDL Driver Ripon CA,Stockton
-CDL Driver Turlock CA,Stockton
 CDL Driver Oakdale CA,Stockton
 CDL Driver Escalon CA,Stockton
 CDL Driver Lathrop CA,Stockton
 CDL Driver Mountain House CA,Stockton
-CDL Driver Pleasanton CA,Stockton
-CDL Driver Jackson CA,Stockton
+CDL Driver Ceres CA,Stockton
+CDL Driver Patterson CA,Stockton
+CDL Driver Riverbank CA,Stockton
+CDL Driver Salida CA,Stockton
+CDL Driver French Camp CA,Stockton
 CDL Driver Newark NJ,Newark
 CDL Driver Jersey City NJ,Newark
 CDL Driver Elizabeth NJ,Newark
@@ -194,12 +200,12 @@ CDL Driver Hillside NJ,Newark
 CDL Driver North Arlington NJ,Newark
 CDL Driver Nutley NJ,Newark
 CDL Driver Lyndhurst NJ,Newark
-CDL Driver White Plains NY,Newark
 CDL Driver Paterson NJ,Newark
-CDL Driver Yonkers NY,Newark
-CDL Driver New Rochelle NY,Newark
-CDL Driver Stamford CT,Newark
 CDL Driver Edison NJ,Newark
+CDL Driver Linden NJ,Newark
+CDL Driver Rahway NJ,Newark
+CDL Driver Secaucus NJ,Newark
+CDL Driver Hoboken NJ,Newark
 CDL Driver Dallas TX,Dallas
 CDL Driver Fort Worth TX,Dallas
 CDL Driver Arlington TX,Dallas
