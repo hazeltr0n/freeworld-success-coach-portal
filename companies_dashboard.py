@@ -2,6 +2,12 @@
 """
 Companies Analytics Dashboard
 Streamlit components for displaying companies rollup data
+
+Enhanced with Company Intelligence Hub:
+- FreeWorld placement data from Airtable
+- HonestJobs verified hires
+- Fair Chance Score (computed from all sources)
+- Fuzzy company name matching
 """
 
 import streamlit as st
@@ -14,8 +20,9 @@ import uuid as uuid_lib
 
 def show_companies_dashboard():
     """Display the companies analytics dashboard"""
-    
-    st.markdown("# 🏢 Companies Analytics Dashboard")
+
+    st.markdown("# 🏢 Companies Intelligence Hub")
+    st.markdown("*Aggregating fair chance data across all sources: Jobs, HonestJobs, Airtable Placements*")
     st.markdown("---")
     
     # Import companies functions
@@ -28,7 +35,111 @@ def show_companies_dashboard():
     except ImportError:
         st.error("❌ Companies rollup module not available")
         return
-    
+
+    # Import Company Intelligence Hub
+    try:
+        from company_intelligence import CompanyIntelligenceHub, normalize_company_name, fuzzy_match_company, FUZZY_AVAILABLE
+        from airtable_company_rollup import AirtableCompanyRollup, get_hiring_summary
+        INTELLIGENCE_AVAILABLE = True
+    except ImportError as e:
+        INTELLIGENCE_AVAILABLE = False
+        st.warning(f"⚠️ Company Intelligence features limited: {e}")
+
+    # =========================================================================
+    # COMPANY INTELLIGENCE SECTION
+    # =========================================================================
+    if INTELLIGENCE_AVAILABLE:
+        with st.expander("🧠 Company Intelligence Lookup", expanded=True):
+            st.markdown("**Search any company to see aggregated fair chance intelligence**")
+
+            col1, col2 = st.columns([2, 1])
+
+            with col1:
+                company_search = st.text_input(
+                    "🔍 Company Name:",
+                    placeholder="e.g., Western Express, Amazon, Sysco...",
+                    key="intel_search"
+                )
+
+            with col2:
+                search_btn = st.button("🔎 Lookup", type="primary", key="intel_btn")
+
+            if company_search and search_btn:
+                with st.spinner("Aggregating company intelligence..."):
+                    hub = CompanyIntelligenceHub()
+                    profile = hub.aggregate_company_from_jobs(company_search, include_airtable=True)
+
+                    if profile.total_jobs > 0 or profile.fair_chance.freeworld_placements > 0:
+                        fc = profile.fair_chance
+
+                        # Fair Chance Score with color coding
+                        score = fc.overall_fair_chance_score
+                        if score >= 50:
+                            score_color = "green"
+                            score_label = "Excellent"
+                        elif score >= 30:
+                            score_color = "orange"
+                            score_label = "Good"
+                        elif score >= 15:
+                            score_color = "gray"
+                            score_label = "Limited Data"
+                        else:
+                            score_color = "red"
+                            score_label = "Unknown"
+
+                        st.markdown(f"### {profile.display_name}")
+
+                        # Metrics row
+                        m1, m2, m3, m4, m5 = st.columns(5)
+                        with m1:
+                            st.metric("Fair Chance Score", f"{score:.0f}/100", score_label)
+                        with m2:
+                            st.metric("Jobs in Database", profile.total_jobs)
+                        with m3:
+                            st.metric("FreeWorld Hires", fc.freeworld_placements)
+                        with m4:
+                            st.metric("HonestJobs Verified", fc.honestjobs_verified_hires)
+                        with m5:
+                            st.metric("AI Fair Chance Jobs", fc.ai_fair_chance_jobs)
+
+                        # Data sources
+                        st.markdown(f"**Data Sources:** {', '.join(profile.data_sources) if profile.data_sources else 'None'}")
+                        st.markdown(f"**Markets:** {', '.join(profile.markets[:6]) if profile.markets else 'N/A'}")
+
+                        if fc.freeworld_placements > 0:
+                            st.success(f"✅ **FreeWorld Verified**: {fc.freeworld_placements} justice-impacted individuals hired!")
+                        if fc.honestjobs_is_verified:
+                            st.success("✅ **HonestJobs Verified Fair Chance Employer**")
+                    else:
+                        st.warning(f"No data found for '{company_search}'. Try a different spelling or check if this company is in our system.")
+
+            # FreeWorld Hiring Summary
+            st.markdown("---")
+            st.markdown("#### 🏆 Top FreeWorld Hiring Companies")
+
+            try:
+                hiring_summary = get_hiring_summary()
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Total FreeWorld Placements", f"{hiring_summary['total_placements']:,}")
+                with col2:
+                    st.metric("Companies That Hired", hiring_summary['unique_companies'])
+                with col3:
+                    if hiring_summary['top_companies']:
+                        top_company = hiring_summary['top_companies'][0]
+                        st.metric("Top Employer", top_company['name'], f"{top_company['placements']} hires")
+
+                # Top 10 table
+                if hiring_summary['top_companies']:
+                    top_df = pd.DataFrame(hiring_summary['top_companies'][:10])
+                    top_df.columns = ['Company', 'FreeWorld Hires', 'Success Rate']
+                    top_df['Success Rate'] = top_df['Success Rate'].apply(lambda x: f"{x:.0%}" if x > 0 else "N/A")
+                    st.dataframe(top_df, hide_index=True, use_container_width=True)
+            except Exception as e:
+                st.info(f"Hiring summary unavailable: {e}")
+
+    st.markdown("---")
+
     # Control buttons
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -518,14 +629,35 @@ def show_companies_dashboard():
                     blacklist_warning = " 🚫 (BLACKLISTED)"
 
                 st.markdown(f"### 🏢 {selected_company}{blacklist_warning}")
-                
+
+                # Get Company Intelligence data
+                if INTELLIGENCE_AVAILABLE:
+                    try:
+                        hub = CompanyIntelligenceHub()
+                        profile = hub.aggregate_company_from_jobs(selected_company, include_airtable=True)
+                        fc = profile.fair_chance
+
+                        # Show Fair Chance Score prominently
+                        score = fc.overall_fair_chance_score
+                        if score >= 30:
+                            st.success(f"🎯 **Fair Chance Score: {score:.0f}/100** ({fc.confidence_level} confidence)")
+                        elif score > 0:
+                            st.info(f"🎯 **Fair Chance Score: {score:.0f}/100** ({fc.confidence_level} confidence)")
+
+                        if fc.freeworld_placements > 0:
+                            st.success(f"✅ **{fc.freeworld_placements} FreeWorld Placements** - This company has hired justice-impacted individuals!")
+                        if fc.honestjobs_verified_hires > 0:
+                            st.info(f"🤝 **{fc.honestjobs_verified_hires} HonestJobs Verified Hires**")
+                    except Exception:
+                        pass
+
                 detail_col1, detail_col2 = st.columns(2)
-                
+
                 with detail_col1:
                     st.write(f"**Total Jobs:** {company_details.get('total_jobs', 0)}")
                     st.write(f"**Fair Chance Jobs:** {company_details.get('fair_chance_jobs', 0)}")
                     st.write(f"**Active Jobs:** {company_details.get('active_jobs', 0)}")
-                
+
                 with detail_col2:
                     if 'markets' in company_details and company_details['markets']:
                         st.write(f"**Markets:** {', '.join(company_details['markets'])}")

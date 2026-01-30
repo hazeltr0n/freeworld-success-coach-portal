@@ -28,6 +28,12 @@ COLUMN_REGISTRY = {
     'source.url': str,                # Single unified URL (from any source)
     'source.salary_raw': str,         # Raw salary text
     'source.posted_date': str,        # Raw posting date
+
+    # === SOURCE - HonestJobs specific fields ===
+    'source.honestjobs_id': str,      # Original HonestJobs job UUID
+    'source.verified_hires': int,     # Number of verified fair chance hires by employer
+    'source.is_fair_chance': bool,    # Employer explicitly marked as fair chance
+    'source.employer_id': str,        # Employer UUID for cross-referencing
     
     # === NORMALIZED (cleaned once - deterministic) ===
     'norm.title': str,                # Cleaned job title
@@ -172,6 +178,12 @@ SUPABASE_FIELDS = {
     'search_query': 'meta.query',           # Search terms used
     'source': 'id.source',                  # Data provenance
     'filter_reason': 'route.final_status',  # Why filtered out
+
+    # HonestJobs fair chance fields
+    'honestjobs_id': 'source.honestjobs_id',       # Original HonestJobs job UUID
+    'verified_hires': 'source.verified_hires',     # Employer's verified fair chance hires
+    'is_fair_chance': 'source.is_fair_chance',     # Explicitly fair chance employer
+    'employer_id': 'source.employer_id',           # Employer UUID for cross-referencing
     
     # Memory system requirements
     'classified_at': 'sys.classified_at',
