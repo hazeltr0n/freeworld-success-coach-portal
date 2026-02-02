@@ -108,7 +108,7 @@ def main():
                         radius=SEARCH_RADIUS,
                         max_jobs=MAX_JOBS_PER_ZIP,
                         max_clicks=MAX_CLICKS_PER_ZIP,
-                        fetch_details=False  # Skip details for speed
+                        fetch_details=True  # Fetch full job descriptions for AI classification
                     )
 
                     new_count = 0
