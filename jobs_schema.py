@@ -359,10 +359,17 @@ def prepare_for_supabase(df: pd.DataFrame) -> pd.DataFrame:
     if 'indeed_job_url' not in supabase_df.columns:
         supabase_df['indeed_job_url'] = ''
 
-    # Clean for Supabase storage
+    # Clean for Supabase storage - handle different types properly
+    # Integer columns should stay null, not become empty strings
+    int_columns = {'verified_hires'}  # Add any other int columns here
+
     for col in supabase_df.columns:
-        # Handle null values
-        supabase_df[col] = supabase_df[col].fillna('')
+        if col in int_columns:
+            # For integer columns, convert to nullable int (keeps NaN as null)
+            supabase_df[col] = pd.to_numeric(supabase_df[col], errors='coerce')
+        else:
+            # For string columns, fill nulls with empty string
+            supabase_df[col] = supabase_df[col].fillna('')
 
     # Clean up trailing ellipses from Outscraper truncations
     def clean_truncated_sentence(text: str) -> str:
