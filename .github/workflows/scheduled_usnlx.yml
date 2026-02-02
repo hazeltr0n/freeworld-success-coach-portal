@@ -1,0 +1,56 @@
+name: Scheduled USNLX Job Scraper
+
+on:
+  schedule:
+    # Tue/Thu/Sat at 4am Central (9am UTC) - browser-based, run off-peak
+    - cron: '0 9 * * 2,4,6'
+  workflow_dispatch:  # Allow manual trigger for testing
+
+jobs:
+  usnlx-scraper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240  # 4 hours max (browser scraping is slower)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: |
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Run USNLX multi-market scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          SHORT_IO_API_KEY: ${{ secrets.SHORT_IO_API_KEY }}
+          SHORT_DOMAIN: ${{ secrets.SHORT_DOMAIN }}
+          # Email notification settings (SMTP)
+          NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: |
+          python run_scheduled_usnlx.py
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: usnlx-debug-${{ github.run_number }}
+          path: |
+            *.png
+            *.log
+            *.txt
+          retention-days: 7
