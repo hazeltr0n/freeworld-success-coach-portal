@@ -236,7 +236,7 @@ class USNLXScraper:
             job_url: URL of the job detail page
 
         Returns:
-            Dict with full job details
+            Dict with full job details including description
         """
         details = {}
 
@@ -244,40 +244,49 @@ class USNLXScraper:
             self.page.goto(job_url, wait_until='networkidle', timeout=self.config.timeout_ms)
             time.sleep(1)  # Let Vue hydrate
 
-            # Extract full details via JavaScript
-            # USNLX job detail pages have a clean structure
+            # Extract job description - content appears after "Apply Now" button
             extract_details_script = """
             () => {
+                const body = document.body.innerText || '';
                 const details = {};
-                const bodyText = document.body.innerText || '';
 
-                // Get all text content for parsing
-                details.full_text = bodyText;
+                // Find content after "Apply Now" button (where job description starts)
+                const applyIdx = body.indexOf('Apply Now');
+                if (applyIdx > -1) {
+                    let content = body.substring(applyIdx + 10);
 
-                // Try to extract salary from text (e.g., "$22.00 - $24.00/hr")
-                const salaryMatch = bodyText.match(/\\$[\\d,.]+\\s*-?\\s*\\$?[\\d,.]*\\/?\\w*/);
-                details.salary = salaryMatch ? salaryMatch[0] : '';
+                    // Remove footer content
+                    const footerPatterns = [
+                        'POWERED BY',
+                        'Privacy Policy',
+                        'Terms & Conditions',
+                        '© 2026',
+                        '© 2025',
+                        'Copyright'
+                    ];
 
-                // Look for Apply button/link
-                const applyBtn = document.querySelector('a[href*="apply"], button:has-text("Apply")');
-                details.apply_url = applyBtn?.getAttribute('href') || '';
-
-                // Find main content area (usually after header)
-                const mainContent = document.querySelector('main, article, .content, .job-content');
-                if (mainContent) {
-                    details.description = mainContent.innerText?.trim() || '';
-                } else {
-                    // Fallback: get body text without header/footer
-                    const paragraphs = document.querySelectorAll('p');
-                    const descParts = [];
-                    paragraphs.forEach(p => {
-                        const text = p.innerText?.trim();
-                        if (text && text.length > 20) {
-                            descParts.push(text);
+                    for (const pattern of footerPatterns) {
+                        const idx = content.indexOf(pattern);
+                        if (idx > 0) {
+                            content = content.substring(0, idx);
+                            break;
                         }
-                    });
-                    details.description = descParts.join('\\n');
+                    }
+
+                    details.description = content.trim();
+                } else {
+                    // Fallback: get all body text after nav
+                    const navEnd = body.indexOf('FIND JOBS');
+                    if (navEnd > -1) {
+                        details.description = body.substring(navEnd + 10, navEnd + 5000).trim();
+                    } else {
+                        details.description = body.substring(0, 5000);
+                    }
                 }
+
+                // Extract salary if present
+                const salaryMatch = body.match(/\\$[\\d,.]+\\s*[-–]?\\s*\\$?[\\d,.]*\\s*\\/?\\s*(hr|hour|week|year|annually)?/i);
+                details.salary = salaryMatch ? salaryMatch[0] : '';
 
                 return details;
             }
@@ -286,22 +295,10 @@ class USNLXScraper:
             details = self.page.evaluate(extract_details_script)
             details['source_url'] = job_url
 
-            # Clean up the full_text (trim to reasonable size)
-            if details.get('full_text'):
-                # Keep only relevant portion (skip header/nav)
-                full_text = details['full_text']
-                # Find where job content likely starts
-                start_markers = ['CDL', 'Driver', 'Job Description', 'Requirements', 'Responsibilities']
-                for marker in start_markers:
-                    idx = full_text.find(marker)
-                    if idx > 0 and idx < 500:
-                        full_text = full_text[idx:]
-                        break
-                details['full_text'] = full_text[:3000]  # Limit size
-
         except Exception as e:
             logger.warning(f"Error fetching job details from {job_url}: {e}")
             details['source_url'] = job_url
+            details['description'] = ''
             details['error'] = str(e)
 
         return details

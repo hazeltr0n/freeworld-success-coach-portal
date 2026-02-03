@@ -592,19 +592,27 @@ class FreeWorldJobScraper:
                     term = url.split('q=')[1].split('&')[0].replace('+', ' ')
                     print(f"   {i}. {term}: {limit} jobs")
 
-            # Each query gets the specified limit automatically
+            # Each query gets the specified limit - multiply for API
             effective_limit = limit
-            print(f"   📊 API will return up to {limit * num_queries} total jobs ({num_queries} × {limit} each)")
+            print(f"   📊 Target: {limit} jobs per query × {num_queries} queries = {limit * num_queries} total")
         else:
             effective_limit = limit
+
+        # CRITICAL FIX: Outscraper treats 'limit' as TOTAL across all queries
+        # To get `limit` jobs PER query, multiply by number of queries
+        if isinstance(query_urls, list) and len(query_urls) > 1:
+            api_limit = effective_limit * len(query_urls)
+            print(f"   🔧 API limit: {effective_limit} × {len(query_urls)} = {api_limit}")
+        else:
+            api_limit = effective_limit
 
         url = "https://api.outscraper.cloud/indeed-search"
         params = {
             'query': query_urls,  # Can be string or list - requests handles both
-            'limit': effective_limit,
+            'limit': api_limit,   # Multiplied for multi-query requests
             'async': 'false'
         }
-        
+
         response = requests.get(url, headers=self.headers, params=params)
         
         if response.status_code != 200:

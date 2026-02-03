@@ -265,7 +265,19 @@ Return your results as a JSON object with a "job_classifications" array like thi
                 print("✅ Async classification completed successfully")
                 return results
             finally:
-                loop.close()
+                # Properly cleanup pending tasks before closing loop
+                try:
+                    # Cancel all pending tasks
+                    pending = asyncio.all_tasks(loop)
+                    for task in pending:
+                        task.cancel()
+                    # Wait for cancellation to complete
+                    if pending:
+                        loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                except Exception:
+                    pass  # Ignore cleanup errors
+                finally:
+                    loop.close()
         except Exception as e:
             print(f"⚠️ Async classification failed: {e}")
             print("🔄 Falling back to original sync implementation...")
