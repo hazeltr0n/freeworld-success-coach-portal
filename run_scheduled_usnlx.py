@@ -24,7 +24,8 @@ from canonical_transforms import (
 )
 from send_scrape_notification import (
     collect_job_stats_from_dataframe,
-    send_detailed_scrape_report
+    send_detailed_scrape_report,
+    send_zero_jobs_alert
 )
 
 # USNLX config
@@ -250,6 +251,25 @@ def main():
         print(f"\n❌ Pipeline error: {e}")
         import traceback
         traceback.print_exc()
+
+        # Send alert on pipeline failure
+        notification_email = os.getenv('NOTIFICATION_EMAIL')
+        if notification_email:
+            print(f"⚠️ Sending failure alert to {notification_email}...")
+            error_details = {
+                'raw_jobs': total_raw_jobs if 'total_raw_jobs' in dir() else 0,
+                'after_dedup': 0,
+                'classification_errors': 0,
+                'storage_error': str(e),
+                'markets_searched': list(MARKET_ZIPS.keys()),
+                'run_id': run_id if 'run_id' in dir() else 'unknown'
+            }
+            try:
+                send_zero_jobs_alert("USNLX Scheduled", error_details, notification_email)
+                print(f"✅ Failure alert sent")
+            except Exception as email_err:
+                print(f"⚠️ Failed to send alert: {email_err}")
+
         sys.exit(1)
 
     # =========================================================================
@@ -276,7 +296,28 @@ def main():
 
     # Send notification email
     notification_email = os.getenv('NOTIFICATION_EMAIL')
-    if notification_email and total_quality_jobs > 0:
+
+    # ALERT: Send warning if 0 jobs uploaded to Supabase
+    if notification_email and upload_count == 0:
+        print(f"⚠️ ALERT: 0 jobs uploaded - sending alert to {notification_email}...")
+
+        error_details = {
+            'raw_jobs': total_raw_jobs,
+            'after_dedup': dedup_active,
+            'classification_errors': 0,
+            'storage_error': '',
+            'markets_searched': list(MARKET_ZIPS.keys()),
+            'run_id': run_id
+        }
+
+        try:
+            send_zero_jobs_alert("USNLX Scheduled", error_details, notification_email)
+            print(f"✅ Zero jobs alert sent")
+        except Exception as e:
+            print(f"⚠️ Failed to send alert: {e}")
+
+    # Send success report if we have quality jobs
+    elif notification_email and total_quality_jobs > 0:
         print(f"📧 Sending scrape report to {notification_email}...")
 
         stats = collect_job_stats_from_dataframe(final_df)

@@ -548,6 +548,129 @@ def collect_job_stats_from_dataframe(df) -> dict:
     }
 
 
+def send_zero_jobs_alert(scrape_type: str, error_details: dict, recipient_email: str):
+    """
+    Send alert when a scrape action completes with 0 jobs added to Supabase.
+    This indicates a failure that needs investigation.
+    """
+
+    timestamp = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
+
+    # Extract error details
+    raw_jobs = error_details.get('raw_jobs', 0)
+    after_dedup = error_details.get('after_dedup', 0)
+    classification_errors = error_details.get('classification_errors', 0)
+    storage_error = error_details.get('storage_error', '')
+    markets_searched = error_details.get('markets_searched', [])
+    run_id = error_details.get('run_id', 'unknown')
+
+    # Build HTML body
+    html_body = f"""
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            .header {{ background: linear-gradient(135deg, #f44336, #c62828); color: white; padding: 25px; text-align: center; border-radius: 8px; }}
+            .header h2 {{ margin: 0; font-size: 24px; }}
+            .content {{ background-color: #fff3f3; padding: 25px; margin-top: 20px; border-radius: 8px; border: 1px solid #ffcdd2; }}
+            .stats {{ background-color: white; padding: 18px; margin: 15px 0; border-left: 4px solid #f44336; border-radius: 4px; }}
+            .stats h3 {{ margin-top: 0; color: #c62828; font-size: 16px; }}
+            .error-box {{ background-color: #ffebee; padding: 15px; border-radius: 6px; margin: 15px 0; font-family: monospace; font-size: 13px; }}
+            .footer {{ margin-top: 25px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; text-align: center; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h2>⚠️ ALERT: {scrape_type} - 0 Jobs Uploaded</h2>
+                <p style="margin: 10px 0 0 0; opacity: 0.9;">{timestamp}</p>
+            </div>
+
+            <div class="content">
+                <p><strong>The {scrape_type} scrape completed but uploaded 0 jobs to Supabase.</strong></p>
+                <p>This likely indicates a pipeline failure that needs investigation.</p>
+
+                <div class="stats">
+                    <h3>📊 Pipeline Statistics</h3>
+                    <ul>
+                        <li><strong>Run ID:</strong> {run_id}</li>
+                        <li><strong>Raw jobs scraped:</strong> {raw_jobs:,}</li>
+                        <li><strong>After deduplication:</strong> {after_dedup:,}</li>
+                        <li><strong>Classification errors:</strong> {classification_errors:,}</li>
+                        <li><strong>Jobs uploaded:</strong> 0 ❌</li>
+                    </ul>
+                </div>
+
+                <div class="stats">
+                    <h3>🔍 Search Configuration</h3>
+                    <ul>
+                        <li><strong>Source:</strong> {scrape_type}</li>
+                        <li><strong>Markets:</strong> {', '.join(markets_searched) if markets_searched else 'N/A'}</li>
+                    </ul>
+                </div>
+
+                {f'<div class="error-box"><strong>Error:</strong><br>{storage_error}</div>' if storage_error else ''}
+
+                <p style="margin-top: 20px;"><strong>Recommended Actions:</strong></p>
+                <ul>
+                    <li>Check GitHub Actions logs for the run</li>
+                    <li>Verify API keys (OpenAI, Supabase) are valid</li>
+                    <li>Check if the source website changed structure</li>
+                    <li>Review any error messages in the pipeline output</li>
+                </ul>
+            </div>
+
+            <div class="footer">
+                <p>🤖 Opptek Pipeline Alert System</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    # Build text version
+    text_body = f"""
+⚠️ ALERT: {scrape_type} - 0 JOBS UPLOADED
+{'='*50}
+Time: {timestamp}
+
+The {scrape_type} scrape completed but uploaded 0 jobs to Supabase.
+This likely indicates a pipeline failure that needs investigation.
+
+PIPELINE STATISTICS
+-------------------
+Run ID: {run_id}
+Raw jobs scraped: {raw_jobs:,}
+After deduplication: {after_dedup:,}
+Classification errors: {classification_errors:,}
+Jobs uploaded: 0 ❌
+
+SEARCH CONFIGURATION
+--------------------
+Source: {scrape_type}
+Markets: {', '.join(markets_searched) if markets_searched else 'N/A'}
+
+{f'ERROR: {storage_error}' if storage_error else ''}
+
+RECOMMENDED ACTIONS
+-------------------
+- Check GitHub Actions logs for the run
+- Verify API keys (OpenAI, Supabase) are valid
+- Check if the source website changed structure
+- Review any error messages in the pipeline output
+
+---
+Opptek Pipeline Alert System
+    """
+
+    # Create urgent subject line
+    subject = f"⚠️ ALERT: {scrape_type} Scrape Failed - 0 Jobs Uploaded"
+
+    # Send email
+    return send_email(recipient_email, subject, html_body, text_body)
+
+
 if __name__ == "__main__":
     import sys
 
