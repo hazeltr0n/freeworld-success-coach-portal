@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
 """
-Scheduled USNLX Job Scraper
+Scheduled USNLX Job Scraper (Concurrent Version)
 Runs via GitHub Actions to scrape CDL jobs from US National Labor Exchange
 
-USNLX aggregates job postings from state workforce agencies and direct employers.
-Good source for CDL/trucking jobs across all FreeWorld markets.
+Uses async Playwright to run all 10 markets concurrently, reducing runtime
+from 4+ hours to ~30-45 minutes while still fetching full job descriptions.
 """
 
 import os
 import sys
 import uuid
 import time
+import asyncio
 from datetime import datetime, timezone
 
-# Import USNLX scraper
-from usnlx_scraper import USNLXScraper, USNLXConfig, transform_usnlx_to_canonical
+# Import USNLX scraper (async version)
+from usnlx_scraper import run_concurrent_usnlx_scrape, transform_usnlx_to_canonical
 
 # Import pipeline components
 from pipeline_v3 import FreeWorldPipelineV3 as PipelineV3
@@ -33,7 +34,7 @@ SEARCH_QUERIES = ["CDL Driver", "Truck Driver", "Class A Driver"]
 SEARCH_RADIUS = 50  # miles
 MAX_JOBS_PER_ZIP = 75  # ~5 "More" clicks (15 jobs each)
 MAX_CLICKS_PER_ZIP = 5
-DELAY_BETWEEN_SEARCHES = 2  # seconds (browser-based, needs more time)
+MAX_CONCURRENT_MARKETS = 5  # Run 5 markets at a time (2 batches)
 
 # Market ZIP codes for USNLX searches
 MARKET_ZIPS = {
@@ -50,10 +51,10 @@ MARKET_ZIPS = {
 }
 
 
-def main():
-    """Run USNLX CDL job scraper across all markets"""
+async def run_scraper():
+    """Run USNLX CDL job scraper across all markets concurrently"""
     print(f"\n{'='*80}")
-    print(f"🏛️ SCHEDULED USNLX JOB SCRAPER")
+    print(f"🏛️ SCHEDULED USNLX JOB SCRAPER (CONCURRENT)")
     print(f"⏰ {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
     print(f"{'='*80}\n")
 
@@ -71,83 +72,43 @@ def main():
     print(f"   ZIP codes per market: ~{total_zips // len(MARKET_ZIPS)}")
     print(f"   Total searches: {total_searches}")
     print(f"   Max jobs per ZIP: {MAX_JOBS_PER_ZIP}")
+    print(f"   Concurrent markets: {MAX_CONCURRENT_MARKETS}")
+    print(f"   Mode: CONCURRENT (async Playwright)")
 
-    # Track stats
-    all_jobs = {}  # Dict for dedup by generated job ID
-    failed_searches = []
     start_time = time.time()
 
     # =========================================================================
-    # SEARCH ALL MARKETS
+    # CONCURRENT MARKET SCRAPING
     # =========================================================================
     print(f"\n{'='*80}")
-    print(f"🔍 SEARCHING {total_searches} COMBINATIONS")
+    print(f"🚀 SCRAPING {len(MARKET_ZIPS)} MARKETS CONCURRENTLY")
     print(f"{'='*80}\n")
 
-    search_count = 0
-
-    # Initialize scraper config
-    config = USNLXConfig(
-        headless=True,
-        timeout_ms=45000,
-        slow_mo=50
+    scrape_result = await run_concurrent_usnlx_scrape(
+        market_zips=MARKET_ZIPS,
+        queries=SEARCH_QUERIES,
+        radius=SEARCH_RADIUS,
+        max_jobs_per_zip=MAX_JOBS_PER_ZIP,
+        max_clicks=MAX_CLICKS_PER_ZIP,
+        fetch_details=True,  # Keep full descriptions for AI classification
+        max_concurrent_markets=MAX_CONCURRENT_MARKETS
     )
 
-    for market, zips in MARKET_ZIPS.items():
-        print(f"\n🏙️ {market} ({len(zips)} ZIPs):")
-        market_jobs_before = len(all_jobs)
-
-        for zip_code in zips:
-            for query in SEARCH_QUERIES:
-                search_count += 1
-
-                try:
-                    scraper = USNLXScraper(config)
-                    jobs = scraper.search_jobs(
-                        query=query,
-                        location=zip_code,
-                        radius=SEARCH_RADIUS,
-                        max_jobs=MAX_JOBS_PER_ZIP,
-                        max_clicks=MAX_CLICKS_PER_ZIP,
-                        fetch_details=True  # Fetch full job descriptions for AI classification
-                    )
-
-                    new_count = 0
-                    for job in jobs:
-                        # Generate unique ID from company+location+title
-                        job_key = f"{job.get('company', '')}|{job.get('location', '')}|{job.get('title', '')}".lower()
-                        import hashlib
-                        job_id = hashlib.md5(job_key.encode()).hexdigest()
-
-                        if job_id not in all_jobs:
-                            job['_market'] = market
-                            job['_search_zip'] = zip_code
-                            job['_search_query'] = query
-                            job['_job_id'] = job_id
-                            all_jobs[job_id] = job
-                            new_count += 1
-
-                    if new_count > 0:
-                        print(f"   {zip_code} '{query[:15]}': +{new_count} jobs")
-
-                    time.sleep(DELAY_BETWEEN_SEARCHES)
-
-                except Exception as e:
-                    failed_searches.append((market, zip_code, query, str(e)))
-                    print(f"   {zip_code} '{query[:15]}': ❌ {str(e)[:40]}")
-
-        market_new = len(all_jobs) - market_jobs_before
-        print(f"   📊 {market} subtotal: {market_new} unique jobs")
-
-    search_time = time.time() - start_time
+    all_jobs = scrape_result['all_jobs']
+    market_stats = scrape_result['market_stats']
+    search_time = scrape_result['total_time_seconds']
 
     print(f"\n{'='*80}")
     print(f"📊 SEARCH COMPLETE")
     print(f"{'='*80}")
-    print(f"   Searches completed: {search_count}")
-    print(f"   Failed searches: {len(failed_searches)}")
+    print(f"   Markets processed: {len(market_stats)}")
     print(f"   Unique jobs found: {len(all_jobs)}")
     print(f"   Search time: {search_time:.1f}s ({search_time/60:.1f}m)")
+
+    # Show per-market stats
+    print(f"\n   Per-market breakdown:")
+    for market, stats in market_stats.items():
+        print(f"      {market}: {stats['job_count']} jobs")
 
     # =========================================================================
     # PIPELINE PROCESSING
@@ -156,7 +117,24 @@ def main():
 
     if total_raw_jobs == 0:
         print(f"\n❌ No jobs found from USNLX")
-        sys.exit(1)
+
+        # Send alert
+        notification_email = os.getenv('NOTIFICATION_EMAIL')
+        if notification_email:
+            error_details = {
+                'raw_jobs': 0,
+                'after_dedup': 0,
+                'classification_errors': 0,
+                'storage_error': 'No jobs found during scraping',
+                'markets_searched': list(MARKET_ZIPS.keys()),
+                'run_id': run_id
+            }
+            try:
+                send_zero_jobs_alert("USNLX Scheduled", error_details, notification_email)
+            except:
+                pass
+
+        return 1
 
     print(f"\n{'='*80}")
     print(f"🔄 RUNNING PIPELINE CLASSIFICATION ({total_raw_jobs} jobs)")
@@ -185,6 +163,15 @@ def main():
     pipeline = PipelineV3()
     pipeline.run_id = run_id
 
+    # Track these for final summary
+    dedup_active = 0
+    good_count = 0
+    soso_count = 0
+    bad_count = 0
+    total_quality_jobs = 0
+    upload_count = 0
+    final_df = None
+
     try:
         # Stage 2: Normalization
         print("📐 Stage 2: Normalizing...")
@@ -211,10 +198,6 @@ def main():
         print("🤖 Stage 5: AI Classification...")
         df_classified = pipeline._stage5_ai_classification(df_deduped)
 
-        total_quality_jobs = 0
-        good_count = 0
-        soso_count = 0
-        bad_count = 0
         if 'ai.match' in df_classified.columns:
             good_count = (df_classified['ai.match'] == 'good').sum()
             soso_count = (df_classified['ai.match'] == 'so-so').sum()
@@ -257,12 +240,12 @@ def main():
         if notification_email:
             print(f"⚠️ Sending failure alert to {notification_email}...")
             error_details = {
-                'raw_jobs': total_raw_jobs if 'total_raw_jobs' in dir() else 0,
-                'after_dedup': 0,
+                'raw_jobs': total_raw_jobs,
+                'after_dedup': dedup_active,
                 'classification_errors': 0,
                 'storage_error': str(e),
                 'markets_searched': list(MARKET_ZIPS.keys()),
-                'run_id': run_id if 'run_id' in dir() else 'unknown'
+                'run_id': run_id
             }
             try:
                 send_zero_jobs_alert("USNLX Scheduled", error_details, notification_email)
@@ -270,7 +253,7 @@ def main():
             except Exception as email_err:
                 print(f"⚠️ Failed to send alert: {email_err}")
 
-        sys.exit(1)
+        return 1
 
     # =========================================================================
     # FINAL SUMMARY
@@ -283,9 +266,10 @@ def main():
     print(f"   Source: US National Labor Exchange (usnlx.com)")
     print(f"   Run ID: {run_id}")
     print(f"   Duration: {total_time:.1f}s ({total_time/60:.1f}m)")
+    print(f"   Mode: CONCURRENT ({MAX_CONCURRENT_MARKETS} markets at a time)")
     print(f"")
     print(f"   📊 Results:")
-    print(f"      Searches completed: {search_count}")
+    print(f"      Markets processed: {len(market_stats)}")
     print(f"      Raw jobs fetched: {total_raw_jobs:,}")
     print(f"      After dedup: {dedup_active:,}")
     print(f"      Good jobs: {good_count:,}")
@@ -317,7 +301,7 @@ def main():
             print(f"⚠️ Failed to send alert: {e}")
 
     # Send success report if we have quality jobs
-    elif notification_email and total_quality_jobs > 0:
+    elif notification_email and total_quality_jobs > 0 and final_df is not None:
         print(f"📧 Sending scrape report to {notification_email}...")
 
         stats = collect_job_stats_from_dataframe(final_df)
@@ -334,7 +318,13 @@ def main():
         except Exception as e:
             print(f"⚠️  Error sending scrape report: {e} (non-fatal)")
 
-    sys.exit(0)
+    return 0
+
+
+def main():
+    """Entry point - run async scraper"""
+    exit_code = asyncio.run(run_scraper())
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":

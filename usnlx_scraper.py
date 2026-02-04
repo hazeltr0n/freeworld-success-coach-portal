@@ -21,9 +21,12 @@ from dataclasses import dataclass
 # Playwright for browser automation
 try:
     from playwright.sync_api import sync_playwright, Page, Browser
+    from playwright.async_api import async_playwright, Page as AsyncPage, Browser as AsyncBrowser
     PLAYWRIGHT_AVAILABLE = True
 except ImportError:
     PLAYWRIGHT_AVAILABLE = False
+
+import asyncio
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -556,6 +559,443 @@ class USNLXScraper:
         """Generate unique job ID from key fields"""
         key = f"{job.get('company', '')}|{job.get('location', '')}|{job.get('title', '')}".lower()
         return hashlib.md5(key.encode()).hexdigest()
+
+
+class AsyncUSNLXScraper:
+    """
+    Async version of USNLX scraper for concurrent market scraping.
+
+    Uses Playwright async API to run multiple browser contexts in parallel,
+    dramatically reducing total scrape time from 4+ hours to ~30-45 minutes.
+    """
+
+    BASE_URL = "https://usnlx.com"
+    SEARCH_URL = "https://usnlx.com/jobs/"
+
+    def __init__(self, config: USNLXConfig = None):
+        """Initialize async USNLX scraper"""
+        if not PLAYWRIGHT_AVAILABLE:
+            raise ImportError("Playwright required. Install with: pip install playwright && playwright install")
+        self.config = config or USNLXConfig()
+
+    def _build_search_url(self, query: str, location: str, radius: int) -> str:
+        """Build USNLX search URL"""
+        encoded_query = query.replace(' ', '+')
+        return f"{self.SEARCH_URL}?q={encoded_query}&r={radius}&location={location}"
+
+    async def _wait_for_jobs_loaded(self, page: AsyncPage) -> bool:
+        """Wait for job listings to load (Vue.js hydration)"""
+        selectors_to_try = [
+            '.job',
+            '.jobListing-results .job-link',
+            '[class*="job"]',
+            'a[href*="/job/"]',
+        ]
+
+        for selector in selectors_to_try:
+            try:
+                await page.wait_for_selector(selector, timeout=self.config.timeout_ms)
+                return True
+            except:
+                continue
+
+        # Fallback: wait for network idle
+        try:
+            await page.wait_for_load_state('networkidle', timeout=self.config.timeout_ms)
+            return True
+        except:
+            return False
+
+    async def _extract_jobs_from_page(self, page: AsyncPage) -> List[Dict]:
+        """Extract job data from current page using JavaScript"""
+        extract_script = """
+        () => {
+            const jobs = [];
+            const jobLinks = document.querySelectorAll('a[href*="/job/"]');
+
+            jobLinks.forEach((link, index) => {
+                try {
+                    const href = link.getAttribute('href') || '';
+                    if (!href.includes('/job/') || href === '/postajob/') return;
+
+                    const titleEl = link.querySelector('h2');
+                    const title = titleEl?.innerText?.trim() || '';
+
+                    const infoEl = link.querySelector('p.leading-8');
+                    let company = '';
+                    let location = '';
+
+                    if (infoEl) {
+                        const fullText = infoEl.innerText || '';
+                        const parts = fullText.split(' - ');
+                        if (parts.length >= 2) {
+                            company = parts[0].trim();
+                            location = parts.slice(1).join(' - ').trim();
+                        } else {
+                            company = fullText.trim();
+                        }
+                    }
+
+                    const distEl = link.querySelector('p.leading-3');
+                    const distanceText = distEl?.innerText?.trim() || '';
+                    const distMatch = distanceText.match(/Distance:\\s*([\\d.]+)/);
+                    const distance = distMatch ? parseFloat(distMatch[1]) : null;
+
+                    const urlParts = href.split('/');
+                    const jobId = urlParts.length >= 4 ? urlParts[urlParts.length - 3] : '';
+
+                    if (title && href) {
+                        jobs.push({
+                            title: title,
+                            company: company,
+                            location: location,
+                            distance_miles: distance,
+                            url: href.startsWith('http') ? href : 'https://usnlx.com' + href,
+                            job_id: jobId,
+                            source_index: index
+                        });
+                    }
+                } catch (e) {}
+            });
+
+            return jobs;
+        }
+        """
+        try:
+            return await page.evaluate(extract_script)
+        except:
+            return []
+
+    async def _get_job_details(self, page: AsyncPage, job_url: str) -> Dict:
+        """Fetch full job details from individual job page"""
+        details = {}
+        try:
+            await page.goto(job_url, wait_until='networkidle', timeout=self.config.timeout_ms)
+            await asyncio.sleep(0.5)  # Vue hydration
+
+            extract_details_script = """
+            () => {
+                const body = document.body.innerText || '';
+                const details = {};
+
+                const applyIdx = body.indexOf('Apply Now');
+                if (applyIdx > -1) {
+                    let content = body.substring(applyIdx + 10);
+                    const footerPatterns = ['POWERED BY', 'Privacy Policy', 'Terms & Conditions', '© 2026', '© 2025', 'Copyright'];
+                    for (const pattern of footerPatterns) {
+                        const idx = content.indexOf(pattern);
+                        if (idx > 0) {
+                            content = content.substring(0, idx);
+                            break;
+                        }
+                    }
+                    details.description = content.trim();
+                } else {
+                    const navEnd = body.indexOf('FIND JOBS');
+                    if (navEnd > -1) {
+                        details.description = body.substring(navEnd + 10, navEnd + 5000).trim();
+                    } else {
+                        details.description = body.substring(0, 5000);
+                    }
+                }
+
+                const salaryMatch = body.match(/\\$[\\d,.]+\\s*[-–]?\\s*\\$?[\\d,.]*\\s*\\/?\\s*(hr|hour|week|year|annually)?/i);
+                details.salary = salaryMatch ? salaryMatch[0] : '';
+                return details;
+            }
+            """
+            details = await page.evaluate(extract_details_script)
+            details['source_url'] = job_url
+        except Exception as e:
+            details['source_url'] = job_url
+            details['description'] = ''
+            details['error'] = str(e)
+        return details
+
+    async def _has_more_button(self, page: AsyncPage) -> bool:
+        """Check if there's a 'More' button"""
+        try:
+            more_btn = await page.query_selector('button.bg-primary-blue')
+            return more_btn is not None
+        except:
+            return False
+
+    async def _click_more_button(self, page: AsyncPage) -> bool:
+        """Click the 'More' button"""
+        try:
+            more_btn = await page.query_selector('button.bg-primary-blue')
+            if more_btn:
+                await more_btn.click()
+                await asyncio.sleep(1.5)
+                return True
+            return False
+        except:
+            return False
+
+    async def search_jobs_async(
+        self,
+        context,  # Browser context
+        query: str,
+        location: str,
+        radius: int,
+        max_jobs: int = 75,
+        max_clicks: int = 5,
+        fetch_details: bool = True
+    ) -> List[Dict]:
+        """
+        Search for jobs on USNLX using async Playwright.
+
+        Args:
+            context: Playwright browser context (shared per market)
+            query: Search query
+            location: ZIP code
+            radius: Search radius in miles
+            max_jobs: Maximum jobs to scrape
+            max_clicks: Max "More" button clicks
+            fetch_details: Whether to fetch full job details
+
+        Returns:
+            List of job dictionaries
+        """
+        page = await context.new_page()
+
+        try:
+            search_url = self._build_search_url(query, location, radius)
+            await page.goto(search_url, wait_until='networkidle', timeout=self.config.timeout_ms)
+            await asyncio.sleep(1.5)
+
+            if not await self._wait_for_jobs_loaded(page):
+                return []
+
+            # Click "More" to load additional jobs
+            click_count = 0
+            prev_count = 0
+
+            while click_count < max_clicks:
+                job_links = await page.query_selector_all('a[href*="/job/"]')
+                current_count = len(job_links)
+
+                if current_count >= max_jobs:
+                    break
+                if current_count == prev_count and click_count > 0:
+                    break
+
+                prev_count = current_count
+
+                if await self._has_more_button(page):
+                    if not await self._click_more_button(page):
+                        break
+                    click_count += 1
+                else:
+                    break
+
+            # Extract jobs
+            all_jobs = await self._extract_jobs_from_page(page)
+
+            # Add metadata
+            for job in all_jobs:
+                job['search_query'] = query
+                job['search_location'] = location
+                job['search_radius'] = radius
+                job['scraped_at'] = datetime.now().isoformat()
+
+            # Fetch details for each job
+            if fetch_details and all_jobs:
+                for job in all_jobs:
+                    if job.get('url'):
+                        details = await self._get_job_details(page, job['url'])
+                        job.update(details)
+                        await asyncio.sleep(0.3)  # Rate limiting
+
+            return all_jobs
+
+        except Exception as e:
+            logger.error(f"Async search failed for {location}/{query}: {e}")
+            return []
+        finally:
+            await page.close()
+
+    async def search_market_async(
+        self,
+        browser,
+        market: str,
+        zips: List[str],
+        queries: List[str],
+        radius: int = 50,
+        max_jobs_per_zip: int = 75,
+        max_clicks: int = 5,
+        fetch_details: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Search all ZIPs and queries for a single market.
+
+        Each market gets its own browser context for isolation.
+
+        Args:
+            browser: Playwright browser instance
+            market: Market name
+            zips: List of ZIP codes
+            queries: List of search queries
+            radius: Search radius
+            max_jobs_per_zip: Max jobs per ZIP
+            max_clicks: Max "More" clicks
+            fetch_details: Fetch full descriptions
+
+        Returns:
+            Dict with market name, jobs, and stats
+        """
+        context = await browser.new_context(
+            viewport={'width': 1280, 'height': 800},
+            user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+        )
+
+        market_jobs = {}  # Dedup by job ID
+        failed_searches = []
+
+        try:
+            for zip_code in zips:
+                for query in queries:
+                    try:
+                        jobs = await self.search_jobs_async(
+                            context=context,
+                            query=query,
+                            location=zip_code,
+                            radius=radius,
+                            max_jobs=max_jobs_per_zip,
+                            max_clicks=max_clicks,
+                            fetch_details=fetch_details
+                        )
+
+                        new_count = 0
+                        for job in jobs:
+                            job_key = f"{job.get('company', '')}|{job.get('location', '')}|{job.get('title', '')}".lower()
+                            job_id = hashlib.md5(job_key.encode()).hexdigest()
+
+                            if job_id not in market_jobs:
+                                job['_market'] = market
+                                job['_search_zip'] = zip_code
+                                job['_search_query'] = query
+                                job['_job_id'] = job_id
+                                market_jobs[job_id] = job
+                                new_count += 1
+
+                        if new_count > 0:
+                            logger.info(f"  {market}/{zip_code} '{query[:12]}': +{new_count} jobs")
+
+                    except Exception as e:
+                        failed_searches.append((zip_code, query, str(e)))
+                        logger.warning(f"  {market}/{zip_code} '{query[:12]}': ❌ {str(e)[:30]}")
+
+        finally:
+            await context.close()
+
+        return {
+            'market': market,
+            'jobs': list(market_jobs.values()),
+            'job_count': len(market_jobs),
+            'failed_searches': failed_searches
+        }
+
+
+async def run_concurrent_usnlx_scrape(
+    market_zips: Dict[str, List[str]],
+    queries: List[str],
+    radius: int = 50,
+    max_jobs_per_zip: int = 75,
+    max_clicks: int = 5,
+    fetch_details: bool = True,
+    max_concurrent_markets: int = 5
+) -> Dict[str, Any]:
+    """
+    Run USNLX scraper across all markets concurrently.
+
+    Launches multiple browser contexts (one per market) and scrapes in parallel.
+
+    Args:
+        market_zips: Dict mapping market name to list of ZIP codes
+        queries: List of search queries
+        radius: Search radius in miles
+        max_jobs_per_zip: Max jobs per ZIP
+        max_clicks: Max "More" button clicks
+        fetch_details: Whether to fetch full job details
+        max_concurrent_markets: Max markets to scrape simultaneously
+
+    Returns:
+        Dict with all_jobs, market_stats, and timing info
+    """
+    config = USNLXConfig(
+        headless=True,
+        timeout_ms=45000,
+        slow_mo=50
+    )
+    scraper = AsyncUSNLXScraper(config)
+
+    all_jobs = {}
+    market_stats = {}
+    start_time = time.time()
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=True,
+            args=['--disable-dev-shm-usage']  # Helps in CI environments
+        )
+
+        try:
+            # Create tasks for all markets
+            markets = list(market_zips.keys())
+
+            # Process markets in batches to avoid overwhelming the system
+            for i in range(0, len(markets), max_concurrent_markets):
+                batch = markets[i:i + max_concurrent_markets]
+                logger.info(f"\n🚀 Starting batch: {batch}")
+
+                tasks = [
+                    scraper.search_market_async(
+                        browser=browser,
+                        market=market,
+                        zips=market_zips[market],
+                        queries=queries,
+                        radius=radius,
+                        max_jobs_per_zip=max_jobs_per_zip,
+                        max_clicks=max_clicks,
+                        fetch_details=fetch_details
+                    )
+                    for market in batch
+                ]
+
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+
+                for result in results:
+                    if isinstance(result, Exception):
+                        logger.error(f"Market failed with exception: {result}")
+                        continue
+
+                    market = result['market']
+                    market_stats[market] = {
+                        'job_count': result['job_count'],
+                        'failed_searches': len(result['failed_searches'])
+                    }
+
+                    # Merge jobs (dedup across markets)
+                    for job in result['jobs']:
+                        job_id = job.get('_job_id')
+                        if job_id and job_id not in all_jobs:
+                            all_jobs[job_id] = job
+
+                    logger.info(f"✅ {market}: {result['job_count']} unique jobs")
+
+        finally:
+            await browser.close()
+
+    total_time = time.time() - start_time
+
+    return {
+        'all_jobs': all_jobs,
+        'market_stats': market_stats,
+        'total_jobs': len(all_jobs),
+        'total_time_seconds': total_time,
+        'markets_processed': len(market_stats)
+    }
 
 
 def generate_job_id(company: str, location: str, title: str) -> str:
