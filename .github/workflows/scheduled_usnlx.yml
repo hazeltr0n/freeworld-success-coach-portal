@@ -9,7 +9,7 @@ on:
 jobs:
   usnlx-scraper:
     runs-on: ubuntu-latest
-    timeout-minutes: 90  # 1.5 hours max (concurrent scraping is faster)
+    timeout-minutes: 240  # 4 hours max
 
     steps:
       - name: Checkout code
