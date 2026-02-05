@@ -9,7 +9,7 @@ on:
 jobs:
   driverpulse-scraper:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 240  # 4 hours max - rate-limited API calls are slower but don't get 429'd
 
     steps:
       - name: Checkout code

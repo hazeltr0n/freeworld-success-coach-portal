@@ -518,7 +518,7 @@ class DriverPulsePipelineIntegration:
             print(f"🔍 DEBUG: About to calculate total_job_ids from {len(all_companies)} companies...", flush=True)
             total_job_ids = sum(len(c.get('highlighted_content', [])) for c in all_companies.values())
             print(f"🔍 DEBUG: Calculated total_job_ids = {total_job_ids}", flush=True)
-            print(f"📊 Fetching full details for {total_job_ids} jobs (20 workers in parallel)...", flush=True)
+            print(f"📊 Fetching full details for {total_job_ids} jobs (2 workers, rate-limited)...", flush=True)
 
             # Helper function for parallel execution
             def fetch_job_detail(job_info):
@@ -553,10 +553,13 @@ class DriverPulsePipelineIntegration:
                 for job_snippet in highlighted:
                     jobs_to_fetch.append((company_id, company_data, job_snippet))
 
-            # Parallel fetch with progress updates
+            # Fetch with rate limiting (Tenstreet API limits to ~2 req/sec)
             processed = 0
-            with ThreadPoolExecutor(max_workers=20) as executor:
-                futures = {executor.submit(fetch_job_detail, job_info): job_info for job_info in jobs_to_fetch}
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                futures = {}
+                for job_info in jobs_to_fetch:
+                    futures[executor.submit(fetch_job_detail, job_info)] = job_info
+                    time.sleep(0.5)  # Space out submissions to respect rate limit
 
                 for future in as_completed(futures):
                     processed += 1

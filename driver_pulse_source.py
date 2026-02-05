@@ -498,31 +498,51 @@ class DriverPulseSource:
         if self.user_id:
             params["portal_user_id"] = self.user_id
 
-        try:
-            response = self.session.post(
-                self.base_api,
-                params=params,
-                data=base_data,
-                timeout=30
-            )
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = self.session.post(
+                    self.base_api,
+                    params=params,
+                    data=base_data,
+                    timeout=30
+                )
 
-            response.raise_for_status()
+                # Retry on 429 with exponential backoff
+                if response.status_code == 429:
+                    wait_time = 2 ** (attempt + 1)  # 2, 4, 8 seconds
+                    if attempt < max_retries - 1:
+                        logger.warning(f"⏳ Rate limited (429) on {misc_function}, waiting {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        logger.error(f"❌ Rate limited (429) on {misc_function} after {max_retries} retries")
+                        return None
 
-            # Parse JSON response
-            return response.json()
+                response.raise_for_status()
 
-        except requests.exceptions.RequestException as e:
-            logger.error(f"❌ API call failed for {misc_function}: {str(e)}")
-            if hasattr(e, 'response') and e.response is not None:
-                logger.error(f"   Status: {e.response.status_code}")
-                logger.error(f"   Response: {e.response.text[:500]}")
-            return None
-        except json.JSONDecodeError as e:
-            logger.error(f"❌ Invalid JSON response for {misc_function}: {str(e)}")
-            logger.error(f"   Response status: {response.status_code}")
-            logger.error(f"   Response text (first 500 chars): {response.text[:500]}")
-            logger.error(f"   This usually means session expired - auth needs refresh")
-            return None
+                # Parse JSON response
+                return response.json()
+
+            except requests.exceptions.RequestException as e:
+                if hasattr(e, 'response') and e.response is not None and e.response.status_code == 429:
+                    wait_time = 2 ** (attempt + 1)
+                    if attempt < max_retries - 1:
+                        logger.warning(f"⏳ Rate limited (429) on {misc_function}, waiting {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                        time.sleep(wait_time)
+                        continue
+                logger.error(f"❌ API call failed for {misc_function}: {str(e)}")
+                if hasattr(e, 'response') and e.response is not None:
+                    logger.error(f"   Status: {e.response.status_code}")
+                    logger.error(f"   Response: {e.response.text[:500]}")
+                return None
+            except json.JSONDecodeError as e:
+                logger.error(f"❌ Invalid JSON response for {misc_function}: {str(e)}")
+                logger.error(f"   Response status: {response.status_code}")
+                logger.error(f"   Response text (first 500 chars): {response.text[:500]}")
+                logger.error(f"   This usually means session expired - auth needs refresh")
+                return None
+        return None
 
     def search_companies(self,
                         search_text: str = None,
