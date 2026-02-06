@@ -25,7 +25,7 @@ class SuccessCoach:
     email: str
     password_hash: str
     role: str  # "admin" or "coach"
-    
+
     # Feature permissions (admin can toggle these for each coach)
     can_generate_pdf: bool
     can_generate_csv: bool
@@ -35,26 +35,50 @@ class SuccessCoach:
     can_access_full_mode: bool  # 1000 jobs vs limited to 250
     can_access_google_jobs: bool  # Google Jobs API access (99% cost savings)
     can_access_batches: bool  # Access to Batches & Scheduling page
-    
+
     # Advanced admin features
     can_edit_ai_prompt: bool  # Modify AI system prompt
     can_edit_filters: bool    # Modify business rules and filters
     can_manage_users: bool    # Add/remove/edit other coaches
-    
+
     # API usage limitations
     can_pull_fresh_jobs: bool  # Can use outscraper/openai for fresh job pulls
     can_force_fresh_classification: bool  # Can bypass AI classification cache
-    
+
+    # Inside Track (partner jobs)
+    can_manage_inside_track: bool  # Add/edit partner jobs that appear at top of feeds
+
     # Usage tracking
     total_searches: int
     total_jobs_processed: int
     created_date: str
     last_login: str
-    
+
     # Monthly budget tracking
     monthly_budget: float  # Admin-set budget limit
     current_month_spending: float
     spending_alerts: bool  # Email alerts when approaching budget
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'SuccessCoach':
+        """Create SuccessCoach from dict, filtering to only known fields.
+        This handles both missing fields (with defaults) and extra fields (ignored)."""
+        from dataclasses import fields
+        known_fields = {f.name for f in fields(cls)}
+        # Filter to only known fields
+        filtered = {k: v for k, v in data.items() if k in known_fields}
+        # Add defaults for missing fields
+        defaults = {
+            'can_manage_inside_track': True,
+            'can_access_batches': True,
+            'can_access_google_jobs': True,
+            'can_pull_fresh_jobs': True,
+            'can_force_fresh_classification': False,
+        }
+        for field, default in defaults.items():
+            if field not in filtered:
+                filtered[field] = default
+        return cls(**filtered)
 
 class CoachManager:
     def __init__(self):
@@ -82,10 +106,11 @@ class CoachManager:
                         # Add new Batches access field for existing coaches
                         if 'can_access_batches' not in coach_data:
                             coach_data['can_access_batches'] = True  # Enable by default
-                        # Remove deprecated fields that are no longer in the dataclass
-                        if 'can_use_multi_search' in coach_data:
-                            del coach_data['can_use_multi_search']
-                    self.coaches = {k: SuccessCoach(**v) for k, v in data.items()}
+                        # Add Inside Track permission for existing coaches
+                        if 'can_manage_inside_track' not in coach_data:
+                            coach_data['can_manage_inside_track'] = True  # Enable by default
+                    # Use from_dict to handle any missing/extra fields gracefully
+                    self.coaches = {k: SuccessCoach.from_dict(v) for k, v in data.items()}
                     return
                 # If Supabase returned empty data, fall through to local fallback
             except Exception as e:
@@ -108,10 +133,11 @@ class CoachManager:
                         # Add new Batches access field for existing coaches
                         if 'can_access_batches' not in coach_data:
                             coach_data['can_access_batches'] = True  # Enable by default
-                        # Remove deprecated fields that are no longer in the dataclass
-                        if 'can_use_multi_search' in coach_data:
-                            del coach_data['can_use_multi_search']
-                    self.coaches = {k: SuccessCoach(**v) for k, v in data.items()}
+                        # Add Inside Track permission for existing coaches
+                        if 'can_manage_inside_track' not in coach_data:
+                            coach_data['can_manage_inside_track'] = True  # Enable by default
+                    # Use from_dict to handle any missing/extra fields gracefully
+                    self.coaches = {k: SuccessCoach.from_dict(v) for k, v in data.items()}
             except Exception as e:
                 st.error(f"Error loading coaches: {e}")
                 self.coaches = {}
@@ -181,6 +207,7 @@ class CoachManager:
             can_pull_fresh_jobs=True,
             can_force_fresh_classification=True,
             can_access_batches=True,
+            can_manage_inside_track=True,
             total_searches=0,
             total_jobs_processed=0,
             created_date=datetime.now().isoformat(),
@@ -189,7 +216,7 @@ class CoachManager:
             current_month_spending=0.00,
             spending_alerts=True
         )
-        
+
         # Sample Success Coach
         coach = SuccessCoach(
             username="sarah.johnson",
@@ -210,6 +237,7 @@ class CoachManager:
             can_pull_fresh_jobs=True,
             can_force_fresh_classification=True,
             can_access_batches=True,
+            can_manage_inside_track=True,
             total_searches=0,
             total_jobs_processed=0,
             created_date=datetime.now().isoformat(),
@@ -218,7 +246,7 @@ class CoachManager:
             current_month_spending=0.00,
             spending_alerts=True
         )
-        
+
         self.coaches["admin"] = admin
         self.coaches["sarah.johnson"] = coach
         self.save_coaches()
@@ -249,6 +277,7 @@ class CoachManager:
                 can_pull_fresh_jobs=can_pull_fresh_jobs,
                 can_force_fresh_classification=True,  # Admins get force classification by default
                 can_access_batches=True,  # Admins get batches access by default
+                can_manage_inside_track=True,  # Admins can manage partner jobs
                 total_searches=0,
                 total_jobs_processed=0,
                 created_date=datetime.now().isoformat(),
@@ -277,6 +306,7 @@ class CoachManager:
                 can_pull_fresh_jobs=can_pull_fresh_jobs,
                 can_force_fresh_classification=False,  # Regular coaches need explicit permission
                 can_access_batches=True,  # Enable batches access by default for regular coaches
+                can_manage_inside_track=True,  # Enable inside track for regular coaches
                 total_searches=0,
                 total_jobs_processed=0,
                 created_date=datetime.now().isoformat(),
@@ -285,7 +315,7 @@ class CoachManager:
                 current_month_spending=0.00,
                 spending_alerts=True
             )
-        
+
         self.coaches[username] = coach
         self.save_coaches()
         return True
@@ -420,7 +450,8 @@ class CoachManager:
             coach.can_pull_fresh_jobs = permissions.get('can_pull_fresh_jobs', getattr(coach, 'can_pull_fresh_jobs', True))
             coach.can_force_fresh_classification = permissions.get('can_force_fresh_classification', getattr(coach, 'can_force_fresh_classification', coach.role == 'admin'))
             coach.can_access_batches = permissions.get('can_access_batches', getattr(coach, 'can_access_batches', True))
-            
+            coach.can_manage_inside_track = permissions.get('can_manage_inside_track', getattr(coach, 'can_manage_inside_track', True))
+
             # Handle budget (numeric value, not boolean)
             if 'monthly_budget' in permissions:
                 coach.monthly_budget = float(permissions['monthly_budget'])
