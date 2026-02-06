@@ -406,7 +406,7 @@ def render_html_preview(df, location, candidate_name, candidate_id, max_jobs="Al
 
         # Convert to jobs format and render HTML
         try:
-            jobs = jobs_dataframe_to_dicts(processed_df, candidate_id=agent_params.get('agent_uuid'))
+            jobs = jobs_dataframe_to_dicts(processed_df, candidate_id=agent_params.get('agent_uuid'), agent_name=agent_params.get('agent_name'))
             if not jobs:
                 st.warning("📱 No jobs found after processing")
                 return

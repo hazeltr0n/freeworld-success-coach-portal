@@ -78,7 +78,7 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
             elif max_jobs == "All":
                 print(f"🎯 CLEAN AGENT PORTAL: Showing all {len(processed_df)} jobs (no limit)")
             
-            jobs = jobs_dataframe_to_dicts(processed_df, candidate_id=agent_params.get('agent_uuid'))
+            jobs = jobs_dataframe_to_dicts(processed_df, candidate_id=agent_params.get('agent_uuid'), agent_name=agent_params.get('agent_name'))
             
             # Pass agent_params as-is - don't override show_prepared_for
             agent_params_with_prepared = {**agent_params}
@@ -177,6 +177,12 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
 
                         # ID fields
                         'id.job': row.get('job_id', 'unknown'),
+                        'id.source': row.get('source', ''),  # For inside track detection
+                        'source': row.get('source', ''),  # Duplicate for compatibility
+
+                        # Inside track fields
+                        'inside_track_type': row.get('inside_track_type', 'inside_track'),
+                        'clean_apply_url': row.get('clean_apply_url', ''),
 
                         # Processed fields for compatibility
                         'norm.title': row.get('job_title', ''),
@@ -240,7 +246,7 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
                 elif max_jobs == "All":
                     print(f"🎯 CLEAN AGENT PORTAL: Showing all {len(processed_df)} jobs (no limit)")
                 
-                jobs = jobs_dataframe_to_dicts(processed_df, candidate_id=agent_params.get('agent_uuid'))
+                jobs = jobs_dataframe_to_dicts(processed_df, candidate_id=agent_params.get('agent_uuid'), agent_name=agent_params.get('agent_name'))
                 
                 # Pass agent_params as-is - don't override show_prepared_for
                 agent_params_with_prepared = {**agent_params}

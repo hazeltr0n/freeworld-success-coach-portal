@@ -3428,7 +3428,7 @@ def _render_jobs_html_cached(df_json: str, agent_params_json: str) -> str:
     
     # IMPORTANT: Use the same processing as PDF to include tracked URLs
     processed_df = update_job_tracking_for_agent(df, agent_params)
-    jobs = jobs_dataframe_to_dicts(processed_df, candidate_id=agent_params.get('agent_uuid'))
+    jobs = jobs_dataframe_to_dicts(processed_df, candidate_id=agent_params.get('agent_uuid'), agent_name=agent_params.get('agent_name'))
     
     return render_jobs_html(jobs, agent_params)
 
@@ -3726,7 +3726,11 @@ def show_free_agent_portal(agent_config_encoded):
             
             # Apply reasonable bounds (min 3k for small screens, max 25k for UX)
             final_height = min(25000, max(3000, calculated_height))
-            
+
+            # DEBUG: Log first 500 chars to check for issues
+            print(f"🔍 HTML FRAGMENT DEBUG (first 500 chars): {repr(report_fragment[:500])}")
+            print(f"🔍 HTML FRAGMENT has <script>: {'<script>' in report_fragment}")
+
             st.components.v1.html(report_fragment, height=final_height, scrolling=True)
         except Exception:
             # Fallback: reasonable height with scrolling enabled
@@ -4105,7 +4109,13 @@ def main():
     # Add Batches & Scheduling tab only if coach has permission
     if check_coach_permission('can_access_batches'):
         tab_options.insert(1, "🗓️ Batches & Scheduling")
-    
+
+    # Add Inside Track Jobs tab only if coach has permission
+    if check_coach_permission('can_manage_inside_track'):
+        # Insert after Batches if present, otherwise after Job Search
+        insert_pos = 2 if check_coach_permission('can_access_batches') else 1
+        tab_options.insert(insert_pos, "🎯 Inside Track Jobs")
+
     # Add Admin Panel only for admins
     if coach.role == 'admin':
         tab_options.append("👑 Admin Panel")
@@ -5276,7 +5286,15 @@ def main():
             st.info("💡 Contact your administrator to enable this feature")
         else:
             show_combined_batches_and_scheduling_page(coach)
-    
+
+    elif selected_tab == "🎯 Inside Track Jobs":
+        # Double-check access permission
+        if not check_coach_permission('can_manage_inside_track'):
+            st.error("❌ Access to Inside Track Jobs is not enabled for your account")
+            st.info("💡 Contact your administrator to enable this feature")
+        else:
+            show_inside_track_jobs_page(coach)
+
     elif selected_tab == "👥 Free Agents":
         # Free Agents management
         st.header("👥 Free Agents Portal")
@@ -5435,7 +5453,8 @@ def main():
                                 new_pull_fresh = st.checkbox("Pull Fresh Jobs (API calls)", value=getattr(existing_coach, 'can_pull_fresh_jobs', True), key=f"tab_fresh_{username}")
                                 new_force_fresh_classification = st.checkbox("Force Fresh Classification", value=getattr(existing_coach, 'can_force_fresh_classification', existing_coach.role == 'admin'), key=f"tab_force_class_{username}")
                                 new_access_batches = st.checkbox("Batches & Scheduling Access", value=getattr(existing_coach, 'can_access_batches', True), key=f"tab_batches_{username}")
-                                
+                                new_manage_inside_track = st.checkbox("Inside Track Jobs Access", value=getattr(existing_coach, 'can_manage_inside_track', True), key=f"tab_inside_track_{username}")
+
                                 st.markdown("**Role & Budget**")
                                 new_admin_role = st.checkbox("🔑 Admin Role (Full System Access)", value=existing_coach.role == "admin", key=f"tab_admin_{username}", help="Grants all permissions and access to admin panel")
                                 new_budget = st.number_input("Monthly Budget ($)", min_value=0.0, value=float(existing_coach.monthly_budget), key=f"tab_budget_{username}")
@@ -5454,6 +5473,7 @@ def main():
                                         'can_pull_fresh_jobs': new_pull_fresh,
                                         'can_force_fresh_classification': new_force_fresh_classification,
                                         'can_access_batches': new_access_batches,
+                                        'can_manage_inside_track': new_manage_inside_track,
                                         'monthly_budget': new_budget
                                     }
                                     
@@ -5472,7 +5492,8 @@ def main():
                                             'can_edit_filters': True,
                                             'can_pull_fresh_jobs': True,
                                             'can_force_fresh_classification': True,
-                                            'can_access_batches': True
+                                            'can_access_batches': True,
+                                            'can_manage_inside_track': True
                                         })
                                     elif not new_admin_role and existing_coach.role == "admin":
                                         existing_coach.role = "coach"
@@ -6153,7 +6174,320 @@ Deployment: {DEPLOYMENT_TIMESTAMP}
                     st.code(text, language="text")
         
         # Google ordering removed from Job Search sidebar
-        
+
+
+def show_inside_track_jobs_page(coach):
+    """Inside Track Jobs page - manage partner opportunities that appear at top of feeds"""
+    import pandas as pd
+    from datetime import datetime, timedelta
+    from inside_track_manager import (
+        load_inside_track_jobs, save_inside_track_job, toggle_job_visibility,
+        repost_job, delete_inside_track_job, get_inside_track_metadata,
+        update_inside_track_job, load_inside_track_interests, update_interest_status
+    )
+    from market_config import get_all_markets
+
+    st.header("🎯 Inside Track Jobs")
+    st.caption("Partner opportunities that appear first in Free Agent feeds with a special badge")
+
+    # Sub-tabs
+    sub_tab_options = ["📋 All Jobs", "➕ Add New Job", "🙋 Interested Agents"]
+
+    if 'inside_track_tab' not in st.session_state:
+        st.session_state.inside_track_tab = 0
+
+    selected_sub_tab = st.radio(
+        "View",
+        options=sub_tab_options,
+        index=st.session_state.inside_track_tab,
+        key="inside_track_sub_tab_radio",
+        horizontal=True
+    )
+
+    if selected_sub_tab in sub_tab_options:
+        st.session_state.inside_track_tab = sub_tab_options.index(selected_sub_tab)
+
+    st.markdown("---")
+
+    if selected_sub_tab == "📋 All Jobs":
+        # Load all inside track jobs (all coaches can see/edit all)
+        jobs = load_inside_track_jobs(visible_only=False)
+
+        if not jobs:
+            st.info("📭 No inside track jobs yet. Add your first partner opportunity!")
+        else:
+            st.markdown(f"**{len(jobs)} inside track jobs**")
+
+            # Convert to DataFrame for display
+            df_data = []
+            for job in jobs:
+                metadata = get_inside_track_metadata(job)
+                is_visible = job.get('filter_reason', '') == 'included: inside_track'
+
+                # Check if expired
+                expires_at = job.get('expires_at', '')
+                is_expired = False
+                if expires_at:
+                    try:
+                        exp_date = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                        is_expired = exp_date < datetime.now(exp_date.tzinfo)
+                    except:
+                        pass
+
+                df_data.append({
+                    'job_id': job.get('job_id', ''),
+                    'Job Title': job.get('job_title', ''),
+                    'Company': job.get('company', ''),
+                    'Market': job.get('market', ''),
+                    'Route': job.get('route_type', 'Local'),
+                    'Quality': job.get('match_level', 'good'),
+                    'Visible': is_visible,
+                    'Expired': is_expired,
+                    'Partner': job.get('partner_name', ''),
+                    'Coach': job.get('success_coach', ''),
+                    'Created': job.get('created_at', '')[:10] if job.get('created_at') else '',
+                })
+
+            df = pd.DataFrame(df_data)
+
+            # Display with actions
+            for idx, row in df.iterrows():
+                job_id = row['job_id']
+
+                with st.expander(f"**{row['Job Title']}** at {row['Company']} ({row['Market']})", expanded=False):
+                    col1, col2, col3 = st.columns([2, 2, 1])
+
+                    with col1:
+                        st.write(f"**Route:** {row['Route']}")
+                        st.write(f"**Quality:** {row['Quality']}")
+                        st.write(f"**Partner:** {row['Partner'] or 'N/A'}")
+
+                    with col2:
+                        st.write(f"**Created by:** {row['Coach']}")
+                        st.write(f"**Created:** {row['Created']}")
+
+                    with col3:
+                        # Visibility status
+                        if row['Visible']:
+                            st.success("✅ Visible")
+                        else:
+                            st.warning("🔒 Hidden")
+
+                        if row['Expired']:
+                            st.error("⏰ Expired")
+
+                    # Action buttons
+                    btn_col1, btn_col2, btn_col3 = st.columns(3)
+
+                    with btn_col1:
+                        if row['Visible']:
+                            if st.button("🔒 Hide", key=f"hide_{job_id}"):
+                                success, msg = toggle_job_visibility(job_id, False)
+                                if success:
+                                    st.success(msg)
+                                    st.rerun()
+                                else:
+                                    st.error(msg)
+                        else:
+                            if st.button("👁️ Show", key=f"show_{job_id}"):
+                                success, msg = toggle_job_visibility(job_id, True)
+                                if success:
+                                    st.success(msg)
+                                    st.rerun()
+                                else:
+                                    st.error(msg)
+
+                    with btn_col2:
+                        if st.button("🔄 Repost", key=f"repost_{job_id}"):
+                            success, msg = repost_job(job_id)
+                            if success:
+                                st.success(msg)
+                                st.rerun()
+                            else:
+                                st.error(msg)
+
+                    with btn_col3:
+                        if st.button("🗑️ Delete", key=f"delete_{job_id}"):
+                            success, msg = delete_inside_track_job(job_id)
+                            if success:
+                                st.success(msg)
+                                st.rerun()
+                            else:
+                                st.error(msg)
+
+    elif selected_sub_tab == "➕ Add New Job":
+        st.markdown("### Add Inside Track Job")
+
+        with st.form("add_inside_track_job"):
+            # Job type selection - clean segmented control style
+            inside_track_type = st.radio(
+                "Job Type",
+                options=["partner_opportunity", "inside_track"],
+                format_func=lambda x: "🤝 Partner Opportunity" if x == "partner_opportunity" else "📋 Inside Track",
+                horizontal=True,
+            )
+            # Show explanation based on selection
+            if inside_track_type == "partner_opportunity":
+                st.caption("Company hidden · Free Agent clicks 'I'm Interested' · You get notified")
+            else:
+                st.caption("Shows real company · Free Agent applies directly · Top of feed priority")
+
+            st.markdown("---")
+
+            # Required fields
+            job_title = st.text_input("Job Title *", placeholder="CDL-A Driver - Local Routes")
+            company = st.text_input(
+                "Company *",
+                placeholder="ABC Trucking",
+                help="For Partner Opportunities, this is hidden from Free Agents but shown to you."
+            )
+
+            col1, col2 = st.columns(2)
+            with col1:
+                location = st.text_input("Location *", placeholder="Houston, TX")
+            with col2:
+                market = st.selectbox("Market *", options=get_all_markets())
+
+            job_description = st.text_area(
+                "Job Description *",
+                placeholder="Describe the position, requirements, benefits...",
+                height=150
+            )
+
+            apply_url = st.text_input(
+                "Apply URL" + (" *" if inside_track_type == "inside_track" else " (optional)"),
+                placeholder="https://company.com/apply",
+                help="Required for Inside Track jobs. Optional for Partner Opportunities (for your reference)."
+            )
+
+            st.markdown("---")
+            st.markdown("### Optional Details")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                salary = st.text_input("Salary", placeholder="$25-30/hr or $65k/year")
+                route_type = st.selectbox("Route Type", options=['Local', 'Regional', 'OTR', 'Unknown'])
+                fair_chance = st.checkbox("Fair Chance Employer", value=True)
+
+            with col2:
+                match_level = st.selectbox("Quality Level", options=['good', 'so-so'])
+                expires_at = st.date_input("Expires On (optional)", value=None)
+
+            st.markdown("---")
+            st.markdown("### Partner Information (Internal)")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                partner_name = st.text_input("Partner/Contact Name", placeholder="John Smith")
+            with col2:
+                partner_notes = st.text_area("Internal Notes", placeholder="How we got this opportunity...")
+
+            submitted = st.form_submit_button("➕ Add Inside Track Job", type="primary")
+
+            if submitted:
+                # Validate required fields
+                required_ok = all([job_title, company, location, market, job_description])
+                # Apply URL required for inside_track type only
+                if inside_track_type == "inside_track" and not apply_url:
+                    st.error("❌ Apply URL is required for Inside Track jobs")
+                elif not required_ok:
+                    st.error("❌ Please fill in all required fields (marked with *)")
+                else:
+                    job_data = {
+                        'job_title': job_title,
+                        'company': company,
+                        'location': location,
+                        'market': market,
+                        'job_description': job_description,
+                        'apply_url': apply_url,
+                        'inside_track_type': inside_track_type,
+                        'salary': salary,
+                        'route_type': route_type,
+                        'fair_chance': 'fair_chance_employer' if fair_chance else 'background_check_required',
+                        'match_level': match_level,
+                        'partner_name': partner_name,
+                        'partner_notes': partner_notes,
+                        'expires_at': expires_at.isoformat() if expires_at else '',
+                    }
+
+                    success, msg = save_inside_track_job(job_data, coach.username)
+                    if success:
+                        st.success(f"✅ {msg}")
+                        st.balloons()
+                        # Switch to All Jobs tab
+                        st.session_state.inside_track_tab = 0
+                        st.rerun()
+                    else:
+                        st.error(f"❌ {msg}")
+
+    elif selected_sub_tab == "🙋 Interested Agents":
+        st.markdown("### Free Agents Interested in Partner Jobs")
+        st.caption("When Free Agents click 'I'm Interested' on partner jobs, they appear here")
+
+        # Load all interests
+        interests = load_inside_track_interests()
+
+        if not interests:
+            st.info("📭 No interest yet. When Free Agents express interest in partner jobs, they'll appear here.")
+        else:
+            # Status filter
+            status_filter = st.selectbox(
+                "Filter by Status",
+                options=["All", "new", "contacted", "applied", "hired", "declined"],
+                index=0
+            )
+
+            filtered = interests if status_filter == "All" else [i for i in interests if i.get('status') == status_filter]
+
+            st.markdown(f"**{len(filtered)} interested agents** (out of {len(interests)} total)")
+
+            for interest in filtered:
+                status = interest.get('status', 'new')
+                status_emoji = {'new': '🆕', 'contacted': '📞', 'applied': '📝', 'hired': '🎉', 'declined': '❌'}.get(status, '❓')
+
+                with st.expander(f"{status_emoji} **{interest.get('agent_name', 'Unknown')}** → {interest.get('job_title', 'Unknown Job')}"):
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        st.write(f"**Agent:** {interest.get('agent_name', 'Unknown')}")
+                        st.write(f"**Email:** {interest.get('agent_email', 'N/A')}")
+                        st.write(f"**Phone:** {interest.get('agent_phone', 'N/A')}")
+
+                    with col2:
+                        st.write(f"**Job:** {interest.get('job_title', 'Unknown')}")
+                        st.write(f"**Company:** {interest.get('company', 'Unknown')}")
+                        st.write(f"**Market:** {interest.get('market', 'Unknown')}")
+
+                    st.write(f"**Expressed Interest:** {interest.get('created_at', '')[:16] if interest.get('created_at') else 'Unknown'}")
+
+                    if interest.get('coach_notes'):
+                        st.info(f"**Notes:** {interest.get('coach_notes')}")
+
+                    # Status update
+                    st.markdown("---")
+                    new_status = st.selectbox(
+                        "Update Status",
+                        options=["new", "contacted", "applied", "hired", "declined"],
+                        index=["new", "contacted", "applied", "hired", "declined"].index(status) if status in ["new", "contacted", "applied", "hired", "declined"] else 0,
+                        key=f"status_{interest['id']}"
+                    )
+
+                    new_notes = st.text_area(
+                        "Coach Notes",
+                        value=interest.get('coach_notes', ''),
+                        key=f"notes_{interest['id']}",
+                        placeholder="Add notes about this candidate..."
+                    )
+
+                    if st.button("💾 Save", key=f"save_{interest['id']}"):
+                        success, msg = update_interest_status(interest['id'], new_status, new_notes)
+                        if success:
+                            st.success(msg)
+                            st.rerun()
+                        else:
+                            st.error(msg)
+
+
 def show_combined_batches_and_scheduling_page(coach):
     """Combined page for async batches and scheduled searches"""
     # Ensure pandas is available in this function scope before any usage

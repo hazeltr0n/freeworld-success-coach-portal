@@ -138,6 +138,20 @@
       background-color: var(--fw-roots);
       color: white;
     }
+    .badge.partner-opportunity {
+      background: linear-gradient(135deg, #191931, #32326e);
+      color: var(--fw-freedom-green);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      border: 2px solid var(--fw-freedom-green);
+    }
+    .badge.inside-track {
+      background: linear-gradient(135deg, #1a3a1a, #2d5a2d);
+      color: #ffd700;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      border: 2px solid #ffd700;
+    }
     .metadata-row {
       padding-bottom: 10pt;
       border-bottom: 1px solid var(--fw-card-border);
@@ -175,8 +189,8 @@
       .apply-footer { margin: 0; }
       /* Ensure buttons don't exceed container width on small screens */
       .apply-button { width: 100%; box-sizing: border-box; }
-      /* Full descriptions always visible */
-      .desc-full { -webkit-line-clamp: initial; overflow: visible; display: block; }
+      /* Full descriptions - allow overflow but don't force display (toggle controls visibility) */
+      .desc-full { -webkit-line-clamp: initial; overflow: visible; }
     }
     .apply-footer {
       text-align: center;
@@ -483,9 +497,19 @@
   <script>
     // Description toggle functionality
     function toggleDescription(jobId) {
+      console.log('toggleDescription called with jobId:', jobId);
       const summaryDiv = document.getElementById('summary-' + jobId);
       const fullDiv = document.getElementById('full-' + jobId);
       const toggleBtn = document.getElementById('toggle-' + jobId);
+
+      console.log('summaryDiv:', summaryDiv);
+      console.log('fullDiv:', fullDiv);
+      console.log('toggleBtn:', toggleBtn);
+
+      if (!fullDiv || !summaryDiv || !toggleBtn) {
+        console.error('Could not find elements for jobId:', jobId);
+        return;
+      }
 
       if (fullDiv.style.display === 'none') {
         // Show full description
@@ -497,6 +521,60 @@
         summaryDiv.style.display = 'block';
         fullDiv.style.display = 'none';
         toggleBtn.textContent = '📄 Read full description';
+      }
+    }
+
+    // Express interest in partner opportunity (inline, no redirect)
+    async function expressInterest(jobId, candidateId, interestUrl, btn) {
+      console.log('expressInterest called:', jobId, interestUrl);
+      const statusDiv = document.getElementById('interest-status-' + jobId);
+
+      // Disable button and show loading
+      btn.disabled = true;
+      const originalHtml = btn.innerHTML;
+      btn.textContent = '⏳ Submitting...';
+
+      try {
+        console.log('Fetching:', interestUrl);
+        const response = await fetch(interestUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+        console.log('Response:', response.status);
+
+        if (response.ok) {
+          // Success - show confirmation
+          btn.style.display = 'none';
+          statusDiv.style.display = 'block';
+          statusDiv.style.background = 'var(--fw-freedom-green)';
+          statusDiv.style.color = 'var(--fw-midnight)';
+          statusDiv.innerHTML = '🎉 <strong>Interest Registered!</strong><br>Your Success Coach will reach out soon.';
+        } else {
+          const text = await response.text();
+          console.log('Response text:', text);
+          // Check if already registered
+          if (text.includes('already') || text.includes('Already')) {
+            btn.style.display = 'none';
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = '#e0f2fe';
+            statusDiv.style.color = '#0369a1';
+            statusDiv.innerHTML = '✅ <strong>You are already on the list!</strong><br>Your coach has been notified.';
+          } else {
+            throw new Error('Request failed: ' + response.status);
+          }
+        }
+      } catch (err) {
+        console.error('expressInterest error:', err);
+        // Error - show message and re-enable button
+        statusDiv.style.display = 'block';
+        statusDiv.style.background = '#fef2f2';
+        statusDiv.style.color = '#dc2626';
+        statusDiv.innerHTML = '❌ Something went wrong. Please try again.';
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
       }
     }
 
