@@ -239,79 +239,8 @@ serve(async (req) => {
         throw new Error("Failed to record interest");
       }
 
-      // Send email notification to placement team
-      try {
-        const emailTo = "placement@freeworld.org";
-        const agentDisplayName = agent?.agent_name || agent_name || "Unknown Agent";
-        const agentEmail = agent?.agent_email || "Not provided";
-        const agentPhone = agent?.agent_phone || "Not provided";
-        const coachName = job.success_coach || "Unknown Coach";
-
-        const emailSubject = `🎯 New Partner Job Interest: ${agentDisplayName} → ${job.job_title}`;
-        const emailBody = `
-          <html>
-          <body style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px;">
-            <h2 style="color: #004751;">🎯 New Partner Job Interest</h2>
-
-            <div style="background: #f4f4f4; padding: 16px; border-radius: 8px; margin: 16px 0;">
-              <h3 style="margin: 0 0 8px 0; color: #191931;">Free Agent Details</h3>
-              <p style="margin: 4px 0;"><strong>Name:</strong> ${agentDisplayName}</p>
-              <p style="margin: 4px 0;"><strong>Email:</strong> ${agentEmail}</p>
-              <p style="margin: 4px 0;"><strong>Phone:</strong> ${agentPhone}</p>
-              <p style="margin: 4px 0;"><strong>Coach:</strong> ${coachName}</p>
-            </div>
-
-            <div style="background: #e8f5e9; padding: 16px; border-radius: 8px; margin: 16px 0;">
-              <h3 style="margin: 0 0 8px 0; color: #004751;">Job Details</h3>
-              <p style="margin: 4px 0;"><strong>Title:</strong> ${job.job_title}</p>
-              <p style="margin: 4px 0;"><strong>Company:</strong> ${job.company}</p>
-              <p style="margin: 4px 0;"><strong>Location:</strong> ${job.location}</p>
-              <p style="margin: 4px 0;"><strong>Market:</strong> ${job.market || "N/A"}</p>
-            </div>
-
-            <p style="color: #666; font-size: 14px;">
-              This Free Agent clicked "EXPRESS INTEREST" on a FreeWorld Partner job in their portal.
-              Please follow up with the agent and employer to facilitate the connection.
-            </p>
-
-            <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-            <p style="color: #999; font-size: 12px;">
-              Sent automatically by Opptek Portal
-            </p>
-          </body>
-          </html>
-        `;
-
-        // Use Resend API if available, otherwise log
-        const resendApiKey = Deno.env.get("RESEND_API_KEY");
-        if (resendApiKey) {
-          const resendResponse = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${resendApiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              from: "Opptek Portal <notifications@freeworld.org>",
-              to: [emailTo],
-              subject: emailSubject,
-              html: emailBody,
-            }),
-          });
-
-          if (resendResponse.ok) {
-            console.log(`📧 Email sent to ${emailTo} for interest in ${job.job_title}`);
-          } else {
-            console.error("Resend API error:", await resendResponse.text());
-          }
-        } else {
-          console.log(`📧 Email would be sent to ${emailTo} (RESEND_API_KEY not configured)`);
-          console.log(`   Agent: ${agentDisplayName}, Job: ${job.job_title}`);
-        }
-      } catch (emailError) {
-        // Don't fail the whole request if email fails
-        console.error("Email notification error:", emailError);
-      }
+      // Email notification is handled by Python poller (checks inside_track_interests for status='new')
+      console.log(`✅ Interest recorded for ${agent?.agent_name || agent_name} → ${job.job_title}`);
 
       if (wantsJson) {
         return new Response(JSON.stringify({ success: true, message: "Interest registered" }), {

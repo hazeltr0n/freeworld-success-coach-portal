@@ -135,6 +135,105 @@ Consider running a fresh Indeed search for this market/filter combination.
     except Exception as e:
         print(f"📧 Error in empty portal notification: {e}")
 
+
+def process_inside_track_interest_notifications():
+    """
+    Poll inside_track_interests table for status='new' and send email notifications.
+    Called by scheduled jobs or manually. Updates status to 'notified' after sending.
+    """
+    try:
+        from supabase_utils import get_supabase_client
+        supabase = get_supabase_client()
+
+        # Get all new interests that haven't been notified
+        result = supabase.table('inside_track_interests').select(
+            '*, jobs!inner(job_title, company, location, market)'
+        ).eq('status', 'new').execute()
+
+        if not result.data:
+            print("📧 No new inside track interests to notify")
+            return 0
+
+        notify_email = 'placement@freeworld.org'
+        notified_count = 0
+
+        for interest in result.data:
+            try:
+                job = interest.get('jobs', {})
+                agent_name = interest.get('agent_name') or 'Unknown Agent'
+                agent_email = interest.get('agent_email') or 'Not provided'
+                agent_phone = interest.get('agent_phone') or 'Not provided'
+                coach_name = interest.get('coach_username') or 'Unknown Coach'
+
+                subject = f"🎯 New Partner Job Interest: {agent_name} → {job.get('job_title', 'Unknown Job')}"
+
+                html_body = f"""
+                <html>
+                <body style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px;">
+                    <h2 style="color: #004751;">🎯 New Partner Job Interest</h2>
+
+                    <div style="background: #f4f4f4; padding: 16px; border-radius: 8px; margin: 16px 0;">
+                        <h3 style="margin: 0 0 8px 0; color: #191931;">Free Agent Details</h3>
+                        <p style="margin: 4px 0;"><strong>Name:</strong> {agent_name}</p>
+                        <p style="margin: 4px 0;"><strong>Email:</strong> {agent_email}</p>
+                        <p style="margin: 4px 0;"><strong>Phone:</strong> {agent_phone}</p>
+                        <p style="margin: 4px 0;"><strong>Coach:</strong> {coach_name}</p>
+                    </div>
+
+                    <div style="background: #e8f5e9; padding: 16px; border-radius: 8px; margin: 16px 0;">
+                        <h3 style="margin: 0 0 8px 0; color: #004751;">Job Details</h3>
+                        <p style="margin: 4px 0;"><strong>Title:</strong> {job.get('job_title', 'N/A')}</p>
+                        <p style="margin: 4px 0;"><strong>Company:</strong> {job.get('company', 'N/A')}</p>
+                        <p style="margin: 4px 0;"><strong>Location:</strong> {job.get('location', 'N/A')}</p>
+                        <p style="margin: 4px 0;"><strong>Market:</strong> {job.get('market', 'N/A')}</p>
+                    </div>
+
+                    <p style="color: #666; font-size: 14px;">
+                        This Free Agent clicked "EXPRESS INTEREST" on a FreeWorld Partner job in their portal.
+                        Please follow up with the agent and employer to facilitate the connection.
+                    </p>
+
+                    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                    <p style="color: #999; font-size: 12px;">
+                        Sent automatically by Opptek Portal
+                    </p>
+                </body>
+                </html>
+                """
+
+                text_body = f"""New Partner Job Interest
+
+Free Agent: {agent_name}
+Email: {agent_email}
+Phone: {agent_phone}
+Coach: {coach_name}
+
+Job: {job.get('job_title', 'N/A')} at {job.get('company', 'N/A')}
+Location: {job.get('location', 'N/A')}
+Market: {job.get('market', 'N/A')}
+
+Please follow up with the agent and employer to facilitate the connection.
+"""
+
+                if _send_email_smtp(notify_email, subject, html_body, text_body):
+                    # Update status to 'notified'
+                    supabase.table('inside_track_interests').update({
+                        'status': 'notified'
+                    }).eq('id', interest['id']).execute()
+                    notified_count += 1
+                    print(f"📧 Notified placement team about {agent_name} → {job.get('job_title')}")
+
+            except Exception as e:
+                print(f"📧 Error processing interest {interest.get('id')}: {e}")
+
+        print(f"📧 Processed {notified_count} inside track interest notifications")
+        return notified_count
+
+    except Exception as e:
+        print(f"📧 Error in inside track notifications: {e}")
+        return 0
+
+
 BASE = Path(__file__).resolve().parents[1]
 TEMPLATES = BASE / "templates"
 STATIC = BASE / "static"
