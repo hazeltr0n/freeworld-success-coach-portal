@@ -59,6 +59,8 @@ We want to help connect them to jobs they have a strong chance of getting if the
 **Context about our candidates:**
 Our candidates have ZERO months of professional CDL driving work history. They are skilled, licensed CDL-A drivers who know how to operate commercial vehicles, but they have never been employed as professional drivers. They are ready to work but need employers willing to hire them without prior work experience.
 
+**Important:** Our candidates DO have reliable personal transportation to get to/from work. However, they do NOT own commercial vehicles (vans, trucks, trailers) for work use, and they cannot afford commercial auto insurance. Jobs that require the driver to provide their own work vehicle are NOT suitable.
+
 **Critical distinction:** A "clean driving record" or "good MVR" refers to a motor vehicle record free of accidents and violations - this is NOT the same as professional driving experience. Our candidates have excellent driving records. Only professional work experience (time employed as a commercial driver) should affect classification.
 
 **Classification approach - EXPERIENCE REQUIREMENTS ARE THE PRIMARY FILTER:**
@@ -67,7 +69,11 @@ Classify as **GOOD** when the job posting's language clearly indicates the emplo
 
 Classify as **SO-SO** when the job shows a preference for experience but doesn't make it mandatory, OR when the experience requirements are unclear or ambiguous. This is the DEFAULT category for uncertainty - when you cannot confidently determine if the job welcomes no-experience drivers or clearly excludes them. Also includes non-CDL jobs that could serve as backup options but don't fully utilize CDL training. **Use SO-SO for descriptions that lack sufficient detail but have more than 100 characters.**
 
-Classify as **BAD** when the job clearly and unambiguously requires professional driving experience that our candidates cannot provide. This includes mandatory experience requirements with specific time periods, owner-operator positions requiring equipment ownership, or school bus driving. **Also classify as BAD if the description is extremely short (<100 characters) - these provide too little information to responsibly recommend.**
+Classify as **BAD** when the job clearly and unambiguously requires professional driving experience that our candidates cannot provide. This includes mandatory experience requirements with specific time periods, owner-operator positions requiring equipment ownership, or school bus driving. **Also classify as BAD if:**
+- The job requires the driver to own/provide their own vehicle (van, truck, car, trailer) - our candidates don't have vehicles
+- The job is 1099/Independent Contractor AND requires own vehicle or commercial insurance - these have huge financial barriers
+- The job requires commercial auto insurance - our candidates cannot afford this
+- The description is extremely short (<100 characters) - too little information to responsibly recommend
 
 **Key principle:** When uncertain or when descriptions are ambiguous, default to SO-SO. Only mark as BAD when there is clear, mandatory language that would exclude our candidates OR when the description is extremely short (<100 characters).
 

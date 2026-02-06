@@ -7,6 +7,11 @@
 
     <!-- Badges -->
     <div class="badge-row">
+      {% if job.is_partner_opportunity %}
+        <span class="badge partner-opportunity">FW PARTNER</span>
+      {% elif job.is_inside_track %}
+        <span class="badge inside-track">ALUMNI TIP</span>
+      {% endif %}
       {% if job.match_badge == 'Excellent Match' %}
         <span class="badge excellent-match">{{ job.match_badge }}</span>
       {% elif job.match_badge == 'Possible Fit' %}
@@ -52,23 +57,32 @@
 
     <!-- Summary -->
     <div class="summary-content">
-      <!-- AI summary (shown by default) -->
-      {% if job.description_summary and job.description_full %}
-      <div class="desc-summary" id="summary-{{ job.job_id | default(loop.index) }}">{{ job.description_summary | safe }}</div>
-      <div class="desc-full" id="full-{{ job.job_id | default(loop.index) }}" style="display: none;">{{ job.description_full | safe }}</div>
-      <button class="desc-toggle-btn" id="toggle-{{ job.job_id | default(loop.index) }}" onclick="toggleDescription('{{ job.job_id | default(loop.index) }}')">
-        📄 Read full description
-      </button>
+      <!-- For inside track jobs, just show the description -->
+      {% if job.is_inside_track %}
+        <div class="desc-summary">{{ job.description_summary | safe }}</div>
+      <!-- For regular jobs with both summary and full, show toggle -->
+      {% elif job.description_summary and job.description_full %}
+        <div class="desc-summary" id="summary-{{ job.job_id | default(loop.index) }}">{{ job.description_summary | safe }}</div>
+        <div class="desc-full" id="full-{{ job.job_id | default(loop.index) }}" style="display: none;">{{ job.description_full | safe }}</div>
+        <button class="desc-toggle-btn" id="toggle-{{ job.job_id | default(loop.index) }}" onclick="toggleDescription('{{ job.job_id | default(loop.index) }}')">
+          📄 Read full description
+        </button>
       {% elif job.description_summary %}
-      <div class="desc-summary">{{ job.description_summary | safe }}</div>
+        <div class="desc-summary">{{ job.description_summary | safe }}</div>
       {% elif job.description_full %}
-      <div class="desc-full">{{ job.description_full | safe }}</div>
+        <div class="desc-full">{{ job.description_full | safe }}</div>
       {% endif %}
     </div>
 
     <!-- Footer -->
     <div class="apply-footer">
-      {% if job.apply_url %}
+      {% if job.is_partner_opportunity and job.apply_url %}
+        <!-- Partner opportunity: inline interest form via fetch -->
+        <button class="apply-button" id="interest-btn-{{ job.job_id }}" onclick="expressInterest('{{ job.job_id }}', '{{ job.candidate_id }}', '{{ job.apply_url }}', this)">
+          <img src="{{ assets.icon_logo }}" alt="Logo"> EXPRESS INTEREST
+        </button>
+        <div id="interest-status-{{ job.job_id }}" style="display: none; text-align: center; padding: 12px; margin-top: 8px; border-radius: 8px;"></div>
+      {% elif job.apply_url %}
         <a href="{{ job.apply_url }}" class="apply-button" target="_blank" rel="noopener">
           <img src="{{ assets.icon_logo }}" alt="Logo"> APPLY NOW
         </a>

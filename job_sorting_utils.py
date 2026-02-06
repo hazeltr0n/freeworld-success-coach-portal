@@ -9,13 +9,23 @@ import pandas as pd
 def get_unified_sort_priority(row):
     """
     Unified sorting priority function that matches the working FPDF implementation.
-    
+
     Priority order:
-    1. Route type: Local (0) → OTR/Regional (1) → Unknown (2)  
+    0. Inside Track jobs ALWAYS come first (partner opportunities)
+    1. Route type: Local (0) → OTR/Regional (1) → Unknown (2)
     2. Quality within route: Excellent+Fair (1) → Excellent (2) → Possible+Fair (3) → Possible (4) → Other (5)
-    
+
     Returns combined priority score where route_priority * 10 + quality_priority
     """
+    # Inside Track jobs get highest priority (lowest score = sorted first)
+    # FW PARTNER (partner_opportunity) comes before FREE AGENT TIP (regular inside_track)
+    source = str(row.get('source', row.get('id.source', ''))).lower()
+    if source == 'inside_track':
+        inside_track_type = str(row.get('inside_track_type', '')).lower()
+        if inside_track_type == 'partner_opportunity':
+            return -200  # FW PARTNER - absolute top
+        return -100  # FREE AGENT TIP - second tier
+
     # Route type priority (most important) - EXACTLY as FPDF does it
     route_type = str(row.get('ai.route_type', '')).lower()
     if route_type == 'local':

@@ -166,17 +166,23 @@ def _encode_asset_base64(path: Path) -> str:
     except Exception:
         return ""
 
-def jobs_dataframe_to_dicts(df, candidate_id: str = None) -> List[Dict]:
+def jobs_dataframe_to_dicts(df, candidate_id: str = None, agent_name: str = None) -> List[Dict]:
     def _sanitize_html(val: str) -> str:
         try:
             s = _html.unescape(str(val or ''))
-            # remove scripts/styles
-            s = re.sub(r'(?is)<(script|style)[^>]*>.*?</\\1>', '', s)
+            # remove scripts/styles (with content)
+            s = re.sub(r'(?is)<(script|style)[^>]*>.*?</\1>', '', s)
+            # CRITICAL: Remove ANY script/style tags - complete or incomplete (truncated)
+            # Match <script...> OR <script... (without closing >) to end of string
+            s = re.sub(r'(?i)<script[^>]*>?.*', '', s)
+            s = re.sub(r'(?i)</script>', '', s)
+            s = re.sub(r'(?i)<style[^>]*>?.*', '', s)
+            s = re.sub(r'(?i)</style>', '', s)
             # convert block/line breaks
-            s = re.sub(r'(?i)</p\\s*>', '\n\n', s)
-            s = re.sub(r'(?i)<br\\s*/?>', '\n', s)
-            s = re.sub(r'(?i)<li\\b[^>]*>', '• ', s)
-            s = re.sub(r'(?i)</li\\s*>', '\n', s)
+            s = re.sub(r'(?i)</p\s*>', '\n\n', s)
+            s = re.sub(r'(?i)<br\s*/?>', '\n', s)
+            s = re.sub(r'(?i)<li\b[^>]*>', '• ', s)
+            s = re.sub(r'(?i)</li\s*>', '\n', s)
             # drop remaining tags
             s = re.sub(r'<[^>]+>', '', s)
             # collapse and convert to HTML
@@ -283,24 +289,62 @@ def jobs_dataframe_to_dicts(df, candidate_id: str = None) -> List[Dict]:
         job_id_display = job_id[:8] if job_id != 'unknown' else 'unknown'
         print(f"🔍 HTML Job {job_id_display}: tracked='{tracked}', source='{source_url[:60]}...', clean='{clean_url[:60] if clean_url else 'None'}...'")
 
-        # Use original job URL for display and tracking (skip Short.io tracked URLs)
-        original_url = source_url or clean_url
-        apply_url = original_url  # Always use original URL, not Short.io
+        # Check if this is an inside track (partner) job
+        source = str(r.get('source', r.get('id.source', ''))).lower()
+        is_inside_track = source == 'inside_track'
+        inside_track_type = str(r.get('inside_track_type', 'inside_track')).lower()
+        is_partner_opportunity = is_inside_track and inside_track_type == 'partner_opportunity'
 
-        # Display truncated original URL so user knows where they're going
-        # (e.g., "indeed.com/viewjob/jk=abc123..." instead of short.io link)
-        if original_url:
-            # Remove protocol and truncate to ~35 chars
-            display_url = original_url.replace('https://', '').replace('http://', '').replace('www.', '')
-            if len(display_url) > 35:
-                display_url = display_url[:32] + '...'
-            display_link = display_url
+        # Debug: Log partner opportunity detection
+        if is_partner_opportunity:
+            print(f"🤝 PARTNER DEBUG {job_id_display}: is_partner={is_partner_opportunity}, candidate_id='{candidate_id}', agent_name='{agent_name}'")
+
+        # For partner opportunity jobs, use the interest form URL and hide company
+        if is_partner_opportunity and candidate_id:
+            from inside_track_manager import generate_interest_url
+            apply_url = generate_interest_url(job_id, candidate_id, agent_name or '')
+            display_link = "Express Interest"  # Special display text
+            company = "FreeWorld Partner Opportunity"  # Hide real company name
+            print(f"🤝 Partner Opportunity {job_id_display}: using interest form, hiding company")
+        elif is_partner_opportunity and not candidate_id:
+            # Partner opportunity but no candidate_id - cannot generate interest URL
+            print(f"⚠️ PARTNER WARNING {job_id_display}: No candidate_id provided! Cannot generate interest URL.")
+            apply_url = ""  # Will show "Apply link unavailable" - this is expected without candidate_id
+            display_link = ""
+            company = "FreeWorld Partner Opportunity"
+        elif is_inside_track:
+            # Regular inside track - use direct link, show real company
+            original_url = source_url or clean_url
+            apply_url = original_url
+            if original_url:
+                display_url = original_url.replace('https://', '').replace('http://', '').replace('www.', '')
+                if len(display_url) > 35:
+                    display_url = display_url[:32] + '...'
+                display_link = display_url
+            else:
+                display_link = ''
+            print(f"📋 Inside Track Job {job_id_display}: using direct link")
         else:
-            display_link = ''
+            # Use original job URL for display and tracking (skip Short.io tracked URLs)
+            original_url = source_url or clean_url
+            apply_url = original_url  # Always use original URL, not Short.io
+
+            # Display truncated original URL so user knows where they're going
+            # (e.g., "indeed.com/viewjob/jk=abc123..." instead of short.io link)
+            if original_url:
+                # Remove protocol and truncate to ~35 chars
+                display_url = original_url.replace('https://', '').replace('http://', '').replace('www.', '')
+                if len(display_url) > 35:
+                    display_url = display_url[:32] + '...'
+                display_link = display_url
+            else:
+                display_link = ''
 
         # Generate edge function URL for click tracking in PDFs
+        # SKIP for partner opportunities - their URL goes directly to inside-track-interest edge function
+        # which needs POST requests (click-redirect-lite only handles GET)
         tracking_url = apply_url  # Default to same as apply_url
-        if apply_url and candidate_id:
+        if apply_url and candidate_id and not is_partner_opportunity:
             try:
                 from link_tracker import LinkTracker
                 tracker = LinkTracker()
@@ -371,6 +415,8 @@ def jobs_dataframe_to_dicts(df, candidate_id: str = None) -> List[Dict]:
             "match_badge": match_badge,
             "career_pathway_badge": career_pathway_badge,
             "fair_chance": bool(fair_chance),
+            "is_inside_track": is_inside_track,  # Inside track job flag
+            "is_partner_opportunity": is_partner_opportunity,  # Partner opportunity (anonymous) flag
             # Backwards compatibility key 'description' holds the summary
             "description": description_summary,
             "description_summary": description_summary,
@@ -511,15 +557,30 @@ def render_jobs_html(jobs: List[Dict], agent_params=None, *, fragment: bool = Fa
     body_match = re.search(r"<body[^>]*>(.*)</body>", html, flags=re.DOTALL|re.IGNORECASE)
     body_content = body_match.group(1).strip() if body_match else html
 
-    # Add debug comment with jobs data
-    debug_jobs_comment = f"<!-- DEBUG_JOBS_DATA: {jobs} -->"
-    body_content = f"{debug_jobs_comment}\n{body_content}"
+    # CRITICAL: Remove script tags from body content since we extract them separately
+    # This prevents duplicate scripts and avoids issues if job descriptions contain </script>
+    body_content = re.sub(r"<script[^>]*>.*?</script>", "", body_content, flags=re.DOTALL|re.IGNORECASE)
 
-    # Include CSS and JavaScript in fragment
-    result = f"<style>{css_content}</style>"
-    if js_content:
-        result += f"\n<script>{js_content}</script>"
+    # Build a complete HTML document for the iframe srcdoc
+    # This ensures proper parsing and JavaScript execution
+    result = """<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+"""
+    result += css_content
+    result += """
+</style>
+</head>
+<body>
+"""
     result += body_content
+    if js_content:
+        result += f"\n<script>\n{js_content}\n</script>"
+    result += """
+</body>
+</html>"""
     return result
 
 
