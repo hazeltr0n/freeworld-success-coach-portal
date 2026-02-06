@@ -136,6 +136,7 @@ def save_inside_track_job(job_data: Dict, coach_username: str) -> Tuple[bool, st
             'job_title': job_data['job_title'],
             'company': job_data['company'],
             'location': location,
+            'zip_code': job_data.get('zip_code', ''),
             'job_description': job_data['job_description'],
             'apply_url': '',  # Will be generated at feed time with agent context
             'clean_apply_url': original_apply_url,  # Original company URL for coach reference

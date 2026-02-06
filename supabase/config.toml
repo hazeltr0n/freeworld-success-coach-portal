@@ -338,3 +338,7 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # Outscraper Webhook Configuration - Allow public access for webhooks
 [functions.outscraper-webhook]
 verify_jwt = false
+
+# Inside Track Interest - Allow public access for Free Agent clicks
+[functions.inside-track-interest]
+verify_jwt = false

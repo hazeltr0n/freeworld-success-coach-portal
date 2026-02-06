@@ -6342,10 +6342,12 @@ def show_inside_track_jobs_page(coach):
                 help="For Partner Opportunities, this is hidden from Free Agents but shown to you."
             )
 
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns([2, 1, 2])
             with col1:
                 location = st.text_input("Location *", placeholder="Houston, TX")
             with col2:
+                zip_code = st.text_input("ZIP Code", placeholder="77001")
+            with col3:
                 market = st.selectbox("Market *", options=get_all_markets())
 
             job_description = st.text_area(
@@ -6355,9 +6357,10 @@ def show_inside_track_jobs_page(coach):
             )
 
             apply_url = st.text_input(
-                "Apply URL" + (" *" if inside_track_type == "inside_track" else " (optional)"),
+                "Apply URL",
                 placeholder="https://company.com/apply",
-                help="Required for Inside Track jobs. Optional for Partner Opportunities (for your reference)."
+                help="Required for Inside Track jobs. Optional for Partner Opportunities.",
+                key="inside_track_apply_url"
             )
 
             st.markdown("---")
@@ -6397,6 +6400,7 @@ def show_inside_track_jobs_page(coach):
                         'job_title': job_title,
                         'company': company,
                         'location': location,
+                        'zip_code': zip_code,
                         'market': market,
                         'job_description': job_description,
                         'apply_url': apply_url,
