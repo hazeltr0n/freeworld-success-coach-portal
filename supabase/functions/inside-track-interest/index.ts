@@ -322,23 +322,29 @@ serve(async (req) => {
         `);
       }
 
-      // Check for existing interest
-      // For generic links (with phone), check by phone number
-      // For known agents (no phone), check by agent_uuid
-      let existingQuery = supabase
-        .from("inside_track_interests")
-        .select("id")
-        .eq("job_id", job_id);
-
+      // For generic links (with phone), generate a deterministic UUID from the phone
+      // This allows multiple people using the same generic link to each have their own record
+      let effectiveAgentId = agent_id;
       if (formPhone) {
-        // Generic link - check by phone number
-        existingQuery = existingQuery.eq("agent_phone", formPhone);
-      } else {
-        // Known agent - check by agent_uuid
-        existingQuery = existingQuery.eq("agent_uuid", agent_id);
+        // Create a deterministic UUID from phone number using a simple hash
+        const phoneClean = formPhone.replace(/\D/g, ''); // Remove non-digits
+        const encoder = new TextEncoder();
+        const data = encoder.encode(`generic-link-phone:${phoneClean}`);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = new Uint8Array(hashBuffer);
+        // Convert first 16 bytes to UUID format
+        const hex = Array.from(hashArray.slice(0, 16)).map(b => b.toString(16).padStart(2, '0')).join('');
+        effectiveAgentId = `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20,32)}`;
+        console.log(`📱 Generic link: Generated UUID ${effectiveAgentId} from phone ${formPhone}`);
       }
 
-      const { data: existing } = await existingQuery.single();
+      // Check for existing interest using the effective agent ID
+      const { data: existing } = await supabase
+        .from("inside_track_interests")
+        .select("id")
+        .eq("job_id", job_id)
+        .eq("agent_uuid", effectiveAgentId)
+        .single();
 
       if (existing) {
         if (wantsJson) {
@@ -371,12 +377,12 @@ serve(async (req) => {
       const finalAgentEmail = agent?.agent_email || null;
       const finalAgentPhone = formPhone || null;
 
-      // Insert interest record
+      // Insert interest record (effectiveAgentId was computed earlier)
       const { error: insertError } = await supabase
         .from("inside_track_interests")
         .insert({
           job_id: job_id,
-          agent_uuid: agent_id,
+          agent_uuid: effectiveAgentId,
           agent_name: finalAgentName,
           agent_email: finalAgentEmail,
           agent_phone: finalAgentPhone,
@@ -448,7 +454,7 @@ Please follow up with the agent and employer.
 Coach Portal: ${portalUrl}`;
 
       await sendEmailSmtp(
-        "james@freeworld.org",
+        "placement@freeworld.org",
         `New Partner Job Interest: ${agentDisplayName} - ${job.job_title}`,
         htmlBody,
         textBody
