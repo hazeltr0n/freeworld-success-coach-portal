@@ -76,11 +76,21 @@
 
     <!-- Footer -->
     <div class="apply-footer">
-      {% if job.is_partner_opportunity and job.apply_url %}
-        <!-- Partner opportunity: inline interest form via fetch -->
-        <button class="apply-button" id="interest-btn-{{ job.job_id }}" onclick="expressInterest('{{ job.job_id }}', '{{ job.candidate_id }}', '{{ job.apply_url }}', this)">
+      {% if job.is_partner_opportunity %}
+        <!-- Partner opportunity: inline interest form -->
+        <button class="apply-button" id="interest-btn-{{ job.job_id }}" onclick="showInterestForm('{{ job.job_id }}', '{{ job.candidate_id }}')">
           <img src="{{ assets.icon_logo }}" alt="Logo"> EXPRESS INTEREST
         </button>
+        <!-- Inline form (hidden by default) -->
+        <div id="interest-form-{{ job.job_id }}" class="interest-inline-form" style="display: none;">
+          <p style="font-size: 14px; color: #333; margin-bottom: 12px;">Enter your contact info:</p>
+          <input type="text" id="interest-name-{{ job.job_id }}" placeholder="Your Name" class="interest-input" required>
+          <input type="tel" id="interest-phone-{{ job.job_id }}" placeholder="Phone Number" class="interest-input" required>
+          <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <button class="interest-cancel-btn" onclick="hideInterestForm('{{ job.job_id }}')">Cancel</button>
+            <button class="interest-submit-btn" onclick="submitInterest('{{ job.job_id }}', '{{ job.candidate_id }}')">Submit</button>
+          </div>
+        </div>
         <div id="interest-status-{{ job.job_id }}" style="display: none; text-align: center; padding: 12px; margin-top: 8px; border-radius: 8px;"></div>
       {% elif job.apply_url %}
         <a href="{{ job.apply_url }}" class="apply-button" target="_blank" rel="noopener">

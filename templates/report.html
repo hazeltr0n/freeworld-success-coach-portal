@@ -291,6 +291,48 @@
       margin-top: 4px;
     }
 
+    /* Inline Interest Form Styles */
+    .interest-inline-form {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 12px;
+    }
+    .interest-input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      box-sizing: border-box;
+      margin-bottom: 8px;
+    }
+    .interest-input:focus {
+      outline: none;
+      border-color: var(--fw-roots);
+    }
+    .interest-submit-btn {
+      flex: 1;
+      padding: 12px 16px;
+      background: var(--fw-freedom-green);
+      color: var(--fw-midnight);
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .interest-cancel-btn {
+      padding: 12px 16px;
+      background: #e5e5e5;
+      color: #666;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
     /* Mobile responsive adjustments */
     @media screen and (max-width: 600px) {
       .footer-row {
@@ -329,6 +371,7 @@
       border: 1.5pt solid var(--fw-midnight);
       width: 80%;
       margin-bottom: 8pt;
+      cursor: pointer;
     }
     .apply-button img {
       width: 18pt;
@@ -524,57 +567,85 @@
       }
     }
 
-    // Express interest in partner opportunity (inline, no redirect)
-    async function expressInterest(jobId, candidateId, interestUrl, btn) {
-      console.log('expressInterest called:', jobId, interestUrl);
+    // Express interest - inline form on job card
+    const HAS_FULL_PROFILE = {{ has_full_profile | default(false) | tojson }};
+    const EDGE_FUNCTION_URL = 'https://yqbdltothngundojuebk.supabase.co/functions/v1/inside-track-interest';
+
+    function showInterestForm(jobId, candidateId) {
+      console.log('showInterestForm:', jobId, 'hasFullProfile:', HAS_FULL_PROFILE);
+
+      if (HAS_FULL_PROFILE) {
+        // Has profile - submit directly
+        submitInterestDirect(jobId, candidateId, '', '');
+      } else {
+        // Show inline form
+        document.getElementById('interest-btn-' + jobId).style.display = 'none';
+        document.getElementById('interest-form-' + jobId).style.display = 'block';
+        document.getElementById('interest-name-' + jobId).focus();
+      }
+    }
+
+    function hideInterestForm(jobId) {
+      document.getElementById('interest-form-' + jobId).style.display = 'none';
+      document.getElementById('interest-btn-' + jobId).style.display = 'block';
+    }
+
+    function submitInterest(jobId, candidateId) {
+      const name = document.getElementById('interest-name-' + jobId).value.trim();
+      const phone = document.getElementById('interest-phone-' + jobId).value.trim();
+
+      if (!name || !phone) {
+        alert('Please enter your name and phone number.');
+        return;
+      }
+
+      submitInterestDirect(jobId, candidateId, name, phone);
+    }
+
+    async function submitInterestDirect(jobId, candidateId, name, phone) {
+      const btn = document.getElementById('interest-btn-' + jobId);
+      const form = document.getElementById('interest-form-' + jobId);
       const statusDiv = document.getElementById('interest-status-' + jobId);
 
-      // Disable button and show loading
-      btn.disabled = true;
-      const originalHtml = btn.innerHTML;
-      btn.textContent = '⏳ Submitting...';
+      // Hide form/button, show loading
+      if (form) form.style.display = 'none';
+      if (btn) btn.style.display = 'none';
+      statusDiv.style.display = 'block';
+      statusDiv.style.background = '#f0f0f0';
+      statusDiv.style.color = '#333';
+      statusDiv.innerHTML = '⏳ Submitting...';
 
       try {
-        console.log('Fetching:', interestUrl);
-        const response = await fetch(interestUrl, {
+        const url = EDGE_FUNCTION_URL + '?job_id=' + jobId + '&agent_id=' + candidateId +
+          (name ? '&name=' + encodeURIComponent(name) : '') +
+          (phone ? '&phone=' + encodeURIComponent(phone) : '');
+
+        const response = await fetch(url, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
+          headers: { 'Accept': 'application/json' }
         });
-        console.log('Response:', response.status);
 
         if (response.ok) {
-          // Success - show confirmation
-          btn.style.display = 'none';
-          statusDiv.style.display = 'block';
           statusDiv.style.background = 'var(--fw-freedom-green)';
           statusDiv.style.color = 'var(--fw-midnight)';
           statusDiv.innerHTML = '🎉 <strong>Interest Registered!</strong><br>Your Success Coach will reach out soon.';
         } else {
           const text = await response.text();
-          console.log('Response text:', text);
-          // Check if already registered
           if (text.includes('already') || text.includes('Already')) {
-            btn.style.display = 'none';
-            statusDiv.style.display = 'block';
             statusDiv.style.background = '#e0f2fe';
             statusDiv.style.color = '#0369a1';
-            statusDiv.innerHTML = '✅ <strong>You are already on the list!</strong><br>Your coach has been notified.';
+            statusDiv.innerHTML = '✅ <strong>Already registered!</strong><br>Your coach has been notified.';
           } else {
-            throw new Error('Request failed: ' + response.status);
+            throw new Error('Request failed');
           }
         }
       } catch (err) {
-        console.error('expressInterest error:', err);
-        // Error - show message and re-enable button
-        statusDiv.style.display = 'block';
+        console.error('submitInterest error:', err);
         statusDiv.style.background = '#fef2f2';
         statusDiv.style.color = '#dc2626';
         statusDiv.innerHTML = '❌ Something went wrong. Please try again.';
-        btn.disabled = false;
-        btn.innerHTML = originalHtml;
+        // Show button again so they can retry
+        if (btn) btn.style.display = 'block';
       }
     }
 

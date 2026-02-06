@@ -149,7 +149,7 @@ def save_inside_track_job(job_data: Dict, coach_username: str) -> Tuple[bool, st
             'summary': job_data.get('job_description', '')[:500],  # Use description as summary
             'route_type': job_data.get('route_type', 'Local'),
             'fair_chance': 'fair_chance_employer',  # All inside track jobs are fair chance
-            'career_pathway': job_data.get('career_pathway', ''),
+            'career_pathway': job_data.get('career_pathway', 'cdl_pathway'),
 
             # Routing/visibility
             'filter_reason': 'included: inside_track',

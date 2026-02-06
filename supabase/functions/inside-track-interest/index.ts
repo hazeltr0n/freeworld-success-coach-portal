@@ -181,6 +181,18 @@ const STYLES = `
   .success-icon { font-size: 64px; margin-bottom: 16px; }
   .footer { text-align: center; padding: 16px; color: #999; font-size: 12px; }
   .error { color: #dc2626; background: #fef2f2; padding: 16px; border-radius: 8px; margin-bottom: 16px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-weight: 600; margin-bottom: 6px; color: var(--fw-midnight); }
+  .form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus { outline: none; border-color: var(--fw-roots); }
+  .form-note { font-size: 13px; color: #666; margin-top: 4px; }
 `;
 
 function renderPage(title: string, body: string): Response {
@@ -269,16 +281,64 @@ serve(async (req) => {
   const acceptHeader = req.headers.get("accept") || "";
   const wantsJson = acceptHeader.includes("application/json") || req.headers.get("content-type")?.includes("application/json");
 
+  // Check if agent has full profile (admin_portal_url means they're a known agent)
+  const hasFullProfile = agent?.admin_portal_url ? true : false;
+
   // Handle POST - Record interest
   if (req.method === "POST") {
     try {
+      // Get name/phone from query params (from JS fetch) or form data
+      let formName = url.searchParams.get("name") || "";
+      let formPhone = url.searchParams.get("phone") || "";
+
+      // Also check form data as fallback
+      const contentType = req.headers.get("content-type") || "";
+      if (!formName && !formPhone && contentType.includes("application/x-www-form-urlencoded")) {
+        const formData = await req.formData();
+        formName = (formData.get("name") as string) || "";
+        formPhone = (formData.get("phone") as string) || "";
+      }
+
+      // If agent doesn't have full profile, require name and phone
+      if (!hasFullProfile && (!formName || !formPhone)) {
+        if (wantsJson) {
+          return new Response(JSON.stringify({ success: false, error: "Name and phone required" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        return renderPage("Missing Information", `
+          <div class="card">
+            <div class="header">
+              <div class="badge">FREEWORLD PARTNER OPPORTUNITY</div>
+              <h1>Missing Information</h1>
+            </div>
+            <div class="content">
+              <div class="error">
+                <p>Please provide your name and phone number so we can contact you about this opportunity.</p>
+              </div>
+            </div>
+          </div>
+        `);
+      }
+
       // Check for existing interest
-      const { data: existing } = await supabase
+      // For generic links (with phone), check by phone number
+      // For known agents (no phone), check by agent_uuid
+      let existingQuery = supabase
         .from("inside_track_interests")
         .select("id")
-        .eq("job_id", job_id)
-        .eq("agent_uuid", agent_id)
-        .single();
+        .eq("job_id", job_id);
+
+      if (formPhone) {
+        // Generic link - check by phone number
+        existingQuery = existingQuery.eq("agent_phone", formPhone);
+      } else {
+        // Known agent - check by agent_uuid
+        existingQuery = existingQuery.eq("agent_uuid", agent_id);
+      }
+
+      const { data: existing } = await existingQuery.single();
 
       if (existing) {
         if (wantsJson) {
@@ -306,15 +366,20 @@ serve(async (req) => {
         `);
       }
 
+      // Determine agent info - form data takes priority (user entered it)
+      const finalAgentName = formName || agent?.agent_name || agent_name;
+      const finalAgentEmail = agent?.agent_email || null;
+      const finalAgentPhone = formPhone || null;
+
       // Insert interest record
       const { error: insertError } = await supabase
         .from("inside_track_interests")
         .insert({
           job_id: job_id,
           agent_uuid: agent_id,
-          agent_name: agent?.agent_name || agent_name,
-          agent_email: agent?.agent_email || null,
-          agent_phone: null,
+          agent_name: finalAgentName,
+          agent_email: finalAgentEmail,
+          agent_phone: finalAgentPhone,
           coach_username: job.success_coach,
           status: "new",
         });
@@ -324,9 +389,10 @@ serve(async (req) => {
         throw new Error("Failed to record interest");
       }
 
-      // Send email notification (like Python's _send_email_smtp)
-      const agentDisplayName = agent?.agent_name || agent_name || "Unknown Agent";
-      const agentEmail = agent?.agent_email || "Not provided";
+      // Send email notification
+      const agentDisplayName = finalAgentName || "Unknown Agent";
+      const agentEmail = finalAgentEmail || "Not provided";
+      const agentPhone = finalAgentPhone || "";
       const adminPortalUrl = agent?.admin_portal_url || "";
       // Capitalize coach name
       const rawCoachName = job.success_coach || "Unknown Coach";
@@ -341,7 +407,8 @@ serve(async (req) => {
 <div style="background: #f4f4f4; padding: 16px; border-radius: 8px; margin: 16px 0;">
 <h3 style="margin: 0 0 8px 0; color: #191931;">Free Agent Details</h3>
 <p style="margin: 4px 0;"><strong>Name:</strong> ${agentDisplayName}</p>
-<p style="margin: 4px 0;"><strong>Email:</strong> ${agentEmail}</p>
+${agentEmail !== "Not provided" ? `<p style="margin: 4px 0;"><strong>Email:</strong> ${agentEmail}</p>` : ""}
+${agentPhone ? `<p style="margin: 4px 0;"><strong>Phone:</strong> ${agentPhone}</p>` : ""}
 <p style="margin: 4px 0;"><strong>Coach:</strong> ${coachName}</p>
 ${adminPortalUrl ? `<p style="margin: 4px 0;"><a href="${adminPortalUrl}" style="color: #004751; font-weight: bold;">View Agent Profile</a></p>` : ""}
 </div>
@@ -367,7 +434,8 @@ Please follow up with the agent and employer to facilitate the connection.
       const textBody = `New Partner Job Interest
 
 Free Agent: ${agentDisplayName}
-Email: ${agentEmail}
+${agentEmail !== "Not provided" ? `Email: ${agentEmail}` : ""}
+${agentPhone ? `Phone: ${agentPhone}` : ""}
 Coach: ${coachName}
 ${adminPortalUrl ? `Agent Profile: ${adminPortalUrl}` : ""}
 
@@ -380,7 +448,7 @@ Please follow up with the agent and employer.
 Coach Portal: ${portalUrl}`;
 
       await sendEmailSmtp(
-        "placement@freeworld.org",
+        "james@freeworld.org",
         `New Partner Job Interest: ${agentDisplayName} - ${job.job_title}`,
         htmlBody,
         textBody
@@ -448,8 +516,56 @@ Coach Portal: ${portalUrl}`;
     ? description.substring(0, 300) + "..."
     : description;
 
-  const formAction = `${url.origin}${url.pathname}?job_id=${job_id}&agent_id=${agent_id}&agent_name=${encodeURIComponent(agent_name)}`;
+  const baseUrl = "https://yqbdltothngundojuebk.supabase.co/functions/v1/inside-track-interest";
+  const formAction = `${baseUrl}?job_id=${job_id}&agent_id=${agent_id}&agent_name=${encodeURIComponent(agent_name)}`;
 
+  // If agent doesn't have full profile, show form to collect name and phone
+  if (!hasFullProfile) {
+    return renderPage(`${job.job_title} - Partner Opportunity`, `
+      <div class="card">
+        <div class="header">
+          <div class="badge">FREEWORLD PARTNER OPPORTUNITY</div>
+          <h1>Exclusive Job Opportunity</h1>
+        </div>
+        <div class="content">
+          <h2 class="job-title">${job.job_title}</h2>
+          <p class="company">${job.company} • ${job.location}</p>
+
+          <div class="details">
+            ${job.route_type ? `<p><strong>Route Type:</strong> ${job.route_type}</p>` : ""}
+            ${job.salary ? `<p><strong>Pay:</strong> ${job.salary}</p>` : ""}
+            ${job.fair_chance === "fair_chance_employer" ? `<p><strong>✅ Fair Chance Employer</strong></p>` : ""}
+          </div>
+
+          <p class="description">${truncatedDesc}</p>
+
+          <form method="POST" action="${formAction}">
+            <div class="form-group">
+              <label for="name">Your Name *</label>
+              <input type="text" id="name" name="name" required placeholder="Enter your full name">
+            </div>
+            <div class="form-group">
+              <label for="phone">Phone Number *</label>
+              <input type="tel" id="phone" name="phone" required placeholder="(555) 123-4567">
+              <p class="form-note">We'll use this to contact you about the opportunity</p>
+            </div>
+            <button type="submit" class="btn btn-primary">
+              ✋ I'm Interested - Notify My Coach
+            </button>
+          </form>
+
+          <p style="text-align: center; margin-top: 16px; font-size: 13px; color: #666;">
+            Your Success Coach will be notified and will help you apply.
+          </p>
+        </div>
+        <div class="footer">
+          <p>FreeWorld Partner Jobs give you a direct connection to employers</p>
+        </div>
+      </div>
+    `);
+  }
+
+  // Agent has full profile - show simple confirmation
   return renderPage(`${job.job_title} - Partner Opportunity`, `
     <div class="card">
       <div class="header">

@@ -8822,6 +8822,260 @@ def show_simple_batch_table(coach):
         with st.expander("🐛 Error Details", expanded=False):
             st.code(traceback.format_exc())
 
+# Check for Express Interest page (Inside Track partner jobs)
+def show_express_interest_page(job_id: str, agent_id: str, prefill_name: str = "", prefill_phone: str = ""):
+    """Show Express Interest page for Inside Track jobs - like empty portal notification but for interest."""
+    from pdf.html_pdf_generator import _send_email_smtp
+    from supabase_utils import get_client
+    from datetime import datetime, timezone
+
+    st.set_page_config(page_title="FreeWorld Partner Opportunity", page_icon="🤝", layout="centered")
+
+    # FreeWorld styling
+    st.markdown("""
+    <style>
+    .stApp { background-color: #F4F4F4; }
+    .main-card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto; }
+    .badge { display: inline-block; background: #CDF95C; color: #191931; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .job-title { font-size: 22px; color: #004751; margin: 16px 0 8px 0; }
+    .company { color: #666; margin-bottom: 16px; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    client = get_client()
+    if not client:
+        st.error("Database unavailable. Please try again later.")
+        return
+
+    # Look up job
+    job_result = client.table('jobs').select('*').eq('job_id', job_id).eq('source', 'inside_track').single().execute()
+    if not job_result.data:
+        st.error("This job is no longer available.")
+        return
+    job = job_result.data
+
+    # Look up agent
+    agent_result = client.table('agent_profiles').select('agent_name, agent_email, admin_portal_url').eq('agent_uuid', agent_id).single().execute()
+    agent = agent_result.data if agent_result.data else {}
+    has_full_profile = bool(agent.get('admin_portal_url'))
+
+    # Check if already registered
+    existing = client.table('inside_track_interests').select('id').eq('job_id', job_id).eq('agent_uuid', agent_id).single().execute()
+    if existing.data:
+        st.markdown('<div class="main-card">', unsafe_allow_html=True)
+        st.markdown('<div class="badge">FREEWORLD PARTNER OPPORTUNITY</div>', unsafe_allow_html=True)
+        st.success("✅ You're Already On The List!")
+        st.write("You've already expressed interest in this position. Your Success Coach has been notified and will be in touch soon.")
+        st.markdown('</div>', unsafe_allow_html=True)
+        return
+
+    # Determine if we can auto-submit (have all required info)
+    # Either: has_full_profile OR prefilled name+phone from JS modal
+    can_auto_submit = has_full_profile or (prefill_name and prefill_phone)
+
+    # Get final values
+    final_name = agent.get('agent_name') or prefill_name
+    final_email = agent.get('agent_email')
+    final_phone = prefill_phone or None
+
+    if can_auto_submit:
+        # Auto-submit - don't show form, just process
+        try:
+            client.table('inside_track_interests').insert({
+                'job_id': job_id,
+                'agent_uuid': agent_id,
+                'agent_name': final_name,
+                'agent_email': final_email,
+                'agent_phone': final_phone,
+                'coach_username': job.get('success_coach'),
+                'status': 'new',
+            }).execute()
+
+            # Send email notification
+            coach_name = (job.get('success_coach') or 'Unknown').capitalize()
+            admin_url = agent.get('admin_portal_url', '')
+
+            html_body = f"""<!DOCTYPE html>
+<html><body style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px;">
+<h2 style="color: #004751;">New Partner Job Interest</h2>
+<div style="background: #f4f4f4; padding: 16px; border-radius: 8px; margin: 16px 0;">
+<h3 style="margin: 0 0 8px 0; color: #191931;">Free Agent Details</h3>
+<p style="margin: 4px 0;"><strong>Name:</strong> {final_name}</p>
+{f'<p style="margin: 4px 0;"><strong>Email:</strong> {final_email}</p>' if final_email else ''}
+{f'<p style="margin: 4px 0;"><strong>Phone:</strong> {final_phone}</p>' if final_phone else ''}
+<p style="margin: 4px 0;"><strong>Coach:</strong> {coach_name}</p>
+{f'<p style="margin: 4px 0;"><a href="{admin_url}" style="color: #004751; font-weight: bold;">View Agent Profile</a></p>' if admin_url else ''}
+</div>
+<div style="background: #e8f5e9; padding: 16px; border-radius: 8px; margin: 16px 0;">
+<h3 style="margin: 0 0 8px 0; color: #004751;">Job Details</h3>
+<p style="margin: 4px 0;"><strong>Title:</strong> {job['job_title']}</p>
+<p style="margin: 4px 0;"><strong>Company:</strong> {job['company']}</p>
+<p style="margin: 4px 0;"><strong>Location:</strong> {job['location']}</p>
+<p style="margin: 4px 0;"><strong>Market:</strong> {job.get('market', 'N/A')}</p>
+</div>
+<p style="color: #666; font-size: 14px;">This Free Agent clicked EXPRESS INTEREST on a FreeWorld Partner job.</p>
+<hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+<p style="color: #999; font-size: 12px;">Sent automatically by Opptek Portal</p>
+</body></html>"""
+
+            text_body = f"""New Partner Job Interest
+
+Free Agent: {final_name}
+{f'Email: {final_email}' if final_email else ''}
+{f'Phone: {final_phone}' if final_phone else ''}
+Coach: {coach_name}
+{f'Agent Profile: {admin_url}' if admin_url else ''}
+
+Job: {job['job_title']} at {job['company']}
+Location: {job['location']}
+Market: {job.get('market', 'N/A')}"""
+
+            _send_email_smtp(
+                "james@freeworld.org",  # Testing - change to placement@freeworld.org for prod
+                f"New Partner Job Interest: {final_name} - {job['job_title']}",
+                html_body,
+                text_body
+            )
+
+            # Show success page
+            st.markdown('<div class="main-card">', unsafe_allow_html=True)
+            st.markdown('<div class="badge">FREEWORLD PARTNER OPPORTUNITY</div>', unsafe_allow_html=True)
+            st.success("🎉 Interest Registered!")
+            st.markdown(f'<h2 class="job-title">{job["job_title"]}</h2>', unsafe_allow_html=True)
+            st.markdown(f'<p class="company">{job["company"]} • {job["location"]}</p>', unsafe_allow_html=True)
+            st.write("Great news! Your Success Coach has been notified and will reach out soon.")
+            st.write("**This is a FreeWorld partner job**, which means we have a direct connection to help you get hired!")
+            st.balloons()
+            st.markdown('</div>', unsafe_allow_html=True)
+            return
+
+        except Exception as e:
+            st.error(f"Something went wrong. Please try again. ({e})")
+            return
+
+    # Fallback: Show form (shouldn't normally happen if JS modal works correctly)
+    st.markdown('<div class="main-card">', unsafe_allow_html=True)
+    st.markdown('<div class="badge">FREEWORLD PARTNER OPPORTUNITY</div>', unsafe_allow_html=True)
+    st.markdown(f'<h2 class="job-title">{job["job_title"]}</h2>', unsafe_allow_html=True)
+    st.markdown(f'<p class="company">{job["company"]} • {job["location"]}</p>', unsafe_allow_html=True)
+
+    if job.get('route_type') or job.get('salary'):
+        with st.container():
+            if job.get('route_type'):
+                st.write(f"**Route Type:** {job['route_type']}")
+            if job.get('salary'):
+                st.write(f"**Pay:** {job['salary']}")
+            if job.get('fair_chance') == 'fair_chance_employer':
+                st.write("✅ **Fair Chance Employer**")
+
+    if job.get('summary') or job.get('job_description'):
+        desc = job.get('summary') or job.get('job_description', '')[:300]
+        st.write(desc)
+
+    st.divider()
+
+    # Form for interest (fallback if JS modal didn't provide data)
+    with st.form("express_interest_form"):
+        st.write("Please provide your contact info so we can reach you about this opportunity:")
+        form_name = st.text_input("Your Name *", placeholder="Enter your full name")
+        form_phone = st.text_input("Phone Number *", placeholder="(555) 123-4567")
+
+        submitted = st.form_submit_button("✋ I'm Interested - Notify My Coach", use_container_width=True, type="primary")
+
+        if submitted:
+            # Validate
+            if not form_name or not form_phone:
+                st.error("Please enter your name and phone number.")
+            else:
+                # Save interest
+                final_name = form_name
+                final_email = agent.get('agent_email')
+                final_phone = form_phone
+
+                try:
+                    client.table('inside_track_interests').insert({
+                        'job_id': job_id,
+                        'agent_uuid': agent_id,
+                        'agent_name': final_name,
+                        'agent_email': final_email,
+                        'agent_phone': final_phone,
+                        'coach_username': job.get('success_coach'),
+                        'status': 'new',
+                    }).execute()
+
+                    # Send email notification
+                    coach_name = (job.get('success_coach') or 'Unknown').capitalize()
+                    admin_url = agent.get('admin_portal_url', '')
+
+                    html_body = f"""<!DOCTYPE html>
+<html><body style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px;">
+<h2 style="color: #004751;">New Partner Job Interest</h2>
+<div style="background: #f4f4f4; padding: 16px; border-radius: 8px; margin: 16px 0;">
+<h3 style="margin: 0 0 8px 0; color: #191931;">Free Agent Details</h3>
+<p style="margin: 4px 0;"><strong>Name:</strong> {final_name}</p>
+{f'<p style="margin: 4px 0;"><strong>Email:</strong> {final_email}</p>' if final_email else ''}
+{f'<p style="margin: 4px 0;"><strong>Phone:</strong> {final_phone}</p>' if final_phone else ''}
+<p style="margin: 4px 0;"><strong>Coach:</strong> {coach_name}</p>
+{f'<p style="margin: 4px 0;"><a href="{admin_url}" style="color: #004751; font-weight: bold;">View Agent Profile</a></p>' if admin_url else ''}
+</div>
+<div style="background: #e8f5e9; padding: 16px; border-radius: 8px; margin: 16px 0;">
+<h3 style="margin: 0 0 8px 0; color: #004751;">Job Details</h3>
+<p style="margin: 4px 0;"><strong>Title:</strong> {job['job_title']}</p>
+<p style="margin: 4px 0;"><strong>Company:</strong> {job['company']}</p>
+<p style="margin: 4px 0;"><strong>Location:</strong> {job['location']}</p>
+<p style="margin: 4px 0;"><strong>Market:</strong> {job.get('market', 'N/A')}</p>
+</div>
+<p style="color: #666; font-size: 14px;">This Free Agent clicked EXPRESS INTEREST on a FreeWorld Partner job.</p>
+<hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+<p style="color: #999; font-size: 12px;">Sent automatically by Opptek Portal</p>
+</body></html>"""
+
+                    text_body = f"""New Partner Job Interest
+
+Free Agent: {final_name}
+{f'Email: {final_email}' if final_email else ''}
+{f'Phone: {final_phone}' if final_phone else ''}
+Coach: {coach_name}
+{f'Agent Profile: {admin_url}' if admin_url else ''}
+
+Job: {job['job_title']} at {job['company']}
+Location: {job['location']}
+Market: {job.get('market', 'N/A')}"""
+
+                    _send_email_smtp(
+                        "james@freeworld.org",  # Testing - change to placement@freeworld.org for prod
+                        f"New Partner Job Interest: {final_name} - {job['job_title']}",
+                        html_body,
+                        text_body
+                    )
+
+                    st.success("🎉 Interest Registered!")
+                    st.write("Great news! Your Success Coach has been notified and will reach out soon.")
+                    st.balloons()
+
+                except Exception as e:
+                    st.error(f"Something went wrong. Please try again. ({e})")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+    st.caption("FreeWorld Partner Jobs give you a direct connection to employers")
+
+# Check for Express Interest query params
+try:
+    interest_params = st.query_params
+    interest_job_id = interest_params.get("interest_job")
+    interest_agent_id = interest_params.get("interest_agent")
+    interest_name = interest_params.get("name", "")
+    interest_phone = interest_params.get("phone", "")
+except Exception:
+    interest_job_id = None
+    interest_agent_id = None
+    interest_name = ""
+    interest_phone = ""
+
+if interest_job_id and interest_agent_id:
+    show_express_interest_page(interest_job_id, interest_agent_id, interest_name, interest_phone)
+    st.stop()
+
 # Check for Free Agent Portal Access (after function definitions)
 try:
     # Newer API (1.30+)

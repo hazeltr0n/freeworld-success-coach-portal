@@ -574,6 +574,18 @@ def render_jobs_html(jobs: List[Dict], agent_params=None, *, fragment: bool = Fa
     raw_agent = agent_params.get("agent_name") or agent_params.get("name")
     raw_coach = agent_params.get("coach_name") or agent_params.get("coach_username")
     candidate_id = agent_params.get("agent_uuid") or agent_params.get("candidate_id") or ""
+
+    # Check if agent has full profile (admin_portal_url) by querying database
+    has_full_profile = False
+    if candidate_id:
+        try:
+            from supabase_utils import get_client
+            client = get_client()
+            if client:
+                result = client.table('agent_profiles').select('admin_portal_url').eq('agent_uuid', candidate_id).single().execute()
+                has_full_profile = bool(result.data and result.data.get('admin_portal_url'))
+        except Exception as e:
+            print(f"⚠️ Could not check agent profile: {e}")
     
     # Only pass names to template if they were actually provided (not fallbacks)
     agent_first = _first_name(raw_agent, fallback="Free Agent") if raw_agent else None
@@ -636,6 +648,7 @@ def render_jobs_html(jobs: List[Dict], agent_params=None, *, fragment: bool = Fa
             coach_name=coach_first,
             candidate_id=candidate_id,
             agent_params=agent_params,
+            has_full_profile=has_full_profile,
         )
     except Exception as e:
         print(f"Error rendering report.html template: {e}")

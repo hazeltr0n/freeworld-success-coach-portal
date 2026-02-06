@@ -997,7 +997,19 @@ def instant_memory_search(location: str, search_terms: str = "", hours: int = 72
         # Expired feedback filtering is now handled at database level
 
         print(f"📦 Found {len(jobs)} quality jobs in Supabase memory (after all filtering)")
-        
+
+        # Always include inside_track jobs for this market (partner opportunities bypass filters)
+        inside_track_query = client.table('jobs').select('*').eq('source', 'inside_track').eq('market', market_value).eq('filter_reason', 'included: inside_track')
+        inside_track_result = inside_track_query.execute()
+        inside_track_jobs = inside_track_result.data or []
+        if inside_track_jobs:
+            # Add inside track jobs that aren't already in results
+            existing_job_ids = {j.get('job_id') for j in jobs}
+            new_inside_track = [j for j in inside_track_jobs if j.get('job_id') not in existing_job_ids]
+            if new_inside_track:
+                jobs = new_inside_track + jobs  # Put partner jobs at the top
+                print(f"🤝 Added {len(new_inside_track)} inside track partner jobs to results")
+
         # EXPORT CSV FIRST - before any link generation bullshit
         if jobs:
             import pandas as pd
