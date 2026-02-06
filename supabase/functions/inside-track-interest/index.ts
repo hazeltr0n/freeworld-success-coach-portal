@@ -13,6 +13,91 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Simple SMTP email sender - mimics Python's smtplib approach
+async function sendEmailSmtp(
+  to: string,
+  subject: string,
+  htmlBody: string,
+  textBody?: string
+): Promise<boolean> {
+  const gmailAddress = Deno.env.get("GMAIL_ADDRESS");
+  const gmailAppPassword = Deno.env.get("GMAIL_APP_PASSWORD");
+
+  if (!gmailAddress || !gmailAppPassword) {
+    console.log("📧 GMAIL credentials not set");
+    return false;
+  }
+
+  try {
+    const boundary = "----=_Part_" + Math.random().toString(36).substring(2);
+
+    // Build email like Python's MIMEMultipart('alternative')
+    let emailContent = `From: ${gmailAddress}\r\n`;
+    emailContent += `To: ${to}\r\n`;
+    emailContent += `Subject: ${subject}\r\n`;
+    emailContent += `MIME-Version: 1.0\r\n`;
+    emailContent += `Content-Type: multipart/alternative; boundary="${boundary}"\r\n`;
+    emailContent += `\r\n`;
+
+    // Plain text part (if provided)
+    if (textBody) {
+      emailContent += `--${boundary}\r\n`;
+      emailContent += `Content-Type: text/plain; charset="utf-8"\r\n`;
+      emailContent += `\r\n`;
+      emailContent += `${textBody}\r\n`;
+    }
+
+    // HTML part
+    emailContent += `--${boundary}\r\n`;
+    emailContent += `Content-Type: text/html; charset="utf-8"\r\n`;
+    emailContent += `\r\n`;
+    emailContent += `${htmlBody}\r\n`;
+    emailContent += `--${boundary}--\r\n`;
+
+    // Connect to Gmail SMTP over TLS
+    const conn = await Deno.connectTls({
+      hostname: "smtp.gmail.com",
+      port: 465,
+    });
+
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+
+    async function send(cmd: string): Promise<string> {
+      await conn.write(encoder.encode(cmd + "\r\n"));
+      const buf = new Uint8Array(1024);
+      const n = await conn.read(buf);
+      return decoder.decode(buf.subarray(0, n || 0));
+    }
+
+    async function read(): Promise<string> {
+      const buf = new Uint8Array(1024);
+      const n = await conn.read(buf);
+      return decoder.decode(buf.subarray(0, n || 0));
+    }
+
+    // SMTP conversation
+    await read(); // greeting
+    await send(`EHLO localhost`);
+    await send(`AUTH LOGIN`);
+    await send(btoa(gmailAddress));
+    await send(btoa(gmailAppPassword));
+    await send(`MAIL FROM:<${gmailAddress}>`);
+    await send(`RCPT TO:<${to}>`);
+    await send(`DATA`);
+    await conn.write(encoder.encode(emailContent + "\r\n.\r\n"));
+    await read();
+    await send(`QUIT`);
+
+    conn.close();
+    console.log(`📧 Email sent to ${to}`);
+    return true;
+  } catch (e) {
+    console.error("📧 SMTP error:", e);
+    return false;
+  }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -173,10 +258,10 @@ serve(async (req) => {
     `);
   }
 
-  // Fetch agent details for email/phone
+  // Fetch agent details
   const { data: agent } = await supabase
     .from("agent_profiles")
-    .select("agent_name, agent_email, agent_phone")
+    .select("agent_name, agent_email, admin_portal_url")
     .eq("agent_uuid", agent_id)
     .single();
 
@@ -229,7 +314,7 @@ serve(async (req) => {
           agent_uuid: agent_id,
           agent_name: agent?.agent_name || agent_name,
           agent_email: agent?.agent_email || null,
-          agent_phone: agent?.agent_phone || null,
+          agent_phone: null,
           coach_username: job.success_coach,
           status: "new",
         });
@@ -239,7 +324,68 @@ serve(async (req) => {
         throw new Error("Failed to record interest");
       }
 
-      // Email notification is handled by Python poller (checks inside_track_interests for status='new')
+      // Send email notification (like Python's _send_email_smtp)
+      const agentDisplayName = agent?.agent_name || agent_name || "Unknown Agent";
+      const agentEmail = agent?.agent_email || "Not provided";
+      const adminPortalUrl = agent?.admin_portal_url || "";
+      // Capitalize coach name
+      const rawCoachName = job.success_coach || "Unknown Coach";
+      const coachName = rawCoachName.charAt(0).toUpperCase() + rawCoachName.slice(1);
+
+      const portalUrl = "https://fwcareercoach.streamlit.app";
+
+      const htmlBody = `<!DOCTYPE html>
+<html>
+<body style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px;">
+<h2 style="color: #004751;">New Partner Job Interest</h2>
+<div style="background: #f4f4f4; padding: 16px; border-radius: 8px; margin: 16px 0;">
+<h3 style="margin: 0 0 8px 0; color: #191931;">Free Agent Details</h3>
+<p style="margin: 4px 0;"><strong>Name:</strong> ${agentDisplayName}</p>
+<p style="margin: 4px 0;"><strong>Email:</strong> ${agentEmail}</p>
+<p style="margin: 4px 0;"><strong>Coach:</strong> ${coachName}</p>
+${adminPortalUrl ? `<p style="margin: 4px 0;"><a href="${adminPortalUrl}" style="color: #004751; font-weight: bold;">View Agent Profile</a></p>` : ""}
+</div>
+<div style="background: #e8f5e9; padding: 16px; border-radius: 8px; margin: 16px 0;">
+<h3 style="margin: 0 0 8px 0; color: #004751;">Job Details</h3>
+<p style="margin: 4px 0;"><strong>Title:</strong> ${job.job_title}</p>
+<p style="margin: 4px 0;"><strong>Company:</strong> ${job.company}</p>
+<p style="margin: 4px 0;"><strong>Location:</strong> ${job.location}</p>
+<p style="margin: 4px 0;"><strong>Market:</strong> ${job.market || "N/A"}</p>
+</div>
+<p style="color: #666; font-size: 14px;">
+This Free Agent clicked EXPRESS INTEREST on a FreeWorld Partner job in their portal.
+Please follow up with the agent and employer to facilitate the connection.
+</p>
+<p style="margin-top: 16px;">
+<a href="${portalUrl}" style="color: #004751; font-weight: bold;">Open Coach Portal</a>
+</p>
+<hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+<p style="color: #999; font-size: 12px;">Sent automatically by Opptek Portal</p>
+</body>
+</html>`;
+
+      const textBody = `New Partner Job Interest
+
+Free Agent: ${agentDisplayName}
+Email: ${agentEmail}
+Coach: ${coachName}
+${adminPortalUrl ? `Agent Profile: ${adminPortalUrl}` : ""}
+
+Job: ${job.job_title} at ${job.company}
+Location: ${job.location}
+Market: ${job.market || "N/A"}
+
+Please follow up with the agent and employer.
+
+Coach Portal: ${portalUrl}`;
+
+      await sendEmailSmtp(
+        "placement@freeworld.org",
+        `New Partner Job Interest: ${agentDisplayName} - ${job.job_title}`,
+        htmlBody,
+        textBody
+      );
+
       console.log(`✅ Interest recorded for ${agent?.agent_name || agent_name} → ${job.job_title}`);
 
       if (wantsJson) {
