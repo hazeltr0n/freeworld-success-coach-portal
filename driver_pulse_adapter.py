@@ -5,6 +5,7 @@ Converts DriverPulse scraped data to FreeWorld Pipeline v3 format
 """
 
 import pandas as pd
+import time
 from datetime import datetime
 from typing import List, Dict, Any
 from jobs_schema import build_empty_df
