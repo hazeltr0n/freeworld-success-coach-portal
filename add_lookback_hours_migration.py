@@ -8,7 +8,7 @@ import os
 from supabase import create_client
 
 def add_lookback_hours_field():
-    """Add lookback_hours field to agent_profiles table with default value of 72"""
+    """Add lookback_hours field to agent_profiles table with default value of 168"""
 
     # Get Supabase credentials
     url = os.getenv('SUPABASE_URL')
@@ -35,27 +35,27 @@ def add_lookback_hours_field():
         # This would need to be run manually in Supabase SQL editor:
         sql_command = """
         ALTER TABLE agent_profiles
-        ADD COLUMN IF NOT EXISTS lookback_hours INTEGER DEFAULT 72;
+        ADD COLUMN IF NOT EXISTS lookback_hours INTEGER DEFAULT 168;
 
-        COMMENT ON COLUMN agent_profiles.lookback_hours IS 'Memory search lookback period in hours (default 72h to match home page)';
+        COMMENT ON COLUMN agent_profiles.lookback_hours IS 'Memory search lookback period in hours (default 168h to match home page)';
         """
 
         print("📋 SQL to run in Supabase SQL editor:")
         print(sql_command)
 
         # Try to update existing records to have default value
-        print("🔄 Setting default lookback_hours=72 for existing agents...")
+        print("🔄 Setting default lookback_hours=168 for existing agents...")
 
         # Get all agents without lookback_hours set
         result = client.table('agent_profiles').select('agent_uuid').execute()
 
         if result.data:
-            # Update all existing agents to have default 72h lookback
+            # Update all existing agents to have default 168h lookback
             update_result = client.table('agent_profiles').update({
-                'lookback_hours': 72
+                'lookback_hours': 168
             }).is_('lookback_hours', 'null').execute()
 
-            print(f"✅ Updated {len(update_result.data or [])} existing agents with default lookback_hours=72")
+            print(f"✅ Updated {len(update_result.data or [])} existing agents with default lookback_hours=168")
 
         return True
 
@@ -73,6 +73,6 @@ if __name__ == "__main__":
         print("\n✅ Migration completed successfully!")
         print("\n🔧 Manual step required:")
         print("   Run this SQL in Supabase SQL editor:")
-        print("   ALTER TABLE agent_profiles ADD COLUMN IF NOT EXISTS lookback_hours INTEGER DEFAULT 72;")
+        print("   ALTER TABLE agent_profiles ADD COLUMN IF NOT EXISTS lookback_hours INTEGER DEFAULT 168;")
     else:
         print("\n❌ Migration failed!")

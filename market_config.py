@@ -4,6 +4,9 @@ Market Configuration
 Centralized market center ZIPs and city lists for search optimization
 """
 
+# Global job memory/expiry settings
+DEFAULT_MEMORY_HOURS = 168  # 7 days (was 72 hours / 3 days)
+
 # Market center ZIP codes (from market search radius.csv)
 MARKET_CENTER_ZIPS = {
     'Dallas': '75060',

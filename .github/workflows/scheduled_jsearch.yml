@@ -2,8 +2,8 @@ name: Scheduled JSearch Google Jobs Scraper
 
 on:
   schedule:
-    # Tue/Thu/Sat at 2am Central (7am UTC) - offset from Indeed/DriverPulse
-    - cron: '0 7 * * 2,4,6'
+    # Daily at 2am Central (7am UTC)
+    - cron: '0 7 * * *'
   workflow_dispatch:  # Allow manual trigger for testing
 
 jobs:

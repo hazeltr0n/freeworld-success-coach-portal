@@ -48,7 +48,7 @@ def encode_agent_params(params: Dict[str, Any]) -> str:
         'coach_username': params.get('coach_username', ''),
         'show_prepared_for': params.get('show_prepared_for', True),  # Include prepared message setting
         'pathway_preferences': params.get('pathway_preferences', []),  # Individual pathway checkboxes
-        'lookback_hours': params.get('lookback_hours', 72),  # Memory search lookback period (default 72h to match home page)
+        'lookback_hours': params.get('lookback_hours', 168),  # Memory search lookback period (default 7 days)
         'zip_code': params.get('zip_code', ''),  # Agent ZIP code for radius filtering
         'zip_radius_miles': params.get('zip_radius_miles', 25),  # Search radius in miles (default 25)
     }
@@ -74,7 +74,7 @@ def decode_agent_params(encoded: str) -> Dict[str, Any]:
             'coach_username': '',
             'show_prepared_for': True,  # Default to True when decoding fails
             'pathway_preferences': [],  # Default to empty pathways list
-            'lookback_hours': 72,  # Default to 72h when decoding fails
+            'lookback_hours': 168,  # Default to 7 days when decoding fails
             'zip_code': '',  # Default to empty ZIP
             'zip_radius_miles': 25,  # Default to 25 miles radius
         }

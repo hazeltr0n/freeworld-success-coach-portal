@@ -116,8 +116,8 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
 
             print(f"🛤️ CLEAN AGENT PORTAL: Agent pathway preferences: {pathway_preferences}")
 
-            # Get lookback hours from agent params, default to 72h (same as home page default)
-            lookback_hours = agent_params.get('lookback_hours', 72)
+            # Get lookback hours from agent params, default to 7 days
+            lookback_hours = agent_params.get('lookback_hours', 168)
             print(f"🕐 CLEAN AGENT PORTAL: Using lookback_hours={lookback_hours} from agent params")
 
             # Get ZIP radius filtering params
