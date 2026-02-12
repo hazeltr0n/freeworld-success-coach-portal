@@ -961,11 +961,11 @@ class FreeWorldPipelineV3:
 
                 for term in search_terms_list:
                     encoded_term = term.replace(' ', '+')
-                    # Use commuteTime parameter instead of radius (Indeed's new URL format)
-                    indeed_url = f"https://www.indeed.com/jobs?q={encoded_term}&l={encoded_location}&commuteTime={int(indeed_commute)}"
+                    # Use radius parameter (miles)
+                    indeed_url = f"https://www.indeed.com/jobs?q={encoded_term}&l={encoded_location}&radius={radius}"
                     if no_experience:
-                        # Add "no experience" search context
-                        indeed_url += "&sc=0kf%3Aattr%28D7S5D%29%3B"
+                        # Add entry level filter
+                        indeed_url += "&sc=0kf%3Aexplvl%28ENTRY_LEVEL%29%3B"
                     indeed_urls.append(indeed_url)
 
                 search_params = {

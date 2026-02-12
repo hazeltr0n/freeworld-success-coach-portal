@@ -183,9 +183,9 @@ class MultiSearchStrategy:
         params.append(f"l={location.replace(' ', '+').replace(',', '%2C')}")
         params.append(f"radius={radius}")
         
-        # Add no experience filter if requested
+        # Add entry level filter if requested
         if no_experience:
-            params.append("sc=0kf%3Aattr%28D7S5D%29%3B")
+            params.append("sc=0kf%3Aexplvl%28ENTRY_LEVEL%29%3B")
         
         # Join all parameters
         url = base_url + "?" + "&".join(params)

@@ -9,7 +9,7 @@ on:
 jobs:
   jsearch-scraper:
     runs-on: ubuntu-latest
-    timeout-minutes: 120  # 2 hours max
+    timeout-minutes: 240  # 4 hours max
 
     steps:
       - name: Checkout code
