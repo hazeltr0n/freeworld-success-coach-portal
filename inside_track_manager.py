@@ -165,12 +165,16 @@ def save_inside_track_job(job_data: Dict, coach_username: str) -> Tuple[bool, st
             'expires_at': job_data.get('expires_at') if job_data.get('expires_at') else None,
         }
 
-        # Try insert first (most common case for new jobs)
+        # Use batch_insert_jobs_with_dedup RPC (has 5 min timeout vs PostgREST default)
         try:
-            result = client.table('jobs').insert(record).execute()
-            action = "created"
+            result = client.rpc('batch_insert_jobs_with_dedup', {'p_jobs_data': [record]}).execute()
+            # RPC returns count, check if insert succeeded
+            if result.data and result.data > 0:
+                action = "created"
+            else:
+                action = "updated"  # ON CONFLICT triggered an update
         except Exception as insert_err:
-            # If duplicate key error, try update instead
+            # If duplicate key error, try direct update
             if 'duplicate' in str(insert_err).lower() or '23505' in str(insert_err):
                 result = client.table('jobs').update(record).eq('job_id', job_id).execute()
                 action = "updated"
