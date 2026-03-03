@@ -6418,7 +6418,8 @@ def show_inside_track_jobs_page(coach):
                     if success:
                         st.success(f"✅ {msg}")
                         st.balloons()
-                        # Switch to All Jobs tab
+                        # Switch to All Jobs tab (must set the radio key value, not just index)
+                        st.session_state.inside_track_sub_tab_radio = "📋 All Jobs"
                         st.session_state.inside_track_tab = 0
                         st.rerun()
                     else:
