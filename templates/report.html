@@ -333,6 +333,59 @@
       cursor: pointer;
     }
 
+    /* Apply Instructions Modal Styles */
+    .apply-instructions-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .apply-instructions-content {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      animation: modalSlideIn 0.2s ease-out;
+    }
+    @keyframes modalSlideIn {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .apply-instructions-text {
+      background: #f8f9fa;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--fw-midnight);
+      margin-bottom: 16px;
+    }
+    .apply-modal-close {
+      width: 100%;
+      padding: 14px 24px;
+      background: var(--fw-freedom-green);
+      color: var(--fw-midnight);
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .apply-modal-close:hover {
+      background: #b8e04d;
+    }
+
     /* Mobile responsive adjustments */
     @media screen and (max-width: 600px) {
       .footer-row {
@@ -648,6 +701,65 @@
         if (btn) btn.style.display = 'block';
       }
     }
+
+    // Apply Instructions Modal - for jobs without URL (phone/address to apply)
+    function showApplyInstructions(jobId, candidateId) {
+      console.log('showApplyInstructions:', jobId, candidateId);
+
+      // Show the modal
+      const modal = document.getElementById('apply-modal-' + jobId);
+      if (modal) {
+        modal.style.display = 'flex';
+      }
+
+      // Track the click as an apply action
+      trackApplyInstructionsView(jobId, candidateId);
+    }
+
+    function hideApplyInstructions(jobId) {
+      const modal = document.getElementById('apply-modal-' + jobId);
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    }
+
+    async function trackApplyInstructionsView(jobId, candidateId) {
+      // Get job details from the card
+      const jobCard = document.getElementById('apply-modal-' + jobId)?.closest('.page-container');
+      const jobTitle = jobCard?.querySelector('.card-header h1')?.textContent || 'Unknown';
+      const jobCompany = jobCard?.querySelector('.metadata-row .company')?.textContent || 'Unknown';
+
+      const feedbackData = {
+        candidate_id: candidateId,
+        job_id: jobId,
+        job_url: 'apply_instructions_viewed',
+        job_title: jobTitle,
+        company: jobCompany,
+        feedback_type: 'viewed_apply_instructions',
+        location: 'unknown',
+        coach: 'unknown'
+      };
+
+      console.log('Tracking apply instructions view:', feedbackData);
+
+      try {
+        await fetch('https://yqbdltothngundojuebk.supabase.co/functions/v1/job-feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(feedbackData)
+        });
+        console.log('Apply instructions view tracked successfully');
+      } catch (err) {
+        console.error('Failed to track apply instructions view:', err);
+      }
+    }
+
+    // Close modal when clicking outside content
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('apply-instructions-modal')) {
+        e.target.style.display = 'none';
+      }
+    });
 
     // Job feedback functionality
     function toggleFeedback(jobId) {

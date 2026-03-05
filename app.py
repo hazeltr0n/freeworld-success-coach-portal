@@ -6359,8 +6359,16 @@ def show_inside_track_jobs_page(coach):
             apply_url = st.text_input(
                 "Apply URL",
                 placeholder="https://company.com/apply",
-                help="Required for Inside Track jobs. Optional for Partner Opportunities.",
+                help="Leave blank if job requires calling or showing up in person.",
                 key="inside_track_apply_url"
+            )
+
+            apply_instructions = st.text_area(
+                "Apply Instructions (if no URL)",
+                placeholder="Call 555-123-4567 and ask for John\nOR\nShow up at 123 Main St, Mon-Fri 8am-4pm with CDL",
+                help="For jobs without a website - phone number to call or address to visit. Tracked when Free Agent views these.",
+                height=80,
+                key="inside_track_apply_instructions"
             )
 
             st.markdown("---")
@@ -6390,9 +6398,10 @@ def show_inside_track_jobs_page(coach):
             if submitted:
                 # Validate required fields
                 required_ok = all([job_title, company, location, market, job_description])
-                # Apply URL required for inside_track type only
-                if inside_track_type == "inside_track" and not apply_url:
-                    st.error("❌ Apply URL is required for Inside Track jobs")
+                # Need either apply_url OR apply_instructions for inside_track type
+                has_apply_method = apply_url or apply_instructions
+                if inside_track_type == "inside_track" and not has_apply_method:
+                    st.error("❌ Either Apply URL or Apply Instructions is required for Inside Track jobs")
                 elif not required_ok:
                     st.error("❌ Please fill in all required fields (marked with *)")
                 else:
@@ -6404,6 +6413,7 @@ def show_inside_track_jobs_page(coach):
                         'market': market,
                         'job_description': job_description,
                         'apply_url': apply_url,
+                        'apply_instructions': apply_instructions,
                         'inside_track_type': inside_track_type,
                         'salary': salary,
                         'route_type': route_type,
@@ -6418,8 +6428,7 @@ def show_inside_track_jobs_page(coach):
                     if success:
                         st.success(f"✅ {msg}")
                         st.balloons()
-                        # Switch to All Jobs tab (must set the radio key value, not just index)
-                        st.session_state.inside_track_sub_tab_radio = "📋 All Jobs"
+                        # Switch to All Jobs tab via index (radio uses index=st.session_state.inside_track_tab)
                         st.session_state.inside_track_tab = 0
                         st.rerun()
                     else:

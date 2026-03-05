@@ -382,6 +382,7 @@ def jobs_dataframe_to_dicts(df, candidate_id: str = None, agent_name: str = None
         tracked = _clean_text(r.get('meta.tracked_url', ''))
         source_url = _clean_text(r.get('source.url', ''))
         clean_url = _clean_text(r.get('clean_apply_url', ''))
+        apply_instructions = _clean_text(r.get('apply_instructions', ''))
 
         # Use full job_id for database matching (not truncated)
         job_id = r.get('id.job', 'unknown')
@@ -521,6 +522,7 @@ def jobs_dataframe_to_dicts(df, candidate_id: str = None, agent_name: str = None
             "description_summary": description_summary,
             "description_full": description_full,
             "apply_url": tracking_url,  # Use tracking URL for actual clicks
+            "apply_instructions": apply_instructions,  # Phone/address for jobs without URL
             "display_link": display_link,  # Keep Short.io link for display
             # Fields needed for feedback system (job_id for template, candidate_id for fallback)
             "job_id": job_id,

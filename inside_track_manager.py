@@ -76,7 +76,8 @@ def save_inside_track_job(job_data: Dict, coach_username: str) -> Tuple[bool, st
             - location (required) - "City, State" format
             - market (required)
             - job_description (required)
-            - apply_url (required)
+            - apply_url (optional - can use apply_instructions instead)
+            - apply_instructions (optional - phone/address for jobs without URL)
             - salary (optional)
             - route_type (optional, default 'Local')
             - fair_chance (optional, default 'fair_chance_employer')
@@ -163,6 +164,7 @@ def save_inside_track_job(job_data: Dict, coach_username: str) -> Tuple[bool, st
             'partner_name': job_data.get('partner_name', ''),
             'partner_notes': job_data.get('partner_notes', ''),
             'expires_at': job_data.get('expires_at') if job_data.get('expires_at') else None,
+            'apply_instructions': job_data.get('apply_instructions', ''),
         }
 
         # Use batch_insert_jobs_with_dedup RPC (has 5 min timeout vs PostgREST default)
@@ -465,8 +467,8 @@ def update_inside_track_job(job_id: str, updates: Dict, coach_username: str) -> 
         # Map of allowed update fields
         allowed_fields = {
             'job_title', 'company', 'location', 'job_description', 'apply_url',
-            'salary', 'market', 'match_level', 'route_type', 'fair_chance',
-            'career_pathway', 'partner_name', 'partner_notes', 'expires_at'
+            'apply_instructions', 'salary', 'market', 'match_level', 'route_type',
+            'fair_chance', 'career_pathway', 'partner_name', 'partner_notes', 'expires_at'
         }
 
         for field, value in updates.items():

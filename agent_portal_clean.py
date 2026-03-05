@@ -183,6 +183,7 @@ def generate_agent_portal(agent_params: Dict[str, Any]) -> str:
                         # Inside track fields
                         'inside_track_type': row.get('inside_track_type', 'inside_track'),
                         'clean_apply_url': row.get('clean_apply_url', ''),
+                        'apply_instructions': row.get('apply_instructions', ''),
 
                         # Processed fields for compatibility
                         'norm.title': row.get('job_title', ''),
