@@ -100,17 +100,14 @@
           <a href="{{ job.apply_url }}" target="_blank" rel="noopener">{{ job.display_link }}</a>
         </p>
       {% elif job.apply_instructions %}
-        <!-- Jobs with apply instructions (call/show up) instead of URL -->
-        <button class="apply-button" onclick="showApplyInstructions('{{ job.job_id }}', '{{ job.candidate_id }}')">
+        <!-- Jobs with apply instructions (call/show up) instead of URL - inline expandable -->
+        <button class="apply-button" onclick="toggleApplyInstructions('{{ job.job_id }}', '{{ job.candidate_id }}')">
           <img src="{{ assets.icon_logo }}" alt="Logo"> VIEW HOW TO APPLY
+          <span class="arrow" id="apply-arrow-{{ job.job_id }}">▼</span>
         </button>
-        <!-- Modal for apply instructions -->
-        <div id="apply-modal-{{ job.job_id }}" class="apply-instructions-modal" style="display: none;">
-          <div class="apply-instructions-content">
-            <h3 style="margin: 0 0 12px 0; color: var(--fw-roots);">📋 How to Apply</h3>
-            <div class="apply-instructions-text">{{ job.apply_instructions | replace('\n', '<br>') | safe }}</div>
-            <button class="apply-modal-close" onclick="hideApplyInstructions('{{ job.job_id }}')">Got it!</button>
-          </div>
+        <!-- Inline expandable instructions (hidden by default) -->
+        <div id="apply-instructions-{{ job.job_id }}" class="apply-instructions-inline" style="display: none;">
+          <div class="apply-instructions-text">{{ job.apply_instructions | replace('\n', '<br>') | safe }}</div>
         </div>
       {% else %}
         <p class="short-url">Apply link unavailable</p>

@@ -413,17 +413,21 @@ def jobs_dataframe_to_dicts(df, candidate_id: str = None, agent_name: str = None
             display_link = ""
             company = "FreeWorld Partner Opportunity"
         elif is_inside_track:
-            # Regular inside track - use direct link, show real company
-            original_url = source_url or clean_url
+            # Regular inside track - use direct link if available, otherwise rely on apply_instructions
+            # Only use clean_url if it's actually a URL (not phone/address instructions)
+            original_url = source_url
+            if not original_url and clean_url and clean_url.startswith(('http://', 'https://')):
+                original_url = clean_url
             apply_url = original_url
             if original_url:
                 display_url = original_url.replace('https://', '').replace('http://', '').replace('www.', '')
                 if len(display_url) > 35:
                     display_url = display_url[:32] + '...'
                 display_link = display_url
+                print(f"📋 Inside Track Job {job_id_display}: using direct link")
             else:
                 display_link = ''
-            print(f"📋 Inside Track Job {job_id_display}: using direct link")
+                print(f"📋 Inside Track Job {job_id_display}: no URL, will use apply_instructions")
         else:
             # Use original job URL for display and tracking (skip Short.io tracked URLs)
             original_url = source_url or clean_url
